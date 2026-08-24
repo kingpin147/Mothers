@@ -5,6 +5,8 @@ import { person, application, consentRecord, window } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { queueAndSendEmail } from "@/lib/brevo";
 
+import { z } from "zod";
+
 export interface ApplicationFormData {
   firstName: string;
   lastName?: string;
@@ -23,13 +25,33 @@ export interface ApplicationFormData {
   locale: "en" | "es";
 }
 
+const applicationSchema = z.object({
+  firstName: z.string().min(1, "First name is required").trim(),
+  lastName: z.string().trim().optional(),
+  email: z.string().email("Invalid email").toLowerCase().trim(),
+  stage: z.string().min(1),
+  childrenAge: z.string().optional(),
+  neighbourhood: z.string().min(1),
+  hopingToFind: z.array(z.string()),
+  freeTimes: z.array(z.string()),
+  referralSource: z.string().optional(),
+  socialPlatform: z.string().optional(),
+  socialHandle: z.string().optional(),
+  motivation: z.string().optional(),
+  billingPreference: z.string(),
+  termsAccepted: z.literal(true),
+  locale: z.enum(["en", "es"]).default("es"),
+});
+
 export async function submitApplication(data: ApplicationFormData) {
   try {
-    if (!data.firstName || !data.email || !data.stage || !data.neighbourhood || !data.termsAccepted) {
-      return { success: false, error: "MISSING_REQUIRED_FIELDS" };
+    const parsed = applicationSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: "VALIDATION_FAILED", details: parsed.error.format() };
     }
+    const validData = parsed.data;
 
-    const email = data.email.toLowerCase().trim();
+    const email = validData.email;
 
     // 1. Get current open window
     let currentWindow = await db.query.window.findFirst({

@@ -5,9 +5,18 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { getAdminDashboardMetrics, runManualCron } from "@/app/actions/adminDashboard";
 import { confirmEventDecision, cancelEventDecision } from "@/app/actions/adminEvents";
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboardPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/account/login");
+    }
+  }, [status, router]);
+
   const role = (session?.user as any)?.role || "manager";
 
   const [data, setData] = useState<any | null>(null);

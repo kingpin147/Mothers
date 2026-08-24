@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { application, person, member, memberCredential, creditEntry, auditLog } from "@/db/schema";
+import { application, person, member, memberCredential, creditEntry, auditLog, window } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
@@ -79,80 +79,75 @@ export async function completeMembershipActivation(token: string, password: stri
       });
     }
 
-    // 2. Transition Application to 'paid'
-    await db
-      .update(application)
-      .set({
-        status: "paid",
-        updatedAt: new Date(),
-      })
-      .where(eq(application.id, appRecord.id));
-
-    // 3. Activate member & lock rate for 12 months (§20.1)
-    const now = new Date();
-    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const priceLockUntil = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-
     const existingMember = await db.query.member.findFirst({
       where: eq(member.personId, personRecord.id),
     });
 
-    let memberId: string;
-
-    if (existingMember) {
-      memberId = existingMember.id;
-      await db
-        .update(member)
-        .set({
-          status: "active",
-          joinedAt: now,
-          monthlyPriceCents: 2900,
-          priceLockedUntil: priceLockUntil,
-          joiningFeePaidCents: 5800,
-          currentPeriodEnd: periodEnd,
-          cancelAtPeriodEnd: false,
-          updatedAt: now,
-        })
-        .where(eq(member.id, existingMember.id));
-    } else {
-      const insertedMember = await db
-        .insert(member)
-        .values({
-          personId: personRecord.id,
-          status: "active",
-          joinedAt: now,
-          monthlyPriceCents: 2900,
-          priceLockedUntil: priceLockUntil,
-          joiningFeePaidCents: 5800,
-          currentPeriodEnd: periodEnd,
-        })
-        .returning({ id: member.id });
-      memberId = insertedMember[0].id;
+    if (!existingMember) {
+      return { success: false, error: "MEMBER_RECORD_NOT_FOUND" };
     }
 
-    // 4. Grant initial 20 monthly credits (§5)
-    await db.insert(creditEntry).values({
-      memberId,
-      amount: 20,
-      type: "grant",
-      expiresAt: new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000), // 6-month FIFO expiry
-      sourceType: "window",
-      sourceId: appRecord.windowId,
-      reason: "Initial Monthly Grant (Opening Circle)",
+    // 2. Fetch window pricing
+    const windowRecord = await db.query.window.findFirst({
+      where: eq(window.id, appRecord.windowId),
     });
 
-    // 5. Audit log
-    await db.insert(auditLog).values({
-      actorId: personRecord.id,
-      actorType: "member",
-      action: "activate_membership",
-      entity: "member",
-      entityId: memberId,
-      before: { status: "accepted_awaiting_payment" },
-      after: { status: "active", creditBalance: 20 },
+    if (!windowRecord) return { success: false, error: "WINDOW_NOT_FOUND" };
+
+    // 3. Generate Stripe Checkout Session for Membership
+    const { stripe } = await import("@/lib/stripe");
+    const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+
+    const lineItems: any[] = [
+      {
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: "The Mothers - Monthly Membership",
+          },
+          unit_amount: windowRecord.monthlyPriceCents,
+          recurring: {
+            interval: "month",
+          },
+        },
+        quantity: 1,
+      }
+    ];
+
+    if (windowRecord.joiningFeeCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "eur",
+          product_data: {
+            name: "The Mothers - Joining Fee (One-time)",
+          },
+          unit_amount: windowRecord.joiningFeeCents,
+        },
+        quantity: 1,
+      });
+    }
+
+    const stripeSession = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "subscription",
+      customer_email: personRecord.email,
+      line_items: lineItems,
+      subscription_data: {
+        metadata: {
+          memberId: existingMember.id,
+        }
+      },
+      metadata: {
+        type: "membership",
+        memberId: existingMember.id,
+        personId: personRecord.id,
+        applicationId: appRecord.id,
+      },
+      success_url: `${origin}/account/login?membership_success=true`,
+      cancel_url: `${origin}/membership/activate/${token}?canceled=true`,
     });
 
-    return { success: true, email: personRecord.email };
+    return { success: true, url: stripeSession.url };
   } catch (error: any) {
     console.error("completeMembershipActivation error:", error);
     return { success: false, error: error?.message || "ACTIVATION_FAILED" };

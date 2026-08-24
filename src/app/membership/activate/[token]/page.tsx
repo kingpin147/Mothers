@@ -48,8 +48,8 @@ export default function ActivateMembershipPage() {
     const res = await completeMembershipActivation(token, password);
     setSubmitting(false);
 
-    if (res.success) {
-      setActivated(true);
+    if (res.success && res.url) {
+      window.location.href = res.url;
     } else {
       setErrorMsg(res.error || "Activation failed.");
     }

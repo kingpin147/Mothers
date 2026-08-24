@@ -6,6 +6,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { queueAndSendEmail } from "@/lib/brevo";
 import crypto from "crypto";
+import { z } from "zod";
 
 // List applications for admin review queue
 export async function getApplicationsForAdmin(statusFilter?: "submitted" | "accepted" | "declined" | "all") {
@@ -43,8 +44,14 @@ export async function getApplicationsForAdmin(statusFilter?: "submitted" | "acce
   return { success: true, applications: allApps.filter((a) => a.status === statusFilter) };
 }
 
+const acceptAppSchema = z.object({ applicationId: z.string().uuid() });
+
 // Accept an application: Generates 72-hour signed payment link and sends Email - Accepted.html (§19, §20.1)
 export async function acceptApplication(applicationId: string) {
+  const parsed = acceptAppSchema.safeParse({ applicationId });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  applicationId = parsed.data.applicationId;
+
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
@@ -168,8 +175,18 @@ export async function acceptApplication(applicationId: string) {
   return { success: true, paymentLinkToken, expiresAt };
 }
 
+const declineAppSchema = z.object({
+  applicationId: z.string().uuid(),
+  reasonCode: z.string().optional(),
+  declineNote: z.string().optional(),
+});
+
 // Decline an application (§4.2, §19)
 export async function declineApplication(applicationId: string, reasonCode?: string, declineNote?: string) {
+  const parsed = declineAppSchema.safeParse({ applicationId, reasonCode, declineNote });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  ({ applicationId, reasonCode, declineNote } = parsed.data);
+
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;

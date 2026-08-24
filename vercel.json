@@ -1,0 +1,36 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/expire-credits",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/threshold-decisions",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/open-guest-windows",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/expire-offers",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/complete-events",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/event-reminders",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/flag-at-risk",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/reconcile",
+      "schedule": "0 5 * * *"
+    }
+  ]
+}

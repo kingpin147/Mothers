@@ -13,14 +13,17 @@ import {
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import crypto from "crypto";
+import { z } from "zod";
 
 async function verifyAdmin() {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager" && role !== "host")) {
+  const adminId = session?.user?.id;
+
+  if (!adminId || !role || (role !== "owner" && role !== "manager" && role !== "host")) {
     throw new Error("UNAUTHORIZED_ADMIN");
   }
-  return { adminId: session?.user?.id, role };
+  return { adminId, role };
 }
 
 // ─── 1. EVENT ATTENDEES & TICKETING ROSTER ─────────────────────────────────
@@ -71,6 +74,12 @@ export async function getEventAttendees(eventId: string) {
   };
 }
 
+const adminMarkAttendanceSchema = z.object({
+  type: z.enum(["member", "guest"]),
+  id: z.string().uuid(),
+  status: z.enum(["attended", "no_show", "confirmed", "released"]),
+});
+
 // ─── 2. ADMIN MARK ATTENDANCE (CHECK-IN / NO-SHOW) ──────────────────────────
 
 export async function adminMarkAttendance(
@@ -78,6 +87,10 @@ export async function adminMarkAttendance(
   id: string,
   status: "attended" | "no_show" | "confirmed" | "released"
 ) {
+  const parsed = adminMarkAttendanceSchema.safeParse({ type, id, status });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  ({ type, id, status } = parsed.data);
+
   const { adminId } = await verifyAdmin();
 
   if (type === "member") {
@@ -104,6 +117,13 @@ export async function adminMarkAttendance(
   return { success: true };
 }
 
+const adminManualBookSchema = z.object({
+  eventId: z.string().uuid(),
+  memberId: z.string().uuid(),
+  deductCredits: z.boolean(),
+  notes: z.string().optional(),
+});
+
 // ─── 3. ADMIN MANUAL BOOKING / COMPLIMENTARY SEAT ───────────────────────────
 
 export async function adminManualBookMember(data: {
@@ -112,24 +132,28 @@ export async function adminManualBookMember(data: {
   deductCredits: boolean;
   notes?: string;
 }) {
+  const parsed = adminManualBookSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  const validData = parsed.data;
+
   const { adminId } = await verifyAdmin();
 
   const ev = await db.query.event.findFirst({
-    where: eq(event.id, data.eventId),
+    where: eq(event.id, validData.eventId),
   });
   if (!ev) return { success: false, error: "EVENT_NOT_FOUND" };
 
   const targetMember = await db.query.member.findFirst({
-    where: eq(member.id, data.memberId),
+    where: eq(member.id, validData.memberId),
   });
   if (!targetMember) return { success: false, error: "MEMBER_NOT_FOUND" };
 
   await db.transaction(async (tx) => {
-    const creditsToCharge = data.deductCredits ? ev.creditCost : 0;
+    const creditsToCharge = validData.deductCredits ? ev.creditCost : 0;
 
     if (creditsToCharge > 0) {
       await tx.insert(creditEntry).values({
-        memberId: data.memberId,
+        memberId: validData.memberId,
         amount: -creditsToCharge,
         type: "spend",
         sourceType: "event",
@@ -141,9 +165,9 @@ export async function adminManualBookMember(data: {
     const insertedBooking = await tx
       .insert(booking)
       .values({
-        eventId: data.eventId,
+        eventId: validData.eventId,
         personId: targetMember.personId,
-        memberId: data.memberId,
+        memberId: validData.memberId,
         kind: "member",
         creditsCharged: creditsToCharge,
         status: "confirmed",
@@ -156,12 +180,19 @@ export async function adminManualBookMember(data: {
       action: "manual_booking_created",
       entity: "booking",
       entityId: insertedBooking[0].id,
-      after: { eventId: data.eventId, memberId: data.memberId, deductCredits: data.deductCredits },
+      after: { eventId: validData.eventId, memberId: validData.memberId, deductCredits: validData.deductCredits },
     });
   });
 
   return { success: true };
 }
+
+const adminIssueGuestPassSchema = z.object({
+  eventId: z.string().uuid(),
+  firstName: z.string().min(1).trim(),
+  lastName: z.string().trim().default(""),
+  email: z.string().email().toLowerCase().trim(),
+});
 
 // ─── 4. ADMIN ISSUE GUEST PASS DIRECTLY ──────────────────────────────────────
 
@@ -171,8 +202,12 @@ export async function adminIssueGuestPass(data: {
   lastName: string;
   email: string;
 }) {
+  const parsed = adminIssueGuestPassSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  const validData = parsed.data;
+
   const { adminId } = await verifyAdmin();
-  const cleanEmail = data.email.toLowerCase().trim();
+  const cleanEmail = validData.email;
 
   // 1. Find or create Person
   let p = await db.query.person.findFirst({
@@ -183,8 +218,8 @@ export async function adminIssueGuestPass(data: {
     const createdPerson = await db
       .insert(person)
       .values({
-        firstName: data.firstName,
-        lastName: data.lastName,
+        firstName: validData.firstName,
+        lastName: validData.lastName,
         email: cleanEmail,
         isMother: true,
         source: "admin_guest_pass",
@@ -201,7 +236,7 @@ export async function adminIssueGuestPass(data: {
   const createdPass = await db
     .insert(eventPass)
     .values({
-      eventId: data.eventId,
+      eventId: validData.eventId,
       personId: p.id,
       ticketTokenHash,
       priceCents: 3500,
@@ -216,7 +251,7 @@ export async function adminIssueGuestPass(data: {
     action: "admin_guest_pass_issued",
     entity: "event_pass",
     entityId: createdPass[0].id,
-    after: { email: cleanEmail, eventId: data.eventId },
+    after: { email: cleanEmail, eventId: validData.eventId },
   });
 
   return {
@@ -268,3 +303,36 @@ export async function adminUpdateMemberStatus(
 
   return { success: true };
 }
+
+import { adjustCredits } from "@/lib/ledger";
+
+const adjustCreditsSchema = z.object({
+  memberId: z.string().uuid(),
+  amount: z.number(),
+  reason: z.string().min(1).trim(),
+});
+
+export async function adjustCreditsAction(data: {
+  memberId: string;
+  amount: number;
+  reason: string;
+}) {
+  const parsed = adjustCreditsSchema.safeParse(data);
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  const validData = parsed.data;
+
+  const { adminId } = await verifyAdmin();
+
+  try {
+    const result = await adjustCredits({
+      memberId: validData.memberId,
+      amount: validData.amount,
+      reason: validData.reason,
+      actorAdminId: adminId,
+    });
+    return { success: true, ...result };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "ADJUSTMENT_FAILED" };
+  }
+}
+

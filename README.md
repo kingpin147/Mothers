@@ -166,3 +166,15 @@ npm run build
 
 ---
 
+## 5. Background Automation (Cron Jobs)
+
+The platform runs a suite of automated background workers on a daily (24-hour) schedule via Vercel Cron. These ensure operational consistency without manual intervention.
+
+- `/api/cron/threshold-decisions` (Daily at 02:00) — Evaluates T-7 event thresholds and automatically confirms or cancels pending events.
+- `/api/cron/open-guest-windows` (Daily at 01:00) — Opens guest ticketing windows for confirmed events 48 hours before they start.
+- `/api/cron/expire-offers` (Daily at 06:00) — Expires unaccepted seat offers from the event waitlist and rolls them to the next in line.
+- `/api/cron/complete-events` (Daily at 08:00) — Marks past events as completed.
+- `/api/cron/event-reminders` (Daily at 09:00) — Sends upcoming event reminder emails to attendees.
+- `/api/cron/flag-at-risk` (Daily at 04:00) — Flags member accounts that have been inactive for over 60 days.
+- `/api/cron/reconcile` (Daily at 05:00) — Financial and ledger reconciliation.
+- `/api/cron/expire-credits` (Daily at 03:00) — Enforces the 6-month FIFO credit expiration policy.

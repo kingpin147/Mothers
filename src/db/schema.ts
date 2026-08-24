@@ -28,6 +28,7 @@ export const adminRoleEnum = pgEnum("admin_role", [
   "owner",
   "manager",
   "host",
+  "super_admin",
 ]);
 
 export const windowStatusEnum = pgEnum("window_status", [
@@ -589,5 +590,40 @@ export const stripeEvent = pgTable(
     type: text("type").notNull(),
     payload: jsonb("payload").notNull(),
     processedAt: timestamp("processed_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+// ─── 6. MEDIA ASSETS (SUPABASE S3 STORAGE) ─────────────────────────────────
+
+export const mediaAsset = pgTable(
+  "media_asset",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    filename: text("filename").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    width: integer("width"),
+    height: integer("height"),
+    altText: text("alt_text").notNull(), // Required per §3.5
+    bucketPath: text("bucket_path").notNull(), // e.g. "events/1234567890-abc123.jpg"
+    publicUrl: text("public_url").notNull(),
+    uploadedByAdminId: text("uploaded_by_admin_id").references(() => adminUser.id),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+// ─── 7. ERROR LOGGING ───────────────────────────────────────────────────────
+
+export const errorLog = pgTable(
+  "error_log",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    source: text("source").notNull(), // 'cron', 'stripe_webhook', 'action', etc.
+    message: text("message").notNull(),
+    stackTrace: text("stack_trace"),
+    context: jsonb("context"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   }
 );

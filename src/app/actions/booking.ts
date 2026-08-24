@@ -5,12 +5,20 @@ import { event, booking, creditEntry, creditAllocation, member, person, eventPas
 import { eq, and, sql, desc, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { canBook, canRelease, canBuyPass, canRsvp } from "@/lib/access";
+import { spendCredits, returnCredits } from "@/lib/ledger";
 import { queueAndSendEmail } from "@/lib/brevo";
 import crypto from "crypto";
+import { z } from "zod";
 
 // ─── 1. MEMBER BOOKING WITH FOR UPDATE ROW LOCK (§7.1) ──────────────────────
 
+const bookEventSchema = z.object({ eventId: z.string().uuid() });
+
 export async function bookEvent(eventId: string) {
+  const parsed = bookEventSchema.safeParse({ eventId });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  eventId = parsed.data.eventId;
+
   const session = await auth();
   if (!session?.user) {
     return { success: false, error: "AUTH_REQUIRED" };
@@ -101,44 +109,15 @@ export async function bookEvent(eventId: string) {
       // 6. Write Spend Entry in Credit Ledger if cost > 0 (FIFO spend order §5)
       let spendEntryId: string | null = null;
       if (ev.creditCost > 0) {
-        const spendInsert = await tx
-          .insert(creditEntry)
-          .values({
-            memberId,
-            amount: -ev.creditCost,
-            type: "spend",
-            sourceType: "booking",
-            sourceId: eventId,
-            reason: `Booking for ${ev.title}`,
-          })
-          .returning({ id: creditEntry.id });
-
-        spendEntryId = spendInsert[0].id;
-
-        // Allocate against oldest non-expired grants (FIFO)
-        const activeGrants = await tx
-          .select()
-          .from(creditEntry)
-          .where(
-            and(
-              eq(creditEntry.memberId, memberId),
-              eq(creditEntry.type, "grant"),
-              sql`expires_at IS NULL OR expires_at > NOW()`
-            )
-          )
-          .orderBy(asc(creditEntry.expiresAt), asc(creditEntry.createdAt));
-
-        let remainingToDeduct = ev.creditCost;
-        for (const grant of activeGrants) {
-          if (remainingToDeduct <= 0) break;
-          const deductAmount = Math.min(grant.amount, remainingToDeduct);
-          await tx.insert(creditAllocation).values({
-            spendEntryId: spendEntryId!,
-            grantEntryId: grant.id,
-            amount: deductAmount,
-          });
-          remainingToDeduct -= deductAmount;
-        }
+        const spendResult = await spendCredits(
+          memberId,
+          ev.creditCost,
+          "booking",
+          eventId,
+          `Booking for ${ev.title}`,
+          tx
+        );
+        spendEntryId = spendResult.spendEntryId;
       }
 
       // 7. Insert Booking with snapshotted creditsCharged
@@ -235,7 +214,13 @@ export async function bookEvent(eventId: string) {
 
 // ─── 2. MEMBER RELEASE WITH AUTO WAITLIST PROMOTION (§7.3, §7.4) ────────────
 
+const releaseBookingSchema = z.object({ bookingId: z.string().uuid() });
+
 export async function releaseBooking(bookingId: string) {
+  const parsed = releaseBookingSchema.safeParse({ bookingId });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  bookingId = parsed.data.bookingId;
+
   const session = await auth();
   if (!session?.user) {
     return { success: false, error: "AUTH_REQUIRED" };
@@ -284,14 +269,34 @@ export async function releaseBooking(bookingId: string) {
 
       // 4. Return credits if member booking (§5)
       if (b.memberId && b.creditsCharged > 0) {
-        await tx.insert(creditEntry).values({
-          memberId: b.memberId,
-          amount: b.creditsCharged,
-          type: "return_release",
-          sourceType: "booking",
-          sourceId: b.id,
-          reason: `Released seat for ${ev.title}`,
+        // Find the original spend entry for this booking
+        const spendEntry = await tx.query.creditEntry.findFirst({
+          where: and(
+            eq(creditEntry.memberId, b.memberId),
+            eq(creditEntry.type, "spend"),
+            eq(creditEntry.sourceId, b.eventId)
+          ),
         });
+
+        if (spendEntry) {
+          await returnCredits(
+            b.memberId,
+            spendEntry.id,
+            "return_release",
+            `Released seat for ${ev.title}`,
+            tx
+          );
+        } else {
+          // Fallback if no spend entry is found (e.g. legacy data)
+          await tx.insert(creditEntry).values({
+            memberId: b.memberId,
+            amount: b.creditsCharged,
+            type: "return_release",
+            sourceType: "booking",
+            sourceId: b.id,
+            reason: `Released seat for ${ev.title}`,
+          });
+        }
       }
 
       // 5. Trigger waitlist offer to Position 1 (§7.4)
@@ -354,6 +359,13 @@ export async function releaseBooking(bookingId: string) {
 
 // ─── 3. GUEST PASS PURCHASE WITH 32-BYTE TOKEN (§9) ─────────────────────────
 
+const buyGuestPassSchema = z.object({
+  eventId: z.string().uuid(),
+  firstName: z.string().min(1).trim(),
+  lastName: z.string().trim().default(""),
+  email: z.string().email().toLowerCase().trim(),
+});
+
 export async function buyGuestPass(params: {
   eventId: string;
   firstName: string;
@@ -361,14 +373,16 @@ export async function buyGuestPass(params: {
   email: string;
 }) {
   try {
-    const email = params.email.toLowerCase().trim();
+    const parsed = buyGuestPassSchema.safeParse(params);
+    if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+    const { eventId, firstName, lastName, email } = parsed.data;
 
     const result = await db.transaction(async (tx) => {
       // 1. SELECT ... FOR UPDATE on the event row
       const eventRows = await tx
         .select()
         .from(event)
-        .where(eq(event.id, params.eventId))
+        .where(eq(event.id, eventId))
         .for("update");
 
       if (eventRows.length === 0) throw new Error("EVENT_NOT_FOUND");
@@ -383,8 +397,8 @@ export async function buyGuestPass(params: {
         const inserted = await tx
           .insert(person)
           .values({
-            firstName: params.firstName.trim(),
-            lastName: params.lastName.trim(),
+            firstName,
+            lastName,
             email,
             isMother: true,
             marketingOptIn: false,
@@ -416,80 +430,62 @@ export async function buyGuestPass(params: {
         throw new Error(passCheck.reasonCode || "GUEST_PASS_NOT_ALLOWED");
       }
 
-      // 4. Generate 32-byte cryptographic token
-      const rawToken = crypto.randomBytes(32).toString("hex");
-      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+      // 4. Validate Guest Access (returns error if full or not eligible)
+      const passCheck = canBuyPass(
+        { isMother: personRecord.isMother, lifetimePassCount },
+        {
+          status: ev.status,
+          isSignature: ev.isSignature,
+          creditCost: ev.creditCost,
+          capacityGuest: ev.capacityGuest,
+          activeGuestBookingsCount: 0, // This is an approximation since we don't count pending checkouts
+        }
+      );
 
-      // 5. Create Event Pass record
-      const creditExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30-day conversion window
-      const insertedPass = await tx
-        .insert(eventPass)
-        .values({
-          personId: personRecord.id,
-          eventId: ev.id,
-          priceCents: 3500, // €35
-          status: "paid",
-          ticketTokenHash: tokenHash,
-          creditExpiresAt,
-        })
-        .returning();
-
-      const passId = insertedPass[0].id;
-
-      // 6. Create guest booking
-      await tx.insert(booking).values({
-        eventId: ev.id,
-        personId: personRecord.id,
-        kind: "guest",
-        status: "confirmed",
-        moneyPaidCents: 3500,
-        passId,
-      });
+      if (!passCheck.allowed) {
+        throw new Error(passCheck.reasonCode || "GUEST_PASS_NOT_ALLOWED");
+      }
 
       return {
-        rawToken,
         personId: personRecord.id,
-        personName: personRecord.firstName,
+        guestPriceCents: ev.guestPriceCents || 3500,
         eventTitle: ev.title,
         startsAt: ev.startsAt,
       };
     });
 
-    // 7. Send Guest Place Booked email with token link (§9)
-    const ticketUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/ticket/${result.rawToken}`;
-    const subject = `Your Ticket: ${result.eventTitle} — The Mothers`;
+    // 5. Generate Stripe Checkout Session for Guest Pass
+    // We import Stripe locally to avoid server startup issues if not configured
+    const { stripe } = await import("@/lib/stripe");
+    const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
-    const htmlContent = `
-      <div style="font-family: 'Lora', Georgia, serif; color: #39292a; max-width: 600px; margin: 0 auto; padding: 32px; background: #fdf9f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 8px;">
-        <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px;">
-          Guest Place Booked
-        </h2>
-        <p style="font-size: 15px; line-height: 1.6;">
-          Hi ${result.personName}, your guest ticket for <strong>${result.eventTitle}</strong> is ready.
-        </p>
-        <div style="text-align: center; margin: 28px 0;">
-          <a href="${ticketUrl}" style="background-color: #7b1f2c; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 15px; display: inline-block;">
-            View Your Ticket & Meeting Point →
-          </a>
-        </div>
-        <p style="font-size: 12.5px; color: rgba(57,41,42,0.6); line-height: 1.5; border-top: 1px solid rgba(57,41,42,0.16); padding-top: 14px;">
-          If you join The Mothers within 30 days, your €35 pass is credited directly against your joining fee (€23 instead of €58).
-        </p>
-      </div>
-    `;
-
-    await queueAndSendEmail({
-      personId: result.personId,
-      toEmail: email,
-      toName: result.personName,
-      templateKey: "guest_place_booked",
-      dedupeKey: `guest_ticket_${result.rawToken.slice(0, 16)}`,
-      subject,
-      htmlContent,
-      isTransactional: true,
+    const stripeSession = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer_email: email,
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: `Guest Pass: ${result.eventTitle}`,
+              description: `Single guest pass for ${new Date(result.startsAt).toLocaleDateString()}`,
+            },
+            unit_amount: result.guestPriceCents,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        type: "guest_pass",
+        eventId,
+        personId: result.personId,
+      },
+      success_url: `${origin}/events?guest_pass_success=true`,
+      cancel_url: `${origin}/events?guest_pass_canceled=true`,
     });
 
-    return { success: true, token: result.rawToken };
+    return { success: true, url: stripeSession.url };
   } catch (error: any) {
     console.error("buyGuestPass error:", error);
     return { success: false, error: error?.message || "PURCHASE_FAILED" };
