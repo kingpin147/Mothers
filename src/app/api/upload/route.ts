@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       file,
       bucket as BucketName,
       altText,
-      session.user?.id
+      session?.user?.id
     );
 
     if (!result.success) {
