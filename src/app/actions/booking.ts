@@ -430,21 +430,6 @@ export async function buyGuestPass(params: {
         throw new Error(passCheck.reasonCode || "GUEST_PASS_NOT_ALLOWED");
       }
 
-      // 4. Validate Guest Access (returns error if full or not eligible)
-      const passCheck = canBuyPass(
-        { isMother: personRecord.isMother, lifetimePassCount },
-        {
-          status: ev.status,
-          isSignature: ev.isSignature,
-          creditCost: ev.creditCost,
-          capacityGuest: ev.capacityGuest,
-          activeGuestBookingsCount: 0, // This is an approximation since we don't count pending checkouts
-        }
-      );
-
-      if (!passCheck.allowed) {
-        throw new Error(passCheck.reasonCode || "GUEST_PASS_NOT_ALLOWED");
-      }
 
       return {
         personId: personRecord.id,
