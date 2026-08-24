@@ -3,6 +3,7 @@ import "./globals.css";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { SessionProviderWrapper } from "@/components/SessionProviderWrapper";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "The Mothers — Private Members Club for Mothers in Barcelona",
@@ -24,6 +25,7 @@ export default function RootLayout({
             <Footer />
           </div>
         </SessionProviderWrapper>
+        <SpeedInsights />
       </body>
     </html>
   );
