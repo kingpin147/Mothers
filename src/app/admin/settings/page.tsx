@@ -2,11 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getClubSettings, updateClubSettings } from "@/app/actions/adminSettings";
+import { getClubSettings, updateClubSettings, getMembershipWindows, createMembershipWindow, setMembershipWindowStatus } from "@/app/actions/adminSettings";
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [windows, setWindows] = useState<any[]>([]);
+  const [windowForm, setWindowForm] = useState({
+    opensAt: "",
+    closesAt: "",
+    placesOffered: 50,
+    openingMonthlyPriceCents: 2900,
+    openingQuarterlyPriceCents: 7900,
+    standardMonthlyPriceCents: 3900,
+    standardQuarterlyPriceCents: 9900,
+  });
   const [form, setForm] = useState({
     monthlyGrantCredits: 20,
     rolloverCapCredits: 40,
@@ -15,12 +25,14 @@ export default function AdminSettingsPage() {
     maxLifetimeGuestPasses: 2,
     placesOffered: 50,
     monthlyPriceCents: 2900,
-    joiningFeeCents: 5800,
+    joiningFeeCents: 1900,
   });
 
   const loadSettings = async () => {
     setLoading(true);
     const res = await getClubSettings();
+    const windowsRes = await getMembershipWindows();
+    if (windowsRes.success) setWindows(windowsRes.windows || []);
     setLoading(false);
     if (res.success && res.settings) {
       setForm({
@@ -34,6 +46,26 @@ export default function AdminSettingsPage() {
         joiningFeeCents: res.currentWindow?.joiningFeeCents || 5800,
       });
     }
+  };
+
+  const handleCreateWindow = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await createMembershipWindow(windowForm);
+    if (!res.success) {
+      alert(res.error || "Failed to create window.");
+      return;
+    }
+    alert("Membership window created as draft.");
+    setWindowForm({ ...windowForm, opensAt: "", closesAt: "" });
+    const refreshed = await getMembershipWindows();
+    if (refreshed.success) setWindows(refreshed.windows || []);
+  };
+
+  const handleWindowStatus = async (id: string, status: "open" | "closed") => {
+    const res = await setMembershipWindowStatus(id, status);
+    if (!res.success) alert(res.error || "Failed to update window.");
+    const refreshed = await getMembershipWindows();
+    if (refreshed.success) setWindows(refreshed.windows || []);
   };
 
   useEffect(() => {
@@ -75,7 +107,28 @@ export default function AdminSettingsPage() {
             <p>Loading club configuration...</p>
           </div>
         ) : (
-          <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div className="card" style={{ backgroundColor: "#fff", padding: "28px", border: "1px solid var(--color-divider)" }}>
+              <h3 style={{ fontSize: "18px", margin: "0 0 16px", color: "var(--color-accent)" }}>Membership Windows</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
+                {windows.map((membershipWindow) => (
+                  <div key={membershipWindow.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", padding: "12px", border: "1px solid var(--color-divider)", flexWrap: "wrap" }}>
+                    <span>{new Date(membershipWindow.opensAt).toLocaleDateString()} - {new Date(membershipWindow.closesAt).toLocaleDateString()} · {membershipWindow.placesOffered} places · {membershipWindow.status}</span>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      {membershipWindow.status !== "open" && <button type="button" className="btn btn-secondary" onClick={() => handleWindowStatus(membershipWindow.id, "open")}>Open</button>}
+                      {membershipWindow.status === "open" && <button type="button" className="btn btn-secondary" onClick={() => handleWindowStatus(membershipWindow.id, "closed")}>Close</button>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <form onSubmit={handleCreateWindow} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
+                <input className="input" type="datetime-local" value={windowForm.opensAt} onChange={(e) => setWindowForm({ ...windowForm, opensAt: e.target.value })} required />
+                <input className="input" type="datetime-local" value={windowForm.closesAt} onChange={(e) => setWindowForm({ ...windowForm, closesAt: e.target.value })} required />
+                <input className="input" type="number" min={1} value={windowForm.placesOffered} onChange={(e) => setWindowForm({ ...windowForm, placesOffered: Number(e.target.value) })} required />
+                <button className="btn btn-primary" type="submit">Create Draft Window</button>
+              </form>
+            </div>
+            <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* 1. Credit Ledger Rules */}
             <div className="card" style={{ backgroundColor: "#fff", padding: "28px", border: "1px solid var(--color-divider)" }}>
               <h3 style={{ fontSize: "18px", margin: "0 0 16px", color: "var(--color-accent)" }}>Credit Ledger Policies</h3>
@@ -201,7 +254,7 @@ export default function AdminSettingsPage() {
                     required
                   />
                   <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "4px" }}>
-                    One-off joining fee (€58).
+                    One-off joining fee charged with 1st invoice (€19).
                   </div>
                 </div>
               </div>
@@ -215,7 +268,8 @@ export default function AdminSettingsPage() {
             >
               {saving ? "Saving Changes..." : "Save Global Club Policies →"}
             </button>
-          </form>
+            </form>
+          </div>
         )}
       </div>
     </div>

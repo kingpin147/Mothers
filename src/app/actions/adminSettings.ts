@@ -103,6 +103,90 @@ export async function updateClubSettings(data: {
   return { success: true };
 }
 
+export async function getMembershipWindows() {
+  await verifyAdmin();
+  const windows = await db.select().from(window).orderBy(desc(window.createdAt));
+  return { success: true, windows };
+}
+
+export async function createMembershipWindow(data: {
+  opensAt: string;
+  closesAt: string;
+  placesOffered: number;
+  openingMonthlyPriceCents: number;
+  openingQuarterlyPriceCents: number;
+  standardMonthlyPriceCents: number;
+  standardQuarterlyPriceCents: number;
+}) {
+  const { adminId } = await verifyAdmin();
+  if (new Date(data.closesAt) <= new Date(data.opensAt) || data.placesOffered < 1) {
+    return { success: false, error: "INVALID_WINDOW" };
+  }
+
+  const existingOpen = await db.query.window.findFirst({ where: eq(window.status, "open") });
+  if (existingOpen) return { success: false, error: "WINDOW_ALREADY_OPEN" };
+
+  const [created] = await db.insert(window).values({
+    opensAt: new Date(data.opensAt),
+    closesAt: new Date(data.closesAt),
+    placesOffered: data.placesOffered,
+    joiningFeeCents: 1900,
+    monthlyPriceCents: data.openingMonthlyPriceCents,
+    launchRate: true,
+    lockMonths: 12,
+    status: "draft",
+  }).returning();
+
+  await db.insert(setting).values({
+    key: `window_prices_${created.id}`,
+    value: {
+      openingMonthlyPriceCents: data.openingMonthlyPriceCents,
+      openingQuarterlyPriceCents: data.openingQuarterlyPriceCents,
+      standardMonthlyPriceCents: data.standardMonthlyPriceCents,
+      standardQuarterlyPriceCents: data.standardQuarterlyPriceCents,
+    },
+  }).onConflictDoUpdate({
+    target: setting.key,
+    set: { value: {
+      openingMonthlyPriceCents: data.openingMonthlyPriceCents,
+      openingQuarterlyPriceCents: data.openingQuarterlyPriceCents,
+      standardMonthlyPriceCents: data.standardMonthlyPriceCents,
+      standardQuarterlyPriceCents: data.standardQuarterlyPriceCents,
+    }, updatedAt: new Date() },
+  });
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "create_membership_window",
+    entity: "window",
+    entityId: created.id,
+    after: data,
+  });
+  return { success: true, window: created };
+}
+
+export async function setMembershipWindowStatus(windowId: string, status: "open" | "closed") {
+  const { adminId } = await verifyAdmin();
+  const target = await db.query.window.findFirst({ where: eq(window.id, windowId) });
+  if (!target) return { success: false, error: "WINDOW_NOT_FOUND" };
+  if (status === "open") {
+    const openWindow = await db.query.window.findFirst({ where: eq(window.status, "open") });
+    if (openWindow && openWindow.id !== windowId) return { success: false, error: "WINDOW_ALREADY_OPEN" };
+  }
+  await db.update(window).set({ status, updatedAt: new Date() }).where(eq(window.id, windowId));
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: `${status}_membership_window`,
+    entity: "window",
+    entityId: windowId,
+    before: { status: target.status },
+    after: { status },
+  });
+  return { success: true };
+}
+
 // ─── 2. UPDATE MEMBER PROFILE (STAGE / AREA / NOTES) ─────────────────────────
 
 export async function adminUpdateMemberProfile(data: {

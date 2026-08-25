@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/db";
-import { stripeEvent, member, payment, person, auditLog } from "@/db/schema";
+import { stripeEvent, member, payment, person, auditLog, creditEntry } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { grantMonthlySubscriptionCredits } from "@/lib/ledger";
 import { queueAndSendEmail } from "@/lib/brevo";
@@ -171,6 +171,51 @@ export async function POST(req: NextRequest) {
               updatedAt: new Date(),
             })
             .where(eq(member.stripeCustomerId, customerId));
+        }
+        break;
+      }
+
+      // ─── D. CHECKOUT SESSION: EXTRA CREDITS & GUEST PASS (§20.3, §9) ─────────
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const meta = session.metadata || {};
+
+        if (meta.type === "extra_credits" && meta.memberId && meta.creditAmount) {
+          const creditAmount = parseInt(meta.creditAmount, 10);
+          if (creditAmount > 0) {
+            const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000); // 6 months
+
+            await db.insert(creditEntry).values({
+              memberId: meta.memberId,
+              amount: creditAmount,
+              type: "grant",
+              sourceType: "extra_purchase",
+              sourceId: session.id,
+              reason: `Extra credits purchase (${creditAmount} × €1)`,
+              expiresAt,
+            });
+
+            await db.insert(auditLog).values({
+              actorId: meta.personId || meta.memberId,
+              actorType: "member",
+              action: "buy_extra_credits",
+              entity: "credit_entry",
+              entityId: meta.memberId,
+              after: { creditAmount, sessionId: session.id, expiresAt: expiresAt.toISOString() },
+            });
+          }
+        }
+
+        if (meta.type === "guest_pass" && meta.eventId && meta.personId) {
+          // Guest pass already pre-created in route; just record payment
+          await db.insert(payment).values({
+            personId: meta.personId,
+            purpose: "event_pass",
+            amountCents: session.amount_total || 3500,
+            currency: (session.currency || "eur").toUpperCase(),
+            status: "succeeded",
+            stripePaymentIntentId: session.payment_intent as string | null,
+          }).onConflictDoNothing();
         }
         break;
       }

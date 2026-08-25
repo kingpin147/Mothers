@@ -29,6 +29,10 @@
       "schedule": "0 4 * * *"
     },
     {
+      "path": "/api/cron/flag-noshows",
+      "schedule": "30 4 * * *"
+    },
+    {
       "path": "/api/cron/reconcile",
       "schedule": "0 5 * * *"
     }

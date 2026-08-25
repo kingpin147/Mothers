@@ -35,13 +35,18 @@ export default function GuestTicketPage() {
 
   const handleConfirmRelease = async () => {
     setReleasing(true);
-    const res = await releaseGuestTicket(token);
-    setReleasing(false);
-    if (res.success) {
-      setReleased(true);
-      setShowReleaseConfirm(false);
-    } else {
-      alert(res.error || "Failed to release place.");
+    try {
+      const res = await releaseGuestTicket(token);
+      setReleasing(false);
+      if (res.success) {
+        setReleased(true);
+        setShowReleaseConfirm(false);
+      } else {
+        alert(res.error || "Failed to release place.");
+      }
+    } catch (error) {
+      setReleasing(false);
+      alert("An error occurred while releasing your place.");
     }
   };
 

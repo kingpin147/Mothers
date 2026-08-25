@@ -41,7 +41,7 @@ export async function getPublicEvents() {
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
-      .where(sql`${event.status} IN ('published_pending', 'confirmed')`)
+      .where(sql`${event.status} IN ('published_pending', 'confirmed', 'completed')`)
       .orderBy(asc(event.startsAt));
 
     // 3. Count confirmed & held bookings per event
@@ -152,4 +152,87 @@ export async function deleteEvent(eventId: string) {
   await db.delete(event).where(eq(event.id, eventId));
 
   return { success: true };
+}
+
+// ─── 3. GET SINGLE PUBLIC EVENT BY ID ────────────────────────────────────────
+
+export async function getPublicEventById(id: string) {
+  try {
+    const rows = await db
+      .select({
+        id: event.id,
+        title: event.title,
+        slug: event.slug,
+        categoryId: event.categoryId,
+        categoryName: eventCategory.name,
+        description: event.description,
+        neighbourhood: event.neighbourhood,
+        venueName: event.venueName,
+        startsAt: event.startsAt,
+        endsAt: event.endsAt,
+        creditCost: event.creditCost,
+        guestPriceCents: event.guestPriceCents,
+        capacityMember: event.capacityMember,
+        capacityGuest: event.capacityGuest,
+        minToConfirm: event.minToConfirm,
+        isSignature: event.isSignature,
+        isFreeWalk: event.isFreeWalk,
+        status: event.status,
+        stageAffinity: eventCategory.stageAffinity,
+        guestOpenAt: event.guestOpenAt,
+        guestCloseAt: event.guestCloseAt,
+      })
+      .from(event)
+      .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+      .where(eq(event.id, id))
+      .limit(1);
+
+    if (!rows.length) return { success: false, error: "EVENT_NOT_FOUND" };
+
+    const ev = rows[0];
+    const starts = new Date(ev.startsAt);
+    const ends = new Date(ev.endsAt);
+
+    const dateStr = starts.toLocaleDateString("en-GB", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric",
+    });
+    const timeStr = `${starts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} – ${ends.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+
+    // Count active bookings for this event
+    const [memberCount, guestCount] = await Promise.all([
+      db.select({ count: sql<number>`count(*)::int` }).from(booking)
+        .where(and(eq(booking.eventId, id), eq(booking.kind, "member"), sql`${booking.status} IN ('held','confirmed')`)),
+      db.select({ count: sql<number>`count(*)::int` }).from(booking)
+        .where(and(eq(booking.eventId, id), eq(booking.kind, "guest"), sql`${booking.status} IN ('held','confirmed')`)),
+    ]);
+
+    const bookedMember = Number(memberCount[0]?.count || 0);
+    const bookedGuest = Number(guestCount[0]?.count || 0);
+    const spotsRemaining = ev.capacityMember - bookedMember;
+
+    // Guest pass eligibility: confirmed, non-signature, ≤18 credits, T-14 to T-2
+    const daysUntil = Math.round((starts.getTime() - Date.now()) / 86400000);
+    const guestPassEligible =
+      ev.status === "confirmed" &&
+      !ev.isSignature &&
+      ev.creditCost <= 18 &&
+      daysUntil >= 2 &&
+      daysUntil <= 14;
+
+    return {
+      success: true,
+      event: {
+        ...ev,
+        dateStr,
+        timeStr,
+        bookedMember,
+        bookedGuest,
+        spotsRemaining,
+        daysUntil,
+        guestPassEligible,
+      },
+    };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "FETCH_FAILED" };
+  }
 }

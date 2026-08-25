@@ -476,3 +476,61 @@ export async function buyGuestPass(params: {
     return { success: false, error: error?.message || "PURCHASE_FAILED" };
   }
 }
+
+// ─── 4. BUY EXTRA CREDITS (§20.3) ────────────────────────────────────────────
+
+export async function buyExtraCredits(amount: number) {
+  if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
+    return { success: false, error: "INVALID_AMOUNT" };
+  }
+
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+
+  const memberId = (session.user as any).memberId;
+  if (!memberId) return { success: false, error: "MEMBER_ACCOUNT_REQUIRED" };
+
+  const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
+  if (!memberRecord || memberRecord.status !== "active") {
+    return { success: false, error: "ACTIVE_MEMBERSHIP_REQUIRED" };
+  }
+
+  try {
+    const { stripe } = await import("@/lib/stripe");
+    const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+
+    const personRecord = await db.query.person.findFirst({ where: eq(person.id, memberRecord.personId) });
+
+    const session2 = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer_email: personRecord?.email,
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: `${amount} Extra Credits — The Mothers`,
+              description: `€1/credit · 6-month expiry · FIFO`,
+            },
+            unit_amount: amount * 100, // €1 per credit in cents
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        type: "extra_credits",
+        memberId,
+        personId: memberRecord.personId,
+        creditAmount: String(amount),
+      },
+      success_url: `${origin}/account?credits_purchased=true`,
+      cancel_url: `${origin}/account`,
+    });
+
+    return { success: true, url: session2.url };
+  } catch (error: any) {
+    console.error("buyExtraCredits error:", error);
+    return { success: false, error: error?.message || "CHECKOUT_FAILED" };
+  }
+}

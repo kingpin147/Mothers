@@ -1,0 +1,83 @@
+Now I have everything. Here is the complete, honest audit against all briefs:
+
+Full Audit — Briefs vs Current Build
+✅ CONFIRMED COMPLETE & CORRECT
+Item	Brief ref
+3-item header nav (Membership · Events · Login)	Dev Brief §1, Build Review §1
+Footer with Journal, Partners, FAQ, Legal, Terms	Dev Brief §1
+/ambassadors → redirects to /membership	Build Review §1
+Godmother as account tab only, not public page	Build Review §1
+Home: hero, pillars, how-it-works, partner umbrellas, Event Pass module, The Letter	Dev Brief §3.6
+Home: live spots counter from DB window	Dev Brief §3.2
+Membership: 3 tier cards (Opening Circle €29/€79, The Circle €39/€99, Inner Circle teaser)	Dev Brief §3.1
+Membership: correct first-payment amounts (€48/€13, €58/€23)	Build Review §3
+Membership: 24h cancellation rule + second clause ("if someone takes your place")	Build Review §3
+Membership: pause 2 months/year, no cancellation fee copy	Dev Brief §3.1
+FAQ: 13 bilingual Q&As verbatim	Build Review §5
+Events: SSR server component, no client fetch	Build Review §2
+Events: 2 chip filter rows (category + stage)	Build Review §2
+Events: 4 status card colors correct	Build Review §2
+Events: €35 Event Pass CTA on eligible cards (confirmed, non-sig, ≤18cr, T-14 to T-2)	Build Review §2
+Guest Pass modal → Stripe checkout	Dev Brief §3.7
+Ticket page /ticket/[token]: mobile-first, release CTA, 48h expiry, €35 credit banner	Dev Brief §3.7
+Account: 6 swipeable tabs (Overview, Credits, Groups, Godmother, Membership, Details)	Dev Brief §3
+Account Overview: live DB bookings (no hardcoded placeholder)	Admin Brief §5
+Account Credits: FIFO ledger, expiry dates	Backend Brief §5
+Account Groups: real stage + neighbourhood from DB	Backend Brief §3.3.1
+Account Godmother: referral code, +5/+15 payout tracker	Dev Brief §3
+Account Membership: tier/price/status, pause wired to DB	Dev Brief §3
+Account Details: real edit form, phone, stage, neighbourhood	Dev Brief §3
+Buy Extra Credits: Stripe checkout at €1/credit, 6-month expiry	Dev Brief §3.4
+No-show auto-block cron: 2 no-shows in 90 days → atRiskSince	Rule Register
+middleware.ts: /admin/* server-side session guard	Build Review §10
+Cron: x-cron-secret protection on all /api/cron/*	Build Review §10
+Cron threshold-decisions: uses per-event decision_at, not T-7 fixed	Dev Brief §3.5
+Admin dashboard: KPIs, T-7 alerts with confirm/cancel, cron triggers, audit log	Admin Brief §4
+Admin events: roster modal, attendance check-in, guest pass issuance	Admin Brief §8.5
+Admin settings: Membership Windows create/open/close	Admin Brief §7.1
+Apply wizard: 11 steps, localStorage persistence, "start over" link	Dev Brief §3.3
+Journal individual posts: per-post OpenGraph meta	Build Review §1
+Event detail page /events/[id]: live DB fetch, booking + guest pass modal	Dev Brief §3.5
+Seed: 3 members, 6 events (incl. past), 2 applicants, 5 partners, open window	Admin Brief §10
+Stripe webhook: subscription payment, payment failed, cancellation, extra credits, guest pass	Backend Brief §6
+No shop — no products, stock, cart, orders anywhere	Start Here §5
+⚠️ GAPS FOUND IN BRIEFS — NOT YET BUILT
+These are things the briefs specify that are not in the current codebase:
+
+🔴 Priority — Affects member-facing behaviour
+Gap	Brief	Detail
+SVG logos instead of PNG	Build Review §1	Navigation and footer use logo-mark-alpha.png and logo-wordmark-alpha.png. Brief requires SVG versions from assets/ for retina crispness
+Input font-size: 16px on all forms	Mobile Reference	All <input> and <select> fields must be font-size: 16px minimum — iOS zooms on focus for anything under 16px. Current .input CSS is font-size: 14px
+Per-page metadata	Build Review §1	Every page uses the same global title/description. Each page needs its own export const metadata
+Membership page: Closed Window state	Dev Brief §3.2	When window is closed, application form/button must be replaced by waitlist signup. Currently the apply button always shows
+Free walks: non-member RSVP flow	Dev Brief §3.6	Free walks are open to everyone. Non-members need a separate RSVP form (name, surname, email, WhatsApp) — not the guest pass flow and not a member login wall
+Gathering status label	Dev Brief §3.5, Build Review §2	Brief calls the pending/minimum state "Gathering" on the card ("Needs 3 more to confirm"), not "Pending confirmation". Card colour is pale mustard #fff3e4 ✓ but label wording differs
+Credits: no cap (remove 40-cap logic)	Backend Brief §5	Brief explicitly removed the 40-credit cap. Current code has rollover_cap_credits = 40 in settings and grantMonthlySubscriptionCredits may still enforce it — need to verify the ledger grants full 20 always
+Activity Statement page	Start Here §2	/account/statement exists as a file but the brief specifies it as a printable credit history document showing the full FIFO ledger
+Cancellation screen with real dates	Backend Brief §4.1, Admin Brief §6.3	"Cancel at period end" must show her real end date, credits remaining, and which bookings stand — not a bare status change
+Event change notification	Dev Brief §3.5b	Any change to date/time/meeting point after first booking must notify all attendees and offer release. Admin event edit has no change-detection or notification logic
+🟡 Polish — Visible but not blocking
+Gap	Brief	Detail
+Logo SVG swap	Build Review §1	<img src="/assets/logo-mark-alpha.svg"> instead of .png in Navigation and Footer
+iOS 16px font on inputs	Mobile Reference	.input { font-size: 16px } in globals.css
+Events: month filter chip row	Build Review §2	Brief shows 3 filter rows: category, stage, AND month. Currently only 2 rows
+Stage label on every event card	Build Review §2	Each card must show a stage chip alongside category. Currently stage from DB stageAffinity only shows if not "General"
+Free walk RSVP gate	Dev Brief §3.6	Free walk "reserve" button should ask: member login OR non-member open-list form
+Membership window state — server-side	Dev Brief §3.2	Window open/closed state fetched client-side with useEffect. Should be SSR so no flash
+metadata per page	Build Review §1	Add export const metadata to /events, /membership, /faq, /partners, /journal, /account pages
+Admin: read-only role	Admin Brief §3	4 roles defined (Owner, Manager, Host, Read-only). Read-only not implemented
+Admin: event duplication	Admin Brief §8.1	"Duplicating an event must be one click"
+Admin: T-10 early warning	Admin Brief §4	Dashboard should show events at T-10 under half their minimum
+Admin: MFA requirement	Admin Brief §3	Admin accounts require 2FA — currently no MFA
+Quarterly credits: monthly tranche job	Backend Brief §5	Quarterly payers get 20 immediately then 20 at months 2 and 3. The grant_tranches cron job is needed but not built
+Summary by priority
+Fix immediately (breaking UX):
+
+font-size: 16px on all inputs — iOS will zoom on every form field right now
+Membership closed-window state — apply button must become waitlist form when window is closed
+Free walk non-member RSVP — currently sends non-members to login, but brief says free walks are open to all
+Fix before client handover: 4. SVG logos in nav/footer 5. Per-page metadata on all pages 6. Activity Statement page — full printable ledger 7. Month filter chip on events calendar 8. Cancellation screen with real dates 9. Quarterly credits tranche cron job 10. Event change notification system
+
+Nice to have / Phase 2: 11. Admin read-only role 12. Event duplication button 13. Admin MFA 14. T-10 early warning on dashboard
+
+Want me to implement the critical ones now (items 1–3)?

@@ -1,189 +1,175 @@
-# Architecture & Implementation Plan — The Mothers
+# The Mothers — Full Implementation Plan & Gap Analysis
 
-> **Platform Stack & Architecture Strategy**  
-> Based on [projectDetails.md](file:///d:/downloads%206-11-2025/Mothers/projectDetails.md) and latest verified design source:  
-> `FINAL VERSION _ Next JS _ Themothers.cc (3)/uploads/FINAL VERSION_ The mothers.cc (5)`
-
----
-
-## 1. Confirmed Architecture & Tech Decisions
-
-### 1.1 ORM & Database: **Drizzle ORM + Supabase PostgreSQL**
-- **Database**: Supabase PostgreSQL 15+.
-- **ORM**: Drizzle ORM for full type-safety, zero-overhead cold starts, and native support for PostgreSQL row-level locks (`SELECT ... FOR UPDATE` via `.for('update')`) required for concurrent booking transactions (§7.1, §7.5).
-- **Constraints & Ledger**: Database-level partial unique indexes, check constraints, and append-only trigger protection on `credit_entry` and `audit_log`.
-
-### 1.2 Authentication: **NextAuth.js (Auth.js v5) with Email & Password**
-- **Member Authentication**: **Email & Password** using NextAuth Credentials Provider with secure password hashing (`argon2id` / `bcrypt`).
-  - Eliminates mandatory magic-link emails for standard logins.
-  - Password reset capability powered by Brevo using `Email - Password Reset.html`.
-- **Admin Authentication**: Separate admin credentials table (`admin_user`) with role-based access control (`owner`, `manager`, `host`), MFA enforcement for owner/manager roles, and shorter session lifespans behind custom middleware (§12).
-- **Session & Guarding**: Central pure function `hasMemberAccess(member, at)` used consistently across routes, RSCs, and Server Actions.
-
-### 1.3 Media Storage: **Supabase Storage (S3-compatible)**
-- S3-compatible Supabase Storage buckets for hero images, partner logos, and media assets.
-- Automatic image resizing/re-encoding pipeline on upload, storing clean originals (§2).
-
-### 1.4 Email Delivery: **Brevo (Sendinblue)**
-- Brevo API / SMTP integration for tokenized HTML templates from `FINAL VERSION _ Next JS _ Themothers.cc (3)/Email - *.html`.
-- Queue system in `email_log` with unique `dedupe_key` (`template + entity + date`) for strict send idempotency (§11).
-- Clear segregation between **Transactional** (always delivered) and **Promotional** (honoring `marketing_opt_in` & 1-click unsubscribe).
-
-### 1.5 Latest Verified Frontend Assets & Design Source
-- Authoritative Design Assets: `uploads/FINAL VERSION_ The mothers.cc (5)`
-  - `Home.dc.html`, `Membership.dc.html`, `Events.dc.html`, `Account.dc.html`
-  - `Ambassadors.dc.html` (updated +20 credits Godmother referral rule, no free month)
-  - `Activity Statement.dc.html`, `Partners.dc.html`, `Payment.dc.html`, `FAQ.dc.html`, `Journal.dc.html`, `Privacy.dc.html`, `Terms.dc.html`, `Prelaunch.dc.html`
-  - `Membership Application - Questions.dc.html`
-  - Bilingual EN/ES translations and `_ds` classical design system.
+**Date:** 25 August 2026  
+**Reference Package:** `new FINAL VERSION _ Next JS _ Themothers.cc (9)`  
+**Current Staging Target:** `mothers-zeta.vercel.app`
 
 ---
 
-## 2. Phased Implementation Roadmap
+## 1. Executive Summary & Audit Assessment
+
+Based on the newly supplied package (`Build Review - Staging.dc.html`, `Start Here.dc.html`, `Mobile Reference.dc.html`, `Developer Brief.dc.html`, `Backend Brief.dc.html`, and `Admin and CMS Brief.dc.html`), the staging build currently scores **63% overall fidelity** against the approved designs.
+
+### Core Problems Identified in Audit:
+1. **Rule Conflicts & Document Misalignments:** Discrepancies between earlier briefs and approved prototypes (e.g. tier structures, quarterly pricing, joining fees, cancellation copy).
+2. **Launch Blockers:**
+   - Public exposure of `/admin` routes and cron execution triggers without server-side middleware enforcement.
+   - Missing master switch: **Membership Windows** management in admin.
+   - Completely missing **Event Pass & Guest Ticket flow** (€35 pass, signed token ticket page at `/ticket/[token]`, 2 per person lifetime limit).
+   - Event threshold auto-decisions hardcoded to T-7 rather than per-event `decision_at`.
+   - Empty staging environment (all metrics read 0 / €0, preventing client operational verification).
+3. **Information Architecture Clutter:**
+   - 7-item header navigation instead of the approved minimal 3-item header (`Membership` · `Events` · `Login`).
+   - `Godmothers` exposed as a public pitch page (`/ambassadors`) rather than an internal member account tab.
+   - Leftover shop/boutique references in code and database schemas.
+4. **Mobile & UX Deficiencies:**
+   - Mobile nav drawer and swipeable filters for Events/Account tabs not adhering to `Mobile Reference.dc.html`.
+   - FAQ containing only 5 items instead of the 13 verbatim bilingual entries.
+   - Client-side data fetching for Events causing flashes and bad link previews.
+
+---
+
+## 2. Agreed Rule Register (§3a Reconciliation)
+
+All conflicts between past briefs and approved prototypes have now been reconciled and must be strictly enforced:
+
+| Rule / Field | Established Specification | Implementation Rule |
+| :--- | :--- | :--- |
+| **Joining Fee** | €19 charged on first invoice | **Standard:** €19 + €39 = €58 1st month (€23 with recent pass).<br>**Opening:** €19 + €29 = €48 1st month (€13 with recent pass). Pass discount applies to 1st invoice only. |
+| **Membership Tiers** | 3 Tier Cards | 1. **Opening Circle (€29/mo or €79/quarter):** First 50 spots, locked 12 months.<br>2. **The Circle (€39/mo or €99/quarter):** Locked until 50 spots fill.<br>3. **The Inner Circle (Phase 2):** Teaser card without price. |
+| **Quarterly Credit Rule (§20.2)** | 20 credits per month | Quarterly payers get 20 credits on payment date, then 20 credits at each subsequent month boundary (not 60 credits upfront). |
+| **Pause Allowance (§20.1a)** | Up to 2 months / calendar year | Free pause in whole-month increments. Credit expiry clock freezes; booking blocked during pause; reset every Jan 1. Copy: *"Pause for up to two months a year at no cost. No cancellation fees, ever."* |
+| **Booking Cancellation** | 24-hour cutoff + second clause | Free up to 24h prior to event. Inside 24h: credit returns only if another member/guest takes the spot. |
+| **Event Pass Scope** | €35 single pass | Max 2 per person ever. Available T-14 to T-2 on confirmed non-signature events $\le 18$ credits. €35 credited back if joining within 30 days. |
+| **Extra Credits** | €1 / credit | Buyable anytime by active members, 6-month expiry, no rollover cap. |
+| **Credit Expiry** | 6-Month FIFO | Clock pauses during membership pause. |
+| **Godmother Referral** | 5 + 15 credits | +5 credits on referral join, +15 credits on referral renewal. |
+| **No-Shows** | 2 in 3 months | Automatically pauses RSVP capabilities until member contacts club. |
+| **Stage Chips** | Informational tags | *Pregnant*, *Babies*, *Toddlers*, *Children*, *Big kids*, or *Open to every stage*. Never blocks booking. |
+
+---
+
+## 3. Phased Implementation Plan
+
+Following the client's voice note strategy, work is divided into 3 distinct validation phases:
 
 ```mermaid
-flowchart TD
-    P1["Phase 1: Foundations, Person/Member, Email/Password Auth & Joining Journey"]
-    P2["Phase 2: Events Engine, Concurrency, Bookings & Guest Tickets"]
-    P3["Phase 3: Credit Ledger (FIFO), Stripe Subscriptions & Brevo Emails"]
-    P4["Phase 4: Client UI Integration, CMS, Back-Office & Wix Boundary"]
-    P5["Phase 5: Cron Jobs, Observability, GDPR & Acceptance Suite"]
-
-    P1 --> P2
-    P2 --> P3
-    P3 --> P4
-    P4 --> P5
+graph TD
+    A[Phase 1: Brand, Public Pages & Copy] -->|Client Validation & Sign-off| B[Phase 2: Events, Event Pass, Ticket & Account]
+    B -->|Client Validation & Sign-off| C[Phase 3: Admin Security, Windows & Seed Data]
+    C -->|Final End-to-End Review| D[Launch Readiness]
 ```
 
 ---
 
-## Phase 1: Foundations, Person Identity, Email/Password Auth & Joining Journey
+### Phase 1: Brand, Public Architecture & Polish
+*Target: Home, Membership, Journal, Partners, FAQ, Mobile Header & Footer*
 
-### 1. Database & Schema Initialization (Supabase + Drizzle)
-- Initialize Next.js App Router project with TypeScript, Drizzle ORM, and Supabase client.
-- Create core identity & membership schema:
-  - `person` (root identity, email lowercased & unique, `phone_e164`, `whatsapp_e164`, `is_mother`, `marketing_opt_in`, `locale` default 'es', `deleted_at`)
-  - `credential` / `member_password` (`person_id`, `password_hash`, `password_updated_at`)
-  - `member` (`person_id` unique, `status`, `stage`, `neighbourhood`, JSONB `children`, Stripe references, `at_risk_since`, `price_locked_until`)
-  - `admin_user` (`role`: owner, manager, host, `password_hash`, `mfa_enrolled_at`, `disabled_at`)
-  - `waitlist_entry` (one active entry per person)
-  - `window` (partial unique index for single `open` status: `UNIQUE (status) WHERE status = 'open'`)
-  - `application` & `application_form_version` (versioned question sets based on `Membership Application - Questions.dc.html`)
-  - `audit_log` (immutable tracking of every status/balance change)
-- Add Postgres migration scripts and database triggers (blocking updates/deletions on audit logs).
+#### 1.1 Navigation & Global Layout
+- Update [src/components/Navigation.tsx](file:///d:/downloads%206-11-2025/Mothers/src/components/Navigation.tsx):
+  - Reduce header links to 3 items: `Membership`, `Events`, `Login / Members Area`.
+  - Use high-resolution SVGs (`logo-mark-alpha.svg`, `logo-wordmark-alpha.svg`).
+  - Implement mobile hamburger menu drawer with smooth backdrop blur, min 44px tap targets.
+- Update [src/components/Footer.tsx](file:///d:/downloads%206-11-2025/Mothers/src/components/Footer.tsx):
+  - Add `Journal`, `Partners`, `FAQ`, `Privacy Policy`, `Terms & Conditions`, and `Legal`.
+  - Remove any legacy shop/boutique links.
+- Redirect `/ambassadors` route to `/membership` (Godmothers is now an internal member tab).
 
-### 2. NextAuth (Auth.js v5) Email & Password Setup
-- Setup NextAuth with Credentials provider:
-  - Email + Password validation for members against hashed password in database.
-  - Separate secure session for admin users with role validation.
-- Password set / reset workflow using Brevo with `Email - Password Reset.html`.
-- Shared pure access helper: `hasMemberAccess(member, at)` (§4.1, §10).
+#### 1.2 Home Page (`/`)
+- Align copy verbatim in EN and ES with `Home.dc.html`.
+- Implement the two soft-entry modules:
+  - **The €35 Event Pass** ("Try us before you join").
+  - **The Letter** (newsletter/intake waitlist).
+- Hook the live spots counter into the dynamic active Membership Window.
 
-### 3. Joining & Application Journey
-- **Joining Window System**:
-  - Public display of active window status or fallback to general waitlist.
-  - Form submission storing answers mapped to versioned `application_form_version`.
-- **Application Decision Workflow**:
-  - Admin review queue (Accept / Decline / Skip / Request notes).
-  - Accepted status generates a signed 72-hour payment link (`accept_expires_at`).
-  - Declined status routes to waitlist & newsletter subscription options.
-- **Member Profile & History Foundation**:
-  - Member account dashboard displaying personal details, children stage tags, active membership tier, password change option, and timeline.
+#### 1.3 Membership Page (`/membership` & `/membership/apply`)
+- Render the approved 3-tier card layout:
+  - **Opening Circle:** €29/mo or €79/quarter (first 50 members).
+  - **The Circle:** €39/mo or €99/quarter (locked badge: "Opens after the Opening Window").
+  - **Inner Circle (Phase 2):** Informational teaser card.
+- Update joining fee display: clarify €58 / €48 first invoice, €23 / €13 with pass credit.
+- Add **Closed Window State**: When intake window is closed, display waitlist signup and Letter prompt.
+- Refactor `/membership/apply` wizard: Group 11 steps into logical, smooth mobile screens with `localStorage` persistence.
 
----
+#### 1.4 FAQ Page (`/faq`)
+- Replace the 5 generic FAQs with all **13 approved Q&As verbatim** (EN & ES) covering credits, pause rules, Godmother rewards, cancellation 24h clause, childcare badges, vetting, and window transitions.
 
-## Phase 2: Events Management, Booking Engine & Guest Ticketing
-
-### 1. Events Schema & Administration
-- Tables: `event`, `event_category`, `booking`, `event_waitlist`, `event_change_log`.
-- Admin Event CRUD: duplicate event in one click, manual credit pricing (no category inheritance), minimum-to-confirm threshold, and decision date (`decision_at`).
-- Status lifecycle: `draft` → `published(pending)` → `confirmed` → `completed` / `cancelled`.
-
-### 2. High-Concurrency Booking Engine (§7)
-- Dual capacity pools: `capacity_member` and `capacity_guest`.
-- Atomic booking transaction:
-  1. `SELECT ... FOR UPDATE` on the event row via Drizzle.
-  2. Validate member access, seat availability, and credit balance.
-  3. Write booking snapshotting `credits_charged`.
-  4. Post-commit email queue dispatch.
-- Unique DB constraint: `(event_id, person_id)` where status is active (prevents double-booking).
-
-### 3. Member & Guest Release / Waitlist Offers
-- **Member Release**: Frees seat, returns credits, triggers automatic position-1 waitlist offer with 24h / 2h expiry.
-- **Guest Ticketing Without Accounts (§9)**:
-  - 32-byte cryptographic single-purpose token for guest ticket view, meeting point reveal, and release.
-  - Rate-limited token endpoints without leaking personal email addresses.
-
-### 4. Event Cancellation Transaction (§7.5)
-- Atomic multi-step reversal: marks event cancelled, rolls back all member bookings with credit refund entries, triggers guest pass refunds, and enqueues attendee notifications.
+#### 1.5 Journal & Partners
+- **Partners (`/partners`):** Display all 5 umbrella categories even when empty; enforce 1-partner-per-specialty exclusivity.
+- **Journal (`/journal`):** Ensure ragged-right mobile typography and individual OpenGraph meta tags per post.
 
 ---
 
-## Phase 3: Credit Ledger, Stripe Subscriptions & Brevo Emails
+### Phase 2: Calendar Engine, Event Pass & Member Account
+*Target: Events, Guest Checkout, Ticket View, Account Tabs & Godmother*
 
-### 1. Immutable Credit Ledger Engine (§5)
-- Table: `credit_entry` (append-only; Postgres trigger blocking `UPDATE` or `DELETE`).
-- Table: `credit_allocation` (links spend entries to grant entries for exact FIFO tracking).
-- FIFO spend algorithm: Spends from oldest non-expired grant first.
-- Returns algorithm: Reallocates returned credits to their original grant expiry (or next period end if expired).
-- Cap handling: Monthly 20-credit grant auto-trimmed to 40 max (`min(20, 40 - balance)`). Godmother bonus credits sit outside the 40-credit rollover cap.
+#### 2.1 Events Calendar (`/events`)
+- Convert calendar to **Server-Side Rendering (SSR)** for instant mobile paint and SEO previews.
+- Add horizontal swipeable chip filter rows on mobile: Category, Stage (*Pregnant*, *Babies*, *Toddlers*, etc.), and Month.
+- Style event cards according to strict status color palette:
+  - Confirmed: `#e8f1e9`
+  - Pending: `#fff3e4`
+  - Cancelled: `#fbf1f1`
+  - Past: `#e9eaea`
+  - Page canvas: `#FEFDF9`
+- Add guest purchase CTA ("€35 Event Pass") on eligible events (confirmed, non-signature, $\le 18$ credits, T-14 to T-2).
 
-### 2. Stripe Webhook Integration (§6)
-- Webhook route: `POST /api/webhooks/stripe` with raw signature validation and `stripe_event` idempotency.
-- Handlers:
-  - `checkout.session.completed`: Finalizes membership / guest pass purchase.
-  - `invoice.paid`: Grants 20 credits (trimmed), extends `current_period_end`.
-  - `invoice.payment_failed`: Marks `past_due`, maintains access through `current_period_end`.
-  - `customer.subscription.updated/deleted`: Reconciles cancel/pause states.
-- Event Pass 30-day conversion: Automatically credits €35 pass against €58 joining fee when joining within 30 days.
+#### 2.2 Event Pass & Ticket System
+- **Guest Checkout Flow:** Stripe checkout for €35 guest pass without mandatory account password creation. Enforce 2 passes per email limit server-side.
+- **Ticket Page (`/ticket/[token]`):**
+  - Authenticated via secure, hashed signed token (valid up to 48h post-event).
+  - Mobile-first layout: date, venue/meeting point (revealed only once confirmed), and "Release Place" CTA.
 
-### 3. Brevo (Sendinblue) Email Worker (§11)
-- Tokenize the 11 HTML email templates from the design folder (`Email - Booking Confirmed.html`, etc.).
-- Queue system in `email_log` with unique `dedupe_key` (`template + entity + date`).
-- Clear separation: Transactional (guaranteed send) vs Promotional (requires `marketing_opt_in` and 1-click unsubscribe).
-- Webhook handler for Brevo delivery/bounce tracking.
-
----
-
-## Phase 4: Frontend Component Integration, CMS & Wix Boundary
-
-### 1. UI Integration from Latest Client Files (`uploads/FINAL VERSION_ The mothers.cc (5)`)
-- Extract design tokens, fonts (`Cormorant Garamond`, `Lora`), and styling system from `uploads/FINAL VERSION_ The mothers.cc (5)/_ds`.
-- Implement responsive pages with bilingual (EN/ES) support:
-  - Public pages: `Home`, `Membership`, `Events`, `Ambassadors`, `Journal`, `FAQ`, `Partners`, `Legal/Privacy/Terms`.
-  - Member Portal: `Account` (overview, login/password auth, stage/neighbourhood groups), `Activity Statement`, Bookings & Passes.
-  - Admin Back-Office: Action-oriented dashboard (queue-first), Application review, Event manager, Member inspector.
-
-### 2. CMS & Static Caching Strategy (§15)
-- Server Actions for client editing of page copy, FAQ items, and partners with exclusivity checks (1 partner per specialty).
-- Static page generation with On-Demand Tag Revalidation (`revalidateTag('events')`, `revalidateTag('journal')`).
-- Live real-time seat counter bypasses edge cache for 100% accurate availability.
-
-### 3. Wix Subdomain Integration (§14)
-- **`POST /api/wix/verify-member`**: Signed server-to-server check answering `{ active: true/false }` for members-only shop pickup.
-- **`POST /api/wix/order`**: Read-only order mirror storing order summary for the member's account view.
+#### 2.3 Member Account (`/account`)
+- Implement 6 tabs in horizontal swipeable bar:
+  1. **Overview:** Upcoming bookings, active tier badge, live credit balance.
+  2. **Credits:** Full FIFO transaction history, expiry dates, and frozen status indicator during pause.
+  3. **Groups:** Stage & neighbourhood circles.
+  4. **Godmother:** Referral link generation, invite tracker, +5/+15 credit payout tracker.
+  5. **Membership:** Tier details, pause management (up to 2 months/year), payment method update.
+  6. **Details:** Contact info and children birth month/year (no full names).
+- Add "Buy Extra Credits" modal (€1/credit, 6-month expiry).
 
 ---
 
-## Phase 5: Cron Jobs, Observability, GDPR & Acceptance Suite
+### Phase 3: Admin Master Controls, Security & Staging Seeding
+*Target: Route Protection, Windows Manager, Attendance, Audit & Test Data*
 
-### 1. Scheduled Background Jobs (Vercel Cron + `job_run` §8)
-- `open_guest_windows` (T-14 / confirmation to T-2)
-- `resolve_thresholds` (confirm/cancel at `decision_at`)
-- `expire_credits` (nightly ledger debit for expired grants)
-- `expire_offers` (waitlist & 72h application expiry)
-- `flag_at_risk` (nightly check for 60 days inactivity)
-- `reconcile` (nightly ledger balance vs cached view, Stripe status sync)
+#### 3.1 Security & Access Control (Critical Blocker)
+- Create [src/middleware.ts](file:///d:/downloads%206-11-2025/Mothers/src/middleware.ts) enforcing server-side session checks on `/admin/*`.
+- Protect API cron routes with `x-cron-secret` authorization headers.
+- Remove legacy shop endpoints and physical store mirrors.
 
-### 2. GDPR & Data Protection Tooling (§16)
-- Explicit `consent_record` with verbatim text, timestamp, and IP.
-- One-click user data export (JSON + PDF).
-- Anonymization routine (replaces identifiers, preserves financial/attendance tombstone records).
+#### 3.2 Membership Windows Back Office
+- Build Admin Window Management interface (`/admin/settings` / `/admin/windows`):
+  - Create window, set total quota (e.g. 50), set tier prices (€29/€39, €79/€99), open window, close window early.
+  - Automatically controls public application availability and spots countdown.
 
-### 3. Acceptance Test Suite (§18)
-- 21 automated integration tests in Vitest/Jest covering:
-  - Concurrent booking races
-  - Idempotent Stripe webhooks
-  - FIFO credit ledger calculations and capping
-  - 30-day pass discount math
-  - Status transition protections
+#### 3.3 Event Threshold Auto-Decisions & Attendance
+- Refactor cron scheduler to evaluate each event based on its specific `decision_at` datetime rather than a fixed T-7.
+- Implement mobile-ready Attendance Check-in sheet in Admin for walk hosts.
+
+#### 3.4 Staging Database Seeding
+- Update [src/db/seed.ts](file:///d:/downloads%206-11-2025/Mothers/src/db/seed.ts) to populate realistic staging data:
+  - 1 Active Membership Window (e.g. 42/50 spots remaining).
+  - 3 Test Members with active credits and ledger entries.
+  - 4 Events (1 Confirmed with guest pass enabled, 1 Pending threshold mid-fill, 1 Free walk, 1 Past).
+  - 2 Applicant submissions in review queue.
+  - 13 FAQs and 5 Partner umbrellas.
+
+---
+
+## 4. Verification & Testing Matrix
+
+| Component | Verification Method |
+| :--- | :--- |
+| **Admin Route Security** | Attempt accessing `/admin` in unauthenticated incognito mode; verify strict redirect to `/account/login`. |
+| **Cron Trigger Security** | Make HTTP POST to cron routes without secret header; verify 401 Unauthorized. |
+| **Mobile Drawer & Touch** | Test on iPhone 16 viewport (393px width): ensure smooth drawer animation, swipeable tabs, and no auto-zoom on form focus. |
+| **Membership Window Toggle** | Toggle window open/closed in admin; verify `/membership` and `/` instantly switch between live application counter and waitlist/Letter state. |
+| **Event Pass & Ticket** | Purchase €35 guest ticket; verify receipt token link loads `/ticket/[token]` with correct meeting point and release logic. |
+| **13 FAQs Translation** | Verify language toggle switches all 13 accordion questions and answers between English and Spanish seamlessly. |
+
+---
+
+*Plan created on 25 August 2026.*

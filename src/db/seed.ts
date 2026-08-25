@@ -1,5 +1,7 @@
 import { db } from "./index";
-import { eventCategory, window, adminUser, partner, setting, person, member, memberCredential, creditEntry, event } from "./schema";
+import { eventCategory, window, adminUser, partner, setting, person, member, memberCredential, creditEntry, event, application } from "./schema";
+import { and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export async function seedDatabase() {
@@ -31,7 +33,7 @@ export async function seedDatabase() {
       opensAt: now,
       closesAt: closes,
       placesOffered: 50,
-      joiningFeeCents: 5800,
+      joiningFeeCents: 1900,
       monthlyPriceCents: 2900,
       launchRate: true,
       lockMonths: 12,
@@ -92,6 +94,41 @@ export async function seedDatabase() {
     }
   }
 
+  for (const fixture of [
+    { firstName: "Elena", lastName: "Martí", email: "elena@themothers.cc", stage: "Toddlers (1–3 years)", neighbourhood: "Gràcia" },
+    { firstName: "Sofia", lastName: "Costa", email: "sofia@themothers.cc", stage: "Pregnant", neighbourhood: "Eixample" },
+  ]) {
+    let fixturePerson = await db.query.person.findFirst({ where: eq(person.email, fixture.email) });
+    if (!fixturePerson) {
+      [fixturePerson] = await db.insert(person).values({
+        firstName: fixture.firstName,
+        lastName: fixture.lastName,
+        email: fixture.email,
+        locale: "en",
+        isMother: true,
+        source: "staging-seed",
+      }).returning();
+    }
+    const existingMember = await db.query.member.findFirst({ where: eq(member.personId, fixturePerson.id) });
+    if (!existingMember) {
+      const [fixtureMember] = await db.insert(member).values({
+        personId: fixturePerson.id,
+        status: "active",
+        stage: fixture.stage,
+        neighbourhood: fixture.neighbourhood,
+        monthlyPriceCents: 3900,
+        joiningFeePaidCents: 1900,
+      }).returning();
+      await db.insert(creditEntry).values({
+        memberId: fixtureMember.id,
+        amount: 20,
+        type: "grant",
+        sourceType: "subscription",
+        reason: "Staging member monthly grant",
+      });
+    }
+  }
+
   // 4. Seed Partners
   const samplePartners = [
     {
@@ -118,6 +155,22 @@ export async function seedDatabase() {
       description: "Physiotherapist-led small group classes focusing on pelvic health and strength.",
       offerForMembers: "First class complimentary + 10% on monthly packs",
     },
+    {
+      name: "Casa Crianza",
+      slug: "casa-crianza",
+      umbrella: "Childcare & Family",
+      specialty: "Flexible Childcare",
+      description: "Trusted childcare support for evenings, school holidays and the in-between moments.",
+      offerForMembers: "Priority introductions for members",
+    },
+    {
+      name: "La Mesa Mothers",
+      slug: "la-mesa-mothers",
+      umbrella: "Food & Hospitality",
+      specialty: "Family-friendly Dining",
+      description: "Welcoming restaurants and tables where mothers can arrive as they are.",
+      offerForMembers: "A welcome drink with member bookings",
+    },
   ];
 
   for (const p of samplePartners) {
@@ -137,6 +190,83 @@ export async function seedDatabase() {
     { key: "max_lifetime_guest_passes", value: 2 },
   ];
 
+  for (const s of defaultSettings) {
+    await db.insert(setting).values(s).onConflictDoUpdate({
+      target: setting.key,
+      set: { value: s.value, updatedAt: new Date() },
+    });
+  }
+
+  // 5b. Seed Application Records (review queue)
+  const currentWindow = await db.query.window.findFirst({
+    where: eq(window.status, "open"),
+  });
+
+  if (currentWindow) {
+    const applicantPersons = [
+      { firstName: "Anna", lastName: "Rossi", email: "anna.applicant@example.com" },
+      { firstName: "Jessica", lastName: "López", email: "jessica.applicant@example.com" },
+    ];
+
+    for (const ap of applicantPersons) {
+      let applicantPerson = await db.query.person.findFirst({ where: eq(person.email, ap.email) });
+      if (!applicantPerson) {
+        [applicantPerson] = await db.insert(person).values({
+          firstName: ap.firstName,
+          lastName: ap.lastName,
+          email: ap.email,
+          locale: "en",
+          isMother: true,
+          source: "website",
+        }).returning();
+      }
+
+      const existingApp = await db.query.application.findFirst({
+        where: and(eq(application.personId, applicantPerson.id), eq(application.windowId, currentWindow.id)),
+      });
+
+      if (!existingApp) {
+        await db.insert(application).values({
+          personId: applicantPerson.id,
+          windowId: currentWindow.id,
+          answers: {},
+          status: "submitted",
+          submittedAt: new Date(),
+        });
+      }
+    }
+  }
+
+  // 5c. Add expanded ledger history to first member
+  if (testPerson[0]) {
+    const existingFirstMember = await db.query.member.findFirst({
+      where: eq(member.personId, testPerson[0].id),
+    });
+    if (existingFirstMember) {
+      // Add older grant entry
+      await db.insert(creditEntry).values({
+        memberId: existingFirstMember.id,
+        amount: 20,
+        type: "grant",
+        sourceType: "subscription",
+        reason: "July 2026 Monthly Grant",
+        expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+      });
+
+      // Add a godmother referral entry
+      await db.insert(creditEntry).values({
+        memberId: existingFirstMember.id,
+        amount: 5,
+        type: "grant",
+        sourceType: "godmother",
+        reason: "Godmother referral activation bonus",
+        expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
+      });
+    }
+  }
+
   // 6. Seed Dynamic Events
   const allCategories = await db.select().from(eventCategory);
   const catMap = new Map(allCategories.map((c) => [c.slug, c.id]));
@@ -150,7 +280,7 @@ export async function seedDatabase() {
       neighbourhood: "Ciutat Vella",
       venueName: "Parc de la Ciutadella",
       meetingPoint: "Cascada Monumental (exact bench coordinates shared with confirmed attendees)",
-      startsAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000), // in 2 days at 10:30
+      startsAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000),
       endsAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 3.5 * 60 * 60 * 1000),
       creditCost: 0,
       capacityMember: 12,
@@ -231,6 +361,24 @@ export async function seedDatabase() {
       isSignature: true,
       isFreeWalk: false,
       status: "confirmed" as const,
+    },
+    {
+      title: "Morning Walk & Coffee — Barceloneta",
+      slug: "morning-walk-barceloneta-past",
+      categoryId: catMap.get("walks-park-socials"),
+      description: "Our first walk as a community. Thank you to every mother who came out.",
+      neighbourhood: "Barceloneta",
+      venueName: "Barceloneta Beach",
+      meetingPoint: "Font de Neptú, Barceloneta",
+      startsAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+      endsAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000),
+      creditCost: 0,
+      capacityMember: 15,
+      capacityGuest: 0,
+      minToConfirm: 0,
+      isSignature: false,
+      isFreeWalk: true,
+      status: "completed" as const,
     },
   ];
 

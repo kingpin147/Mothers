@@ -59,20 +59,7 @@ export async function submitApplication(data: ApplicationFormData) {
     });
 
     if (!currentWindow) {
-      // If no window is explicitly open in database, fallback to auto-created default open launch window
-      const insertedWindow = await db
-        .insert(window)
-        .values({
-          opensAt: new Date(),
-          closesAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          placesOffered: 50,
-          joiningFeeCents: 5800,
-          monthlyPriceCents: 2900,
-          launchRate: true,
-          status: "open",
-        })
-        .returning();
-      currentWindow = insertedWindow[0];
+      return { success: false, error: "WINDOW_CLOSED" };
     }
 
     // 2. Upsert or find person

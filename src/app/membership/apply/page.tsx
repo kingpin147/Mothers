@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { submitApplication, ApplicationFormData } from "@/app/actions/application";
 
+const STORAGE_KEY = "tm_apply_form";
+
 export default function MembershipApplicationPage() {
   const [lang, setLang] = useState<"en" | "es">("en");
   const [step, setStep] = useState<number>(1);
@@ -29,13 +31,34 @@ export default function MembershipApplicationPage() {
     locale: "en",
   });
 
+  // Restore persisted form state on mount
   useEffect(() => {
-    const saved = localStorage.getItem("tm_lang");
-    if (saved === "es" || saved === "en") {
-      setLang(saved);
-      setFormData((prev) => ({ ...prev, locale: saved }));
+    const savedLang = localStorage.getItem("tm_lang");
+    if (savedLang === "es" || savedLang === "en") {
+      setLang(savedLang);
+    }
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setFormData((prev) => ({ ...prev, ...parsed, termsAccepted: false }));
+        if (parsed._step && typeof parsed._step === "number") {
+          setStep(parsed._step);
+        }
+      }
+    } catch {
+      // ignore parse errors
     }
   }, []);
+
+  // Persist form state on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...formData, _step: step }));
+    } catch {
+      // ignore storage errors
+    }
+  }, [formData, step]);
 
   const totalSteps = 11;
 
@@ -99,6 +122,7 @@ export default function MembershipApplicationPage() {
     setLoading(false);
 
     if (res.success) {
+      localStorage.removeItem(STORAGE_KEY);
       setSubmitted(true);
     } else {
       setErrorMsg(res.error || "Submission failed. Please try again.");
@@ -138,9 +162,25 @@ export default function MembershipApplicationPage() {
     <div style={{ maxWidth: "640px", margin: "60px auto", padding: "0 24px 80px" }}>
       {/* Step Indicator */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "28px" }}>
-        <span style={{ fontFamily: "var(--font-heading)", fontSize: "14px", fontWeight: 600, color: "var(--color-accent)" }}>
-          {lang === "en" ? `Step ${step} of ${totalSteps}` : `Paso ${step} de ${totalSteps}`}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <span style={{ fontFamily: "var(--font-heading)", fontSize: "14px", fontWeight: 600, color: "var(--color-accent)" }}>
+            {lang === "en" ? `Step ${step} of ${totalSteps}` : `Paso ${step} de ${totalSteps}`}
+          </span>
+          {step > 1 && (
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem(STORAGE_KEY);
+                setStep(1);
+                setFormData({ firstName: "", lastName: "", email: "", stage: "Pregnancy", childrenAge: "", neighbourhood: "Eixample", hopingToFind: ["Friendships nearby"], freeTimes: ["Weekday mornings"], referralSource: "Instagram", socialPlatform: "Instagram", socialHandle: "", motivation: "", billingPreference: "monthly", termsAccepted: false, locale: lang });
+                setErrorMsg(null);
+              }}
+              style={{ background: "transparent", border: "none", color: "rgba(57,41,42,0.4)", cursor: "pointer", fontSize: "12px", fontFamily: "inherit", textDecoration: "underline" }}
+            >
+              {lang === "en" ? "Start over" : "Empezar de nuevo"}
+            </button>
+          )}
+        </div>
         {step > 1 && (
           <button
             type="button"
