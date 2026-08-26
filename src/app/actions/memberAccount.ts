@@ -4,6 +4,9 @@ import { db } from "@/db";
 import { member, person, creditEntry, booking, event, eventCategory, eventPass } from "@/db/schema";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-12-18.acacia" });
 
 export async function getAccountData() {
   const session = await auth();
@@ -160,5 +163,38 @@ export async function updatePersonDetails(data: { firstName: string; lastName: s
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e?.message || "UPDATE_FAILED" };
+  }
+}
+
+export async function cancelMembership() {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+  const memberId = (session.user as any).memberId;
+  if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+
+  try {
+    const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
+    if (!memberRecord) return { success: false, error: "MEMBER_NOT_FOUND" };
+    if (memberRecord.cancelAtPeriodEnd) return { success: false, error: "ALREADY_CANCELLING" };
+
+    // If Stripe subscription exists, set cancel_at_period_end via Stripe
+    if (memberRecord.stripeSubscriptionId) {
+      await stripe.subscriptions.update(memberRecord.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+    }
+
+    // Always update DB flag regardless (Stripe webhook will also do this,
+    // but we update optimistically so UI reflects immediately)
+    await db.update(member)
+      .set({ cancelAtPeriodEnd: true, updatedAt: new Date() })
+      .where(eq(member.id, memberId));
+
+    return {
+      success: true,
+      currentPeriodEnd: memberRecord.currentPeriodEnd?.toISOString() ?? null,
+    };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "CANCEL_FAILED" };
   }
 }

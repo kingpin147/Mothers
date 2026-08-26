@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
       }}>
         <div style={{ textAlign: "center", marginBottom: "28px" }}>
           <img
-            src="/assets/logo-mark-alpha.png"
+            src="/assets/logo-mark-alpha.svg"
             alt="The Mothers"
             style={{ height: "56px", width: "auto", margin: "0 auto 16px" }}
           />

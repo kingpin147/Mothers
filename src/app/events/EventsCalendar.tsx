@@ -508,6 +508,7 @@ export function EventsCalendar({ events, categories }: Props) {
   const [lang,           setLang]           = useState<Lang>("en");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeStage,    setActiveStage]    = useState<string>("all");
+  const [activeMonth,    setActiveMonth]    = useState<string>("all");
   const [guestPassEvent, setGuestPassEvent] = useState<PublicEvent | null>(null);
 
   // Sync language from localStorage
@@ -531,12 +532,36 @@ export function EventsCalendar({ events, categories }: Props) {
     })),
   ];
 
+  const monthChips = React.useMemo(() => {
+    const monthsMap = new Map<string, { id: string, labelEn: string, labelEs: string, time: number }>();
+    events.forEach(ev => {
+      const d = new Date(ev.startsAt);
+      const yearMonth = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!monthsMap.has(yearMonth)) {
+        monthsMap.set(yearMonth, {
+          id: yearMonth,
+          labelEn: d.toLocaleString('en-US', { month: 'long' }),
+          labelEs: d.toLocaleString('es-ES', { month: 'long' }),
+          time: d.getTime()
+        });
+      }
+    });
+    const sorted = Array.from(monthsMap.values()).sort((a, b) => a.time - b.time);
+    return [
+      { id: "all", labelEn: "All months", labelEs: "Todos los meses" },
+      ...sorted
+    ];
+  }, [events]);
+
   // Filter events
   const filtered = events.filter((ev) => {
     const matchCat =
       activeCategory === "all" || ev.categoryId === activeCategory;
     const matchStage = matchesStageFilter(ev, activeStage);
-    return matchCat && matchStage;
+    const d = new Date(ev.startsAt);
+    const yearMonth = `${d.getFullYear()}-${d.getMonth()}`;
+    const matchMonth = activeMonth === "all" || yearMonth === activeMonth;
+    return matchCat && matchStage && matchMonth;
   });
 
   return (
@@ -685,6 +710,49 @@ export function EventsCalendar({ events, categories }: Props) {
                   }}
                 >
                   {lang === "en" ? st.labelEn : st.labelEs}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Month chips */}
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              overflowX: "auto",
+              paddingBottom: "4px",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
+            {monthChips.map((mo) => {
+              const selected = activeMonth === mo.id;
+              return (
+                <button
+                  key={mo.id}
+                  type="button"
+                  onClick={() => setActiveMonth(mo.id)}
+                  aria-pressed={selected}
+                  style={{
+                    border: selected
+                      ? "1px solid var(--color-accent-2)"
+                      : "1px solid rgba(57, 41, 42, 0.16)",
+                    color: selected
+                      ? "var(--color-accent-2)"
+                      : "rgba(57, 41, 42, 0.65)",
+                    backgroundColor: selected
+                      ? "rgba(86, 139, 5, 0.08)"
+                      : "transparent",
+                    padding: "6px 14px",
+                    borderRadius: "16px",
+                    fontSize: "12px",
+                    fontFamily: "var(--font-body)",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {lang === "en" ? mo.labelEn : mo.labelEs}
                 </button>
               );
             })}

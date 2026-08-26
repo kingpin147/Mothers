@@ -344,6 +344,24 @@ export const eventWaitlist = pgTable(
   }
 );
 
+export const guestRsvp = pgTable(
+  "guest_rsvp",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    eventId: text("event_id").notNull().references(() => event.id, { onDelete: "cascade" }),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    email: text("email").notNull(),
+    whatsappE164: text("whatsapp_e164"),
+    attendedAt: timestamp("attended_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_guest_rsvp_event").on(table.eventId),
+    uniqueIndex("idx_unique_guest_rsvp").on(table.eventId, table.email),
+  ]
+);
+
 export const eventChangeLog = pgTable(
   "event_change_log",
   {

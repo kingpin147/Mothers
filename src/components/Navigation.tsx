@@ -53,7 +53,7 @@ export function Navigation() {
         {/* Brand Lockup */}
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
           <img
-            src="/assets/logo-mark-alpha.png"
+            src="/assets/motherLogo.png"
             alt="The Mothers"
             style={{ height: "72px", width: "auto", display: "block" }}
           />
@@ -68,7 +68,7 @@ export function Navigation() {
             }}
           />
           <img
-            src="/assets/logo-wordmark-alpha.png"
+            src="/assets/logo-wordmark-alpha.svg"
             alt="The Mothers"
             style={{ height: "16px", width: "auto", display: "block" }}
           />

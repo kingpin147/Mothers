@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Locale } from "@/lib/i18n";
-import { getAccountData, pauseMembership, updatePersonDetails } from "@/app/actions/memberAccount";
+import { getAccountData, pauseMembership, updatePersonDetails, cancelMembership } from "@/app/actions/memberAccount";
 import { buyExtraCredits } from "@/app/actions/booking";
 
 type AccountTab = "overview" | "credits" | "groups" | "godmother" | "membership" | "details";
@@ -25,6 +25,11 @@ export default function AccountPage() {
   // Membership pause state
   const [pauseLoading, setPauseLoading] = useState(false);
   const [pauseResult, setPauseResult] = useState<{ success: boolean; error?: string } | null>(null);
+
+  // Membership cancel state
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelResult, setCancelResult] = useState<{ success: boolean; error?: string; currentPeriodEnd?: string | null } | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Details form state
   const [detailsForm, setDetailsForm] = useState({ firstName: "", lastName: "", phone: "", stage: "", neighbourhood: "" });
@@ -175,13 +180,31 @@ export default function AccountPage() {
               {lang === "en" ? "Membership Status" : "Estado de Membresía"}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "var(--color-accent-2)" }} />
+              <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: memberData?.status === "active" ? (memberData?.cancelAtPeriodEnd ? "#a4761f" : "var(--color-accent-2)") : "rgba(57,41,42,0.3)" }} />
               <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "18px" }}>
-                {lang === "en" ? "Active" : "Activa"}
+                {memberData?.status === "active"
+                  ? (memberData?.cancelAtPeriodEnd 
+                      ? (lang === "en" ? "Cancelling" : "Cancelando")
+                      : (lang === "en" ? "Active" : "Activa"))
+                  : memberData?.status === "paused"
+                  ? (lang === "en" ? "Paused" : "Pausada")
+                  : (lang === "en" ? "Inactive" : "Inactiva")}
               </span>
             </div>
             <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
-              {lang === "en" ? "Next renewal: 1 Oct 2026 (€29)" : "Próxima renovación: 1 Oct 2026 (29€)"}
+              {memberData?.cancelAtPeriodEnd
+                ? (lang === "en" 
+                    ? `Ends on ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : ""}`
+                    : `Finaliza el ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : ""}`)
+                : memberData?.status === "active"
+                ? (lang === "en" 
+                    ? `Next renewal: ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : ""} (€${(memberData.monthlyPriceCents || 0) / 100})`
+                    : `Próxima renovación: ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : ""} (${(memberData.monthlyPriceCents || 0) / 100}€)`)
+                : memberData?.status === "paused" && memberData.pausedUntil
+                ? (lang === "en"
+                    ? `Paused until: ${new Date(memberData.pausedUntil).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`
+                    : `Pausada hasta: ${new Date(memberData.pausedUntil).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })}`)
+                : ""}
             </div>
           </div>
 
@@ -517,6 +540,91 @@ export default function AccountPage() {
                   : (lang === "en" ? "Request Membership Pause" : "Solicitar Pausa de Membresía")}
               </button>
             </div>
+
+            {/* Cancel Membership card */}
+            {!memberData?.cancelAtPeriodEnd ? (
+              <div style={{ border: "1px solid rgba(200,0,0,0.18)", borderRadius: "8px", padding: "24px", backgroundColor: "#fff" }}>
+                <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "20px", margin: "0 0 12px 0", color: "#993842" }}>
+                  {lang === "en" ? "Cancel Membership" : "Cancelar Membresía"}
+                </h3>
+                <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "0 0 16px 0" }}>
+                  {lang === "en"
+                    ? "You can cancel anytime — there are no cancellation fees. Your access continues until the end of your current billing period. If you're an Opening Circle member, your locked €29 rate will be released and cannot be reclaimed."
+                    : "Puedes cancelar en cualquier momento sin cuota de cancelación. Tu acceso continúa hasta el final del período de facturación actual. Si eres socia del Opening Circle, tu tarifa bloqueada de 29€ quedará liberada y no podrá recuperarse."}
+                </p>
+
+                {cancelResult?.error && (
+                  <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "12px" }}>
+                    {cancelResult.error === "ALREADY_CANCELLING"
+                      ? (lang === "en" ? "Your membership is already scheduled to cancel." : "Tu membresía ya está programada para cancelarse.")
+                      : cancelResult.error}
+                  </div>
+                )}
+
+                {!showCancelConfirm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelConfirm(true)}
+                    style={{ border: "1px solid rgba(200,0,0,0.4)", backgroundColor: "transparent", color: "#993842", padding: "10px 18px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}
+                  >
+                    {lang === "en" ? "Cancel Membership" : "Cancelar Membresía"}
+                  </button>
+                ) : (
+                  <div style={{ backgroundColor: "#fff8f8", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", padding: "16px 20px" }}>
+                    <p style={{ fontSize: "14px", fontWeight: 600, color: "#993842", margin: "0 0 14px 0" }}>
+                      {lang === "en"
+                        ? `Are you sure? Your membership will end on ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "long", year: "numeric" }) : "the end of your current period"}.`
+                        : `¿Estás segura? Tu membresía terminará el ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "final del período actual"}.`}
+                    </p>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowCancelConfirm(false)}
+                        style={{ border: "1px solid rgba(57,41,42,0.2)", backgroundColor: "transparent", color: "rgba(57,41,42,0.7)", padding: "9px 16px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}
+                      >
+                        {lang === "en" ? "Keep My Membership" : "Mantener Mi Membresía"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={cancelLoading}
+                        onClick={async () => {
+                          setCancelLoading(true);
+                          setCancelResult(null);
+                          try {
+                            const res = await cancelMembership();
+                            setCancelResult(res);
+                            if (res.success) {
+                              setShowCancelConfirm(false);
+                              const refreshed = await getAccountData();
+                              if (refreshed.success) setAccountData(refreshed);
+                            }
+                          } finally {
+                            setCancelLoading(false);
+                          }
+                        }}
+                        style={{ border: "none", backgroundColor: "#993842", color: "#fff", padding: "9px 16px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: cancelLoading ? "wait" : "pointer", opacity: cancelLoading ? 0.7 : 1 }}
+                      >
+                        {cancelLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, Cancel" : "Sí, Cancelar")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ border: "1px solid rgba(164,118,31,0.35)", borderRadius: "8px", padding: "24px", backgroundColor: "#fff9f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "18px" }}>⏳</span>
+                  <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "17px", color: "#a4761f" }}>
+                    {lang === "en" ? "Cancellation Scheduled" : "Cancelación Programada"}
+                  </span>
+                </div>
+                <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.78)", margin: "0", lineHeight: "1.6" }}>
+                  {lang === "en"
+                    ? `Your membership access continues until ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "the end of your current period"}. After that, your account will become inactive. Any remaining credits will expire 6 months after their issue date.`
+                    : `Tu acceso continúa hasta el ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "final del período actual"}. Después, tu cuenta quedará inactiva. Los créditos restantes caducan 6 meses después de su fecha de emisión.`}
+                </p>
+              </div>
+            )}
           </div>
         )}
 

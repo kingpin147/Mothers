@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { bookEvent, buyGuestPass } from "@/app/actions/booking";
 import { getPublicEventById } from "@/app/actions/events";
+import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 
 interface EventDetail {
   id: string;
@@ -60,7 +61,9 @@ export default function EventDetailPage() {
   const [fetchLoading, setFetchLoading] = useState(true);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [isRsvpModal, setIsRsvpModal] = useState(false);
   const [guestForm, setGuestForm] = useState({ firstName: "", lastName: "", email: "" });
+  const [rsvpForm, setRsvpForm] = useState({ firstName: "", lastName: "", email: "", whatsapp: "" });
   const [actionLoading, setActionLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -132,6 +135,29 @@ export default function EventDetailPage() {
       );
     }
   }, [eventId, guestForm, lang]);
+
+  const handleRsvpSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rsvpForm.firstName || !rsvpForm.email) {
+      setErrorMsg(lang === "en" ? "Please fill in your name and email." : "Por favor completa tu nombre y correo.");
+      return;
+    }
+    setActionLoading(true);
+    setErrorMsg(null);
+    const res = await submitFreeWalkRsvp({
+      eventId,
+      firstName: rsvpForm.firstName,
+      lastName: rsvpForm.lastName,
+      email: rsvpForm.email,
+      whatsappE164: rsvpForm.whatsapp,
+    });
+    setActionLoading(false);
+    if (res.success) {
+      setBookingSuccess(true);
+    } else {
+      setErrorMsg(lang === "en" ? "Failed to submit RSVP." : "Error al enviar la reserva.");
+    }
+  }, [eventId, rsvpForm, lang]);
 
   // ── Loading / error states ────────────────────────────────────────────────
 
@@ -284,7 +310,7 @@ export default function EventDetailPage() {
                 {ev.guestPassEligible && !isMember && (
                   <button
                     type="button"
-                    onClick={() => { setModalOpen(true); setErrorMsg(null); }}
+                    onClick={() => { setModalOpen(true); setIsRsvpModal(false); setErrorMsg(null); }}
                     style={{ border: "1px solid var(--color-accent)", color: "var(--color-accent)", backgroundColor: "#fff", padding: "12px 22px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14.5px", cursor: "pointer" }}
                   >
                     {guestPassLabel}
@@ -293,12 +319,20 @@ export default function EventDetailPage() {
                 {isMember ? (
                   <button
                     type="button"
-                    onClick={() => { setModalOpen(true); setErrorMsg(null); }}
+                    onClick={() => { setModalOpen(true); setIsRsvpModal(false); setErrorMsg(null); }}
                     style={{ backgroundColor: "var(--color-accent)", color: "#f8efe2", border: "none", padding: "12px 26px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14.5px", cursor: "pointer" }}
                   >
                     {ev.creditCost === 0 || ev.isFreeWalk
                       ? (lang === "en" ? "Reserve Free Place" : "Reservar Plaza Gratuita")
                       : (lang === "en" ? `Reserve (${ev.creditCost} Credits)` : `Reservar (${ev.creditCost} Créditos)`)}
+                  </button>
+                ) : ev.isFreeWalk ? (
+                  <button
+                    type="button"
+                    onClick={() => { setModalOpen(true); setIsRsvpModal(true); setErrorMsg(null); }}
+                    style={{ backgroundColor: "var(--color-accent)", color: "#f8efe2", border: "none", padding: "12px 26px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14.5px", cursor: "pointer" }}
+                  >
+                    {lang === "en" ? "RSVP for Free Walk" : "Reservar Paseo Gratuito"}
                   </button>
                 ) : (
                   <Link
@@ -350,7 +384,7 @@ export default function EventDetailPage() {
             ) : (
               <div>
                 <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "22px", margin: "0 0 6px" }}>
-                  {isMember ? (lang === "en" ? "Confirm Your Booking" : "Confirmar Reserva") : (lang === "en" ? "€35 Event Pass" : "35€ Event Pass")}
+                  {isRsvpModal ? (lang === "en" ? "Free Walk RSVP" : "Reserva de Paseo") : isMember ? (lang === "en" ? "Confirm Your Booking" : "Confirmar Reserva") : (lang === "en" ? "€35 Event Pass" : "35€ Event Pass")}
                 </h2>
                 <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.6)", margin: "0 0 20px" }}>{ev.title}</p>
 
@@ -360,7 +394,37 @@ export default function EventDetailPage() {
                   </div>
                 )}
 
-                {isMember ? (
+                {isRsvpModal ? (
+                  <form onSubmit={handleRsvpSubmit} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ backgroundColor: "#f4f7ee", padding: "12px 16px", borderRadius: "4px", fontSize: "13px" }}>
+                      <div style={{ fontWeight: 600, marginBottom: "4px" }}>{lang === "en" ? "Free Walk RSVP" : "Reserva de Paseo Gratuito"}</div>
+                      <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.65)", lineHeight: 1.5 }}>
+                        {lang === "en"
+                          ? "This event is free and open to all mothers. Let us know you're coming!"
+                          : "Este evento es gratuito y abierto a todas las madres. ¡Infórmanos que vienes!"}
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>{lang === "en" ? "First Name" : "Nombre"} *</label>
+                      <input type="text" className="input" value={rsvpForm.firstName} onChange={(e) => setRsvpForm({ ...rsvpForm, firstName: e.target.value })} required />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>{lang === "en" ? "Surname (optional)" : "Apellido (opcional)"}</label>
+                      <input type="text" className="input" value={rsvpForm.lastName} onChange={(e) => setRsvpForm({ ...rsvpForm, lastName: e.target.value })} />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>{lang === "en" ? "Email" : "Correo"} *</label>
+                      <input type="email" className="input" value={rsvpForm.email} onChange={(e) => setRsvpForm({ ...rsvpForm, email: e.target.value })} required />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>{lang === "en" ? "WhatsApp (optional)" : "WhatsApp (opcional)"}</label>
+                      <input type="tel" className="input" value={rsvpForm.whatsapp} onChange={(e) => setRsvpForm({ ...rsvpForm, whatsapp: e.target.value })} />
+                    </div>
+                    <button type="submit" disabled={actionLoading} style={{ width: "100%", padding: "13px", backgroundColor: "var(--color-accent)", color: "#f8efe2", border: "none", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", cursor: actionLoading ? "wait" : "pointer", opacity: actionLoading ? 0.7 : 1, marginTop: "4px" }}>
+                      {actionLoading ? (lang === "en" ? "Submitting…" : "Enviando…") : (lang === "en" ? "Confirm RSVP" : "Confirmar Reserva")}
+                    </button>
+                  </form>
+                ) : isMember ? (
                   <div>
                     <div style={{ backgroundColor: "#f8efe2", padding: "16px", borderRadius: "6px", marginBottom: "20px", fontSize: "14px", display: "flex", flexDirection: "column", gap: "8px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>

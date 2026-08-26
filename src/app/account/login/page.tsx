@@ -63,17 +63,6 @@ export default function LoginPage() {
     }
   };
 
-  const fillCredentials = (type: "admin" | "member") => {
-    if (type === "admin") {
-      setEmail("hello@themothers.cc");
-      setPassword("MothersAdmin2026!");
-    } else {
-      setEmail("maria@themothers.cc");
-      setPassword("Member2026!");
-    }
-    setErrorMsg(null);
-  };
-
   return (
     <div style={{
       backgroundColor: "var(--color-bg)",
@@ -93,7 +82,7 @@ export default function LoginPage() {
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "24px" }}>
           <img
-            src="/assets/logo-mark-alpha.png"
+            src="/assets/logo-mark-alpha.svg"
             alt="The Mothers"
             style={{ height: "56px", width: "auto", margin: "0 auto 16px" }}
           />
@@ -105,38 +94,6 @@ export default function LoginPage() {
               ? "Sign in with your member or operator account."
               : "Introduce tu correo y contraseña para acceder."}
           </p>
-        </div>
-
-        {/* 1-Click Test Credentials Helper */}
-        <div style={{
-          backgroundColor: "#f5eee4",
-          border: "1px dashed rgba(123, 31, 44, 0.3)",
-          borderRadius: "6px",
-          padding: "12px 14px",
-          marginBottom: "20px",
-          fontSize: "12.5px"
-        }}>
-          <div style={{ fontWeight: 600, color: "var(--color-accent)", marginBottom: "6px" }}>
-            🔑 Test Accounts (1-Click Fill):
-          </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              type="button"
-              onClick={() => fillCredentials("admin")}
-              className="btn btn-outline"
-              style={{ padding: "4px 10px", fontSize: "11.5px", flex: 1 }}
-            >
-              Fill Admin Account
-            </button>
-            <button
-              type="button"
-              onClick={() => fillCredentials("member")}
-              className="btn btn-outline"
-              style={{ padding: "4px 10px", fontSize: "11.5px", flex: 1 }}
-            >
-              Fill Member Account
-            </button>
-          </div>
         </div>
 
         {errorMsg && (

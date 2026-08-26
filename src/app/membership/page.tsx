@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Locale } from "@/lib/i18n";
 import { getPublicMembershipWindow } from "@/app/actions/publicWindow";
+import { WaitlistForm } from "./WaitlistForm";
 
 export default function MembershipPage() {
   const [lang, setLang] = useState<Locale>("en");
@@ -128,22 +129,28 @@ export default function MembershipPage() {
               </p>
             </div>
 
-            <Link
-              href="/membership/apply"
-              style={{
-                backgroundColor: "var(--color-accent)",
-                color: "#f8efe2",
-                padding: "13px 28px",
-                borderRadius: "4px",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                fontSize: "15px",
-                textDecoration: "none",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {lang === "en" ? "Apply as Opening Circle" : "Solicitar plaza Opening Circle"}
-            </Link>
+            {windowOpen ? (
+              <Link
+                href="/membership/apply"
+                style={{
+                  backgroundColor: "var(--color-accent)",
+                  color: "#f8efe2",
+                  padding: "13px 28px",
+                  borderRadius: "4px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "15px",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {lang === "en" ? "Apply as Opening Circle" : "Solicitar plaza Opening Circle"}
+              </Link>
+            ) : (
+              <div style={{ flex: "1 1 300px", maxWidth: "400px" }}>
+                <WaitlistForm lang={lang} />
+              </div>
+            )}
           </div>
 
           <p style={{ fontFamily: "var(--font-heading)", fontSize: "20px", color: "#39292a", margin: "0 0 20px" }}>
