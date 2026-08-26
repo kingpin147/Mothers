@@ -138,7 +138,7 @@ a:hover {
   padding: var(--space-4);
 }
 
-.input {
+input, select, .input {
   width: 100%;
   padding: 10px 14px;
   font-family: inherit;

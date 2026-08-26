@@ -6,7 +6,7 @@ import { eq, desc, and, sql, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-12-18.acacia" });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-07-29.dahlia" });
 
 export async function getAccountData() {
   const session = await auth();
