@@ -3,8 +3,267 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { buyGuestPass } from "@/app/actions/booking";
+import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── FreeWalkRsvpModal ────────────────────────────────────────────────────────
+
+interface FreeWalkModalProps {
+  event: PublicEvent;
+  lang: Lang;
+  onClose: () => void;
+}
+
+function FreeWalkRsvpModal({ event: ev, lang, onClose }: FreeWalkModalProps) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName,  setLastName]  = useState("");
+  const [email,     setEmail]     = useState("");
+  const [whatsapp,  setWhatsapp]  = useState("");
+  const [isMother,  setIsMother]  = useState(true);
+  const [loading,   setLoading]   = useState(false);
+  const [success,   setSuccess]   = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
+
+  const t = {
+    title: lang === "en" ? "Free Community Walk RSVP" : "RSVP Paseo Comunitario Gratuito",
+    subtitle: lang === "en" ? `Open to all mothers & expecting mothers: ${ev.title}` : `Abierto a todas las madres y futuras madres: ${ev.title}`,
+    firstNameLbl: lang === "en" ? "First name" : "Nombre",
+    lastNameLbl: lang === "en" ? "Last name" : "Apellido",
+    emailLbl: lang === "en" ? "Email address" : "Correo electrónico",
+    whatsappLbl: lang === "en" ? "WhatsApp phone" : "Teléfono WhatsApp",
+    motherCheck: lang === "en" ? "I confirm I am a mother or expecting mother" : "Confirmo que soy madre o estoy embarazada",
+    cta: lang === "en" ? "Request Place (Free)" : "Solicitar Plaza (Gratis)",
+    loading: lang === "en" ? "Reserving your place…" : "Reservando tu plaza…",
+    cancel: lang === "en" ? "Cancel" : "Cancelar",
+    successTitle: lang === "en" ? "Place Requested!" : "¡Plaza Solicitada!",
+    successDesc: lang === "en"
+      ? "You are on the list. We will send WhatsApp confirmation 3 days before, and the meeting point the day before."
+      : "Estás en la lista. Te enviaremos confirmación por WhatsApp 3 días antes y el punto de encuentro el día anterior.",
+    close: lang === "en" ? "Close" : "Cerrar",
+    errorFallback: lang === "en" ? "Something went wrong. Please try again." : "Algo falló. Inténtalo de nuevo.",
+  };
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isMother) {
+      setError(lang === "en" ? "Community walks are reserved for mothers and expecting mothers." : "Los paseos comunitarios están reservados para madres y futuras madres.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await submitFreeWalkRsvp({
+        eventId: ev.id,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        whatsappE164: whatsapp.trim(),
+      });
+      if (result.success) {
+        setSuccess(true);
+      } else {
+        setError(result.error || t.errorFallback);
+      }
+    } catch {
+      setError(t.errorFallback);
+    } finally {
+      setLoading(false);
+    }
+  }, [ev.id, firstName, lastName, email, whatsapp, isMother, lang, t.errorFallback]);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        background: "rgba(57, 41, 42, 0.55)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "16px",
+      }}
+    >
+      <div
+        style={{
+          background: "#FEFDF9",
+          borderRadius: "10px",
+          padding: "32px 28px",
+          width: "100%",
+          maxWidth: "420px",
+          boxShadow: "0 8px 40px rgba(57, 41, 42, 0.22)",
+          position: "relative",
+        }}
+      >
+        <button
+          type="button"
+          aria-label="Close"
+          onClick={onClose}
+          style={{
+            position: "absolute", top: "14px", right: "16px",
+            background: "none", border: "none", cursor: "pointer",
+            fontSize: "20px", color: "rgba(57, 41, 42, 0.5)", lineHeight: 1,
+          }}
+        >
+          ✕
+        </button>
+
+        {success ? (
+          <div style={{ textAlign: "center", padding: "12px 0" }}>
+            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "24px", color: "var(--color-accent-2)", margin: "0 0 10px 0" }}>
+              ✓ {t.successTitle}
+            </h2>
+            <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57, 41, 42, 0.75)", margin: "0 0 24px 0" }}>
+              {t.successDesc}
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-primary"
+              style={{ padding: "10px 24px" }}
+            >
+              {t.close}
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2
+              style={{
+                fontFamily: "var(--font-heading)", fontSize: "24px",
+                color: "var(--color-accent)", margin: "0 0 6px 0",
+              }}
+            >
+              {t.title}
+            </h2>
+            <p style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.65)", margin: "0 0 20px 0" }}>
+              {t.subtitle}
+            </p>
+
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div>
+                <label htmlFor="fw-fname" style={labelStyle}>{t.firstNameLbl}</label>
+                <input
+                  id="fw-fname"
+                  type="text"
+                  required
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="fw-lname" style={labelStyle}>{t.lastNameLbl}</label>
+                <input
+                  id="fw-lname"
+                  type="text"
+                  required
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="fw-email" style={labelStyle}>{t.emailLbl}</label>
+                <input
+                  id="fw-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="fw-phone" style={labelStyle}>{t.whatsappLbl}</label>
+                <input
+                  id="fw-phone"
+                  type="tel"
+                  required
+                  placeholder="+34 600 000 000"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginTop: "4px" }}>
+                <input
+                  type="checkbox"
+                  id="fw-mother"
+                  checked={isMother}
+                  onChange={(e) => setIsMother(e.target.checked)}
+                  style={{ marginTop: "3px", width: "auto" }}
+                />
+                <label htmlFor="fw-mother" style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.75)", cursor: "pointer" }}>
+                  {t.motherCheck}
+                </label>
+              </div>
+
+              {error && (
+                <p role="alert" style={{ fontSize: "13px", color: "#99384a", margin: 0 }}>
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  background: "var(--color-accent)",
+                  color: "#f8efe2",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "11px 20px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1,
+                  marginTop: "8px",
+                }}
+              >
+                {loading ? t.loading : t.cta}
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  background: "none",
+                  border: "1px solid rgba(57, 41, 42, 0.2)",
+                  borderRadius: "4px",
+                  padding: "9px 20px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  color: "rgba(57, 41, 42, 0.65)",
+                  cursor: "pointer",
+                }}
+              >
+                {t.cancel}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── EventCard ────────────────────────────────────────────────────────────────
+
+interface EventCardProps {
+  ev: PublicEvent;
+  lang: Lang;
+  onOpenGuestPass: (ev: PublicEvent) => void;
+  onOpenFreeRsvp: (ev: PublicEvent) => void;
+}
 
 export interface PublicEvent {
   id: string;
@@ -100,12 +359,17 @@ function getCardBorder(status: string): string {
   }
 }
 
-function getStatusLabel(status: string, lang: Lang): string {
-  if (status === "confirmed")         return lang === "en" ? "✓ Confirmed event" : "✓ Evento confirmado";
-  if (status === "published_pending") return lang === "en" ? "⏳ Pending confirmation" : "⏳ Pendiente de confirmación";
-  if (status === "pending")           return lang === "en" ? "⏳ Pending confirmation" : "⏳ Pendiente de confirmación";
-  if (status === "cancelled")         return lang === "en" ? "✕ Cancelled" : "✕ Cancelado";
-  if (status === "past")              return lang === "en" ? "Past event" : "Evento pasado";
+function getStatusLabel(ev: PublicEvent, lang: Lang): string {
+  if (ev.status === "confirmed") return lang === "en" ? "✓ Confirmed event" : "✓ Evento confirmado";
+  if (ev.status === "published_pending" || ev.status === "pending") {
+    if (ev.minToConfirm && ev.minToConfirm > (ev.bookedMember || 0)) {
+      const needed = ev.minToConfirm - (ev.bookedMember || 0);
+      return lang === "en" ? `⏳ Gathering · Needs ${needed} more` : `⏳ Gathering · Faltan ${needed}`;
+    }
+    return lang === "en" ? "⏳ Gathering" : "⏳ Gathering";
+  }
+  if (ev.status === "cancelled") return lang === "en" ? "✕ Cancelled" : "✕ Cancelado";
+  if (ev.status === "past") return lang === "en" ? "Past event" : "Evento pasado";
   return "";
 }
 
@@ -353,9 +617,10 @@ interface EventCardProps {
   ev: PublicEvent;
   lang: Lang;
   onOpenGuestPass: (ev: PublicEvent) => void;
+  onOpenFreeRsvp: (ev: PublicEvent) => void;
 }
 
-function EventCard({ ev, lang, onOpenGuestPass }: EventCardProps) {
+function EventCard({ ev, lang, onOpenGuestPass, onOpenFreeRsvp }: EventCardProps) {
   const eligible = isGuestPassEligible(ev);
   const guestPriceLabel =
     ev.guestPriceCents
@@ -388,7 +653,7 @@ function EventCard({ ev, lang, onOpenGuestPass }: EventCardProps) {
         {/* Credit cost */}
         <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-accent)", whiteSpace: "nowrap", flexShrink: 0 }}>
           {ev.creditCost === 0 || ev.isFreeWalk
-            ? (lang === "en" ? "Included" : "Incluido")
+            ? (lang === "en" ? "Included / Free" : "Incluido / Gratis")
             : `${ev.creditCost} ${lang === "en" ? "credits" : "créditos"}`}
         </span>
       </div>
@@ -438,45 +703,85 @@ function EventCard({ ev, lang, onOpenGuestPass }: EventCardProps) {
         }}
       >
         <span style={{ fontSize: "12px", fontWeight: 600, color: getStatusColor(ev.status) }}>
-          {getStatusLabel(ev.status, lang)}
+          {getStatusLabel(ev, lang)}
         </span>
 
-        <div style={{ display: "flex", gap: "8px" }}>
-          {eligible && (
-            <button
-              type="button"
-              onClick={() => onOpenGuestPass(ev)}
-              style={{
-                border: "1px solid var(--color-accent)",
-                color: "var(--color-accent)",
-                padding: "8px 14px",
-                borderRadius: "4px",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                fontSize: "13px",
-                background: "#fff",
-                cursor: "pointer",
-              }}
-            >
-              {lang === "en" ? guestPriceLabel : guestPriceLabel.replace("€", "€").replace("Event Pass", "Event Pass")}
-            </button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {ev.isFreeWalk ? (
+            <>
+              <button
+                type="button"
+                onClick={() => onOpenFreeRsvp(ev)}
+                style={{
+                  border: "1px solid var(--color-accent-2)",
+                  color: "var(--color-accent-2)",
+                  padding: "8px 14px",
+                  borderRadius: "4px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  background: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                {lang === "en" ? "Free RSVP (Non-members)" : "RSVP Gratis (No socias)"}
+              </button>
+              <Link
+                href="/account/login"
+                style={{
+                  backgroundColor: "var(--color-accent)",
+                  color: "#f8efe2",
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  textDecoration: "none",
+                  display: "inline-block",
+                }}
+              >
+                {lang === "en" ? "Member Book" : "Reserva Socia"}
+              </Link>
+            </>
+          ) : (
+            <>
+              {eligible && (
+                <button
+                  type="button"
+                  onClick={() => onOpenGuestPass(ev)}
+                  style={{
+                    border: "1px solid var(--color-accent)",
+                    color: "var(--color-accent)",
+                    padding: "8px 14px",
+                    borderRadius: "4px",
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    background: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  {lang === "en" ? guestPriceLabel : guestPriceLabel.replace("€", "€").replace("Event Pass", "Event Pass")}
+                </button>
+              )}
+              <Link
+                href="/account/login"
+                style={{
+                  backgroundColor: "var(--color-accent)",
+                  color: "#f8efe2",
+                  padding: "8px 16px",
+                  borderRadius: "4px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  textDecoration: "none",
+                  display: "inline-block",
+                }}
+              >
+                {lang === "en" ? "Reserve Place" : "Reservar Plaza"}
+              </Link>
+            </>
           )}
-          <Link
-            href="/account/login"
-            style={{
-              backgroundColor: "var(--color-accent)",
-              color: "#f8efe2",
-              padding: "8px 16px",
-              borderRadius: "4px",
-              fontFamily: "var(--font-heading)",
-              fontWeight: 600,
-              fontSize: "13px",
-              textDecoration: "none",
-              display: "inline-block",
-            }}
-          >
-            {lang === "en" ? "Reserve Place" : "Reservar Plaza"}
-          </Link>
         </div>
       </div>
     </article>
@@ -510,6 +815,7 @@ export function EventsCalendar({ events, categories }: Props) {
   const [activeStage,    setActiveStage]    = useState<string>("all");
   const [activeMonth,    setActiveMonth]    = useState<string>("all");
   const [guestPassEvent, setGuestPassEvent] = useState<PublicEvent | null>(null);
+  const [freeRsvpEvent,  setFreeRsvpEvent]  = useState<PublicEvent | null>(null);
 
   // Sync language from localStorage
   useEffect(() => {
@@ -528,7 +834,7 @@ export function EventsCalendar({ events, categories }: Props) {
     ...categories.map((c) => ({
       id: c.id,
       labelEn: c.name,
-      labelEs: c.name,   // DB has single name; translate if bilingual names are added later
+      labelEs: c.name,
     })),
   ];
 
@@ -601,36 +907,21 @@ export function EventsCalendar({ events, categories }: Props) {
           </h1>
           <p
             style={{
-              fontSize: "16.5px",
+              fontSize: "16px",
               color: "var(--color-text-muted)",
-              maxWidth: "600px",
-              margin: "0 auto 12px auto",
+              maxWidth: "560px",
+              margin: "0 auto",
+              lineHeight: 1.6,
             }}
           >
             {lang === "en"
-              ? "Walks, workshops, dinners, and seasonal moments — browse what's coming up and reserve your spot."
-              : "Paseos, talleres, cenas y momentos de temporada — consulta la agenda y reserva tu plaza."}
+              ? "All gatherings, talks, and connection moments in Barcelona. Filter by stage or category."
+              : "Todos los encuentros, charlas y momentos de conexión en Barcelona. Filtra por etapa o categoría."}
           </p>
-          <Link
-            href="/membership"
-            style={{
-              color: "var(--color-accent)",
-              fontSize: "14px",
-              fontFamily: "var(--font-heading)",
-              fontWeight: 600,
-              textDecoration: "none",
-            }}
-          >
-            {lang === "en"
-              ? "New here? Take an Event Pass →"
-              : "¿Nueva por aquí? Consigue un Event Pass →"}
-          </Link>
         </div>
 
-        {/* ── Filter rows ──────────────────────────────────── */}
-        <div
-          style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "36px" }}
-        >
+        {/* ── Filter chip rows ─────────────────────────────── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "40px", alignItems: "center" }}>
           {/* Category chips */}
           <div
             style={{
@@ -639,34 +930,37 @@ export function EventsCalendar({ events, categories }: Props) {
               overflowX: "auto",
               paddingBottom: "4px",
               WebkitOverflowScrolling: "touch",
+              maxWidth: "100%",
+              justifyContent: "flex-start",
             }}
           >
-            {categoryChips.map((cat) => {
-              const selected = activeCategory === cat.id;
+            {categoryChips.map((chip) => {
+              const selected = activeCategory === chip.id;
               return (
                 <button
-                  key={cat.id}
+                  key={chip.id}
                   type="button"
-                  onClick={() => setActiveCategory(cat.id)}
+                  onClick={() => setActiveCategory(chip.id)}
                   aria-pressed={selected}
                   style={{
                     border: selected
                       ? "1px solid var(--color-accent)"
                       : "1px solid rgba(57, 41, 42, 0.2)",
-                    color: selected ? "var(--color-accent)" : "var(--color-text)",
                     backgroundColor: selected
-                      ? "rgba(123, 31, 44, 0.08)"
+                      ? "var(--color-accent)"
                       : "transparent",
-                    padding: "8px 16px",
+                    color: selected ? "#f8efe2" : "var(--color-text)",
+                    padding: "7px 16px",
                     borderRadius: "20px",
                     fontSize: "13px",
-                    fontFamily: "var(--font-body)",
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 600,
                     cursor: "pointer",
                     whiteSpace: "nowrap",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  {lang === "en" ? cat.labelEn : cat.labelEs}
+                  {lang === "en" ? chip.labelEn : chip.labelEs}
                 </button>
               );
             })}
@@ -680,25 +974,27 @@ export function EventsCalendar({ events, categories }: Props) {
               overflowX: "auto",
               paddingBottom: "4px",
               WebkitOverflowScrolling: "touch",
+              maxWidth: "100%",
+              justifyContent: "flex-start",
             }}
           >
-            {STAGE_FILTERS.map((st) => {
-              const selected = activeStage === st.id;
+            {STAGE_FILTERS.map((filter) => {
+              const selected = activeStage === filter.id;
               return (
                 <button
-                  key={st.id}
+                  key={filter.id}
                   type="button"
-                  onClick={() => setActiveStage(st.id)}
+                  onClick={() => setActiveStage(filter.id)}
                   aria-pressed={selected}
                   style={{
                     border: selected
-                      ? "1px solid var(--color-accent-2)"
+                      ? "1px solid var(--color-accent)"
                       : "1px solid rgba(57, 41, 42, 0.16)",
                     color: selected
-                      ? "var(--color-accent-2)"
+                      ? "var(--color-accent)"
                       : "rgba(57, 41, 42, 0.65)",
                     backgroundColor: selected
-                      ? "rgba(86, 139, 5, 0.08)"
+                      ? "rgba(123, 31, 44, 0.08)"
                       : "transparent",
                     padding: "6px 14px",
                     borderRadius: "16px",
@@ -709,7 +1005,7 @@ export function EventsCalendar({ events, categories }: Props) {
                     transition: "all 0.15s ease",
                   }}
                 >
-                  {lang === "en" ? st.labelEn : st.labelEs}
+                  {lang === "en" ? filter.labelEn : filter.labelEs}
                 </button>
               );
             })}
@@ -723,6 +1019,8 @@ export function EventsCalendar({ events, categories }: Props) {
               overflowX: "auto",
               paddingBottom: "4px",
               WebkitOverflowScrolling: "touch",
+              maxWidth: "100%",
+              justifyContent: "flex-start",
             }}
           >
             {monthChips.map((mo) => {
@@ -791,6 +1089,7 @@ export function EventsCalendar({ events, categories }: Props) {
                 ev={ev}
                 lang={lang}
                 onOpenGuestPass={setGuestPassEvent}
+                onOpenFreeRsvp={setFreeRsvpEvent}
               />
             ))}
           </div>
@@ -803,6 +1102,15 @@ export function EventsCalendar({ events, categories }: Props) {
           event={guestPassEvent}
           lang={lang}
           onClose={() => setGuestPassEvent(null)}
+        />
+      )}
+
+      {/* ── Free Walk RSVP Modal ─────────────────────────── */}
+      {freeRsvpEvent && (
+        <FreeWalkRsvpModal
+          event={freeRsvpEvent}
+          lang={lang}
+          onClose={() => setFreeRsvpEvent(null)}
         />
       )}
     </div>

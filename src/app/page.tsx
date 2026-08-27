@@ -224,10 +224,24 @@ export default function HomePage() {
                     color: "var(--color-accent)",
                   }}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="18" height="18">
-                    {idx === 0 && <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M10 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />}
-                    {idx === 1 && <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />}
-                    {idx === 2 && <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+                    {idx === 0 && (
+                      <>
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                        <circle cx="10" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </>
+                    )}
+                    {idx === 1 && (
+                      <>
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                        <path d="m9 12 2 2 4-4" />
+                      </>
+                    )}
+                    {idx === 2 && (
+                      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
+                    )}
                   </svg>
                 </div>
                 <div>
@@ -572,185 +586,39 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── THE LETTER ─── */}
-      <section
-        style={{
-          backgroundColor: "#39292a",
-          color: "#f8efe2",
-          padding: "clamp(48px, 6vw, 72px) clamp(24px, 5vw, 64px)",
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <div style={{ maxWidth: "680px", margin: "0 auto", textAlign: "center" }}>
-          <div
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontWeight: 600,
-              fontSize: "12.5px",
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "rgba(248, 239, 226, 0.6)",
-              marginBottom: "14px",
-            }}
-          >
-            {lang === "en" ? "The Letter" : "La Carta"}
-          </div>
-          <h2
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontWeight: 400,
-              fontSize: "clamp(28px, 4vw, 42px)",
-              margin: "0 0 16px",
-              color: "#f8efe2",
-            }}
-          >
-            {lang === "en" ? "Stay in the circle." : "Mantente en el círculo."}
-          </h2>
-          <p
-            style={{
-              fontSize: "16px",
-              lineHeight: 1.65,
-              color: "rgba(248, 239, 226, 0.75)",
-              margin: "0 0 28px",
-            }}
-          >
-            {lang === "en"
-              ? "Get our occasional letter — Barcelona motherhood, partner spotlights, and the first to know when the next window opens."
-              : "Recibe nuestra carta ocasional — maternidad en Barcelona, novedades de partners y la primera en saber cuándo abre la próxima ventana."}
-          </p>
-
-          {letterDone ? (
-            <p
-              style={{
-                fontSize: "16px",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                color: "rgba(248, 239, 226, 0.9)",
-                padding: "14px 24px",
-                border: "1px solid rgba(248, 239, 226, 0.3)",
-                borderRadius: "4px",
-                display: "inline-block",
-              }}
-            >
-              {lang === "en" ? "✓ You're on the list." : "✓ Ya estás en la lista."}
-            </p>
-          ) : (
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setLetterLoading(true);
-                setLetterError(null);
-                const res = await subscribeToLetter(letterEmail);
-                setLetterLoading(false);
-                if (res.success) {
-                  setLetterDone(true);
-                } else {
-                  setLetterError(
-                    lang === "en"
-                      ? "Please enter a valid email address."
-                      : "Por favor escribe un correo válido."
-                  );
-                }
-              }}
-              style={{
-                display: "flex",
-                gap: "10px",
-                flexWrap: "wrap",
-                justifyContent: "center",
-                maxWidth: "480px",
-                margin: "0 auto",
-              }}
-            >
-              <input
-                type="email"
-                required
-                value={letterEmail}
-                onChange={(e) => setLetterEmail(e.target.value)}
-                placeholder={lang === "en" ? "your@email.com" : "tu@correo.com"}
-                style={{
-                  flex: "1 1 220px",
-                  padding: "12px 16px",
-                  fontSize: "14px",
-                  fontFamily: "var(--font-body)",
-                  borderRadius: "4px",
-                  border: "1px solid rgba(248, 239, 226, 0.25)",
-                  background: "rgba(255,255,255,0.1)",
-                  color: "#f8efe2",
-                  outline: "none",
-                }}
-              />
-              <button
-                type="submit"
-                disabled={letterLoading}
-                style={{
-                  padding: "12px 24px",
-                  fontSize: "14px",
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 600,
-                  borderRadius: "4px",
-                  border: "1px solid #f8efe2",
-                  background: "#f8efe2",
-                  color: "#39292a",
-                  cursor: letterLoading ? "not-allowed" : "pointer",
-                  opacity: letterLoading ? 0.7 : 1,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {letterLoading
-                  ? lang === "en" ? "Subscribing…" : "Suscribiendo…"
-                  : lang === "en" ? "Subscribe" : "Suscribirse"}
-              </button>
-            </form>
-          )}
-
-          {letterError && (
-            <p style={{ fontSize: "13px", color: "rgba(255, 180, 180, 0.9)", marginTop: "10px" }}>
-              {letterError}
-            </p>
-          )}
-
-          <p
-            style={{
-              fontSize: "12.5px",
-              color: "rgba(248, 239, 226, 0.4)",
-              marginTop: "16px",
-            }}
-          >
-            {lang === "en"
-              ? "No spam, no selling. Unsubscribe any time."
-              : "Sin spam ni ventas. Cancela cuando quieras."}
-          </p>
-        </div>
-      </section>
-
       {/* ─── CLOSING CTA ─── */}
       <section
         style={{
           backgroundColor: "#39292a",
           color: "#f8efe2",
-          padding: "clamp(48px, 6vw, 80px) clamp(24px, 5vw, 64px)",
+          padding: "clamp(48px, 6vw, 64px) clamp(24px, 5vw, 64px)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
           textAlign: "center",
         }}
       >
-        <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(32px, 5vw, 52px)", margin: "0 0 20px" }}>
-          {t.closing.heading}
-        </h2>
-        <Link
-          href={windowOpen ? "/membership/apply" : "/membership"}
-          style={{
-            border: "1px solid #f8efe2",
-            color: "#f8efe2",
-            padding: "14px 34px",
-            borderRadius: "4px",
-            fontFamily: "var(--font-heading)",
-            fontWeight: 600,
-            fontSize: "16px",
-            display: "inline-block",
-            textDecoration: "none",
-          }}
-        >
-          {t.closing.cta}
-        </Link>
+        <div style={{ maxWidth: "680px", margin: "0 auto" }}>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(32px, 5vw, 52px)", margin: "0 0 24px", color: "#f8efe2" }}>
+            {t.closing.heading}
+          </h2>
+          <Link
+            href={windowOpen ? "/membership/apply" : "/membership"}
+            style={{
+              border: "1px solid #f8efe2",
+              color: "#f8efe2",
+              padding: "14px 34px",
+              borderRadius: "4px",
+              fontFamily: "var(--font-heading)",
+              fontWeight: 600,
+              fontSize: "16px",
+              display: "inline-block",
+              textDecoration: "none",
+              whiteSpace: "nowrap",
+              transition: "all 0.2s ease",
+            }}
+          >
+            {t.closing.cta}
+          </Link>
+        </div>
       </section>
     </div>
   );

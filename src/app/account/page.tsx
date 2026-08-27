@@ -570,13 +570,37 @@ export default function AccountPage() {
                     {lang === "en" ? "Cancel Membership" : "Cancelar Membresía"}
                   </button>
                 ) : (
-                  <div style={{ backgroundColor: "#fff8f8", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", padding: "16px 20px" }}>
-                    <p style={{ fontSize: "14px", fontWeight: 600, color: "#993842", margin: "0 0 14px 0" }}>
-                      {lang === "en"
-                        ? `Are you sure? Your membership will end on ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "long", year: "numeric" }) : "the end of your current period"}.`
-                        : `¿Estás segura? Tu membresía terminará el ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "final del período actual"}.`}
+                  <div style={{ backgroundColor: "#fff8f8", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", padding: "20px 24px" }}>
+                    <p style={{ fontSize: "15px", fontWeight: 600, color: "#993842", margin: "0 0 12px 0", fontFamily: "var(--font-heading)" }}>
+                      {lang === "en" ? "Confirm Membership Cancellation" : "Confirmar Cancelación de Membresía"}
                     </p>
-                    <div style={{ display: "flex", gap: "10px" }}>
+                    
+                    <div style={{ fontSize: "14px", color: "rgba(57,41,42,0.85)", lineHeight: "1.6", marginBottom: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div>
+                        • <strong>{lang === "en" ? "Active access until:" : "Acceso activo hasta:"}</strong>{" "}
+                        {memberData.currentPeriodEnd
+                          ? new Date(memberData.currentPeriodEnd).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+                          : (lang === "en" ? "End of current billing cycle" : "Final del ciclo de facturación")}
+                      </div>
+                      <div>
+                        • <strong>{lang === "en" ? "Remaining credits balance:" : "Saldo de créditos restante:"}</strong>{" "}
+                        {accountData?.credits?.available ?? 0} {lang === "en" ? "credits (available to spend before your period ends)" : "créditos (disponibles para usar antes de que termine tu período)"}
+                      </div>
+                      {accountData?.bookings && accountData.bookings.length > 0 && (
+                        <div>
+                          • <strong>{lang === "en" ? "Standing bookings that remain confirmed:" : "Reservas actuales que se mantienen confirmadas:"}</strong>
+                          <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+                            {accountData.bookings.map((b: any) => (
+                              <li key={b.id}>
+                                {b.eventTitle} ({new Date(b.eventDate).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" })})
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                       <button
                         type="button"
                         onClick={() => setShowCancelConfirm(false)}
@@ -604,7 +628,7 @@ export default function AccountPage() {
                         }}
                         style={{ border: "none", backgroundColor: "#993842", color: "#fff", padding: "9px 16px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: cancelLoading ? "wait" : "pointer", opacity: cancelLoading ? 0.7 : 1 }}
                       >
-                        {cancelLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, Cancel" : "Sí, Cancelar")}
+                        {cancelLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, Confirm Cancellation" : "Sí, Confirmar Cancelación")}
                       </button>
                     </div>
                   </div>

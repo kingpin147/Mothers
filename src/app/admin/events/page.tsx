@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getAdminEvents, createAdminEvent, confirmEventDecision, cancelEventDecision } from "@/app/actions/adminEvents";
+import { getAdminEvents, createAdminEvent, confirmEventDecision, cancelEventDecision, duplicateAdminEvent } from "@/app/actions/adminEvents";
 import { getEventCategories, createEventCategory, deleteEvent } from "@/app/actions/events";
 import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
@@ -186,6 +186,19 @@ export default function AdminEventsPage() {
       loadData();
     } else {
       alert(res.error || "Failed to delete event.");
+    }
+  };
+
+  const handleDuplicate = async (id: string, title: string) => {
+    if (!confirm(`Duplicate "${title}"? A new draft event will be scheduled 7 days later.`)) return;
+    setActionLoading(id);
+    const res = await duplicateAdminEvent(id);
+    setActionLoading(null);
+    if (res.success) {
+      alert("Event duplicated successfully!");
+      loadData();
+    } else {
+      alert(res.error || "Failed to duplicate event.");
     }
   };
 
@@ -428,6 +441,23 @@ export default function AdminEventsPage() {
                               Cancel
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => handleDuplicate(ev.id, ev.title)}
+                            disabled={actionLoading === ev.id}
+                            style={{
+                              backgroundColor: "#f5eee4",
+                              color: "var(--color-text)",
+                              border: "1px solid var(--color-divider)",
+                              borderRadius: "5px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            📋 Duplicate
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(ev.id, ev.title)}

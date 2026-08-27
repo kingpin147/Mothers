@@ -18,7 +18,6 @@ export interface LedgerSummary {
   totalBalance: number;
   subscriptionCredits: number;
   bonusCredits: number;
-  capRoom: number;
   nextExpiringAmount: number;
   nextExpiringDate: Date | null;
 }
@@ -50,7 +49,6 @@ export async function getMemberLedgerSummary(
   }
 
   const subscriptionCredits = Math.max(0, totalBalance - bonusCredits);
-  const capRoom = Math.max(0, 40 - subscriptionCredits);
 
   // Next expiring grant (non-expired, positive)
   const nextExpiringGrant = await txOrDb
@@ -70,7 +68,6 @@ export async function getMemberLedgerSummary(
     totalBalance,
     subscriptionCredits,
     bonusCredits,
-    capRoom,
     nextExpiringAmount: nextExpiringGrant[0]?.amount || 0,
     nextExpiringDate: nextExpiringGrant[0]?.expiresAt || null,
   };
@@ -84,7 +81,6 @@ export async function grantMonthlySubscriptionCredits(
   txOrDb: any = db
 ): Promise<{ granted: number; capped: boolean }> {
   // Lock the member row first to prevent concurrent grant race conditions.
-  // If called within a transaction (from webhook), this lock serializes grants.
   await txOrDb
     .select()
     .from(member)
@@ -95,7 +91,7 @@ export async function grantMonthlySubscriptionCredits(
   const summary = await getMemberLedgerSummary(memberId, txOrDb);
 
   const defaultGrant = 20;
-  const actualGrant = Math.min(defaultGrant, summary.capRoom);
+  const actualGrant = defaultGrant;
 
   if (actualGrant > 0) {
     // 6-month FIFO expiry from grant date
@@ -108,10 +104,7 @@ export async function grantMonthlySubscriptionCredits(
       expiresAt,
       sourceType: "subscription",
       sourceId: sourcePaymentId || null,
-      reason:
-        actualGrant < defaultGrant
-          ? `Monthly grant: ${actualGrant} credits (trimmed from ${defaultGrant} — balance would exceed 40 cap)`
-          : `Monthly grant: ${actualGrant} credits`,
+      reason: `Monthly grant: ${actualGrant} credits`,
     });
 
     await txOrDb.insert(auditLog).values({
@@ -123,14 +116,14 @@ export async function grantMonthlySubscriptionCredits(
       after: {
         amount: actualGrant,
         defaultGrant,
-        capped: actualGrant < defaultGrant,
+        capped: false,
         balanceBefore: summary.totalBalance,
         balanceAfter: summary.totalBalance + actualGrant,
       },
     });
   }
 
-  return { granted: actualGrant, capped: actualGrant < defaultGrant };
+  return { granted: actualGrant, capped: false };
 }
 
 // ─── 3. FIFO SPEND — ALLOCATE AGAINST OLDEST GRANTS (§5) ────────────────────

@@ -187,8 +187,8 @@ export default function ActivityStatementPage() {
 
           <p style={{ fontSize: "12.5px", color: "var(--color-text-muted)", marginTop: "24px", lineHeight: "1.5" }}>
             {lang === "en"
-              ? "Note: Monthly credits are subject to a 40-credit maximum cap and FIFO 6-month expiry. Godmother referral bonus credits sit outside the rollover cap."
-              : "Nota: Los créditos mensuales tienen un tope de acumulación de 40 créditos y caducidad FIFO a 6 meses. Los créditos de Madrina quedan exentos del tope."}
+              ? "Note: Monthly credits expire after 6 months on a FIFO basis with no rollover cap. The clock pauses during membership pauses."
+              : "Nota: Los créditos mensuales caducan a los 6 meses según el orden FIFO sin tope de acumulación. El plazo se congela durante las pausas de membresía."}
           </p>
         </div>
       </div>
