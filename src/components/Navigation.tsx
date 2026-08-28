@@ -354,23 +354,58 @@ export function Navigation() {
             </div>
 
             {session?.user ? (
-              <Link
-                href="/account"
-                onClick={() => setMobileMenuOpen(false)}
-                style={{
-                  textAlign: "center",
-                  backgroundColor: "var(--color-accent)",
-                  color: "#fff",
-                  padding: "12px",
-                  borderRadius: "4px",
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  textDecoration: "none",
-                }}
-              >
-                {lang === "en" ? "My Account" : "Mi Cuenta"}
-              </Link>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {(() => {
+                  const role = (session.user as any)?.role;
+                  const isAdminUser = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
+                  const accountHref = isAdminUser ? "/admin" : "/account";
+                  const accountLabel = isAdminUser
+                    ? (lang === "en" ? "Admin Dashboard" : "Panel de Admin")
+                    : (lang === "en" ? "My Account" : "Mi Cuenta");
+
+                  return (
+                    <Link
+                      href={accountHref}
+                      onClick={() => setMobileMenuOpen(false)}
+                      style={{
+                        textAlign: "center",
+                        backgroundColor: "var(--color-accent)",
+                        color: "#fff",
+                        padding: "12px",
+                        borderRadius: "4px",
+                        fontFamily: "var(--font-heading)",
+                        fontWeight: 600,
+                        fontSize: "15px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      {accountLabel}
+                    </Link>
+                  );
+                })()}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    signOut({ callbackUrl: "/" });
+                  }}
+                  style={{
+                    width: "100%",
+                    textAlign: "center",
+                    backgroundColor: "transparent",
+                    color: "rgba(57, 41, 42, 0.75)",
+                    border: "1px solid rgba(57, 41, 42, 0.25)",
+                    padding: "11px",
+                    borderRadius: "4px",
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 600,
+                    fontSize: "14.5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {lang === "en" ? "Log Out" : "Cerrar Sesión"}
+                </button>
+              </div>
             ) : (
               <Link
                 href="/account/login"

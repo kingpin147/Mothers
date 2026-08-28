@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function LoginForm() {
+  const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [lang, setLang] = useState<"en" | "es">("en");
@@ -18,6 +19,21 @@ function LoginForm() {
     const saved = localStorage.getItem("tm_lang");
     if (saved === "es" || saved === "en") setLang(saved);
   }, []);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const role = (session.user as any)?.role;
+      const callbackUrl = searchParams?.get("callbackUrl");
+      if (callbackUrl) {
+        window.location.href = callbackUrl;
+      } else if (role === "owner" || role === "manager" || role === "host" || role === "super_admin") {
+        window.location.href = "/admin";
+      } else {
+        window.location.href = "/account";
+      }
+    }
+  }, [status, session, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

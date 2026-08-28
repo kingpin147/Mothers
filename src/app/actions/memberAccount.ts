@@ -14,27 +14,49 @@ export async function getAccountData() {
     return { success: false, error: "AUTH_REQUIRED" };
   }
 
-  const personId = (session.user as any).personId || session.user.id;
-  const memberId = (session.user as any).memberId;
-
-  if (!memberId) {
-    return { success: false, error: "NOT_A_MEMBER" };
-  }
+  const userEmail = session.user.email?.toLowerCase().trim();
+  let personId = (session.user as any).personId || session.user.id;
+  let memberId = (session.user as any).memberId;
 
   try {
-    // Fetch member record
-    const memberRecord = await db.query.member.findFirst({
-      where: eq(member.id, memberId),
-    });
+    let personRecord = null;
+    let memberRecord = null;
 
-    if (!memberRecord) {
-      return { success: false, error: "MEMBER_NOT_FOUND" };
+    if (memberId) {
+      memberRecord = await db.query.member.findFirst({
+        where: eq(member.id, memberId),
+      });
     }
 
-    // Fetch person record
-    const personRecord = await db.query.person.findFirst({
-      where: eq(person.id, personId),
-    });
+    if (!memberRecord && personId) {
+      memberRecord = await db.query.member.findFirst({
+        where: eq(member.personId, personId),
+      });
+      if (memberRecord) memberId = memberRecord.id;
+    }
+
+    if (!memberRecord && userEmail) {
+      personRecord = await db.query.person.findFirst({
+        where: eq(person.email, userEmail),
+      });
+      if (personRecord) {
+        personId = personRecord.id;
+        memberRecord = await db.query.member.findFirst({
+          where: eq(member.personId, personRecord.id),
+        });
+        if (memberRecord) memberId = memberRecord.id;
+      }
+    }
+
+    if (!personRecord && personId) {
+      personRecord = await db.query.person.findFirst({
+        where: eq(person.id, personId),
+      });
+    }
+
+    if (!memberRecord || !memberId) {
+      return { success: false, error: "MEMBER_NOT_FOUND" };
+    }
 
     // Fetch current credit balance (sum of all entries)
     const creditRows = await db

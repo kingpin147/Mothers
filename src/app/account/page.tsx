@@ -49,6 +49,11 @@ export default function AccountPage() {
     if (status === "unauthenticated") {
       router.push("/account/login");
     } else if (status === "authenticated") {
+      const role = (session?.user as any)?.role;
+      if (role === "owner" || role === "manager" || role === "super_admin" || role === "host") {
+        router.push("/admin");
+        return;
+      }
       const loadData = async () => {
         try {
           setAccountLoading(true);
