@@ -24,13 +24,15 @@ function LoginForm() {
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
       const role = (session.user as any)?.role;
+      const isAdmin = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
       const callbackUrl = searchParams?.get("callbackUrl");
-      if (callbackUrl) {
-        window.location.href = callbackUrl;
-      } else if (role === "owner" || role === "manager" || role === "host" || role === "super_admin") {
-        window.location.href = "/admin";
+
+      if (isAdmin) {
+        window.location.href = callbackUrl || "/admin";
       } else {
-        window.location.href = "/account";
+        // Members must never be redirected to /admin
+        const memberTarget = callbackUrl && !callbackUrl.startsWith("/admin") ? callbackUrl : "/account";
+        window.location.href = memberTarget;
       }
     }
   }, [status, session, searchParams]);
@@ -56,7 +58,7 @@ function LoginForm() {
       redirect: false,
     });
 
-    let targetRoute = callbackUrl || "/account";
+    let targetRoute = callbackUrl && !callbackUrl.startsWith("/admin") ? callbackUrl : "/account";
 
     // 2. If member sign in failed, automatically try Admin Credentials
     if (res?.error) {
