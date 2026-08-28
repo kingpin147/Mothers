@@ -121,11 +121,8 @@ export function Footer() {
               {lang === "en" ? "Legal" : "Legal"}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Link href="/terms" style={{ color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Terms & Conditions" : "Términos y Condiciones"}
-              </Link>
-              <Link href="/privacy" style={{ color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Privacy Policy" : "Política de Privacidad"}
+              <Link href="/terms" style={{ color: "#39292a", textDecoration: "none", fontSize: "14px" }}>
+                {lang === "en" ? "Terms & Privacy" : "Términos y Privacidad"}
               </Link>
             </div>
           </div>

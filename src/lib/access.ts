@@ -241,7 +241,7 @@ export function canUseTicketToken(
 }
 
 export function adminCan(
-  admin: { role: "owner" | "manager" | "host"; disabledAt?: Date | null },
+  admin: { role: "owner" | "manager" | "host" | "super_admin"; disabledAt?: Date | null },
   action: string,
   _entity: string
 ): AccessResult {
@@ -249,7 +249,7 @@ export function adminCan(
     return { allowed: false, reasonCode: "ADMIN_ACCOUNT_DISABLED" };
   }
 
-  if (admin.role === "owner") {
+  if (admin.role === "owner" || admin.role === "super_admin") {
     return { allowed: true };
   }
 

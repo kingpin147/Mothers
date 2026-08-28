@@ -111,6 +111,18 @@ export const DICTIONARIES = {
       note: "Launch partners are announced as they join — one per specialty, always exclusive.",
     },
     closing: { heading: "Your circle is waiting.", cta: "Join now" },
+    godmother: {
+      kicker: "Godmother programme",
+      heading: "Bring a friend, earn a month of credits.",
+      body: "Members can become Godmothers: you get a personal referral code for the mothers already asking where you found your people. No selling, no quotas — just an honest recommendation, and credits when it turns into a membership.",
+      cta: "See it in your account",
+      ctaNote: "Open to members. Apply from your account — we read every application personally.",
+      steps: [
+        { n: "01", title: "Get your code", body: "Apply from your account. Approved Godmothers receive a personal code and a welcome call." },
+        { n: "02", title: "Share it", body: "Hand it to the friend who keeps asking, or post about the walk you actually enjoyed." },
+        { n: "03", title: "Earn 20 credits", body: "5 credits the moment she joins, 15 more at her third month — credits never cap, so nothing is lost." },
+      ],
+    },
     footer: {
       blurb:
         "A private membership club for mothers, from pregnancy through the school years.",
@@ -235,6 +247,18 @@ export const DICTIONARIES = {
       note: "Los partners de lanzamiento se anuncian a medida que se incorporan: uno por especialidad, siempre exclusivo.",
     },
     closing: { heading: "Tu círculo te espera.", cta: "Únete ahora" },
+    godmother: {
+      kicker: "Programa de Madrinas",
+      heading: "Trae a una amiga y gana un mes de créditos.",
+      body: "Las socias pueden ser Madrinas: recibes un código personal para las madres que ya te preguntan dónde encontraste a tu gente. Sin vender nada y sin objetivos — solo una recomendación honesta, y créditos cuando se convierte en membresía.",
+      cta: "Verlo en tu cuenta",
+      ctaNote: "Solo para socias. Se solicita desde tu cuenta — leemos cada solicitud personalmente.",
+      steps: [
+        { n: "01", title: "Consigue tu código", body: "Solicítalo desde tu cuenta. Las Madrinas aprobadas reciben un código personal y una llamada de bienvenida." },
+        { n: "02", title: "Compártelo", body: "Dáselo a la amiga que siempre pregunta, o cuenta el paseo que de verdad disfrutaste." },
+        { n: "03", title: "Gana 20 créditos", body: "5 créditos cuando se une y 15 más a los tres meses — los créditos no tienen límite, así que nada se pierde." },
+      ],
+    },
     footer: {
       blurb:
         "Un club privado de membresía para madres, desde el embarazo hasta la etapa escolar.",

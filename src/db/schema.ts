@@ -88,6 +88,14 @@ export const creditEntryTypeEnum = pgEnum("credit_entry_type", [
   "expiry",
   "adjustment",
   "correction",
+  "godmother",
+  "godmother_bonus",
+  "subscription_grant",
+  "rollover",
+  "event_booking",
+  "event_refund",
+  "expiration",
+  "admin_adjustment",
 ]);
 
 export const godmotherStatusEnum = pgEnum("godmother_status", [

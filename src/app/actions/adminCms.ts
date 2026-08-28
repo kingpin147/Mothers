@@ -19,7 +19,8 @@ import { auth } from "@/lib/auth";
 async function verifyAdminRole() {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager" && role !== "host")) {
+  const allowed = ["owner", "manager", "host", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     throw new Error("UNAUTHORIZED_ADMIN");
   }
   return { adminId: session?.user?.id, role };

@@ -8,7 +8,8 @@ import { auth } from "@/lib/auth";
 async function verifyAdmin() {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager")) {
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     throw new Error("UNAUTHORIZED_ADMIN");
   }
   return { adminId: session?.user?.id, role };

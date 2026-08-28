@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [lang, setLang] = useState<"en" | "es">("en");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,23 +31,25 @@ export default function LoginPage() {
     setLoading(true);
     setErrorMsg(null);
 
+    const callbackUrl = searchParams?.get("callbackUrl");
+
     // 1. Try Member Credentials first
     let res = await signIn("member-credentials", {
-      email,
+      email: email.trim(),
       password,
       redirect: false,
     });
 
-    let targetRoute = "/account";
+    let targetRoute = callbackUrl || "/account";
 
     // 2. If member sign in failed, automatically try Admin Credentials
     if (res?.error) {
       res = await signIn("admin-credentials", {
-        email,
+        email: email.trim(),
         password,
         redirect: false,
       });
-      targetRoute = "/admin";
+      targetRoute = callbackUrl || "/admin";
     }
 
     setLoading(false);
@@ -58,8 +61,7 @@ export default function LoginPage() {
           : "Correo o contraseña incorrectos. Por favor compruébalos e inténtalo de nuevo."
       );
     } else {
-      router.push(targetRoute);
-      router.refresh();
+      window.location.href = targetRoute;
     }
   };
 
@@ -174,5 +176,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "85vh", display: "flex", alignItems: "center", justifyContent: "center" }}>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

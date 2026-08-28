@@ -8,7 +8,8 @@ import { auth } from "@/lib/auth";
 export async function getAdminEvents() {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager" && role !== "host")) {
+  const allowed = ["owner", "manager", "host", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED" };
   }
 
@@ -38,7 +39,8 @@ export async function createAdminEvent(data: {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager")) {
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 
@@ -97,7 +99,8 @@ export async function updateAdminEvent(eventId: string, data: {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager")) {
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 
@@ -202,7 +205,8 @@ export async function confirmEventDecision(eventId: string) {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager")) {
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 
@@ -241,7 +245,8 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager")) {
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 
@@ -310,7 +315,8 @@ export async function duplicateAdminEvent(eventId: string) {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager")) {
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 

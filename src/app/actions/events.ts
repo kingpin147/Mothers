@@ -123,7 +123,8 @@ export async function createEventCategory(data: {
 }) {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager")) {
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 
@@ -145,7 +146,8 @@ export async function createEventCategory(data: {
 export async function deleteEvent(eventId: string) {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager")) {
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 

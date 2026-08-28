@@ -8,7 +8,7 @@ import { Locale } from "@/lib/i18n";
 import { getAccountData, pauseMembership, updatePersonDetails, cancelMembership } from "@/app/actions/memberAccount";
 import { buyExtraCredits } from "@/app/actions/booking";
 
-type AccountTab = "overview" | "credits" | "groups" | "godmother" | "membership" | "details";
+type AccountTab = "overview" | "credits" | "membership";
 
 export default function AccountPage() {
   const { data: session, status } = useSession();
@@ -110,11 +110,8 @@ export default function AccountPage() {
 
   const TABS: { id: AccountTab; labelEn: string; labelEs: string }[] = [
     { id: "overview", labelEn: "Overview", labelEs: "Resumen" },
-    { id: "credits", labelEn: "Credits & Ledger", labelEs: "Créditos" },
-    { id: "groups", labelEn: "My Circles", labelEs: "Mis Grupos" },
-    { id: "godmother", labelEn: "Godmother", labelEs: "Madrina" },
+    { id: "credits", labelEn: "Credits", labelEs: "Créditos" },
     { id: "membership", labelEn: "Membership", labelEs: "Membresía" },
-    { id: "details", labelEn: "Personal Details", labelEs: "Mis Datos" },
   ];
 
   return (
@@ -323,6 +320,98 @@ export default function AccountPage() {
                 {lang === "en" ? "Explore Events Calendar" : "Explorar Calendario de Eventos"}
               </Link>
             </div>
+
+            {/* WhatsApp Circle Groups */}
+            <div style={{ border: "1px solid rgba(86,139,5,0.35)", borderRadius: "8px", padding: "24px", backgroundColor: "#f4f7ee" }}>
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-2)", marginBottom: "8px" }}>
+                {lang === "en" ? "Private WhatsApp Circle" : "Círculo Privado de WhatsApp"}
+              </div>
+              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "20px", margin: "0 0 8px 0" }}>
+                {memberData?.stage ? (lang === "en" ? `Your Stage: ${memberData.stage}` : `Tu Etapa: ${memberData.stage}`) : (lang === "en" ? "Your Stage Thread" : "Tu Hilo de Etapa")}
+              </h3>
+              <p style={{ fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "0 0 16px 0" }}>
+                {lang === "en"
+                  ? "Private WhatsApp threads, one per stage. Moderated by our Community Host with meeting point updates and community introductions."
+                  : "Hilos privados de WhatsApp por etapa, moderados por nuestra anfitriona para actualizaciones y presentaciones."}
+              </p>
+              <a
+                href="https://chat.whatsapp.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  border: "1px solid rgba(86,139,5,0.5)",
+                  color: "#568b05",
+                  backgroundColor: "#fff",
+                  padding: "9px 16px",
+                  borderRadius: "4px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "13.5px",
+                  textDecoration: "none",
+                }}
+              >
+                {lang === "en" ? "Open WhatsApp Thread →" : "Abrir Grupo de WhatsApp →"}
+              </a>
+            </div>
+
+            {/* Godmother Program */}
+            <div style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "8px", padding: "24px", backgroundColor: "#f4f7ee" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                <span style={{ color: "var(--color-accent-2)" }}>★</span>
+                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-2)" }}>
+                  {lang === "en" ? "Godmother Programme" : "Programa de Madrinas"}
+                </span>
+              </div>
+              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "20px", margin: "0 0 8px 0" }}>
+                {lang === "en" ? "Share the club you are part of" : "Comparte el club del que formas parte"}
+              </h3>
+              <p style={{ fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.78)", margin: "0 0 16px 0" }}>
+                {lang === "en"
+                  ? "Every Godmother earns +5 credits when a friend joins with her code, plus +15 credits once she completes 3 months (+20 credits total). Credits never cap and expire after 6 months."
+                  : "Gana +5 créditos cuando una amiga se une con tu código, más +15 créditos al cumplir 3 meses (+20 créditos en total). Los créditos no tienen tope y caducan a los 6 meses."}
+              </p>
+
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap", marginBottom: "16px" }}>
+                <span style={{ padding: "8px 14px", backgroundColor: "#fff", border: "1px solid rgba(86,139,5,0.4)", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "16px" }}>
+                  {referralCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyReferralCode}
+                  style={{
+                    backgroundColor: "var(--color-accent-2)",
+                    color: "#fff",
+                    border: "none",
+                    padding: "9px 16px",
+                    borderRadius: "4px",
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 600,
+                    fontSize: "13.5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {copied ? "✓ Copied" : "Copy Code"}
+                </button>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px" }}>
+                <div style={{ backgroundColor: "#fff", padding: "12px", borderRadius: "6px", border: "1px solid rgba(86,139,5,0.2)" }}>
+                  <div style={{ fontSize: "10.5px", textTransform: "uppercase", color: "rgba(57,41,42,0.6)" }}>Friends Joined</div>
+                  <div style={{ fontSize: "20px", fontWeight: 600, color: "var(--color-accent-2)", marginTop: "2px" }}>1</div>
+                </div>
+                <div style={{ backgroundColor: "#fff", padding: "12px", borderRadius: "6px", border: "1px solid rgba(86,139,5,0.2)" }}>
+                  <div style={{ fontSize: "10.5px", textTransform: "uppercase", color: "rgba(57,41,42,0.6)" }}>Bonus Credits</div>
+                  <div style={{ fontSize: "20px", fontWeight: 600, color: "var(--color-accent-2)", marginTop: "2px" }}>+5</div>
+                </div>
+                <div style={{ backgroundColor: "#fff", padding: "12px", borderRadius: "6px", border: "1px solid rgba(86,139,5,0.2)" }}>
+                  <div style={{ fontSize: "10.5px", textTransform: "uppercase", color: "rgba(57,41,42,0.6)" }}>Pending at 3 mo</div>
+                  <div style={{ fontSize: "20px", fontWeight: 600, color: "var(--color-text)", marginTop: "2px" }}>+15</div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -366,67 +455,7 @@ export default function AccountPage() {
           </div>
         )}
 
-        {/* ─── TAB 4: GODMOTHER ─── */}
-        {activeTab === "godmother" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <div style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "8px", padding: "28px", backgroundColor: "#f4f7ee" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <span style={{ color: "var(--color-accent-2)" }}>★</span>
-                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-2)" }}>
-                  {lang === "en" ? "Godmother Referral Program" : "Programa de Madrinas"}
-                </span>
-              </div>
-              <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "24px", margin: "0 0 10px 0" }}>
-                {lang === "en" ? "Invite fellow mothers, earn credits." : "Invita a otras madres y gana créditos."}
-              </h2>
-              <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.78)", margin: "0 0 20px 0" }}>
-                {lang === "en"
-                  ? "Every Godmother earns +5 credits the day her referred friend activates her membership, plus +15 credits when she renews for month three (+20 credits total). Bonus referral credits never expire or cap."
-                  : "Cada Madrina gana +5 créditos el día que su amiga activa su membresía, más +15 créditos al cumplir el tercer mes (+20 créditos en total). Los créditos extra no tienen límite de acumulación."}
-              </p>
-
-              <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "20px" }}>
-                <span style={{ padding: "10px 16px", backgroundColor: "#fff", border: "1px solid rgba(86,139,5,0.4)", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "18px" }}>
-                  {referralCode}
-                </span>
-                <button
-                  type="button"
-                  onClick={copyReferralCode}
-                  style={{
-                    backgroundColor: "var(--color-accent-2)",
-                    color: "#fff",
-                    border: "none",
-                    padding: "10px 18px",
-                    borderRadius: "4px",
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                    fontSize: "14px",
-                    cursor: "pointer",
-                  }}
-                >
-                  {copied ? "✓ Copied to Clipboard" : "Copy Referral Code"}
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px" }}>
-                <div style={{ backgroundColor: "#fff", padding: "14px", borderRadius: "6px", border: "1px solid rgba(86,139,5,0.2)" }}>
-                  <div style={{ fontSize: "11px", textTransform: "uppercase", color: "rgba(57,41,42,0.6)" }}>Friends Joined</div>
-                  <div style={{ fontSize: "24px", fontWeight: 600, color: "var(--color-accent-2)", marginTop: "4px" }}>1</div>
-                </div>
-                <div style={{ backgroundColor: "#fff", padding: "14px", borderRadius: "6px", border: "1px solid rgba(86,139,5,0.2)" }}>
-                  <div style={{ fontSize: "11px", textTransform: "uppercase", color: "rgba(57,41,42,0.6)" }}>Credits Earned</div>
-                  <div style={{ fontSize: "24px", fontWeight: 600, color: "var(--color-accent-2)", marginTop: "4px" }}>+5</div>
-                </div>
-                <div style={{ backgroundColor: "#fff", padding: "14px", borderRadius: "6px", border: "1px solid rgba(86,139,5,0.2)" }}>
-                  <div style={{ fontSize: "11px", textTransform: "uppercase", color: "rgba(57,41,42,0.6)" }}>Pending Renewal</div>
-                  <div style={{ fontSize: "24px", fontWeight: 600, color: "var(--color-text)", marginTop: "4px" }}>+15</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ─── TAB 5: MEMBERSHIP ─── */}
+        {/* ─── TAB 3: MEMBERSHIP & DETAILS ─── */}
         {activeTab === "membership" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             {/* Membership details card */}
@@ -479,14 +508,150 @@ export default function AccountPage() {
               )}
             </div>
 
+            {/* Personal Details Form inside Membership */}
+            <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "24px", backgroundColor: "#fff" }}>
+              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "20px", margin: "0 0 16px 0" }}>
+                {lang === "en" ? "Personal Details On File" : "Tus Datos de Ficha"}
+              </h3>
+
+              {detailsResult?.success && (
+                <div style={{ padding: "12px 16px", backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "6px", fontSize: "13.5px", color: "rgba(57,41,42,0.85)", marginBottom: "16px" }}>
+                  ✓ {lang === "en" ? "Your details have been updated." : "Tus datos han sido actualizados."}
+                </div>
+              )}
+              {detailsResult?.error && (
+                <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.2)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "16px" }}>
+                  {detailsResult.error}
+                </div>
+              )}
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setDetailsLoading(true);
+                  setDetailsResult(null);
+                  try {
+                    const res = await updatePersonDetails(detailsForm);
+                    setDetailsResult(res);
+                    if (res.success) {
+                      const refreshed = await getAccountData();
+                      if (refreshed.success) setAccountData(refreshed);
+                    }
+                  } finally {
+                    setDetailsLoading(false);
+                  }
+                }}
+                style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+              >
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "4px" }}>
+                      {lang === "en" ? "First Name" : "Nombre"}
+                    </label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={detailsForm.firstName}
+                      onChange={(e) => setDetailsForm({ ...detailsForm, firstName: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "4px" }}>
+                      {lang === "en" ? "Last Name" : "Apellido"}
+                    </label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={detailsForm.lastName}
+                      onChange={(e) => setDetailsForm({ ...detailsForm, lastName: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "4px" }}>
+                    {lang === "en" ? "WhatsApp Phone Number" : "Teléfono de WhatsApp"}
+                  </label>
+                  <input
+                    type="tel"
+                    className="input"
+                    value={detailsForm.phone}
+                    onChange={(e) => setDetailsForm({ ...detailsForm, phone: e.target.value })}
+                    placeholder="+34 600 000 000"
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "4px" }}>
+                      {lang === "en" ? "Stage" : "Etapa"}
+                    </label>
+                    <select
+                      className="input"
+                      value={detailsForm.stage}
+                      onChange={(e) => setDetailsForm({ ...detailsForm, stage: e.target.value })}
+                    >
+                      <option value="">{lang === "en" ? "Select your stage" : "Selecciona tu etapa"}</option>
+                      <option value="Pregnancy">{lang === "en" ? "Pregnancy" : "Embarazo"}</option>
+                      <option value="Postpartum (0–12 months)">{lang === "en" ? "Postpartum (0–12 months)" : "Posparto (0–12 meses)"}</option>
+                      <option value="Toddlerhood (1–3 years)">{lang === "en" ? "Toddlerhood (1–3 years)" : "Primera infancia (1–3 años)"}</option>
+                      <option value="Primary school (4–10 years)">{lang === "en" ? "Primary school (4–10 years)" : "Etapa escolar (4–10 años)"}</option>
+                      <option value="More than one stage at once">{lang === "en" ? "More than one stage" : "Más de una etapa"}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "4px" }}>
+                      {lang === "en" ? "Neighbourhood" : "Barrio"}
+                    </label>
+                    <select
+                      className="input"
+                      value={detailsForm.neighbourhood}
+                      onChange={(e) => setDetailsForm({ ...detailsForm, neighbourhood: e.target.value })}
+                    >
+                      <option value="">{lang === "en" ? "Select neighbourhood" : "Selecciona barrio"}</option>
+                      {["Ciutat Vella","Eixample","Sants-Montjuïc","Les Corts","Sarrià-Sant Gervasi","Gràcia","Horta-Guinardó","Nou Barris","Sant Andreu","Sant Martí"].map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                      <option value="Outside Barcelona">{lang === "en" ? "Outside Barcelona" : "Fuera de Barcelona"}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ paddingTop: "8px" }}>
+                  <button
+                    type="submit"
+                    disabled={detailsLoading}
+                    style={{
+                      backgroundColor: "var(--color-accent)",
+                      color: "#f8efe2",
+                      border: "none",
+                      padding: "10px 22px",
+                      borderRadius: "4px",
+                      fontFamily: "var(--font-heading)",
+                      fontWeight: 600,
+                      fontSize: "14px",
+                      cursor: detailsLoading ? "wait" : "pointer",
+                      opacity: detailsLoading ? 0.7 : 1,
+                    }}
+                  >
+                    {detailsLoading
+                      ? (lang === "en" ? "Saving…" : "Guardando…")
+                      : (lang === "en" ? "Save Details" : "Guardar Datos")}
+                  </button>
+                </div>
+              </form>
+            </div>
+
             {/* Pause card */}
             <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "24px", backgroundColor: "#fff" }}>
               <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "20px", margin: "0 0 12px 0" }}>
-                {lang === "en" ? "Pause Allowance (§20.1a)" : "Pausa de Membresía (§20.1a)"}
+                {lang === "en" ? "Pause Allowance" : "Pausa de Membresía"}
               </h3>
               <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "0 0 16px 0" }}>
                 {lang === "en"
-                  ? "Members can pause for up to 2 whole months per calendar year free of charge. While paused, your credit expiry clock freezes and reservations are held off. Allowance resets every January 1."
+                  ? "Members can pause for up to 2 whole months per calendar year free of charge. While paused, your credit expiry clock freezes and reservations are held off."
                   : "Puedes pausar tu membresía hasta 2 meses por año natural sin coste. Durante la pausa, el reloj de caducidad se congela y no se cobran cuotas."}
               </p>
 
@@ -514,7 +679,6 @@ export default function AccountPage() {
                     const res = await pauseMembership();
                     setPauseResult(res);
                     if (res.success) {
-                      // Refresh account data to reflect new pausedUntil
                       const refreshed = await getAccountData();
                       if (refreshed.success) setAccountData(refreshed);
                     }
@@ -586,28 +750,9 @@ export default function AccountPage() {
                         • <strong>{lang === "en" ? "Remaining credits balance:" : "Saldo de créditos restante:"}</strong>{" "}
                         {accountData?.credits?.available ?? 0} {lang === "en" ? "credits (available to spend before your period ends)" : "créditos (disponibles para usar antes de que termine tu período)"}
                       </div>
-                      {accountData?.bookings && accountData.bookings.length > 0 && (
-                        <div>
-                          • <strong>{lang === "en" ? "Standing bookings that remain confirmed:" : "Reservas actuales que se mantienen confirmadas:"}</strong>
-                          <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
-                            {accountData.bookings.map((b: any) => (
-                              <li key={b.id}>
-                                {b.eventTitle} ({new Date(b.eventDate).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" })})
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
                     </div>
 
                     <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        onClick={() => setShowCancelConfirm(false)}
-                        style={{ border: "1px solid rgba(57,41,42,0.2)", backgroundColor: "transparent", color: "rgba(57,41,42,0.7)", padding: "9px 16px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}
-                      >
-                        {lang === "en" ? "Keep My Membership" : "Mantener Mi Membresía"}
-                      </button>
                       <button
                         type="button"
                         disabled={cancelLoading}
@@ -618,7 +763,6 @@ export default function AccountPage() {
                             const res = await cancelMembership();
                             setCancelResult(res);
                             if (res.success) {
-                              setShowCancelConfirm(false);
                               const refreshed = await getAccountData();
                               if (refreshed.success) setAccountData(refreshed);
                             }
@@ -626,221 +770,28 @@ export default function AccountPage() {
                             setCancelLoading(false);
                           }
                         }}
-                        style={{ border: "none", backgroundColor: "#993842", color: "#fff", padding: "9px 16px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: cancelLoading ? "wait" : "pointer", opacity: cancelLoading ? 0.7 : 1 }}
+                        style={{ backgroundColor: "#993842", color: "#fff", border: "none", padding: "10px 18px", borderRadius: "4px", fontWeight: 600, fontSize: "13.5px", cursor: cancelLoading ? "wait" : "pointer" }}
                       >
-                        {cancelLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, Confirm Cancellation" : "Sí, Confirmar Cancelación")}
+                        {cancelLoading ? (lang === "en" ? "Cancelling…" : "Cancelando…") : (lang === "en" ? "Yes, Cancel Membership" : "Sí, Cancelar Membresía")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowCancelConfirm(false)}
+                        style={{ border: "1px solid rgba(57,41,42,0.2)", backgroundColor: "transparent", color: "var(--color-text)", padding: "10px 18px", borderRadius: "4px", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}
+                      >
+                        {lang === "en" ? "Keep My Membership" : "Mantener mi Membresía"}
                       </button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div style={{ border: "1px solid rgba(164,118,31,0.35)", borderRadius: "8px", padding: "24px", backgroundColor: "#fff9f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                  <span style={{ fontSize: "18px" }}>⏳</span>
-                  <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "17px", color: "#a4761f" }}>
-                    {lang === "en" ? "Cancellation Scheduled" : "Cancelación Programada"}
-                  </span>
-                </div>
-                <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.78)", margin: "0", lineHeight: "1.6" }}>
-                  {lang === "en"
-                    ? `Your membership access continues until ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "the end of your current period"}. After that, your account will become inactive. Any remaining credits will expire 6 months after their issue date.`
-                    : `Tu acceso continúa hasta el ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "final del período actual"}. Después, tu cuenta quedará inactiva. Los créditos restantes caducan 6 meses después de su fecha de emisión.`}
-                </p>
+              <div style={{ padding: "16px 20px", backgroundColor: "#fff8f8", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "14px", color: "#993842" }}>
+                ✓ {lang === "en"
+                  ? `Your membership is set to end on ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "the end of this period"}.`
+                  : `Tu membresía finalizará el ${memberData.currentPeriodEnd ? new Date(memberData.currentPeriodEnd).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "final de este período"}.`}
               </div>
             )}
-          </div>
-        )}
-
-        {/* ─── TAB 3: GROUPS ─── */}
-        {activeTab === "groups" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <div style={{ border: "1px solid rgba(86,139,5,0.35)", borderRadius: "8px", padding: "28px", backgroundColor: "#f4f7ee" }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-2)", marginBottom: "12px" }}>
-                {lang === "en" ? "Your Stage Group" : "Tu Grupo de Etapa"}
-              </div>
-              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "22px", margin: "0 0 10px 0" }}>
-                {memberData?.stage || (lang === "en" ? "Stage not set" : "Etapa no definida")}
-              </h3>
-              <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "0 0 16px 0" }}>
-                {lang === "en"
-                  ? "You're grouped with mothers at the same stage as you. Events tagged with your stage appear highlighted in your calendar."
-                  : "Estás agrupada con madres en la misma etapa que tú. Los eventos etiquetados con tu etapa aparecen destacados en tu calendario."}
-              </p>
-              {memberData?.stage && (
-                <span style={{ display: "inline-block", padding: "6px 14px", border: "1px solid rgba(86,139,5,0.4)", borderRadius: "14px", backgroundColor: "#fff", fontSize: "13px", fontWeight: 600, color: "var(--color-accent-2)" }}>
-                  {memberData.stage}
-                </span>
-              )}
-            </div>
-
-            <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "28px", backgroundColor: "#fff" }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent)", marginBottom: "12px" }}>
-                {lang === "en" ? "Your Neighbourhood" : "Tu Barrio"}
-              </div>
-              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "22px", margin: "0 0 10px 0" }}>
-                {memberData?.neighbourhood || (lang === "en" ? "Neighbourhood not set" : "Barrio no definido")}
-              </h3>
-              <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "0 0 12px 0" }}>
-                {lang === "en"
-                  ? "Events near your neighbourhood appear first. We use this to help connect you with mothers who live close to you."
-                  : "Los eventos cerca de tu barrio aparecen primero. Lo usamos para conectarte con madres que viven cerca."}
-              </p>
-              {memberData?.neighbourhood && (
-                <span style={{ display: "inline-block", padding: "6px 14px", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "14px", backgroundColor: "#f8efe2", fontSize: "13px", fontWeight: 600, color: "var(--color-text)" }}>
-                  {memberData.neighbourhood}
-                </span>
-              )}
-              <p style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.5)", margin: "14px 0 0" }}>
-                {lang === "en"
-                  ? "Update your stage or neighbourhood in the Details tab."
-                  : "Actualiza tu etapa o barrio en la pestaña Mis Datos."}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ─── TAB 6: DETAILS ─── */}
-        {activeTab === "details" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "28px", backgroundColor: "#fff" }}>
-              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "20px", margin: "0 0 20px 0" }}>
-                {lang === "en" ? "Personal Details" : "Datos Personales"}
-              </h3>
-
-              {detailsResult?.success && (
-                <div style={{ padding: "12px 16px", backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "6px", fontSize: "13.5px", color: "rgba(57,41,42,0.85)", marginBottom: "16px" }}>
-                  ✓ {lang === "en" ? "Your details have been updated." : "Tus datos han sido actualizados."}
-                </div>
-              )}
-              {detailsResult?.error && (
-                <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.2)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "16px" }}>
-                  {detailsResult.error}
-                </div>
-              )}
-
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setDetailsLoading(true);
-                  setDetailsResult(null);
-                  try {
-                    const res = await updatePersonDetails(detailsForm);
-                    setDetailsResult(res);
-                    if (res.success) {
-                      const refreshed = await getAccountData();
-                      if (refreshed.success) setAccountData(refreshed);
-                    }
-                  } finally {
-                    setDetailsLoading(false);
-                  }
-                }}
-                style={{ display: "flex", flexDirection: "column", gap: "18px" }}
-              >
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>
-                      {lang === "en" ? "First Name" : "Nombre"}
-                    </label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={detailsForm.firstName}
-                      onChange={(e) => setDetailsForm({ ...detailsForm, firstName: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>
-                      {lang === "en" ? "Last Name" : "Apellido"}
-                    </label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={detailsForm.lastName}
-                      onChange={(e) => setDetailsForm({ ...detailsForm, lastName: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>
-                    {lang === "en" ? "Phone (optional)" : "Teléfono (opcional)"}
-                  </label>
-                  <input
-                    type="tel"
-                    className="input"
-                    value={detailsForm.phone}
-                    onChange={(e) => setDetailsForm({ ...detailsForm, phone: e.target.value })}
-                    placeholder="+34 600 000 000"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>
-                    {lang === "en" ? "Stage" : "Etapa"}
-                  </label>
-                  <select
-                    className="input"
-                    value={detailsForm.stage}
-                    onChange={(e) => setDetailsForm({ ...detailsForm, stage: e.target.value })}
-                  >
-                    <option value="">{lang === "en" ? "Select your stage" : "Selecciona tu etapa"}</option>
-                    <option value="Pregnancy">{lang === "en" ? "Pregnancy" : "Embarazo"}</option>
-                    <option value="Postpartum (0–12 months)">{lang === "en" ? "Postpartum (0–12 months)" : "Posparto (0–12 meses)"}</option>
-                    <option value="Toddlerhood (1–3 years)">{lang === "en" ? "Toddlerhood (1–3 years)" : "Primera infancia (1–3 años)"}</option>
-                    <option value="Primary school (4–10 years)">{lang === "en" ? "Primary school (4–10 years)" : "Etapa escolar (4–10 años)"}</option>
-                    <option value="More than one stage at once">{lang === "en" ? "More than one stage" : "Más de una etapa"}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>
-                    {lang === "en" ? "Neighbourhood" : "Barrio"}
-                  </label>
-                  <select
-                    className="input"
-                    value={detailsForm.neighbourhood}
-                    onChange={(e) => setDetailsForm({ ...detailsForm, neighbourhood: e.target.value })}
-                  >
-                    <option value="">{lang === "en" ? "Select neighbourhood" : "Selecciona barrio"}</option>
-                    {["Ciutat Vella","Eixample","Sants-Montjuïc","Les Corts","Sarrià-Sant Gervasi","Gràcia","Horta-Guinardó","Nou Barris","Sant Andreu","Sant Martí"].map((n) => (
-                      <option key={n} value={n}>{n}</option>
-                    ))}
-                    <option value="Outside Barcelona">{lang === "en" ? "Outside Barcelona" : "Fuera de Barcelona"}</option>
-                  </select>
-                </div>
-
-                <div style={{ paddingTop: "8px" }}>
-                  <button
-                    type="submit"
-                    disabled={detailsLoading}
-                    style={{
-                      backgroundColor: "var(--color-accent)",
-                      color: "#f8efe2",
-                      border: "none",
-                      padding: "12px 24px",
-                      borderRadius: "4px",
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 600,
-                      fontSize: "14px",
-                      cursor: detailsLoading ? "wait" : "pointer",
-                      opacity: detailsLoading ? 0.7 : 1,
-                    }}
-                  >
-                    {detailsLoading
-                      ? (lang === "en" ? "Saving…" : "Guardando…")
-                      : (lang === "en" ? "Save Changes" : "Guardar Cambios")}
-                  </button>
-                </div>
-              </form>
-
-              <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid rgba(57,41,42,0.1)", fontSize: "12.5px", color: "rgba(57,41,42,0.5)", lineHeight: "1.6" }}>
-                {lang === "en"
-                  ? "Your personal data is kept private and only used to personalise your experience. Children's birth months (not names) can be shared with hosts to help age-group planning."
-                  : "Tus datos personales se mantienen privados y solo se usan para personalizar tu experiencia. Los meses de nacimiento de tus hijos (no los nombres) pueden compartirse con las anfitrionas para planificar grupos de edad."}
-              </div>
-            </div>
           </div>
         )}
 

@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     const role = (session?.user as any)?.role;
 
-    if (!role || (role !== "owner" && role !== "manager" && role !== "host")) {
+    const allowed = ["owner", "manager", "host", "super_admin"];
+    if (!role || !allowed.includes(role)) {
       return NextResponse.json(
         { error: "Admin authentication required" },
         { status: 401 }

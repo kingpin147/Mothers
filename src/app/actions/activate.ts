@@ -27,7 +27,7 @@ export async function getActivationDetails(token: string) {
     application: appRecord,
     person: personRecord,
     monthlyPriceCents: 2900,
-    joiningFeeCents: 5800,
+    joiningFeeCents: 1900,
   };
 }
 

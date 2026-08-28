@@ -3,13 +3,22 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Locale } from "@/lib/i18n";
-import { getPublicMembershipWindow } from "@/app/actions/publicWindow";
 import { WaitlistForm } from "./WaitlistForm";
+import { ApplyModal } from "./ApplyModal";
 
-export default function MembershipClient({ initialWindowOpen, initialSpotsRemaining }: { initialWindowOpen: boolean; initialSpotsRemaining: number }) {
+export default function MembershipClient({
+  initialWindowOpen,
+  initialSpotsRemaining,
+  autoOpenApply = false,
+}: {
+  initialWindowOpen: boolean;
+  initialSpotsRemaining: number;
+  autoOpenApply?: boolean;
+}) {
   const [lang, setLang] = useState<Locale>("en");
   const [windowOpen, setWindowOpen] = useState(initialWindowOpen);
   const [spotsRemaining, setSpotsRemaining] = useState(initialSpotsRemaining);
+  const [applyModalOpen, setApplyModalOpen] = useState(autoOpenApply);
 
   useEffect(() => {
     const updateLang = () => {
@@ -123,8 +132,9 @@ export default function MembershipClient({ initialWindowOpen, initialSpotsRemain
             </div>
 
             {windowOpen ? (
-              <Link
-                href="/membership/apply"
+              <button
+                type="button"
+                onClick={() => setApplyModalOpen(true)}
                 style={{
                   backgroundColor: "var(--color-accent)",
                   color: "#f8efe2",
@@ -133,12 +143,13 @@ export default function MembershipClient({ initialWindowOpen, initialSpotsRemain
                   fontFamily: "var(--font-heading)",
                   fontWeight: 600,
                   fontSize: "15px",
-                  textDecoration: "none",
+                  border: "none",
+                  cursor: "pointer",
                   whiteSpace: "nowrap",
                 }}
               >
                 {lang === "en" ? "Apply as Opening Circle" : "Solicitar plaza Opening Circle"}
-              </Link>
+              </button>
             ) : (
               <div style={{ flex: "1 1 300px", maxWidth: "400px" }}>
                 <WaitlistForm lang={lang} />
@@ -179,10 +190,10 @@ export default function MembershipClient({ initialWindowOpen, initialSpotsRemain
         {/* ─── TIER 2: THE CIRCLE (LOCKED UNTIL 50 FILL) ─── */}
         <div
           style={{
-            border: "1px solid rgba(57, 41, 42, 0.2)",
+            border: "1px solid rgba(57, 41, 42, 0.18)",
             borderRadius: "8px",
             padding: "clamp(32px, 5vw, 48px)",
-            backgroundColor: "#fff",
+            backgroundColor: "#f8efe2",
             marginBottom: "32px",
           }}
         >
@@ -210,7 +221,7 @@ export default function MembershipClient({ initialWindowOpen, initialSpotsRemain
                 </span>
               </div>
               <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.6)", margin: "4px 0 0" }}>
-                {lang === "en" ? "or €99 every 3 months" : "o 99€ cada 3 meses"}
+                {lang === "en" ? "or €99 every 3 months — save around 15%" : "o 99€ cada 3 meses — ahorra alrededor de un 15%"}
               </p>
               <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", margin: "4px 0 0" }}>
                 {lang === "en"
@@ -225,16 +236,22 @@ export default function MembershipClient({ initialWindowOpen, initialSpotsRemain
                 alignItems: "center",
                 gap: "8px",
                 border: "1px solid rgba(57,41,42,0.25)",
-                color: "rgba(57,41,42,0.55)",
-                padding: "12px 20px",
+                color: "rgba(57,41,42,0.5)",
+                padding: "13px 24px",
                 borderRadius: "4px",
                 fontFamily: "var(--font-heading)",
                 fontWeight: 600,
-                fontSize: "14px",
+                fontSize: "15px",
+                whiteSpace: "nowrap",
                 backgroundColor: "rgba(57,41,42,0.04)",
+                cursor: "not-allowed",
               }}
             >
-              🔒 {lang === "en" ? "Opens after Opening Window" : "Disponible tras la Opening Window"}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+                <rect x="4" y="11" width="16" height="9" rx="2" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+              {lang === "en" ? "Opens after the first Membership Window" : "Disponible tras la primera Ventana de membresía"}
             </span>
           </div>
 
@@ -246,12 +263,13 @@ export default function MembershipClient({ initialWindowOpen, initialSpotsRemain
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px 24px", marginBottom: "20px" }}>
             {[
-              lang === "en" ? "Private member community & stage groups" : "Comunidad privada y grupos por etapa",
-              lang === "en" ? "Included walks & park socials, no credits needed" : "Paseos y encuentros en el parque incluidos",
-              lang === "en" ? "20 experience credits every month (6-month FIFO expiry)" : "20 créditos mensuales para experiencias (caducidad 6 meses)",
-              lang === "en" ? "Partner discounts across 5 categories" : "Descuentos en partners de 5 categorías",
+              lang === "en" ? "Private member community" : "Comunidad privada de socias",
+              lang === "en" ? "Stage groups — by trimester, child's age, and neighbourhood" : "Grupos por etapa — por trimestre, edad del hijo/a y barrio",
+              lang === "en" ? "Included walks & park socials, no credits needed" : "Paseos y encuentros en el parque incluidos, sin créditos",
+              lang === "en" ? "20 experience credits every month, rolling over with no ceiling (6-month expiry)" : "20 créditos de experiencias cada mes, acumulables sin límite (caducidad 6 meses)",
+              lang === "en" ? "Partner discounts across 5 categories" : "Descuentos de partners en 5 categorías",
               lang === "en" ? "Priority booking on every experience" : "Reserva prioritaria en cada experiencia",
-              lang === "en" ? "Option to buy extra credits anytime at €1/credit" : "Compra de créditos extra a 1€/crédito",
+              lang === "en" ? "Priority RSVP & concierge support" : "RSVP prioritario y soporte de conserjería",
             ].map((item, idx) => (
               <div key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "rgba(57,41,42,0.8)" }}>
                 <span style={{ color: "var(--color-accent-2)", fontWeight: "bold" }}>✓</span>
@@ -267,56 +285,24 @@ export default function MembershipClient({ initialWindowOpen, initialSpotsRemain
           </p>
         </div>
 
-        {/* ─── TIER 3: INNER CIRCLE (PHASE 2 TEASER) ─── */}
-        <div
-          style={{
-            border: "1px dashed rgba(57,41,42,0.3)",
-            borderRadius: "8px",
-            padding: "clamp(24px, 4vw, 36px)",
-            backgroundColor: "rgba(248, 239, 226, 0.5)",
-            marginBottom: "48px",
-          }}
-        >
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-            <span
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                fontSize: "13px",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: "rgba(57,41,42,0.7)",
-              }}
-            >
-              {lang === "en" ? "The Inner Circle" : "The Inner Circle"}
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "11px",
-                color: "var(--color-accent-2)",
-                border: "1px solid rgba(86,139,5,0.4)",
-                borderRadius: "10px",
-                padding: "2px 10px",
-              }}
-            >
-              {lang === "en" ? "Coming in Phase 2" : "Próximamente en Fase 2"}
-            </span>
-          </div>
-          <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.65)", margin: 0 }}>
+        {/* ─── EVENT PASS BLOCK ("Try us before you join") ─── */}
+        <div style={{ textAlign: "center", margin: "48px 0 24px" }}>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(26px, 3.6vw, 36px)", lineHeight: 1.15, margin: "0 0 10px" }}>
+            {lang === "en" ? "Try us before you join." : "Pruébanos antes de unirte."}
+          </h2>
+          <p style={{ fontSize: "15.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: "0 auto", maxWidth: "52ch" }}>
             {lang === "en"
-              ? "A smaller, concierge tier with retreats, 1:1 expert access, and priority everything. Opening Circle members will be the first invited."
-              : "Un nivel exclusivo con retiros, acceso 1:1 con especialistas y máxima prioridad. Las socias del Opening Circle serán las primeras invitadas."}
+              ? "Come to one event, meet the mothers, see how it feels — no membership, no commitment."
+              : "Ven a un evento, conoce a las madres, siente cómo es — sin membresía y sin compromiso."}
           </p>
         </div>
 
-        {/* ─── EVENT PASS BLOCK ─── */}
         <div
           style={{
             border: "1px solid rgba(57,41,42,0.18)",
             borderRadius: "8px",
-            padding: "clamp(28px, 4vw, 36px)",
-            backgroundColor: "#fff",
+            padding: "clamp(24px, 4vw, 32px) clamp(28px, 4vw, 40px)",
+            backgroundColor: "#f8efe2",
             display: "flex",
             flexWrap: "wrap",
             gap: "24px",
@@ -324,48 +310,69 @@ export default function MembershipClient({ initialWindowOpen, initialSpotsRemain
             justifyContent: "space-between",
           }}
         >
-          <div style={{ flex: "1 1 340px" }}>
+          <div style={{ flex: "1 1 320px" }}>
             <div
               style={{
                 fontFamily: "var(--font-heading)",
                 fontWeight: 600,
-                fontSize: "12px",
+                fontSize: "13px",
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
                 color: "var(--color-accent-2)",
-                marginBottom: "6px",
+                marginBottom: "8px",
               }}
             >
-              {lang === "en" ? "Try Us Before You Join" : "Pruébanos Antes de Unirte"}
+              {lang === "en" ? "NOT READY TO JOIN?" : "¿AÚN NO ESTÁS LISTA?"}
             </div>
-            <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 8px" }}>
-              {lang === "en" ? "The Event Pass — €35" : "The Event Pass — 35€"}
+            <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "20px", margin: "0 0 6px" }}>
+              {lang === "en" ? "The Event Pass — €35" : "El Event Pass — 35€"}
             </h3>
-            <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: 0 }}>
+            <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: "0 0 10px" }}>
               {lang === "en"
-                ? "Two passes per person, ever. Covers any confirmed event up to 18 credits. Join within 30 days and your €35 is credited toward your first membership invoice."
-                : "Dos pases por persona en total. Válido para cualquier evento confirmado de hasta 18 créditos. Si te unes en 30 días, tus 35€ se descuentan de tu primer pago."}
+                ? "Come as a guest, no membership required — the easiest way to feel the community before you decide."
+                : "Ven a un evento como invitada, sin necesidad de membresía — la forma más fácil de sentir la comunidad antes de decidir."}
             </p>
+            <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.6)" }}>
+              <li>{lang === "en" ? "Two passes per person, and your €35 comes off your first payment if you join within 30 days." : "Dos pases por persona, y tus 35€ se descuentan de tu primer pago si te unes en 30 días."}</li>
+              <li style={{ marginTop: "4px" }}>{lang === "en" ? "Most events are open to a pass — the calendar marks what a pass can book." : "Casi todos los eventos aceptan pase — el calendario indica cuáles."}</li>
+            </ul>
           </div>
 
-          <Link
-            href="/events"
-            style={{
-              border: "1px solid var(--color-accent)",
-              color: "var(--color-accent)",
-              padding: "12px 24px",
-              borderRadius: "4px",
-              fontFamily: "var(--font-heading)",
-              fontWeight: 600,
-              fontSize: "14.5px",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {lang === "en" ? "Get an Event Pass" : "Conseguir Event Pass"}
-          </Link>
+          <div style={{ textAlign: "center", flex: "0 0 auto" }}>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "34px", color: "#39292a" }}>
+              {lang === "en" ? "€35" : "35€"}
+            </div>
+            <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", marginBottom: "16px" }}>
+              {lang === "en" ? "per event" : "por evento"}
+            </div>
+            <Link
+              href="/events"
+              style={{
+                border: "1px solid var(--color-accent)",
+                color: "var(--color-accent)",
+                padding: "12px 26px",
+                borderRadius: "4px",
+                fontFamily: "var(--font-heading)",
+                fontWeight: 600,
+                fontSize: "15px",
+                whiteSpace: "nowrap",
+                background: "transparent",
+                display: "inline-block",
+                textDecoration: "none",
+              }}
+            >
+              {lang === "en" ? "Get an Event Pass" : "Conseguir Event Pass"}
+            </Link>
+          </div>
         </div>
       </div>
+
+      {/* ─── EXACT PROTOTYPE APPLY MODAL ─── */}
+      <ApplyModal
+        isOpen={applyModalOpen}
+        onClose={() => setApplyModalOpen(false)}
+        lang={lang}
+      />
     </div>
   );
 }

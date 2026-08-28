@@ -12,7 +12,8 @@ import { z } from "zod";
 export async function getApplicationsForAdmin(statusFilter?: "submitted" | "accepted" | "declined" | "all") {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  if (!role || (role !== "owner" && role !== "manager" && role !== "host")) {
+  const allowed = ["owner", "manager", "host", "super_admin"];
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED" };
   }
 
@@ -55,8 +56,9 @@ export async function acceptApplication(applicationId: string) {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
 
-  if (!role || (role !== "owner" && role !== "manager")) {
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 
@@ -190,8 +192,9 @@ export async function declineApplication(applicationId: string, reasonCode?: str
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
 
-  if (!role || (role !== "owner" && role !== "manager")) {
+  if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 

@@ -150,7 +150,7 @@ export function Navigation() {
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               {(() => {
                 const role = (session.user as any)?.role;
-                const isAdminUser = role === "owner" || role === "manager" || role === "host";
+                const isAdminUser = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
                 const accountHref = isAdminUser ? "/admin" : "/account";
                 const accountLabel = isAdminUser
                   ? (lang === "en" ? "Admin" : "Admin")

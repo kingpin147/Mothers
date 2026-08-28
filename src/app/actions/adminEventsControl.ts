@@ -19,8 +19,9 @@ async function verifyAdmin() {
   const session = await auth();
   const role = (session?.user as any)?.role;
   const adminId = session?.user?.id;
+  const allowed = ["owner", "manager", "host", "super_admin"];
 
-  if (!adminId || !role || (role !== "owner" && role !== "manager" && role !== "host")) {
+  if (!adminId || !role || !allowed.includes(role)) {
     throw new Error("UNAUTHORIZED_ADMIN");
   }
   return { adminId, role };
