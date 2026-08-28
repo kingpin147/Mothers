@@ -14,9 +14,21 @@ interface FaqEntry {
 const FAQ_LIST: FaqEntry[] = [
   {
     qEn: "What is a Membership Window?",
-    aEn: "We don't accept members on a rolling basis. Applications open for a few weeks at a time; everyone accepted in that Window joins on the same day, so nobody joins alone.",
+    aEn: "We don't accept members on a rolling basis. A Window opens once a month and stays open for one week only; everyone accepted in that Window joins on the same day, so nobody joins alone. If you find us mid-month, leave your name and we'll write to you the day the next Window opens.",
     qEs: "¿Qué es una Ventana de membresía?",
-    aEs: "No aceptamos socias de forma continua. Las solicitudes se abren durante unas semanas; todas las aceptadas en esa Ventana entran el mismo día, así que nadie se une sola.",
+    aEs: "No aceptamos socias de forma continua. Cada mes se abre una Ventana y permanece abierta una sola semana; todas las aceptadas en esa Ventana entran el mismo día, así que nadie se une sola. Si nos encuentras a mitad de mes, déjanos tu nombre y te escribimos el día que se abra la siguiente.",
+  },
+  {
+    qEn: "What if I'm not accepted right away?",
+    aEn: "Outside a Window, your application joins our waitlist and is reviewed at the next opening.",
+    qEs: "¿Y si no me aceptan de inmediato?",
+    aEs: "Fuera de una Ventana, tu solicitud pasa a nuestra lista de espera y se revisa en la próxima apertura.",
+  },
+  {
+    qEn: "What if no Window is open right now?",
+    aEn: "Then you can't apply yet — and rather than take an application we cannot review, we take your name for the waitlist. You'll hear from us the day the next Window opens, before it is announced anywhere else. Meanwhile the walks and park socials stay free and open to you, and an Event Pass gets you into one paid event.",
+    qEs: "¿Y si ahora no hay ninguna Ventana abierta?",
+    aEs: "Entonces todavía no puedes solicitar plaza — y en lugar de recoger una solicitud que no podemos revisar, apuntamos tu nombre en la lista de espera. Te escribiremos el día que se abra la próxima Ventana, antes de anunciarlo en cualquier otro sitio. Mientras tanto, los paseos y encuentros en el parque siguen siendo gratuitos y abiertos para ti, y puedes conseguir un Event Pass para un evento de pago.",
   },
   {
     qEn: "Do I have to be a mother to join?",
@@ -26,15 +38,27 @@ const FAQ_LIST: FaqEntry[] = [
   },
   {
     qEn: "What are credits, and how do they work?",
-    aEn: "Every month you get 20 credits to spend across the calendar — walks and park socials are always free and unlimited. Unused subscription credits roll over up to a 40-credit balance cap, and each credit expires 6 months after it's issued, oldest first. Bonus referral credits sit outside that cap.",
+    aEn: "Every month you get 20 credits to spend across the calendar — walks and park socials are always free and unlimited. Unused credits roll over with no ceiling, and each credit expires 6 months after it's issued, oldest first, so a rollover credit is always used before a fresh one. Save three quiet months and a Signature moment is within reach. We'll email you a reminder about 30 days before any credit is due to expire, so nothing lapses as a surprise.",
     qEs: "¿Qué son los créditos y cómo funcionan?",
-    aEs: "Cada mes recibes 20 créditos para usar en el calendario — los paseos y encuentros en el parque son siempre gratuitos e ilimitados. Los créditos de suscripción no usados se acumulan hasta un saldo máximo de 40, y cada crédito caduca a los 6 meses, empezando por los más antiguos. Los créditos de referidos quedan fuera de ese límite.",
+    aEs: "Cada mes recibes 20 créditos para usar en el calendario — los paseos y encuentros en el parque son siempre gratuitos e ilimitados. Los créditos no usados se acumulan sin límite, y cada crédito caduca 6 meses después de emitirse, empezando por los más antiguos, así que un crédito acumulado siempre se usa antes que uno nuevo. Ahorra tres meses tranquilos y un Signature moment queda a tu alcance. Te avisaremos por correo unos 30 días antes de que caduque cualquier crédito, para que nunca sea una sorpresa.",
   },
   {
     qEn: "Can I buy extra credits?",
     aEn: "Yes — anytime, at a flat €1 per credit, in exactly the amount you need. Extra credits join your balance under the same rules as monthly credits: 6-month expiry, oldest credits used first.",
     qEs: "¿Puedo comprar créditos extra?",
     aEs: "Sí — en cualquier momento, a un precio fijo de 1€ por crédito, en la cantidad exacta que necesites. Los créditos extra se suman a tu saldo con las mismas reglas que los mensuales: caducan a los 6 meses y se usan primero los más antiguos.",
+  },
+  {
+    qEn: "What if I run out of credits mid-month?",
+    aEn: "Nothing is lost — you just top up at the moment you book. Press Book on an event you cannot yet afford and we show you exactly what it costs, what you have, and the shortfall, priced at €1 per credit. Pay for the difference and the place is yours in the same step. On an event still gathering the members it needs, those credits are held rather than spent, and they come back in full if it does not go ahead. If you would rather wait, your monthly credits renew on your billing date.",
+    qEs: "¿Y si me quedo sin créditos a mitad de mes?",
+    aEs: "No se pierde nada — añades créditos en el mismo momento de reservar. Pulsa Reservar en un evento que aún no puedas pagar y te mostramos lo que cuesta, lo que tienes y la diferencia, a 1€ por crédito. Paga esa diferencia y la plaza es tuya en el mismo paso. En un evento que aún reúne el mínimo de socias, esos créditos se guardan en lugar de gastarse, y vuelven íntegros si no se celebra. Si prefieres esperar, tus créditos se renuevan en tu fecha de facturación.",
+  },
+  {
+    qEn: "Do all events have limited places?",
+    aEn: "Most do, and the card says how many are left against the total — \"Places left: 6 of 16\" — so you can see at a glance how full a room is. Some walks and park socials carry no limit at all; those read \"Open list — no limit on places\", and leaving your details puts you on the list straight away with nothing to wait for. Where places are limited on a free event, members are held ahead of the open list, and the list is confirmed three days before.",
+    qEs: "¿Todos los eventos tienen plazas limitadas?",
+    aEs: "Casi todos, y la tarjeta indica cuántas quedan sobre el total — \"Plazas libres: 6 de 16\" — para que veas de un vistazo cómo está la sala. Algunos paseos y encuentros en el parque no tienen límite; esos indican \"Lista abierta — plazas sin límite\", y al dejar tus datos entras en la lista al instante. Cuando un evento gratuito sí tiene límite, las socias van por delante de la lista abierta, que se confirma tres días antes.",
   },
   {
     qEn: "How does the Godmother referral work?",
@@ -44,7 +68,7 @@ const FAQ_LIST: FaqEntry[] = [
   },
   {
     qEn: "Can I come to an event without being a member?",
-    aEn: "Yes. An Event Pass is €35 and books you one place at any event worth up to 18 credits, capped at two guests per event. Most of the calendar sits under that; the event card tells you whether a pass can book it. Everyone gets two passes in total — enough to know whether this is your room — and after that it's membership. Only Signature moments, and anything above 18 credits, stay with members. If you join within thirty days of the event, your €35 comes off your membership — €13 to join instead of €48 at the Opening Circle rate, or €23 instead of €58 at the standard rate. It comes off your first payment only; after that you pay your normal monthly rate. Your receipt is your ticket — it carries the meeting point and a link to release your place if your plans change. The €35 is not refunded, but the seat goes to another mother. Walks and park socials are always free, no booking fee at all.",
+    aEn: "Yes. An Event Pass is €35 and books you one place at any event worth up to 18 credits. Each event holds a small number of guest places — usually two. Most of the calendar sits under that; the event card tells you whether a pass can book it. Everyone gets two passes in total — enough to know whether this is your room — and after that it's membership. Only Signature moments, and anything above 18 credits, stay with members. If you join within thirty days of the event, your €35 comes off your membership — €13 to join instead of €48 at the Opening Circle rate, or €23 instead of €58 at the standard rate. It comes off your first payment only; after that you pay your normal monthly rate. Your receipt is your ticket — it carries the meeting point and a link to release your place if your plans change. The €35 is not refunded, but the seat goes to another mother. Walks and park socials are always free, no booking fee at all.",
     qEs: "¿Puedo asistir a un evento sin ser socia?",
     aEs: "Sí. Un Event Pass cuesta 35€ y te reserva una plaza en cualquier evento de hasta 18 créditos, con un máximo de dos invitadas por evento. La mayor parte del calendario está por debajo; la tarjeta del evento indica si un pase puede reservarlo. Cada persona tiene dos pases en total, y después toca la membresía. Solo los Signature moments, y lo que supere los 18 créditos, quedan para socias. Si te unes dentro de los treinta días siguientes al evento, tus 35€ se descuentan de tu primer pago: 13€ en lugar de 48€ con la tarifa Opening Circle, o 23€ en lugar de 58€ con la tarifa estándar. Solo se aplica al primer pago; después pagas tu tarifa mensual habitual. Tu recibo es tu entrada: lleva el punto de encuentro y un enlace para liberar tu plaza si te cambian los planes. Los 35€ no se devuelven, pero la plaza pasa a otra madre. Los paseos y encuentros en el parque son siempre gratuitos.",
   },
@@ -65,6 +89,18 @@ const FAQ_LIST: FaqEntry[] = [
     aEn: "Yes, up to 24 hours before it starts — the credit is returned automatically, no explanation needed. Inside 24 hours we still return the credit if someone on the waitlist takes your place; if the place goes unfilled, the credit is spent. Booked with an Event Pass instead? Use the link in your receipt email, or write to hello@themothers.cc.",
     qEs: "¿Puedo cancelar un evento que reservé?",
     aEs: "Sí, hasta 24 horas antes de que empiece — el crédito se devuelve automáticamente, sin necesidad de explicación. Con menos de 24 horas también te devolvemos el crédito si alguien de la lista de espera ocupa tu plaza; si queda vacía, el crédito se pierde. ¿Reservaste como invitada? Usa el enlace de cancelación de tu correo de confirmación, o escribe a hello@themothers.cc.",
+  },
+  {
+    qEn: "What happens when my Opening Circle rate ends?",
+    aEn: "Opening Circle members keep €29/month for a full 12 months. We'll remind you before it changes, and you'll never be surprised on your statement. The rate is tied to staying a member: pausing protects it, but cancelling ends it — rejoin later and you rejoin at the standard rate.",
+    qEs: "¿Qué pasa cuando termina mi tarifa de Opening Circle?",
+    aEs: "Las socias del Opening Circle mantienen 29€/mes durante 12 meses completos. Te avisaremos antes de que cambie, y nunca será una sorpresa en tu extracto. La tarifa va unida a seguir siendo socia: pausar la protege, pero cancelar la termina — si vuelves más adelante, entras a la tarifa estándar.",
+  },
+  {
+    qEn: "Can I join if my child is already in school?",
+    aEn: "Yes — The Mothers is open from pregnancy through age ten, not just the newborn years.",
+    qEs: "¿Puedo unirme si mi hijo/a ya está en el colegio?",
+    aEs: "Sí — The Mothers está abierto desde el embarazo hasta los diez años, no solo la etapa de recién nacido.",
   },
   {
     qEn: "Why do some events say \"3 more to confirm\"?",
@@ -89,6 +125,12 @@ const FAQ_LIST: FaqEntry[] = [
     aEn: "Every event is labelled clearly: child-inclusive, on-site childcare provided, or adults-only. You always know before you book.",
     qEs: "¿Qué pasa con el cuidado de los niños en los eventos?",
     aEs: "Cada evento está etiquetado con claridad: con niños, con cuidado infantil in situ, o solo para adultas. Siempre lo sabrás antes de reservar.",
+  },
+  {
+    qEn: "Do you operate in English and Spanish?",
+    aEn: "Yes — The Mothers is bilingual from day one, for local and international mothers alike.",
+    qEs: "¿Operáis en inglés y en español?",
+    aEs: "Sí — The Mothers es bilingüe desde el primer día, tanto para madres locales como internacionales.",
   }
 ];
 

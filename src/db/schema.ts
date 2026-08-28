@@ -80,6 +80,8 @@ export const passStatusEnum = pgEnum("pass_status", [
 export const creditEntryTypeEnum = pgEnum("credit_entry_type", [
   "grant",
   "joining_bonus",
+  "purchase",
+  "referral",
   "spend",
   "return_release",
   "return_cancellation",
@@ -139,11 +141,14 @@ export const member = pgTable(
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }).unique(),
     status: memberStatusEnum("status").default("applicant").notNull(),
+    tier: text("tier").default("circle").notNull(), // 'opening_circle', 'circle', 'inner_circle'
+    billingFrequency: text("billing_frequency").default("monthly").notNull(), // 'monthly', 'quarterly'
     stage: text("stage"), // e.g. pregnancy, 0-1yr, 1-3yr, 4-7yr, 8-10yr
     neighbourhood: text("neighbourhood"),
     children: jsonb("children").$type<Array<{ birthMonth: number; birthYear: number }>>().default([]),
     joinedAt: timestamp("joined_at", { withTimezone: true }),
     monthlyPriceCents: integer("monthly_price_cents").default(3900).notNull(),
+    priceCents: integer("price_cents").default(3900).notNull(),
     priceLockedUntil: timestamp("price_locked_until", { withTimezone: true }),
     joiningFeePaidCents: integer("joining_fee_paid_cents").default(0).notNull(),
     stripeCustomerId: text("stripe_customer_id"),
@@ -151,6 +156,10 @@ export const member = pgTable(
     currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
     cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
     pausedUntil: timestamp("paused_until", { withTimezone: true }),
+    pauseMonthsUsedYear: integer("pause_months_used_year").default(0).notNull(),
+    noShowCount90d: integer("no_show_count_90d").default(0).notNull(),
+    rsvpSuspendedAt: timestamp("rsvp_suspended_at", { withTimezone: true }),
+    referredByMemberId: text("referred_by_member_id"),
     atRiskSince: timestamp("at_risk_since", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -196,9 +205,15 @@ export const window = pgTable(
     opensAt: timestamp("opens_at", { withTimezone: true }).notNull(),
     closesAt: timestamp("closes_at", { withTimezone: true }).notNull(),
     placesOffered: integer("places_offered").notNull(),
-    joiningFeeCents: integer("joining_fee_cents").default(5800).notNull(),
+    joiningFeeCents: integer("joining_fee_cents").default(1900).notNull(), // €19 joining fee per brief
     monthlyPriceCents: integer("monthly_price_cents").default(3900).notNull(),
-    launchRate: boolean("launch_rate").default(false).notNull(),
+    tierPrices: jsonb("tier_prices").$type<{
+      openingMonthly: number;
+      openingQuarterly: number;
+      standardMonthly: number;
+      standardQuarterly: number;
+    }>(),
+    launchRate: boolean("launch_rate").default(true).notNull(),
     lockMonths: integer("lock_months").default(12).notNull(),
     status: windowStatusEnum("status").default("draft").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -245,7 +260,23 @@ export const application = pgTable(
   ]
 );
 
-// ─── 3. EVENTS & ATTENDANCE ─────────────────────────────────────────────────
+// ─── 3. EVENTS, STAGES & ATTENDANCE ─────────────────────────────────────────
+
+export const stage = pgTable(
+  "stage",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    key: text("key").notNull().unique(), // 'expecting', 'babies', 'toddlers', 'children36', 'children610'
+    labelEn: text("label_en").notNull(),
+    labelEs: text("label_es").notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    ageFromMonths: integer("age_from_months"),
+    ageToMonths: integer("age_to_months"),
+    active: boolean("active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
 
 export const eventCategory = pgTable(
   "event_category",
@@ -276,9 +307,12 @@ export const event = pgTable(
     neighbourhood: text("neighbourhood").notNull(),
     capacityMember: integer("capacity_member").notNull(),
     capacityGuest: integer("capacity_guest").default(2).notNull(),
+    capacityGuestGathering: integer("capacity_guest_gathering"), // higher guest figure while gathering
+    showEventPassCta: boolean("show_event_pass_cta").default(false).notNull(),
     minToConfirm: integer("min_to_confirm").default(0).notNull(),
     creditCost: integer("credit_cost").notNull(), // required, explicit
     guestPriceCents: integer("guest_price_cents").default(3500).notNull(),
+    childcare: text("childcare").default("child_inclusive").notNull(), // 'child_inclusive', 'childcare_on_site', 'adults_only'
     isSignature: boolean("is_signature").default(false).notNull(),
     isFreeWalk: boolean("is_free_walk").default(false).notNull(),
     partnerId: text("partner_id"),
@@ -300,6 +334,19 @@ export const event = pgTable(
   ]
 );
 
+export const eventStage = pgTable(
+  "event_stage",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    eventId: text("event_id").notNull().references(() => event.id, { onDelete: "cascade" }),
+    stageId: text("stage_id").notNull().references(() => stage.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_unique_event_stage").on(table.eventId, table.stageId),
+  ]
+);
+
 export const booking = pgTable(
   "booking",
   {
@@ -310,6 +357,8 @@ export const booking = pgTable(
     kind: bookingKindEnum("kind").notNull(),
     status: bookingStatusEnum("status").default("held").notNull(),
     creditsCharged: integer("credits_charged").default(0).notNull(),
+    pendingReturnCredits: integer("pending_return_credits").default(0).notNull(),
+    pendingReturnState: text("pending_return_state").default("none").notNull(), // 'none', 'awaiting_replacement', 'settled_returned', 'settled_unfilled'
     moneyPaidCents: integer("money_paid_cents").default(0).notNull(),
     passId: text("pass_id"),
     bookedAt: timestamp("booked_at", { withTimezone: true }).defaultNow().notNull(),

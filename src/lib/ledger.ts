@@ -156,7 +156,6 @@ export async function spendCredits(
   const spendEntryId = spendInsert[0].id;
 
   // FIFO allocation: oldest non-expired grants first
-  // We need to find grants that still have unallocated capacity
   const activeGrants = await tx
     .select({
       id: creditEntry.id,
@@ -168,7 +167,7 @@ export async function spendCredits(
     .where(
       and(
         eq(creditEntry.memberId, memberId),
-        sql`type IN ('grant', 'joining_bonus', 'return_release', 'return_cancellation')`,
+        sql`type IN ('grant', 'joining_bonus', 'purchase', 'referral', 'return_release', 'return_cancellation', 'adjustment')`,
         sql`amount > 0`,
         sql`(expires_at IS NULL OR expires_at > NOW())`
       )
@@ -287,7 +286,141 @@ export async function returnCredits(
   return { totalReturned };
 }
 
-// ─── 5. EXPIRE AGED CREDITS — IDEMPOTENT, NO DOUBLE-EXPIRY (§5, §8) ────────
+// ─── 5. PURCHASE EXTRA CREDITS (§20.2) ──────────────────────────────────────
+
+export async function purchaseExtraCredits(params: {
+  memberId: string;
+  quantity: number;
+  paymentId?: string;
+  txOrDb?: any;
+}): Promise<{ entryId: string }> {
+  const tx = params.txOrDb || db;
+  const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000); // 6 months
+
+  const [inserted] = await tx
+    .insert(creditEntry)
+    .values({
+      memberId: params.memberId,
+      amount: params.quantity,
+      type: "purchase",
+      expiresAt,
+      sourceType: "payment",
+      sourceId: params.paymentId || null,
+      reason: `Purchased ${params.quantity} extra credits (€${params.quantity})`,
+    })
+    .returning({ id: creditEntry.id });
+
+  return { entryId: inserted.id };
+}
+
+// ─── 6. GODMOTHER REFERRAL BONUSES (§20.2a) ─────────────────────────────────
+
+export async function grantGodmotherReferralBonus(params: {
+  referrerMemberId: string;
+  referredPersonId: string;
+  stage: "joining" | "renewal";
+  txOrDb?: any;
+}): Promise<{ entryId: string; amount: number }> {
+  const tx = params.txOrDb || db;
+  const amount = params.stage === "joining" ? 5 : 15;
+  const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000); // 6 months
+
+  const [inserted] = await tx
+    .insert(creditEntry)
+    .values({
+      memberId: params.referrerMemberId,
+      amount,
+      type: "referral",
+      expiresAt,
+      sourceType: "person",
+      sourceId: params.referredPersonId,
+      reason:
+        params.stage === "joining"
+          ? `Godmother referral: friend joined (+5 credits)`
+          : `Godmother referral: friend renewed (+15 credits)`,
+    })
+    .returning({ id: creditEntry.id });
+
+  return { entryId: inserted.id, amount };
+}
+
+// ─── 7. EXTEND GRANTS ON PAUSE END (§5, §8, §20.1a) ─────────────────────────
+
+export async function extendGrantsOnPauseEnd(
+  memberId: string,
+  pauseDays: number,
+  txOrDb: any = db
+): Promise<{ updatedCount: number }> {
+  if (pauseDays <= 0) return { updatedCount: 0 };
+
+  const activeGrants = await txOrDb
+    .select()
+    .from(creditEntry)
+    .where(
+      and(
+        eq(creditEntry.memberId, memberId),
+        sql`amount > 0`,
+        sql`expires_at IS NOT NULL AND expires_at > NOW()`
+      )
+    );
+
+  let updatedCount = 0;
+  for (const g of activeGrants) {
+    if (g.expiresAt) {
+      const newExpiry = new Date(new Date(g.expiresAt).getTime() + pauseDays * 24 * 60 * 60 * 1000);
+      await txOrDb
+        .update(creditEntry)
+        .set({ expiresAt: newExpiry })
+        .where(eq(creditEntry.id, g.id));
+      updatedCount++;
+    }
+  }
+
+  return { updatedCount };
+}
+
+// ─── 8. GUEST PASS → MEMBERSHIP €35 DISCOUNT (§3.4, §20.4) ──────────────────
+
+export async function checkPassJoiningDiscount(personId: string): Promise<{
+  hasDiscount: boolean;
+  passId: string | null;
+  discountCents: number;
+  joiningFeeCents: number;
+  standardFirstMonthNet: number;
+  openingFirstMonthNet: number;
+}> {
+  // Check for paid event pass within 30-day credit window
+  const recentPass = await db.query.eventPass.findFirst({
+    where: and(
+      eq(eventPass.personId, personId),
+      eq(eventPass.status, "paid"),
+      sql`credit_expires_at > NOW()`
+    ),
+    orderBy: desc(eventPass.purchasedAt),
+  });
+
+  if (recentPass) {
+    return {
+      hasDiscount: true,
+      passId: recentPass.id,
+      discountCents: 3500,
+      joiningFeeCents: 1900,
+      standardFirstMonthNet: 2300, // (€19 + €39) - €35 = €23
+      openingFirstMonthNet: 1300,  // (€19 + €29) - €35 = €13
+    };
+  }
+
+  return {
+    hasDiscount: false,
+    passId: null,
+    discountCents: 0,
+    joiningFeeCents: 1900,
+    standardFirstMonthNet: 5800, // €19 + €39 = €58
+    openingFirstMonthNet: 4800,  // €19 + €29 = €48
+  };
+}
+
+// ─── 9. EXPIRE AGED CREDITS — IDEMPOTENT, NO DOUBLE-EXPIRY (§5, §8) ────────
 
 export async function runCreditExpiryWorker(): Promise<{
   expiredTotal: number;
@@ -297,8 +430,6 @@ export async function runCreditExpiryWorker(): Promise<{
   const affectedMemberIds = new Set<string>();
 
   await db.transaction(async (tx) => {
-    // Find expired grants that do NOT already have an expiry entry written against them.
-    // This is the fix for the double-expiry bug — truly idempotent.
     const expiredGrants = await tx
       .select()
       .from(creditEntry)
@@ -307,7 +438,6 @@ export async function runCreditExpiryWorker(): Promise<{
           eq(creditEntry.type, "grant"),
           sql`amount > 0`,
           sql`expires_at IS NOT NULL AND expires_at <= NOW()`,
-          // Exclude grants that already have an expiry entry
           sql`id NOT IN (
             SELECT source_id FROM credit_entry 
             WHERE type = 'expiry' AND source_type = 'credit_entry' AND source_id IS NOT NULL
@@ -316,7 +446,6 @@ export async function runCreditExpiryWorker(): Promise<{
       );
 
     for (const grant of expiredGrants) {
-      // Calculate remaining unspent from this grant
       const usedResult = await tx
         .select({ totalUsed: sql<number>`COALESCE(SUM(amount), 0)` })
         .from(creditAllocation)
@@ -344,7 +473,7 @@ export async function runCreditExpiryWorker(): Promise<{
   return { expiredTotal, membersAffected: affectedMemberIds.size };
 }
 
-// ─── 6. ADMIN CREDIT ADJUSTMENT WITH MANDATORY REASON (§19, §20.2) ──────────
+// ─── 10. ADMIN CREDIT ADJUSTMENT WITH MANDATORY REASON (§19, §20.2) ──────────
 
 export async function adjustCredits(params: {
   memberId: string;
@@ -363,17 +492,14 @@ export async function adjustCredits(params: {
   let newBalance = 0;
 
   await db.transaction(async (tx) => {
-    // Lock member row
     await tx
       .select()
       .from(member)
       .where(eq(member.id, params.memberId))
       .for("update");
 
-    // Compute current balance
     const summary = await getMemberLedgerSummary(params.memberId, tx);
 
-    // Prevent negative balance
     if (summary.totalBalance + params.amount < 0) {
       throw new Error(
         `ADJUSTMENT_WOULD_MAKE_BALANCE_NEGATIVE: current=${summary.totalBalance}, adjustment=${params.amount}`
@@ -390,7 +516,6 @@ export async function adjustCredits(params: {
         sourceId: params.actorAdminId,
         reason: params.reason.trim(),
         actorAdminId: params.actorAdminId,
-        // Positive adjustments get an expiry, negative don't
         expiresAt:
           params.amount > 0
             ? new Date(Date.now() + 180 * 24 * 60 * 60 * 1000)
@@ -419,42 +544,7 @@ export async function adjustCredits(params: {
   return { entryId, newBalance };
 }
 
-// ─── 7. GUEST PASS → MEMBERSHIP €35 DISCOUNT (§3.4, §20.4) ──────────────────
-
-export async function checkPassJoiningDiscount(personId: string): Promise<{
-  hasDiscount: boolean;
-  passId: string | null;
-  discountCents: number;
-  joiningFeePaidCents: number;
-}> {
-  // Check for paid event pass within 30-day credit window
-  const recentPass = await db.query.eventPass.findFirst({
-    where: and(
-      eq(eventPass.personId, personId),
-      eq(eventPass.status, "paid"),
-      sql`credit_expires_at > NOW()`
-    ),
-    orderBy: desc(eventPass.purchasedAt),
-  });
-
-  if (recentPass) {
-    return {
-      hasDiscount: true,
-      passId: recentPass.id,
-      discountCents: 3500,
-      joiningFeePaidCents: 2300, // €58 - €35
-    };
-  }
-
-  return {
-    hasDiscount: false,
-    passId: null,
-    discountCents: 0,
-    joiningFeePaidCents: 5800,
-  };
-}
-
-// ─── 8. RECONCILIATION ASSERTIONS (§5, §17) ─────────────────────────────────
+// ─── 11. RECONCILIATION ASSERTIONS (§5, §17) ────────────────────────────────
 
 export interface ReconciliationResult {
   passed: boolean;
