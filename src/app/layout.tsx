@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { SessionProviderWrapper } from "@/components/SessionProviderWrapper";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXTAUTH_URL || "https://themothers.cc"),
   title: "The Mothers — Private Members Club for Mothers in Barcelona",
   description: "A private club for mothers in Barcelona: curated events, genuine community, credit-based booking, and trusted partner care.",
 };
