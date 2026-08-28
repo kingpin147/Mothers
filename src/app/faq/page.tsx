@@ -265,8 +265,8 @@ export default function FaqPage() {
           </h2>
           <p style={{ fontSize: "15px", color: "rgba(248, 239, 226, 0.75)", margin: "0 auto 24px auto", maxWidth: "480px" }}>
             {lang === "en"
-              ? "Try one Open Event: experience the community, no membership needed."
-              : "Prueba un Evento Abierto: vive la comunidad, sin necesidad de membresía."}
+              ? "Try an Event Pass: experience the community, no membership needed."
+              : "Prueba un Event Pass: vive la comunidad, sin necesidad de membresía."}
           </p>
           <Link
             href="/membership"

@@ -33,6 +33,9 @@ export function Navigation() {
   const navLinks = [
     { href: "/membership", labelEn: "Membership", labelEs: "Membresía" },
     { href: "/events", labelEn: "Events", labelEs: "Eventos" },
+    { href: "/journal", labelEn: "Journal", labelEs: "Diario" },
+    { href: "/partners", labelEn: "Partners", labelEs: "Partners" },
+    { href: "/faq", labelEn: "FAQ", labelEs: "Preguntas" },
   ];
 
   return (

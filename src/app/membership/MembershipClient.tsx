@@ -67,47 +67,31 @@ export default function MembershipClient({
           </p>
         </div>
 
-        {/* ─── TIER 1: OPENING CIRCLE CARD ─── */}
+        {/* ─── SINGLE MEMBERSHIP TIER (FOUNDING RATE) ─── */}
         <div
           style={{
             border: "2px solid var(--color-accent)",
             borderRadius: "8px",
             padding: "clamp(32px, 5vw, 48px)",
-            backgroundColor: "#f8efe2",
-            boxShadow: "0 12px 32px rgba(45,43,43,0.08)",
+            backgroundColor: "#ffffff",
+            boxShadow: "0 24px 60px rgba(45,43,43,0.06)",
             marginBottom: "32px",
           }}
         >
           <div style={{ display: "flex", flexWrap: "wrap", gap: "28px", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                <span
-                  style={{
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                    fontSize: "13px",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "var(--color-accent)",
-                  }}
-                >
-                  {lang === "en" ? "Opening Circle" : "Opening Circle"}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                    fontSize: "11px",
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: "var(--color-accent-2)",
-                    border: "1px solid rgba(86,139,5,0.5)",
-                    borderRadius: "12px",
-                    padding: "3px 10px",
-                  }}
-                >
-                  {lang === "en" ? "Launch Offer" : "Oferta de Lanzamiento"}
-                </span>
+              <div
+                style={{
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "var(--color-accent)",
+                  marginBottom: "8px",
+                }}
+              >
+                {lang === "en" ? "MEMBERSHIP — OPENING CIRCLE RATE" : "MEMBRESÍA — TARIFA OPENING CIRCLE"}
               </div>
 
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
@@ -126,8 +110,8 @@ export default function MembershipClient({
               </p>
               <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", margin: "4px 0 0" }}>
                 {lang === "en"
-                  ? "Plus a one-time €19 joining fee (€48 first payment, or €13 with recent Event Pass)."
-                  : "Más una cuota única de inscripción de 19€ (48€ primer pago, o 13€ con Event Pass reciente)."}
+                  ? "Plus a one-time €19 joining fee."
+                  : "Más una cuota única de inscripción de 19€."}
               </p>
             </div>
 
@@ -148,10 +132,13 @@ export default function MembershipClient({
                   whiteSpace: "nowrap",
                 }}
               >
-                {lang === "en" ? "Apply as Opening Circle" : "Solicitar plaza Opening Circle"}
+                {lang === "en" ? "Apply Now" : "Solicitar plaza"}
               </button>
             ) : (
               <div style={{ flex: "1 1 300px", maxWidth: "400px" }}>
+                <p style={{ fontSize: "13px", color: "#993842", fontWeight: 600, marginBottom: "8px" }}>
+                  {lang === "en" ? "Applications are currently closed. The window opens for one week a month." : "Las solicitudes están cerradas. La ventana abre una semana al mes."}
+                </p>
                 <WaitlistForm lang={lang} />
               </div>
             )}
@@ -163,110 +150,12 @@ export default function MembershipClient({
               : "La membresía completa, 10€ menos al mes — para nuestras primeras 50 madres."}
           </p>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px 24px", marginBottom: "20px" }}>
-            <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px" }}>
-              <span style={{ color: "var(--color-accent-2)", fontWeight: "bold" }}>✓</span>
-              <span>{lang === "en" ? "Everything in The Circle, nothing held back" : "Todo lo incluido en The Circle, sin recortes"}</span>
-            </div>
-            <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px" }}>
-              <span style={{ color: "var(--color-accent-2)", fontWeight: "bold" }}>✓</span>
-              <span>{lang === "en" ? "€29 instead of €39, held for a full year" : "29€ en lugar de 39€, fijo durante un año"}</span>
-            </div>
-            <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14.5px" }}>
-              <span style={{ color: "var(--color-accent-2)", fontWeight: "bold" }}>✓</span>
-              <span>{lang === "en" ? "In the room from our very first event" : "En la sala desde nuestro primer evento"}</span>
-            </div>
-          </div>
-
-          <div style={{ borderTop: "1px solid rgba(57,41,42,0.14)", paddingTop: "16px" }}>
-            <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.6)", margin: 0 }}>
-              {lang === "en"
-                ? `Only ${spotsRemaining} spots remaining. Once the 50 spots are taken, membership opens at €39. Your rate is held for 12 months — pause up to 2 months and you keep it; cancelling releases it.`
-                : `Solo quedan ${spotsRemaining} plazas. Cuando se ocupen las 50 plazas, la membresía se abre a 39€. Tu tarifa se mantiene 12 meses — si la pausas hasta 2 meses la conservas; si cancelas se pierde.`}
-            </p>
-          </div>
-        </div>
-
-        {/* ─── TIER 2: THE CIRCLE (LOCKED UNTIL 50 FILL) ─── */}
-        <div
-          style={{
-            border: "1px solid rgba(57, 41, 42, 0.18)",
-            borderRadius: "8px",
-            padding: "clamp(32px, 5vw, 48px)",
-            backgroundColor: "#f8efe2",
-            marginBottom: "32px",
-          }}
-        >
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "28px", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
-            <div>
-              <div
-                style={{
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 600,
-                  fontSize: "13px",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "rgba(57,41,42,0.6)",
-                  marginBottom: "8px",
-                }}
-              >
-                {lang === "en" ? "The Circle" : "The Circle"}
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                <span style={{ fontFamily: "var(--font-heading)", fontSize: "52px", fontWeight: 500, color: "#39292a" }}>
-                  {lang === "en" ? "€39" : "39€"}
-                </span>
-                <span style={{ fontSize: "16px", color: "rgba(57,41,42,0.6)" }}>
-                  {lang === "en" ? "/ month" : "/ mes"}
-                </span>
-              </div>
-              <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.6)", margin: "4px 0 0" }}>
-                {lang === "en" ? "or €99 every 3 months — save around 15%" : "o 99€ cada 3 meses — ahorra alrededor de un 15%"}
-              </p>
-              <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", margin: "4px 0 0" }}>
-                {lang === "en"
-                  ? "Standard joining fee €19 (€58 first invoice, or €23 with recent pass)."
-                  : "Cuota de inscripción estándar 19€ (58€ primer pago, o 23€ con pase reciente)."}
-              </p>
-            </div>
-
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                border: "1px solid rgba(57,41,42,0.25)",
-                color: "rgba(57,41,42,0.5)",
-                padding: "13px 24px",
-                borderRadius: "4px",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                fontSize: "15px",
-                whiteSpace: "nowrap",
-                backgroundColor: "rgba(57,41,42,0.04)",
-                cursor: "not-allowed",
-              }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-                <rect x="4" y="11" width="16" height="9" rx="2" />
-                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-              </svg>
-              {lang === "en" ? "Opens after the first Membership Window" : "Disponible tras la primera Ventana de membresía"}
-            </span>
-          </div>
-
-          <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.7)", margin: "0 0 20px" }}>
-            {lang === "en"
-              ? "The Circle opens to everyone once the first 50 Opening Circle spots are filled."
-              : "The Circle se abre a todas cuando se completen las primeras 50 plazas del Opening Circle."}
-          </p>
-
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px 24px", marginBottom: "20px" }}>
             {[
               lang === "en" ? "Private member community" : "Comunidad privada de socias",
               lang === "en" ? "Stage groups — by trimester, child's age, and neighbourhood" : "Grupos por etapa — por trimestre, edad del hijo/a y barrio",
               lang === "en" ? "Included walks & park socials, no credits needed" : "Paseos y encuentros en el parque incluidos, sin créditos",
-              lang === "en" ? "20 experience credits every month, rolling over with no ceiling (6-month expiry)" : "20 créditos de experiencias cada mes, acumulables sin límite (caducidad 6 meses)",
+              lang === "en" ? "20 experience credits every month, rolling over with no ceiling" : "20 créditos de experiencias cada mes, acumulables sin límite",
               lang === "en" ? "Partner discounts across 5 categories" : "Descuentos de partners en 5 categorías",
               lang === "en" ? "Priority booking on every experience" : "Reserva prioritaria en cada experiencia",
               lang === "en" ? "Priority RSVP & concierge support" : "RSVP prioritario y soporte de conserjería",
@@ -278,11 +167,30 @@ export default function MembershipClient({
             ))}
           </div>
 
-          <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.55)", borderTop: "1px solid rgba(57,41,42,0.14)", paddingTop: "14px", margin: 0 }}>
-            {lang === "en"
-              ? "Pause for up to two months a year at no cost. No cancellation fees, ever."
-              : "Pausa tu membresía hasta dos meses al año sin coste. Nunca hay cuota de cancelación."}
-          </p>
+          <div style={{ borderTop: "1px solid rgba(57,41,42,0.14)", paddingTop: "16px", marginBottom: "16px" }}>
+            <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.6)", margin: 0 }}>
+              {lang === "en"
+                ? `Only ${spotsRemaining} spots remaining at the founding rate. Once the 50 spots are taken, membership becomes €39. Your €29 rate is held for 12 months.`
+                : `Solo quedan ${spotsRemaining} plazas a tarifa fundadora. Cuando se ocupen las 50 plazas, la membresía será de 39€. Tu tarifa de 29€ se mantiene 12 meses.`}
+            </p>
+          </div>
+          <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.65)", display: "flex", flexDirection: "column", gap: "6px" }}>
+            <p style={{ margin: 0 }}>
+              {lang === "en"
+                ? "Pause for up to two months a year at no cost (credits are frozen). No cancellation fees, ever."
+                : "Pausa tu membresía hasta dos meses al año sin coste (créditos congelados). Nunca hay cuota de cancelación."}
+            </p>
+            <p style={{ margin: 0 }}>
+              {lang === "en"
+                ? "All credits roll over and expire six months after they are granted."
+                : "Todos los créditos son acumulables y caducan a los seis meses de ser concedidos."}
+            </p>
+            <p style={{ margin: 0 }}>
+              {lang === "en"
+                ? "Applications open for one week each month. When the window is shut, join the waitlist."
+                : "Las solicitudes abren una semana cada mes. Cuando la ventana está cerrada, únete a la lista de espera."}
+            </p>
+          </div>
         </div>
 
         {/* ─── EVENT PASS BLOCK ("Try us before you join") ─── */}
