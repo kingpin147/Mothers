@@ -58,7 +58,7 @@ export async function queueAndSendEmail(params: SendEmailParams): Promise<{ succ
     sendSmtpEmail.htmlContent = params.htmlContent;
     sendSmtpEmail.sender = {
       name: process.env.BREVO_SENDER_NAME || "The Mothers",
-      email: process.env.BREVO_SENDER_EMAIL || "hello@themothers.cc",
+      email: process.env.BREVO_SENDER_EMAIL || "external@themothers.cc",
     };
     sendSmtpEmail.to = [{ email: params.toEmail, name: params.toName }];
 
