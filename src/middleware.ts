@@ -12,12 +12,13 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "f47ac10b58cc4372a5670e02b2c3d4793f18e9a2";
 
+  const isSecure = request.url.startsWith("https://") || process.env.NODE_ENV === "production";
+
   // 1. Strict Server-Side Protection for /admin routes (§12)
   if (pathname.startsWith("/admin")) {
-    const token = await getToken({
-      req: request,
-      secret,
-    });
+    const token =
+      (await getToken({ req: request, secret, secureCookie: isSecure })) ||
+      (await getToken({ req: request, secret, secureCookie: !isSecure }));
 
     if (!token) {
       const loginUrl = new URL("/account/login", request.url);
@@ -36,10 +37,9 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/account")) {
     const isPublicAccountPath = PUBLIC_ACCOUNT_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
     if (!isPublicAccountPath) {
-      const token = await getToken({
-        req: request,
-        secret,
-      });
+      const token =
+        (await getToken({ req: request, secret, secureCookie: isSecure })) ||
+        (await getToken({ req: request, secret, secureCookie: !isSecure }));
 
       if (!token) {
         const loginUrl = new URL("/account/login", request.url);
