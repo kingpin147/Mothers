@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     siteName: "The Mothers",
     images: [
       {
-        url: "/assets/home-hero.webp",
+        url: "https://themothers.cc/assets/home-hero.webp",
         width: 1200,
         height: 630,
         alt: "The Mothers Barcelona",

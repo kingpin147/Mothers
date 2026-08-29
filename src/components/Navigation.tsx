@@ -33,9 +33,6 @@ export function Navigation() {
   const navLinks = [
     { href: "/membership", labelEn: "Membership", labelEs: "Membresía" },
     { href: "/events", labelEn: "Events", labelEs: "Eventos" },
-    { href: "/journal", labelEn: "Journal", labelEs: "Diario" },
-    { href: "/partners", labelEn: "Partners", labelEs: "Partners" },
-    { href: "/faq", labelEn: "FAQ", labelEs: "Preguntas" },
   ];
 
   return (
@@ -104,49 +101,7 @@ export function Navigation() {
             );
           })}
 
-          {/* Language Switcher */}
-          <div
-            style={{
-              display: "flex",
-              border: "1px solid rgba(57, 41, 42, 0.2)",
-              borderRadius: "4px",
-              overflow: "hidden",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => switchLang("en")}
-              style={{
-                border: "none",
-                background: "transparent",
-                padding: "5px 8px",
-                fontFamily: "var(--font-heading)",
-                fontSize: "12px",
-                cursor: "pointer",
-                color: lang === "en" ? "var(--color-accent)" : "rgba(57, 41, 42, 0.55)",
-                fontWeight: lang === "en" ? 600 : 400,
-              }}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              onClick={() => switchLang("es")}
-              style={{
-                border: "none",
-                borderLeft: "1px solid rgba(57, 41, 42, 0.2)",
-                background: "transparent",
-                padding: "5px 8px",
-                fontFamily: "var(--font-heading)",
-                fontSize: "12px",
-                cursor: "pointer",
-                color: lang === "es" ? "var(--color-accent)" : "rgba(57, 41, 42, 0.55)",
-                fontWeight: lang === "es" ? 600 : 400,
-              }}
-            >
-              ES
-            </button>
-          </div>
+
 
           {/* Login / Members Area CTA */}
           {session?.user ? (
@@ -281,81 +236,10 @@ export function Navigation() {
             >
               {lang === "en" ? "Events" : "Eventos"}
             </Link>
-            <Link
-              href="/journal"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "20px",
-                color: "rgba(57, 41, 42, 0.75)",
-                textDecoration: "none",
-              }}
-            >
-              {lang === "en" ? "Journal" : "Diario"}
-            </Link>
-            <Link
-              href="/partners"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "20px",
-                color: "rgba(57, 41, 42, 0.75)",
-                textDecoration: "none",
-              }}
-            >
-              {lang === "en" ? "Partners" : "Partners"}
-            </Link>
-            <Link
-              href="/faq"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: "20px",
-                color: "rgba(57, 41, 42, 0.75)",
-                textDecoration: "none",
-              }}
-            >
-              {lang === "en" ? "FAQ" : "Preguntas"}
-            </Link>
+
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "16px", paddingTop: "24px", borderTop: "1px solid rgba(57, 41, 42, 0.14)" }}>
-            {/* Lang switcher in drawer */}
-            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-              <span style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.6)" }}>Language:</span>
-              <button
-                type="button"
-                onClick={() => switchLang("en")}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  fontFamily: "var(--font-heading)",
-                  fontSize: "14px",
-                  fontWeight: lang === "en" ? 600 : 400,
-                  color: lang === "en" ? "var(--color-accent)" : "rgba(57, 41, 42, 0.6)",
-                  cursor: "pointer",
-                }}
-              >
-                English
-              </button>
-              <span>·</span>
-              <button
-                type="button"
-                onClick={() => switchLang("es")}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  fontFamily: "var(--font-heading)",
-                  fontSize: "14px",
-                  fontWeight: lang === "es" ? 600 : 400,
-                  color: lang === "es" ? "var(--color-accent)" : "rgba(57, 41, 42, 0.6)",
-                  cursor: "pointer",
-                }}
-              >
-                Español
-              </button>
-            </div>
-
             {session?.user ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 {(() => {

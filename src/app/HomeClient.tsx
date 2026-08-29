@@ -92,7 +92,7 @@ export default function HomeClient({
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               color: "var(--color-accent)",
-              marginBottom: "16px",
+              marginBottom: "18px",
             }}
           >
             {t.hero.kicker}
@@ -101,10 +101,10 @@ export default function HomeClient({
             style={{
               fontFamily: "var(--font-heading)",
               fontWeight: 400,
-              fontSize: "clamp(40px, 5.5vw, 70px)",
-              lineHeight: 1.05,
+              fontSize: "clamp(44px, 6vw, 74px)",
+              lineHeight: 1.04,
               letterSpacing: "-0.01em",
-              margin: "0 0 20px",
+              margin: "0 0 24px",
             }}
           >
             {t.hero.title}
@@ -113,7 +113,7 @@ export default function HomeClient({
             style={{
               fontSize: "18px",
               lineHeight: 1.65,
-              color: "rgba(57, 41, 42, 0.78)",
+              color: "rgba(57, 41, 42, 0.75)",
               maxWidth: "520px",
               margin: "0 0 14px",
             }}
@@ -125,47 +125,30 @@ export default function HomeClient({
               fontSize: "14px",
               color: "rgba(57, 41, 42, 0.62)",
               borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-              paddingTop: "14px",
-              marginTop: "22px",
+              paddingTop: "16px",
+              margin: "26px 0 0",
               maxWidth: "460px",
             }}
           >
             {windowOpen ? t.hero.windowNoteOpen : t.hero.windowNoteClosed}
           </p>
-          <div style={{ display: "flex", gap: "16px", alignItems: "center", marginTop: "24px", flexWrap: "wrap" }}>
-            <Link
-              href={windowOpen ? "/membership/apply" : "/membership"}
-              className="btn btn-primary"
-              style={{
-                backgroundColor: "var(--color-accent)",
-                color: "#f8efe2",
-                padding: "13px 28px",
-                borderRadius: "4px",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                fontSize: "15px",
-                textDecoration: "none",
-                display: "inline-block",
-              }}
-            >
-              {windowOpen ? t.hero.ctaPrimary : t.hero.ctaWaitlist}
-            </Link>
-            <Link
-              href="/membership"
-              style={{
-                color: "var(--color-accent)",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                fontSize: "16px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                textDecoration: "none",
-              }}
-            >
-              {t.hero.ctaSecondary} →
-            </Link>
-          </div>
+          <Link
+            href="/membership"
+            style={{
+              marginTop: "18px",
+              color: "var(--color-accent)",
+              fontFamily: "var(--font-heading)",
+              fontWeight: 600,
+              fontSize: "16px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t.hero.ctaSecondary}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </Link>
         </div>
 
         {/* Hero Visual */}
@@ -232,7 +215,7 @@ export default function HomeClient({
             >
               {t.why.heading}
             </h2>
-            <p style={{ fontSize: "16.5px", lineHeight: 1.7, color: "rgba(57, 41, 42, 0.78)" }}>
+            <p style={{ fontSize: "17px", lineHeight: 1.7, color: "rgba(57, 41, 42, 0.75)", textAlign: "justify" }}>
               {t.why.body}
             </p>
           </div>
@@ -324,7 +307,7 @@ export default function HomeClient({
                   fontWeight: 400,
                   fontSize: "38px",
                   lineHeight: 1.1,
-                  color: "rgba(123, 31, 44, 0.3)",
+                  color: "rgba(123, 31, 44, 0.28)",
                   marginBottom: "6px",
                 }}
               >
@@ -421,15 +404,20 @@ export default function HomeClient({
                   textDecoration: "none",
                 }}
               >
-                {t.membershipTeaser.cta} →
+                {t.membershipTeaser.cta}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               </Link>
             </div>
           </div>
 
           <ul style={{ flex: "1 1 340px", minWidth: "260px", listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "14px" }}>
             {t.membershipTeaser.bullets.map((b, idx) => (
-              <li key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "15px", lineHeight: 1.5 }}>
-                <span style={{ color: "var(--color-accent-2)", fontWeight: "bold" }}>✓</span>
+              <li key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "15px", lineHeight: 1.5, color: "#39292a" }}>
+                <span style={{ flex: "none", color: "#568b05", marginTop: "3px" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </span>
                 <span>{b}</span>
               </li>
             ))}
@@ -444,8 +432,8 @@ export default function HomeClient({
             </h3>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "var(--color-text-muted)", margin: "0 0 24px" }}>
               {lang === "en" 
-                ? "Not ready for membership? An Event Pass (€35) gets you into any public event up to 18 credits. You can use two passes before joining, and if you become a member within 30 days, your €35 is deducted from your first payment." 
-                : "¿No estás lista para la membresía? Un Event Pass (35€) te da acceso a cualquier evento público de hasta 18 créditos. Puedes usar dos pases antes de unirte, y si te haces socia en 30 días, te descontamos los 35€ de tu primer pago."}
+                ? "Not ready for membership? An Event Pass (€35) gets you into any public event up to 18 credits. You can use two passes before joining, and if you become a member within 30 days, your €35 is deducted from your joining fee." 
+                : "¿No estás lista para la membresía? Un Event Pass (35€) te da acceso a cualquier evento público de hasta 18 créditos. Puedes usar dos pases antes de unirte, y si te haces socia en 30 días, te descontamos los 35€ de la cuota de inscripción."}
             </p>
             <Link
               href="/events"
@@ -546,14 +534,14 @@ export default function HomeClient({
             ))}
           </div>
 
-          <div style={{ display: "flex", justifyContent: "center", gap: "12px", marginTop: "12px" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "2px" }}>
             <button
               type="button"
               onClick={() => scrollUmb(-1)}
               aria-label="Previous category"
               style={{
-                width: "40px",
-                height: "40px",
+                width: "44px",
+                height: "44px",
                 border: "1px solid rgba(57, 41, 42, 0.24)",
                 borderRadius: "50%",
                 background: "transparent",
@@ -562,17 +550,28 @@ export default function HomeClient({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--color-accent)";
+                e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.06)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
+                e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
-              ←
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17">
+                <path d="M19 12H5M11 18l-6-6 6-6" />
+              </svg>
             </button>
             <button
               type="button"
               onClick={() => scrollUmb(1)}
               aria-label="Next category"
               style={{
-                width: "40px",
-                height: "40px",
+                width: "44px",
+                height: "44px",
                 border: "1px solid rgba(57, 41, 42, 0.24)",
                 borderRadius: "50%",
                 background: "transparent",
@@ -581,9 +580,20 @@ export default function HomeClient({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "var(--color-accent)";
+                e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.06)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
+                e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
-              →
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
             </button>
           </div>
         </div>

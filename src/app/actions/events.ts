@@ -41,7 +41,14 @@ export async function getPublicEvents() {
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
-      .where(sql`${event.status} IN ('published_pending', 'confirmed', 'completed')`)
+      .where(
+        and(
+          sql`${event.status} IN ('published_pending', 'confirmed', 'completed')`,
+          sql`LOWER(${event.title}) NOT LIKE '%test%'`,
+          sql`LOWER(${event.title}) NOT LIKE '%rachel%'`,
+          sql`(${event.description} IS NULL OR LOWER(${event.description}) NOT LIKE '%test%')`
+        )
+      )
       .orderBy(asc(event.startsAt));
 
     // 3. Count confirmed & held bookings per event
@@ -79,6 +86,9 @@ export async function getPublicEvents() {
         minute: "2-digit",
       });
 
+      const capacityTotal = ev.capacityMember;
+      const capacityRemaining = capacityTotal !== null ? Math.max(0, capacityTotal - (countMap.get(ev.id) || 0)) : null;
+
       return {
         ...ev,
         category: ev.categoryName || "General",
@@ -86,6 +96,8 @@ export async function getPublicEvents() {
         dateStr,
         timeStr: `${startTimeStr} – ${endTimeStr}`,
         bookedMember: countMap.get(ev.id) || 0,
+        capacityTotal,
+        capacityRemaining,
       };
     });
 

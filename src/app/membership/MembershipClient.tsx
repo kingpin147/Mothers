@@ -110,8 +110,8 @@ export default function MembershipClient({
               </p>
               <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", margin: "4px 0 0" }}>
                 {lang === "en"
-                  ? "Plus a one-time €19 joining fee."
-                  : "Más una cuota única de inscripción de 19€."}
+                  ? "Plus a one-time joining fee of €48 — or €13 if you have taken an Event Pass in the last 30 days."
+                  : "Más una cuota única de inscripción de 48€ — o 13€ si has comprado un Event Pass en los últimos 30 días."}
               </p>
             </div>
 
@@ -157,8 +157,7 @@ export default function MembershipClient({
               lang === "en" ? "Included walks & park socials, no credits needed" : "Paseos y encuentros en el parque incluidos, sin créditos",
               lang === "en" ? "20 experience credits every month, rolling over with no ceiling" : "20 créditos de experiencias cada mes, acumulables sin límite",
               lang === "en" ? "Partner discounts across 5 categories" : "Descuentos de partners en 5 categorías",
-              lang === "en" ? "Priority booking on every experience" : "Reserva prioritaria en cada experiencia",
-              lang === "en" ? "Priority RSVP & concierge support" : "RSVP prioritario y soporte de conserjería",
+              lang === "en" ? "Priority booking and concierge support" : "Reserva prioritaria y soporte de conserjería",
             ].map((item, idx) => (
               <div key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px", color: "rgba(57,41,42,0.8)" }}>
                 <span style={{ color: "var(--color-accent-2)", fontWeight: "bold" }}>✓</span>
@@ -241,7 +240,7 @@ export default function MembershipClient({
                 : "Ven a un evento como invitada, sin necesidad de membresía — la forma más fácil de sentir la comunidad antes de decidir."}
             </p>
             <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.6)" }}>
-              <li>{lang === "en" ? "Two passes per person, and your €35 comes off your first payment if you join within 30 days." : "Dos pases por persona, y tus 35€ se descuentan de tu primer pago si te unes en 30 días."}</li>
+              <li>{lang === "en" ? "Two passes per person, and your €35 comes off the joining fee if you join within 30 days." : "Dos pases por persona, y tus 35€ se descuentan de la cuota de inscripción si te unes en 30 días."}</li>
               <li style={{ marginTop: "4px" }}>{lang === "en" ? "Most events are open to a pass — the calendar marks what a pass can book." : "Casi todos los eventos aceptan pase — el calendario indica cuáles."}</li>
             </ul>
           </div>

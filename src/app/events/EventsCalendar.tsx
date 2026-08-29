@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { buyGuestPass } from "@/app/actions/booking";
 import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 
@@ -50,10 +51,11 @@ interface Props {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function isGuestPassEligible(ev: PublicEvent): boolean {
+function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
+  if (isMember) return false;
   if (ev.creditCost === 0 || ev.isFreeWalk) return false;
   if (ev.isSignature || ev.creditCost > 18) return false;
-  if (ev.status === "cancelled" || ev.status === "past") return false;
+  if (ev.status !== "confirmed") return false;
   if (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 0) return false;
 
   const starts = new Date(ev.startsAt);
@@ -61,15 +63,7 @@ function isGuestPassEligible(ev: PublicEvent): boolean {
   const diffDays = (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
 
   // Guest window: T-14 to T-2
-  const inGuestWindow = diffDays >= 2 && diffDays <= 14;
-
-  if (ev.status === "confirmed") {
-    return inGuestWindow;
-  }
-  if (ev.status === "published_pending" || ev.status === "pending") {
-    return inGuestWindow && Boolean(ev.showEventPassCta);
-  }
-  return false;
+  return diffDays >= 2 && diffDays <= 14;
 }
 
 function getCardBg(status: string): string {
@@ -78,7 +72,8 @@ function getCardBg(status: string): string {
     case "published_pending": return "#fff3e4";
     case "pending":           return "#fff3e4";
     case "cancelled":         return "#fbf1f1";
-    case "past":              return "#dde3e6";
+    case "past":
+    case "completed":         return "#e9eaea";
     default:                  return "#FEFDF9";
   }
 }
@@ -628,6 +623,7 @@ interface EventCardProps {
   onOpenGuestPass: (ev: PublicEvent) => void;
   onOpenFreeRsvp: (ev: PublicEvent) => void;
   onOpenCeiling: (ev: PublicEvent) => void;
+  isMember: boolean;
 }
 
 function EventCard({
@@ -636,15 +632,19 @@ function EventCard({
   onOpenGuestPass,
   onOpenFreeRsvp,
   onOpenCeiling,
+  isMember,
 }: EventCardProps) {
-  const eligible = isGuestPassEligible(ev);
+  const eligible = isGuestPassEligible(ev, isMember);
   const isCancelled = ev.status === "cancelled";
-  const isPast = ev.status === "past";
+  const isPast = ev.status === "past" || ev.status === "completed" || (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
   const isPending = ev.status === "published_pending" || ev.status === "pending";
+  const isFull = ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 0;
 
   const handleBookClick = () => {
     if (ev.isFreeWalk || ev.creditCost === 0) {
       onOpenFreeRsvp(ev);
+    } else if (isMember) {
+      window.location.href = `/events/${ev.id}`;
     } else if (ev.creditCost > 18 || ev.isSignature) {
       onOpenCeiling(ev);
     } else {
@@ -801,51 +801,91 @@ function EventCard({
           </div>
         )}
 
-        {/* Action Buttons: Single "Reserve" button on all cards (plus optional "€35 Event Pass" button when eligible) */}
+        {/* Action Buttons */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" }}>
           {!isCancelled && !isPast && (
             <>
-              {eligible && (
-                <button
-                  type="button"
-                  onClick={() => onOpenGuestPass(ev)}
-                  style={{
-                    border: "1px solid #7b1f2c",
-                    color: "#7b1f2c",
-                    background: "transparent",
-                    padding: "9px 18px",
-                    borderRadius: "4px",
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                    fontSize: "14px",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {lang === "en" ? "€35 Event Pass" : "35€ Event Pass"}
-                </button>
-              )}
+              {isFull ? (
+                isMember ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.location.href = `/events/${ev.id}`;
+                    }}
+                    style={{
+                      border: "1px solid #7b1f2c",
+                      backgroundColor: "transparent",
+                      color: "#7b1f2c",
+                      padding: "10px 22px",
+                      borderRadius: "4px",
+                      fontFamily: "var(--font-heading)",
+                      fontWeight: 600,
+                      fontSize: "14.5px",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {lang === "en" ? "Join waitlist" : "Unirme a lista"}
+                  </button>
+                ) : (
+                  <Link
+                    href="/membership"
+                    style={{
+                      fontSize: "13.5px",
+                      color: "#7b1f2c",
+                      textDecoration: "underline",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {lang === "en" ? "This event is full. Learn about membership →" : "Este evento está lleno. Más sobre la membresía →"}
+                  </Link>
+                )
+              ) : (
+                <>
+                  {eligible && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenGuestPass(ev)}
+                      style={{
+                        border: "1px solid #7b1f2c",
+                        color: "#7b1f2c",
+                        background: "transparent",
+                        padding: "9px 18px",
+                        borderRadius: "4px",
+                        fontFamily: "var(--font-heading)",
+                        fontWeight: 600,
+                        fontSize: "14px",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {lang === "en" ? "€35 Event Pass" : "35€ Event Pass"}
+                    </button>
+                  )}
 
-              {/* Exact Reserve CTA */}
-              <button
-                type="button"
-                onClick={handleBookClick}
-                style={{
-                  border: "1px solid #7b1f2c",
-                  backgroundColor: "#7b1f2c",
-                  color: "#f8efe2",
-                  padding: "10px 22px",
-                  borderRadius: "4px",
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 600,
-                  fontSize: "14.5px",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  boxShadow: "0 2px 6px rgba(123,31,44,0.2)",
-                }}
-              >
-                {lang === "en" ? "Reserve" : "Reservar"}
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleBookClick}
+                    style={{
+                      border: "1px solid #7b1f2c",
+                      backgroundColor: "#7b1f2c",
+                      color: "#f8efe2",
+                      padding: "10px 22px",
+                      borderRadius: "4px",
+                      fontFamily: "var(--font-heading)",
+                      fontWeight: 600,
+                      fontSize: "14.5px",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      boxShadow: "0 2px 6px rgba(123,31,44,0.2)",
+                    }}
+                  >
+                    {ev.creditCost === 0 || ev.isFreeWalk
+                      ? (lang === "en" ? "Join the list" : "Unirme a la lista")
+                      : (lang === "en" ? "Book" : "Reservar")}
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
@@ -857,6 +897,9 @@ function EventCard({
 // ─── Main EventsCalendar Component ───────────────────────────────────────────
 
 export function EventsCalendar({ events, categories }: Props) {
+  const { data: session } = useSession();
+  const isMember = !!session?.user;
+
   const [lang, setLang] = useState<Lang>("en");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeDateFilter, setActiveDateFilter] = useState<string>("all");
@@ -930,11 +973,14 @@ export function EventsCalendar({ events, categories }: Props) {
     }
 
     // Status match
-    if (activeStatus !== "all") {
+    const isPastEvent = ev.status === "past" || ev.status === "completed" || (ev.endsAt ? new Date(ev.endsAt) < now : new Date(ev.startsAt) < now);
+    if (activeStatus === "past") {
+      if (!isPastEvent) return false;
+    } else {
+      if (isPastEvent) return false;
       if (activeStatus === "confirmed" && ev.status !== "confirmed") return false;
       if (activeStatus === "pending" && ev.status !== "published_pending" && ev.status !== "pending") return false;
       if (activeStatus === "cancelled" && ev.status !== "cancelled") return false;
-      if (activeStatus === "past" && ev.status !== "past") return false;
     }
 
     return true;
@@ -1089,6 +1135,7 @@ export function EventsCalendar({ events, categories }: Props) {
                 onOpenGuestPass={setGuestPassEvent}
                 onOpenFreeRsvp={setFreeRsvpEvent}
                 onOpenCeiling={(e) => setCeilingEvent(e)}
+                isMember={isMember}
               />
             ))}
           </div>

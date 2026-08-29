@@ -19,19 +19,19 @@ export const DICTIONARIES = {
       kicker: "Private membership club · Barcelona",
       title: "Find your people. Build your circle.",
       subtitle:
-        "A private club for mothers in Barcelona — from pregnancy through your child's school years. Meet women in the same season of life, at events built for exactly that.",
+        "A private club for mothers in Barcelona — from pregnancy through your child's school years. Meet women in the same season of life, at events built for this exact purpose.",
       ctaPrimary: "Join now",
       ctaWaitlist: "Join the waitlist",
       ctaSecondary: "See more details",
       windowNoteOpen:
-        "Opening Window open now — first 50 members get €29/month, locked for a year.",
+        "Applications open one week a month. This Window is open now — the first 50 members get €29/month, locked for a year.",
       windowNoteClosed:
-        "Applications are closed for now — join the waitlist for our next Membership Window.",
+        "Applications open one week a month, and this Window has closed. Join the waitlist and we will write to you the day the next one opens.",
     },
     why: {
       kicker: "Why The Mothers",
       heading: "Being a mom is a part of it, not all of it.",
-      body: "Modern motherhood can be isolating — especially if you've just moved to the city, had your first baby, or don't have family nearby. Free Facebook groups are noisy and unmoderated. Private coaches and doulas are excellent, but expensive and one-to-one. The Mothers sits in between: curated, safe, and social — priced for a season of life when income is often reduced.",
+      body: "Modern motherhood can be isolating — especially if you've just moved to the city, had your first baby, or don't have family nearby. Free Facebook groups are noisy and unmoderated. Private coaches and doulas are excellent, but expensive and one-to-one. The Mothers sits in between: curated, safe, and social.",
       pillars: [
         {
           title: "By your stage",
@@ -160,9 +160,9 @@ export const DICTIONARIES = {
       ctaWaitlist: "Unirme a la lista de espera",
       ctaSecondary: "Ver más detalles",
       windowNoteOpen:
-        "La Opening Window está abierta — las primeras 50 socias pagan 29€/mes, fijo durante un año.",
+        "Las solicitudes se abren una semana al mes. Esta Ventana está abierta ahora — las primeras 50 socias pagan 29€/mes, fijo durante un año.",
       windowNoteClosed:
-        "Las solicitudes están cerradas por ahora — únete a la lista de espera para nuestra próxima Ventana.",
+        "Las solicitudes se abren una semana al mes, y esta Ventana ya se ha cerrado. Únete a la lista de espera y te escribimos el día que se abra la siguiente.",
     },
     why: {
       kicker: "Por qué The Mothers",

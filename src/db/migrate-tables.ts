@@ -88,17 +88,19 @@ async function main() {
     // Seed default stages if empty
     const stages = [
       { key: "expecting", labelEn: "Pregnant", labelEs: "Embarazo", sortOrder: 1 },
-      { key: "babies", labelEn: "Babies (0–12m)", labelEs: "Bebés (0–12m)", sortOrder: 2, ageFromMonths: 0, ageToMonths: 12 },
-      { key: "toddlers", labelEn: "Toddlers (1–3y)", labelEs: "Toddlers (1–3a)", sortOrder: 3, ageFromMonths: 12, ageToMonths: 36 },
-      { key: "children36", labelEn: "Children (3–6y)", labelEs: "Niños (3–6a)", sortOrder: 4, ageFromMonths: 36, ageToMonths: 72 },
-      { key: "children610", labelEn: "Big Kids (6–10y)", labelEs: "Niños (6–10a)", sortOrder: 5, ageFromMonths: 72, ageToMonths: 120 },
+      { key: "babies", labelEn: "Babies", labelEs: "Bebés", sortOrder: 2, ageFromMonths: 0, ageToMonths: 12 },
+      { key: "toddlers", labelEn: "Toddlers", labelEs: "Peques", sortOrder: 3, ageFromMonths: 12, ageToMonths: 36 },
+      { key: "children36", labelEn: "Children", labelEs: "Niños", sortOrder: 4, ageFromMonths: 36, ageToMonths: 72 },
+      { key: "children610", labelEn: "Big kids", labelEs: "Niños mayores", sortOrder: 5, ageFromMonths: 72, ageToMonths: 120 },
     ];
 
     for (const s of stages) {
       await sql`
         INSERT INTO stage (id, key, label_en, label_es, sort_order, age_from_months, age_to_months)
         VALUES (${crypto.randomUUID()}, ${s.key}, ${s.labelEn}, ${s.labelEs}, ${s.sortOrder}, ${s.ageFromMonths || null}, ${s.ageToMonths || null})
-        ON CONFLICT (key) DO NOTHING;
+        ON CONFLICT (key) DO UPDATE SET
+          label_en = EXCLUDED.label_en,
+          label_es = EXCLUDED.label_es;
       `;
     }
 

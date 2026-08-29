@@ -102,6 +102,9 @@ export function Footer() {
               <Link href="/faq" style={{ color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "FAQ" : "Preguntas"}
               </Link>
+              <Link href="/godmothers" style={{ color: "#39292a", textDecoration: "none" }}>
+                {lang === "en" ? "Godmothers" : "Madrinas"}
+              </Link>
             </div>
           </div>
 
