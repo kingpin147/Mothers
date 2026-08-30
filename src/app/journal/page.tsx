@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Locale } from "@/lib/i18n";
+
+/* ─── Article data ─────────────────────────────────────────── */
 
 interface Article {
   id: string;
@@ -18,7 +21,7 @@ interface Article {
   titleEs: string;
   dekEn: string;
   dekEs: string;
-  photoHint: string;
+  image: string;
 }
 
 const ARTICLES: Article[] = [
@@ -32,7 +35,7 @@ const ARTICLES: Article[] = [
     author: "Marta Vidal",
     roleEn: "postpartum doula, Eixample",
     roleEs: "doula posparto, Eixample",
-    photoHint: "Photo — a doula and mother sitting together at a kitchen table, natural light",
+    image: "/assets/journal-doula.jpg",
     titleEn: "Finding a postpartum doula in Barcelona",
     titleEs: "Encontrar una doula posparto en Barcelona",
     dekEn: "What a doula actually does in the fourth trimester, what it costs here, and the questions worth asking before you book one.",
@@ -48,11 +51,11 @@ const ARTICLES: Article[] = [
     author: "The Mothers",
     roleEn: "",
     roleEs: "",
-    photoHint: "Photo — two mothers with strollers talking on a park path, seen from behind",
+    image: "/assets/journal-friends.jpg",
     titleEn: "Making mum friends in a city that isn't yours",
     titleEs: "Hacer amigas madres en una ciudad que no es la tuya",
     dekEn: "Why it is harder than anyone admits, and the three things that actually move a friendly acquaintance into a friend.",
-    dekEs: "Por qué es más difícil de lo que se admite y las tres cosas que realmente convierten a una conocida en una amiga.",
+    dekEs: "Por qué cuesta más de lo que nadie admite, y las tres cosas que convierten a una conocida amable en una amiga.",
   },
   {
     id: "sleep",
@@ -64,11 +67,11 @@ const ARTICLES: Article[] = [
     author: "Dorm Bé Sleep Consultants",
     roleEn: "partner",
     roleEs: "partner",
-    photoHint: "Photo — a dim bedroom at dawn, cot and a chair, no people",
+    image: "/assets/journal-sleep.jpg",
     titleEn: "The first twelve weeks of sleep, honestly",
-    titleEs: "Las primeras doce semanas de sueño, con honestidad",
+    titleEs: "Las primeras doce semanas de sueño, sin cuentos",
     dekEn: "What is developmentally normal, what is not worth fixing yet, and the two things that genuinely help before three months.",
-    dekEs: "Lo que es normal en el desarrollo, lo que no vale la pena arreglar todavía y las dos cosas que realmente ayudan antes de los tres meses.",
+    dekEs: "Qué es normal en el desarrollo, qué no merece la pena arreglar todavía y las dos cosas que de verdad ayudan antes de los tres meses.",
   },
   {
     id: "feeding",
@@ -80,11 +83,11 @@ const ARTICLES: Article[] = [
     author: "BabyLatch Consultants",
     roleEn: "partner",
     roleEs: "partner",
-    photoHint: "Photo — mother feeding a baby in a bright living room, shot from the side",
+    image: "/assets/journal-feeding.jpg",
     titleEn: "Feeding: the questions nobody answers at 3am",
     titleEs: "Lactancia: las preguntas que nadie responde a las 3 de la mañana",
     dekEn: "Pain, supply, mixed feeding and when to actually call someone — the practical answers, without the ideology.",
-    dekEs: "Dolor, producción, lactancia mixta y cuándo llamar realmente a alguien: las respuestas prácticas, sin ideología.",
+    dekEs: "Dolor, producción, lactancia mixta y cuándo llamar de verdad a alguien — las respuestas prácticas, sin ideología.",
   },
   {
     id: "yoga",
@@ -96,11 +99,11 @@ const ARTICLES: Article[] = [
     author: "Loto Barcelona Yoga",
     roleEn: "partner",
     roleEs: "partner",
-    photoHint: "Photo — a small prenatal yoga class, mats and bolsters, warm light",
+    image: "/assets/journal-yoga.jpg",
     titleEn: "Prenatal yoga in Barcelona: what to ask before you book",
-    titleEs: "Yoga prenatal en Barcelona: qué preguntar antes de reservar",
+    titleEs: "Yoga prenatal en Barcelona: qué preguntar antes de apuntarte",
     dekEn: "Not all prenatal classes are prenatal classes. Five questions that tell you whether the teacher in front of you is trained for a pregnant body.",
-    dekEs: "No todas las clases prenatales son lo mismo. Cinco preguntas que te dirán si la profesora está formada para un cuerpo gestante.",
+    dekEs: "No todas las clases prenatales lo son. Cinco preguntas que te dicen si quien tienes delante está formada para un cuerpo embarazado.",
   },
   {
     id: "work",
@@ -112,27 +115,36 @@ const ARTICLES: Article[] = [
     author: "Momentum Careers Barcelona",
     roleEn: "partner",
     roleEs: "partner",
-    photoHint: "Photo — a desk with a laptop and a coffee, morning light, Barcelona apartment",
+    image: "/assets/journal-work.jpg",
     titleEn: "Going back to work: the conversations to have first",
-    titleEs: "Volver al trabajo: las conversaciones que debes tener primero",
+    titleEs: "Volver al trabajo: las conversaciones previas",
     dekEn: "Before the logistics, three conversations that decide how the return actually goes — with your employer, your partner, and yourself.",
-    dekEs: "Antes de la logística, tres conversaciones que deciden cómo va realmente el regreso: con tu empresa, tu pareja y contigo misma.",
+    dekEs: "Antes de la logística, tres conversaciones que deciden cómo va la vuelta — con tu empresa, con tu pareja y contigo misma.",
   },
 ];
 
+/* ─── Categories matching Journal.dc.html exactly ────────── */
+
 const CATEGORIES = [
-  { id: "all", labelEn: "All", labelEs: "Todo" },
+  { id: "all", labelEn: "Everything", labelEs: "Todo" },
   { id: "postpartum", labelEn: "Postpartum", labelEs: "Posparto" },
-  { id: "friendship", labelEn: "Friendship", labelEs: "Amistad" },
-  { id: "sleep", labelEn: "Sleep", labelEs: "Sueño" },
   { id: "feeding", labelEn: "Feeding", labelEs: "Lactancia" },
-  { id: "body", labelEn: "Body", labelEs: "Cuerpo" },
+  { id: "sleep", labelEn: "Sleep", labelEs: "Sueño" },
+  { id: "body", labelEn: "Body & pregnancy", labelEs: "Cuerpo y embarazo" },
+  { id: "friendship", labelEn: "Friendship", labelEs: "Amistad" },
   { id: "work", labelEn: "Work", labelEs: "Trabajo" },
 ];
+
+/* ─── Component ──────────────────────────────────────────── */
 
 export default function JournalPage() {
   const [lang, setLang] = useState<Locale>("en");
   const [selectedCat, setSelectedCat] = useState<string>("all");
+
+  // Newsletter state
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupError, setSignupError] = useState(false);
+  const [signupDone, setSignupDone] = useState(false);
 
   useEffect(() => {
     const updateLang = () => {
@@ -144,34 +156,103 @@ export default function JournalPage() {
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
 
-  // Filter articles
-  const filtered = selectedCat === "all"
-    ? ARTICLES
-    : ARTICLES.filter((art) => art.cat === selectedCat);
+  const handleSignup = () => {
+    const email = signupEmail.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setSignupError(true);
+      return;
+    }
+    try {
+      const list = JSON.parse(localStorage.getItem("tm_newsletter") || "[]");
+      list.push({ email: email.toLowerCase(), source: "journal", at: Date.now() });
+      localStorage.setItem("tm_newsletter", JSON.stringify(list));
+    } catch (e) { /* ignore */ }
+    setSignupError(false);
+    setSignupDone(true);
+    setSignupEmail("");
+  };
 
-  // Split into Featured and Grid
+  // Filter articles
+  const filtered =
+    selectedCat === "all" ? ARTICLES : ARTICLES.filter((a) => a.cat === selectedCat);
+
+  // Featured = first, grid = rest
   const featured = filtered.length > 0 ? filtered[0] : null;
   const gridArticles = filtered.length > 1 ? filtered.slice(1) : [];
 
+  const getCatLabel = (catId: string) => {
+    const cat = CATEGORIES.find((c) => c.id === catId);
+    return cat ? (lang === "en" ? cat.labelEn : cat.labelEs) : catId;
+  };
+
   return (
-    <div style={{ backgroundColor: "#f8efe2", color: "#39292a", minHeight: "100vh", fontFamily: "'Lora', Georgia, serif" }}>
-      {/* Header section */}
-      <section style={{ maxWidth: "960px", margin: "0 auto", padding: "clamp(56px, 8vw, 88px) clamp(24px, 5vw, 64px) clamp(24px, 4vw, 36px)" }}>
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "16px" }}>
+    <div
+      style={{
+        backgroundColor: "#f8efe2",
+        color: "#39292a",
+        fontFamily: "'Lora', Georgia, serif",
+        minHeight: "100vh",
+      }}
+    >
+      {/* ─── Hero ──────────────────────────────────────── */}
+      <section
+        style={{
+          maxWidth: "1160px",
+          margin: "0 auto",
+          padding: "clamp(48px, 7vw, 88px) clamp(24px, 5vw, 64px) clamp(28px, 4vw, 44px)",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontWeight: 600,
+            fontSize: "13px",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "#7b1f2c",
+            marginBottom: "18px",
+          }}
+        >
           {lang === "en" ? "The Journal" : "El Diario"}
         </div>
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(40px, 5.5vw, 66px)", lineHeight: "1.06", letterSpacing: "-0.01em", margin: "0 0 20px", maxWidth: "16em" }}>
-          {lang === "en" ? "Useful writing about motherhood in Barcelona." : "Escritos útiles sobre la maternidad en Barcelona."}
-        </h1>
-        <p style={{ fontSize: "17px", lineHeight: "1.7", color: "rgba(57, 41, 42, 0.72)", maxWidth: "44em", margin: "0" }}>
+        <h1
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontWeight: 400,
+            fontSize: "clamp(40px, 5.5vw, 66px)",
+            lineHeight: 1.06,
+            letterSpacing: "-0.01em",
+            margin: "0 0 20px",
+            maxWidth: "16em",
+          }}
+        >
           {lang === "en"
-            ? "Honest thoughts on modern motherhood, neighbourhood spots, and navigating family life in Barcelona."
-            : "Miradas honestas sobre la maternidad actual, rincones de barrio y vida en familia en Barcelona."}
+            ? "Useful writing about motherhood in Barcelona."
+            : "Textos útiles sobre la maternidad en Barcelona."}
+        </h1>
+        <p
+          style={{
+            fontSize: "17px",
+            lineHeight: 1.7,
+            color: "rgba(57, 41, 42, 0.72)",
+            maxWidth: "44em",
+            margin: 0,
+          }}
+        >
+          {lang === "en"
+            ? "Free to read, no membership needed. A small library of practical answers from the midwives, doulas, consultants and mothers we actually work with — written for the questions people ask at three in the morning."
+            : "De lectura libre, sin membresía. Una pequeña biblioteca de respuestas prácticas de las matronas, doulas, asesoras y madres con las que trabajamos — escritas para las preguntas que aparecen a las tres de la mañana."}
         </p>
       </section>
 
-      {/* Category Chips section */}
-      <section style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 clamp(24px, 5vw, 64px) clamp(20px, 3vw, 32px)" }}>
+      {/* ─── Category Chips ────────────────────────────── */}
+      <section
+        style={{
+          maxWidth: "1160px",
+          margin: "0 auto",
+          padding: "0 clamp(24px, 5vw, 64px) clamp(20px, 3vw, 32px)",
+        }}
+      >
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
           {CATEGORIES.map((cat) => {
             const isActive = selectedCat === cat.id;
@@ -181,8 +262,8 @@ export default function JournalPage() {
                 type="button"
                 onClick={() => setSelectedCat(cat.id)}
                 style={{
-                  border: "1px solid " + (isActive ? "#7b1f2c" : "rgba(57,41,42,0.18)"),
-                  color: isActive ? "#7b1f2c" : "rgba(57,41,42,0.7)",
+                  border: `1px solid ${isActive ? "#7b1f2c" : "rgba(57,41,42,0.25)"}`,
+                  color: isActive ? "#7b1f2c" : "#39292a",
                   background: isActive ? "rgba(123, 31, 44, 0.08)" : "transparent",
                   padding: "7px 16px",
                   borderRadius: "20px",
@@ -201,8 +282,14 @@ export default function JournalPage() {
         </div>
       </section>
 
-      {/* Main Articles Listing */}
-      <section style={{ maxWidth: "1160px", margin: "0 auto", padding: "clamp(20px, 3vw, 32px) clamp(24px, 5vw, 64px) clamp(48px, 6vw, 72px)" }}>
+      {/* ─── Articles ──────────────────────────────────── */}
+      <section
+        style={{
+          maxWidth: "1160px",
+          margin: "0 auto",
+          padding: "clamp(20px, 3vw, 32px) clamp(24px, 5vw, 64px) clamp(48px, 6vw, 72px)",
+        }}
+      >
         {/* Featured Post */}
         {featured ? (
           <article
@@ -216,26 +303,87 @@ export default function JournalPage() {
               marginBottom: "clamp(32px, 4vw, 48px)",
             }}
           >
-            {/* Image placeholder / card styling */}
-            <div style={{ flex: "1 1 380px", minWidth: "280px", backgroundColor: "rgba(57, 41, 42, 0.04)", border: "1px solid rgba(57, 41, 42, 0.12)", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "clamp(240px, 28vw, 340px)", padding: "24px", boxSizing: "border-box", textAlign: "center" }}>
-              <span style={{ fontSize: "14px", fontStyle: "italic", color: "rgba(57,41,42,0.5)" }}>{featured.photoHint}</span>
+            {/* Image */}
+            <div
+              style={{
+                flex: "1 1 380px",
+                minWidth: "280px",
+                position: "relative",
+                borderRadius: "6px",
+                overflow: "hidden",
+                minHeight: "clamp(240px, 28vw, 340px)",
+              }}
+            >
+              <Image
+                src={featured.image}
+                alt={lang === "en" ? featured.titleEn : featured.titleEs}
+                fill
+                style={{ objectFit: "cover" }}
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
             </div>
 
-            <div style={{ flex: "1 1 380px", minWidth: "280px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", marginBottom: "14px" }}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.35)", borderRadius: "12px", padding: "4px 11px" }}>
-                  {lang === "en" ? CATEGORIES.find(c => c.id === featured.cat)?.labelEn : CATEGORIES.find(c => c.id === featured.cat)?.labelEs}
+            {/* Text */}
+            <div
+              style={{
+                flex: "1 1 380px",
+                minWidth: "280px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "10px",
+                  alignItems: "center",
+                  marginBottom: "14px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "11px",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#7b1f2c",
+                    border: "1px solid rgba(123,31,44,0.35)",
+                    borderRadius: "12px",
+                    padding: "4px 11px",
+                  }}
+                >
+                  {getCatLabel(featured.cat)}
                 </span>
                 <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.5)" }}>
-                  {lang === "en" ? `${featured.dateEn} · ${featured.readEn}` : `${featured.dateEs} · ${featured.readEs}`}
+                  {lang === "en" ? featured.readEn : featured.readEs}
                 </span>
               </div>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(28px, 3.4vw, 40px)", lineHeight: "1.12", margin: "0 0 14px" }}>
-                <Link href={`/journal/${featured.id}`} style={{ color: "inherit", textDecoration: "none" }}>
+              <h2
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 500,
+                  fontSize: "clamp(28px, 3.4vw, 40px)",
+                  lineHeight: 1.12,
+                  margin: "0 0 14px",
+                }}
+              >
+                <Link
+                  href={`/journal/${featured.id}`}
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
                   {lang === "en" ? featured.titleEn : featured.titleEs}
                 </Link>
               </h2>
-              <p style={{ fontSize: "16px", lineHeight: "1.7", color: "rgba(57, 41, 42, 0.72)", margin: "0 0 22px", maxWidth: "34em" }}>
+              <p
+                style={{
+                  fontSize: "16px",
+                  lineHeight: 1.7,
+                  color: "rgba(57, 41, 42, 0.72)",
+                  margin: "0 0 22px",
+                  maxWidth: "34em",
+                }}
+              >
                 {lang === "en" ? featured.dekEn : featured.dekEs}
               </p>
               <Link
@@ -251,42 +399,116 @@ export default function JournalPage() {
                   fontWeight: 600,
                   fontSize: "15px",
                   textDecoration: "none",
+                  transition: "background 0.15s ease",
                 }}
+                onMouseEnter={(e) =>
+                  ((e.target as HTMLElement).style.background = "rgba(123,31,44,0.1)")
+                }
+                onMouseLeave={(e) =>
+                  ((e.target as HTMLElement).style.background = "transparent")
+                }
               >
-                {lang === "en" ? "Read Article" : "Leer Artículo"}
+                {lang === "en" ? "Read" : "Leer"}
               </Link>
             </div>
           </article>
         ) : (
-          <p style={{ fontSize: "15px", color: "rgba(57,41,42,0.6)", margin: "0" }}>
-            {lang === "en" ? "No articles in this category." : "No hay artículos en esta categoría."}
+          <p style={{ fontSize: "15px", color: "rgba(57,41,42,0.6)", margin: 0 }}>
+            {lang === "en"
+              ? "Nothing here yet — try another category."
+              : "Aquí todavía no hay nada — prueba otra categoría."}
           </p>
         )}
 
-        {/* Articles Grid */}
+        {/* Grid */}
         {gridArticles.length > 0 && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "clamp(24px, 3vw, 40px)" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              gap: "clamp(24px, 3vw, 40px)",
+            }}
+          >
             {gridArticles.map((art) => (
-              <article key={art.id} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div style={{ width: "100%", height: "200px", backgroundColor: "rgba(57, 41, 42, 0.04)", border: "1px solid rgba(57, 41, 42, 0.12)", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", boxSizing: "border-box", textAlign: "center" }}>
-                  <span style={{ fontSize: "13px", fontStyle: "italic", color: "rgba(57,41,42,0.5)" }}>{art.photoHint}</span>
+              <article
+                key={art.id}
+                style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+              >
+                {/* Image */}
+                <div
+                  style={{
+                    width: "100%",
+                    height: "200px",
+                    position: "relative",
+                    borderRadius: "6px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <Image
+                    src={art.image}
+                    alt={lang === "en" ? art.titleEn : art.titleEs}
+                    fill
+                    style={{ objectFit: "cover" }}
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
-                  <span style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7b1f2c", fontWeight: 600 }}>
-                    {lang === "en" ? CATEGORIES.find(c => c.id === art.cat)?.labelEn : CATEGORIES.find(c => c.id === art.cat)?.labelEs}
+
+                {/* Category & read time */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: "#7b1f2c",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {getCatLabel(art.cat)}
                   </span>
                   <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.5)" }}>
-                    {lang === "en" ? `${art.dateEn} · ${art.readEn}` : `${art.dateEs} · ${art.readEs}`}
+                    {lang === "en" ? art.readEn : art.readEs}
                   </span>
                 </div>
-                <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "23px", lineHeight: "1.2", margin: "0" }}>
-                  <Link href={`/journal/${art.id}`} style={{ color: "inherit", textDecoration: "none" }}>
+
+                {/* Title */}
+                <h3
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "23px",
+                    lineHeight: 1.2,
+                    margin: 0,
+                  }}
+                >
+                  <Link
+                    href={`/journal/${art.id}`}
+                    style={{ color: "inherit", textDecoration: "none" }}
+                  >
                     {lang === "en" ? art.titleEn : art.titleEs}
                   </Link>
                 </h3>
-                <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.7)", margin: "0" }}>
+
+                {/* Dek */}
+                <p
+                  style={{
+                    fontSize: "14.5px",
+                    lineHeight: 1.65,
+                    color: "rgba(57,41,42,0.7)",
+                    margin: 0,
+                  }}
+                >
                   {lang === "en" ? art.dekEn : art.dekEs}
                 </p>
+
+                {/* Read CTA */}
                 <Link
                   href={`/journal/${art.id}`}
                   style={{
@@ -302,10 +524,20 @@ export default function JournalPage() {
                     alignItems: "center",
                     gap: "7px",
                     padding: 0,
+                    transition: "color 0.15s ease",
                   }}
                 >
-                  {lang === "en" ? "Read Article" : "Leer Artículo"}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                  {lang === "en" ? "Read" : "Leer"}
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    width="14"
+                    height="14"
+                  >
                     <path d="M5 12h14M13 6l6 6-6 6" />
                   </svg>
                 </Link>
@@ -313,6 +545,190 @@ export default function JournalPage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* ─── Newsletter "One letter a month" ───────────── */}
+      <section
+        style={{
+          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
+          background: "#f8efe2",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1160px",
+            margin: "0 auto",
+            padding: "clamp(40px, 5vw, 64px) clamp(24px, 5vw, 64px)",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "32px",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          {/* Left copy */}
+          <div style={{ flex: "1 1 380px", minWidth: "280px" }}>
+            <div
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 600,
+                fontSize: "12.5px",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "#7b1f2c",
+                marginBottom: "10px",
+              }}
+            >
+              {lang === "en" ? "The letter" : "La carta"}
+            </div>
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 500,
+                fontSize: "clamp(26px, 3vw, 34px)",
+                lineHeight: 1.15,
+                margin: "0 0 10px",
+              }}
+            >
+              {lang === "en" ? "One letter a month." : "Una carta al mes."}
+            </h2>
+            <p
+              style={{
+                fontSize: "15px",
+                lineHeight: 1.65,
+                color: "rgba(57, 41, 42, 0.7)",
+                margin: 0,
+                maxWidth: "34em",
+              }}
+            >
+              {lang === "en"
+                ? "New writing, what is coming up in the calendar, and when the next Window opens. No membership required, and nothing else in your inbox."
+                : "Textos nuevos, lo que viene en el calendario y cuándo se abre la próxima Ventana. Sin membresía, y nada más en tu bandeja."}
+            </p>
+          </div>
+
+          {/* Right form */}
+          <div style={{ flex: "1 1 320px", minWidth: "280px" }}>
+            {!signupDone ? (
+              <>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                  <input
+                    type="email"
+                    value={signupEmail}
+                    onChange={(e) => {
+                      setSignupEmail(e.target.value);
+                      setSignupError(false);
+                    }}
+                    placeholder={lang === "en" ? "you@email.com" : "tu@email.com"}
+                    style={{
+                      flex: "1 1 200px",
+                      minHeight: "48px",
+                      padding: "12px 16px",
+                      fontSize: "15px",
+                      fontFamily: "'Lora', Georgia, serif",
+                      color: "#39292a",
+                      background: "#f8efe2",
+                      border: "1px solid rgba(57,41,42,0.25)",
+                      borderRadius: "5px",
+                      boxSizing: "border-box",
+                      outline: "none",
+                    }}
+                    onFocus={(e) =>
+                      (e.target.style.borderColor = "#7b1f2c")
+                    }
+                    onBlur={(e) =>
+                      (e.target.style.borderColor = "rgba(57,41,42,0.25)")
+                    }
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSignup}
+                    style={{
+                      border: "1px solid #7b1f2c",
+                      background: "#7b1f2c",
+                      color: "#f8efe2",
+                      padding: "13px 24px",
+                      borderRadius: "5px",
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "15px",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "background 0.15s ease",
+                    }}
+                    onMouseEnter={(e) =>
+                      ((e.target as HTMLElement).style.background = "#5e1621")
+                    }
+                    onMouseLeave={(e) =>
+                      ((e.target as HTMLElement).style.background = "#7b1f2c")
+                    }
+                  >
+                    {lang === "en" ? "Sign up" : "Apuntarme"}
+                  </button>
+                </div>
+                {signupError && (
+                  <p style={{ fontSize: "13px", color: "#993842", margin: "10px 0 0" }}>
+                    {lang === "en"
+                      ? "Please enter a valid email address."
+                      : "Introduce un email válido."}
+                  </p>
+                )}
+                <p
+                  style={{
+                    fontSize: "12px",
+                    lineHeight: 1.6,
+                    color: "rgba(57,41,42,0.5)",
+                    margin: "12px 0 0",
+                  }}
+                >
+                  {lang === "en"
+                    ? "We only use it for the letter. Unsubscribe in one click."
+                    : "Solo lo usamos para la carta. Puedes darte de baja en un clic."}
+                </p>
+              </>
+            ) : (
+              <div
+                style={{
+                  border: "1px solid rgba(86,139,5,0.4)",
+                  background: "rgba(86,139,5,0.08)",
+                  borderRadius: "5px",
+                  padding: "16px 18px",
+                  display: "flex",
+                  gap: "10px",
+                  alignItems: "flex-start",
+                }}
+              >
+                <span
+                  style={{ color: "#568b05", flex: "none", marginTop: "1px" }}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    width="17"
+                    height="17"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </span>
+                <span
+                  style={{
+                    fontSize: "14.5px",
+                    lineHeight: 1.6,
+                    color: "rgba(57,41,42,0.78)",
+                  }}
+                >
+                  {lang === "en"
+                    ? "You're on the list — the next letter comes at the start of the month."
+                    : "Ya estás en la lista — la próxima carta sale a principios de mes."}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );

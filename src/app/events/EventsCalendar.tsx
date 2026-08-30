@@ -85,23 +85,21 @@ function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
   return true;
 }
 
-function getCardBg(status: string, isPastOverride?: boolean): string {
-  // Cancelled-but-past events should look grey, not pink
-  if (isPastOverride) return "#e9eaea";
+function getCardBg(status: string, isPast?: boolean): string {
+  if (isPast) return "#dde3e6";
   switch (status) {
     case "confirmed":         return "#e8f1e9";
     case "published_pending": return "#fff3e4";
     case "pending":           return "#fff3e4";
     case "cancelled":         return "#fbf1f1";
     case "past":
-    case "completed":         return "#e9eaea";
+    case "completed":         return "#dde3e6";
     default:                  return "#FEFDF9";
   }
 }
 
-function getCardBorder(status: string, isPastOverride?: boolean): string {
-  // Cancelled-but-past events should look grey, not pinkish
-  if (isPastOverride) return "rgba(96, 110, 118, 0.45)";
+function getCardBorder(status: string, isPast?: boolean): string {
+  if (isPast) return "rgba(96, 110, 118, 0.45)";
   switch (status) {
     case "confirmed":         return "rgba(74, 122, 80, 0.45)";
     case "published_pending": return "rgba(164, 118, 31, 0.4)";
@@ -602,12 +600,18 @@ function CeilingModal({
         </div>
 
         <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "24px", margin: "0 0 14px", color: "#39292a" }}>
-          {lang === "en" ? "This one is beyond the Event Pass." : "Este evento supera el Event Pass."}
+          {ev.isSignature
+            ? (lang === "en" ? "This one is for members." : "Este evento es solo para socias.")
+            : (lang === "en" ? "This one is beyond the Event Pass." : "Este evento supera el Event Pass.")}
         </h2>
         <p style={{ fontSize: "14px", lineHeight: "1.65", color: "rgba(57,41,42,0.72)", margin: "0 0 26px" }}>
-          {lang === "en"
-            ? `An Event Pass covers experiences up to 18 credits. "${ev.title}" costs ${ev.creditCost} — the richer end of the calendar, and one of the reasons members pay monthly rather than by the event. Members book it with credits; guests are welcome at anything up to 18.`
-            : `Un Event Pass cubre experiencias de hasta 18 créditos. "${ev.title}" cuesta ${ev.creditCost} créditos — el extremo más exclusivo del calendario, y una de las razones por las que las socias pagan mensualmente en lugar de por evento. Las socias lo reservan con créditos; las invitadas son bienvenidas en cualquier evento de hasta 18 créditos.`}
+          {ev.isSignature
+            ? (lang === "en"
+                ? `Signature moments — like "${ev.title}" — are the handful of experiences each year kept for members alone: everything else on the calendar opens to guests on an Event Pass.`
+                : `Los "Momentos únicos" — como "${ev.title}" — son las experiencias reservadas exclusivamente para socias: todo lo demás en el calendario se abre a invitadas con un Event Pass.`)
+            : (lang === "en"
+                ? `An Event Pass covers experiences up to 18 credits. "${ev.title}" costs ${ev.creditCost} — the richer end of the calendar, and one of the reasons members pay monthly rather than by the event. Members book it with credits; guests are welcome at anything up to 18.`
+                : `Un Event Pass cubre experiencias de hasta 18 créditos. "${ev.title}" cuesta ${ev.creditCost} créditos — el extremo más exclusivo del calendario, y una de las razones por las que las socias pagan mensualmente en lugar de por evento. Las socias lo reservan con créditos; las invitadas son bienvenidas en cualquier evento de hasta 18 créditos.`)}
         </p>
 
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
@@ -682,10 +686,10 @@ function EventCard({
   return (
     <article
       style={{
-        border: `1px solid ${getCardBorder(ev.status, isCancelledAndPast)}`,
+        border: `1px solid ${getCardBorder(ev.status, isPast)}`,
         borderRadius: "8px",
         padding: "24px 22px",
-        backgroundColor: getCardBg(ev.status, isCancelledAndPast),
+        backgroundColor: getCardBg(ev.status, isPast),
         display: "flex",
         flexDirection: "column",
         gap: "12px",
@@ -790,8 +794,8 @@ function EventCard({
 
       {/* Status Bar / Capacity & Threshold */}
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "auto", paddingTop: "12px", borderTop: "1px solid rgba(57,41,42,0.12)" }}>
-        {/* Confirmed Indicator */}
-        {ev.status === "confirmed" && (
+        {/* Confirmed Indicator (only if not past and not cancelled) */}
+        {ev.status === "confirmed" && !isPast && !isCancelled && (
           <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12.5px", color: "#456f04", fontWeight: 500 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" width="13" height="13" style={{ flexShrink: 0 }}>
               <circle cx="12" cy="12" r="9" />
@@ -801,7 +805,7 @@ function EventCard({
           </div>
         )}
 
-        {isPending && ev.minToConfirm && (
+        {isPending && !isPast && !isCancelled && ev.minToConfirm && (
           <div style={{ border: "1px solid rgba(164,118,31,0.35)", background: "#fffaf2", borderRadius: "5px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "7px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px", color: "#8a6116" }}>
               <span>{lang === "en" ? `${ev.bookedMember || 0} of ${ev.minToConfirm} mothers` : `${ev.bookedMember || 0} de ${ev.minToConfirm} madres`}</span>
@@ -847,8 +851,9 @@ function EventCard({
           </div>
         )}
         {isPast && (
-          <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.6)", fontWeight: 500 }}>
-            {lang === "en" ? "Past event" : "Evento pasado"}
+          <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.72)", display: "flex", alignItems: "center", gap: "6px" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+            <span>{lang === "en" ? "This one has already happened." : "Este evento ya ha tenido lugar."}</span>
           </div>
         )}
 
@@ -892,7 +897,38 @@ function EventCard({
                   </Link>
                 )
               ) : ev.isSignature && !isMember ? (
-                <></>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", width: "100%", justifyContent: "space-between", flexWrap: "wrap" }}>
+                  <Link
+                    href="/membership"
+                    style={{
+                      fontSize: "13.5px",
+                      color: "#7b1f2c",
+                      textDecoration: "underline",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {lang === "en" ? "This one is for members. See the membership →" : "Este es para socias. Ver la membresía →"}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => onOpenCeiling(ev)}
+                    style={{
+                      border: "1px solid #7b1f2c",
+                      backgroundColor: "#7b1f2c",
+                      color: "#f8efe2",
+                      padding: "10px 22px",
+                      borderRadius: "4px",
+                      fontFamily: "var(--font-heading)",
+                      fontWeight: 600,
+                      fontSize: "14.5px",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      boxShadow: "0 2px 6px rgba(123,31,44,0.2)",
+                    }}
+                  >
+                    {lang === "en" ? "Book" : "Reservar"}
+                  </button>
+                </div>
               ) : (
                 <>
                   {eligible && (
@@ -998,10 +1034,10 @@ export function EventsCalendar({ events, categories }: Props) {
 
   const statusChips = [
     { id: "all", labelEn: "All", labelEs: "Todos", dotBg: "transparent", dotBorder: "rgba(57,41,42,0.3)" },
-    { id: "confirmed", labelEn: "Confirmed", labelEs: "Confirmados", dotBg: "#456f04", dotBorder: "#456f04" },
-    { id: "pending", labelEn: "To be confirmed", labelEs: "Por confirmar", dotBg: "#a4761f", dotBorder: "#a4761f" },
-    { id: "cancelled", labelEn: "Cancelled", labelEs: "Cancelados", dotBg: "#993842", dotBorder: "#993842" },
-    { id: "past", labelEn: "Past", labelEs: "Pasados", dotBg: "#8c9ba5", dotBorder: "#606e76" },
+    { id: "confirmed", labelEn: "Confirmed", labelEs: "Confirmados", dotBg: "#e8f1e9", dotBorder: "rgba(74,122,80,0.45)" },
+    { id: "pending", labelEn: "To be confirmed", labelEs: "Por confirmar", dotBg: "#fff3e4", dotBorder: "rgba(164,118,31,0.4)" },
+    { id: "cancelled", labelEn: "Cancelled", labelEs: "Cancelados", dotBg: "#fbf1f1", dotBorder: "rgba(153,56,66,0.28)" },
+    { id: "past", labelEn: "Past", labelEs: "Pasados", dotBg: "#dde3e6", dotBorder: "rgba(96,110,118,0.45)" },
   ];
 
   // Filtering
@@ -1009,10 +1045,10 @@ export function EventsCalendar({ events, categories }: Props) {
     // Category match
     if (activeCategory !== "all") {
       const catSlug = (ev.categorySlug || ev.categoryName || "").toLowerCase();
-      if (activeCategory === "easy" && !catSlug.includes("easy") && !catSlug.includes("walk") && !catSlug.includes("fácil")) return false;
-      if (activeCategory === "baby" && !catSlug.includes("play") && !catSlug.includes("baby")) return false;
-      if (activeCategory === "evenings" && !catSlug.includes("mom") && !catSlug.includes("evening")) return false;
-      if (activeCategory === "learn" && !catSlug.includes("learn") && !catSlug.includes("aprender") && !catSlug.includes("grow")) return false;
+      if (activeCategory === "easy" && !catSlug.includes("easy") && !catSlug.includes("walk") && !catSlug.includes("fácil") && !catSlug.includes("social")) return false;
+      if (activeCategory === "baby" && !catSlug.includes("play") && !catSlug.includes("baby") && !catSlug.includes("date")) return false;
+      if (activeCategory === "evenings" && !catSlug.includes("mom") && !catSlug.includes("evening") && !catSlug.includes("dinner") && !catSlug.includes("cena")) return false;
+      if (activeCategory === "learn" && !catSlug.includes("learn") && !catSlug.includes("aprender") && !catSlug.includes("grow") && !catSlug.includes("workshop") && !catSlug.includes("taller")) return false;
       if (activeCategory === "signature" && !catSlug.includes("signature") && !ev.isSignature) return false;
     }
 
@@ -1028,18 +1064,23 @@ export function EventsCalendar({ events, categories }: Props) {
     // Status match
     const isPastEvent = ev.status === "past" || ev.status === "completed" ||
       (ev.endsAt ? new Date(ev.endsAt) < now : new Date(ev.startsAt) < now);
+
     if (activeStatus === "past") {
-      // Past filter: only truly past events, exclude cancelled (cancelled have their own filter)
+      // Past filter: only past events that were not cancelled
       if (!isPastEvent) return false;
       if (ev.status === "cancelled") return false;
     } else if (activeStatus === "cancelled") {
-      // Cancelled filter: show cancelled events regardless of whether they are past
+      // Cancelled filter: show cancelled events
       if (ev.status !== "cancelled") return false;
+    } else if (activeStatus === "confirmed") {
+      // Confirmed filter: only upcoming confirmed events
+      if (isPastEvent || ev.status !== "confirmed") return false;
+    } else if (activeStatus === "pending") {
+      // Pending/To be confirmed filter: only upcoming gathering events
+      if (isPastEvent || (ev.status !== "published_pending" && ev.status !== "pending")) return false;
     } else {
-      // For all other filters: exclude past events
+      // "all" filter: show all upcoming events (confirmed, pending, cancelled)
       if (isPastEvent) return false;
-      if (activeStatus === "confirmed" && ev.status !== "confirmed") return false;
-      if (activeStatus === "pending" && ev.status !== "published_pending" && ev.status !== "pending") return false;
     }
 
     return true;
@@ -1079,6 +1120,7 @@ export function EventsCalendar({ events, categories }: Props) {
                     border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.22)",
                     backgroundColor: selected ? "rgba(123, 31, 44, 0.08)" : "transparent",
                     color: selected ? "#7b1f2c" : "#39292a",
+                    fontWeight: selected ? 600 : 400,
                     padding: "9px 18px",
                     borderRadius: "20px",
                     fontSize: "13.5px",
@@ -1107,6 +1149,7 @@ export function EventsCalendar({ events, categories }: Props) {
                     border: selected ? "1px solid rgba(57,41,42,0.5)" : "1px solid rgba(57,41,42,0.2)",
                     backgroundColor: selected ? "rgba(57,41,42,0.08)" : "transparent",
                     color: selected ? "#39292a" : "rgba(57,41,42,0.7)",
+                    fontWeight: selected ? 600 : 400,
                     padding: "7px 15px",
                     borderRadius: "20px",
                     fontSize: "12.5px",
@@ -1122,7 +1165,7 @@ export function EventsCalendar({ events, categories }: Props) {
             })}
           </div>
 
-          {/* Row 3: Status / State with Color Dots */}
+          {/* Row 3: Status / State with Authentic Swatches */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
             {statusChips.map((chip) => {
               const selected = activeStatus === chip.id;
@@ -1135,9 +1178,10 @@ export function EventsCalendar({ events, categories }: Props) {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
-                    border: selected ? "1px solid rgba(57,41,42,0.5)" : "1px solid rgba(57,41,42,0.2)",
-                    backgroundColor: selected ? "rgba(57,41,42,0.08)" : "transparent",
-                    color: selected ? "#39292a" : "rgba(57,41,42,0.7)",
+                    border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
+                    backgroundColor: selected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                    color: selected ? "#7b1f2c" : "rgba(57,41,42,0.72)",
+                    fontWeight: selected ? 600 : 400,
                     padding: "6px 14px",
                     borderRadius: "20px",
                     fontSize: "12.5px",

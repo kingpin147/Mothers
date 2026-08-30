@@ -106,7 +106,7 @@ export async function acceptApplication(applicationId: string) {
     await db.insert(member).values({
       personId: personRecord.id,
       status: "accepted_awaiting_payment",
-      stage: answers.stage || "Pregnancy & Postpartum",
+      stage: answers.stage || "Pregnant",
       neighbourhood: answers.neighbourhood || "Barcelona",
       monthlyPriceCents: 2900,
     });
