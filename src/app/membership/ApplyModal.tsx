@@ -194,6 +194,8 @@ export function ApplyModal({
     });
   };
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const handleSubmit = async () => {
     if (!answers.termsAccepted) {
       setShowError(true);
@@ -202,6 +204,7 @@ export function ApplyModal({
 
     setLoading(true);
     setShowError(false);
+    setSubmitError(null);
     const res = await submitApplication(answers);
     setLoading(false);
 
@@ -212,7 +215,11 @@ export function ApplyModal({
       setExistingMemberEmail(true);
       setStep(1); // go back to email step
     } else {
-      setShowError(true);
+      setSubmitError(
+        lang === "en"
+          ? "We encountered a database connection issue. Please check your internet connection and try again."
+          : "Hemos detectado un problema de conexión con la base de datos. Por favor, comprueba tu conexión a internet e inténtalo de nuevo."
+      );
     }
   };
 
@@ -637,6 +644,11 @@ export function ApplyModal({
         {showError && !existingMemberEmail && (
           <p style={{ fontSize: "13px", color: "#993842", margin: "10px 0 0" }}>
             {lang === "en" ? "Please answer this question to continue." : "Responde esta pregunta para continuar."}
+          </p>
+        )}
+        {submitError && (
+          <p style={{ fontSize: "13.5px", color: "#993842", margin: "10px 0 0", fontWeight: 500, lineHeight: 1.5 }}>
+            {submitError}
           </p>
         )}
 
