@@ -1,6 +1,8 @@
 import postgres from "postgres";
 import * as dotenv from "dotenv";
+import crypto from "crypto";
 dotenv.config({ path: ".env.local" });
+if (!process.env.DATABASE_URL) dotenv.config({ path: ".env" });
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -54,6 +56,8 @@ async function main() {
     await sql`ALTER TABLE event ADD COLUMN IF NOT EXISTS capacity_guest_gathering integer;`;
     await sql`ALTER TABLE event ADD COLUMN IF NOT EXISTS show_event_pass_cta boolean DEFAULT false NOT NULL;`;
     await sql`ALTER TABLE event ADD COLUMN IF NOT EXISTS childcare text DEFAULT 'child_inclusive' NOT NULL;`;
+    await sql`ALTER TABLE event ADD COLUMN IF NOT EXISTS languages text[];`;
+    await sql`UPDATE event SET languages = ARRAY['es', 'en'] WHERE languages IS NULL;`;
 
     // 4. Booking columns
     await sql`ALTER TABLE booking ADD COLUMN IF NOT EXISTS pending_return_credits integer DEFAULT 0 NOT NULL;`;

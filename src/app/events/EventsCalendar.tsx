@@ -8,6 +8,16 @@ import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 
 export type Lang = "en" | "es";
 
+export const getLanguageLabel = (code: string, currentLang: "en" | "es") => {
+  const mapping: Record<string, { en: string; es: string }> = {
+    en: { en: "English", es: "Inglés" },
+    es: { en: "Spanish", es: "Español" },
+    fr: { en: "French", es: "Francés" },
+    ca: { en: "Catalan", es: "Catalán" },
+  };
+  return mapping[code.toLowerCase()] ? mapping[code.toLowerCase()][currentLang] : code;
+};
+
 export interface PublicEvent {
   id: string;
   title: string;
@@ -42,6 +52,10 @@ export interface PublicEvent {
   showEventPassCta?: boolean | null;
   meetingPointNote?: string | null;
   whatsappGroupUrl?: string | null;
+  guestOpenAt?: string | Date | null;
+  guestCloseAt?: string | Date | null;
+  childcare?: string | null;
+  cancelReason?: string | null;
 }
 
 interface Props {
@@ -56,14 +70,19 @@ function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
   if (ev.creditCost === 0 || ev.isFreeWalk) return false;
   if (ev.isSignature || ev.creditCost > 18) return false;
   if (ev.status !== "confirmed") return false;
-  if (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 0) return false;
 
   const starts = new Date(ev.startsAt);
   const now = new Date();
-  const diffDays = (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
 
-  // Guest window: T-14 to T-2
-  return diffDays >= 2 && diffDays <= 14;
+  if (ev.guestOpenAt && now < new Date(ev.guestOpenAt)) return false;
+  if (ev.guestCloseAt && now > new Date(ev.guestCloseAt)) return false;
+
+  if (!ev.guestOpenAt && !ev.guestCloseAt) {
+    const diffDays = (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays >= 2 && diffDays <= 14;
+  }
+
+  return true;
 }
 
 function getCardBg(status: string): string {
@@ -680,6 +699,11 @@ function EventCard({
               {ev.stage}
             </span>
           )}
+          {eligible && (
+            <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#456f04", border: "1px solid rgba(86,139,5,0.45)", background: "rgba(86,139,5,0.07)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
+              {lang === "en" ? "Open to guests — €35" : "Abierto a invitadas — 35€"}
+            </span>
+          )}
           {ev.isSignature && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", letterSpacing: "0.05em", color: "#fdfaf5", border: "1px solid #7b1f2c", background: "#7b1f2c", borderRadius: "10px", padding: "3px 9px", whiteSpace: "nowrap" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="11" height="11"><rect x="4" y="11" width="16" height="9" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
@@ -736,7 +760,7 @@ function EventCard({
         {ev.languages && ev.languages.length > 0 && (
           <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" /></svg>
-            {ev.languages.join(" · ")}
+            {ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}
           </span>
         )}
         {ev.audienceType && (
@@ -794,10 +818,29 @@ function EventCard({
             {ev.capacityTotal ? (
               <span style={{ color: (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 3) ? "#993842" : "rgba(57,41,42,0.6)" }}>
                 {lang === "en" ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}` : `Plazas disponibles: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`}
+                {(() => {
+                  const now = new Date();
+                  const starts = new Date(ev.startsAt);
+                  const isGuestWindowClosed = !isMember && ev.status === "confirmed" && !ev.isSignature && ev.creditCost > 0 && ev.creditCost <= 18 && (
+                    ev.guestCloseAt ? now > new Date(ev.guestCloseAt) : (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24) < 2
+                  );
+                  return isGuestWindowClosed ? (lang === "en" ? " · guest places have closed" : " · las plazas de invitada se han cerrado") : "";
+                })()}
               </span>
             ) : (
               <span>{lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"}</span>
             )}
+          </div>
+        )}
+        {isCancelled && (
+          <div style={{ fontSize: "13.5px", color: "#993842", fontWeight: 500 }}>
+            {lang === "en" ? "Cancelled" : "Cancelado"}
+            {ev.cancelReason && ` — ${ev.cancelReason}`}
+          </div>
+        )}
+        {isPast && (
+          <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.6)", fontWeight: 500 }}>
+            {lang === "en" ? "Past event" : "Evento pasado"}
           </div>
         )}
 
@@ -837,9 +880,21 @@ function EventCard({
                       fontWeight: 500,
                     }}
                   >
-                    {lang === "en" ? "This event is full. Learn about membership →" : "Este evento está lleno. Más sobre la membresía →"}
+                    {lang === "en" ? "The waitlist is for members. See the membership →" : "La lista de espera es para socias. Ver la membresía →"}
                   </Link>
                 )
+              ) : ev.isSignature && !isMember ? (
+                <Link
+                  href="/membership"
+                  style={{
+                    fontSize: "13.5px",
+                    color: "#7b1f2c",
+                    textDecoration: "underline",
+                    fontWeight: 500,
+                  }}
+                >
+                  {lang === "en" ? "This one is for members. See the membership →" : "Este evento es para socias. Ver la membresía →"}
+                </Link>
               ) : (
                 <>
                   {eligible && (
@@ -1002,17 +1057,7 @@ export function EventsCalendar({ events, categories }: Props) {
               ? "Walks, workshops, dinners, and seasonal moments — browse what's coming up and reserve your spot."
               : "Paseos, talleres, cenas y momentos de temporada — descubre lo que viene y reserva tu plaza."}
           </p>
-          <a
-            href="#pass"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveCategory("all");
-              setActiveStatus("all");
-            }}
-            style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", fontWeight: 500 }}
-          >
-            {lang === "en" ? "New here? Take an Event Pass →" : "¿Nueva aquí? Consigue un Event Pass →"}
-          </a>
+
         </div>
 
         {/* ─── 3 FILTER ROWS MATCHING EXACT MODEL ─── */}
@@ -1028,8 +1073,8 @@ export function EventsCalendar({ events, categories }: Props) {
                   onClick={() => setActiveCategory(chip.id)}
                   style={{
                     border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.22)",
-                    backgroundColor: selected ? "#7b1f2c" : "transparent",
-                    color: selected ? "#f8efe2" : "#39292a",
+                    backgroundColor: selected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                    color: selected ? "#7b1f2c" : "#39292a",
                     padding: "9px 18px",
                     borderRadius: "20px",
                     fontSize: "13.5px",

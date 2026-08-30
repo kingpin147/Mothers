@@ -479,7 +479,7 @@ export async function buyGuestPass(params: {
 
 // ─── 4. BUY EXTRA CREDITS (§20.3) ────────────────────────────────────────────
 
-export async function buyExtraCredits(amount: number) {
+export async function buyExtraCredits(amount: number, eventId?: string) {
   if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
     return { success: false, error: "INVALID_AMOUNT" };
   }
@@ -523,9 +523,14 @@ export async function buyExtraCredits(amount: number) {
         memberId,
         personId: memberRecord.personId,
         creditAmount: String(amount),
+        eventId: eventId || "",
       },
-      success_url: `${origin}/account?credits_purchased=true`,
-      cancel_url: `${origin}/account`,
+      success_url: eventId
+        ? `${origin}/events/${eventId}?booking_success=true`
+        : `${origin}/account?credits_purchased=true`,
+      cancel_url: eventId
+        ? `${origin}/events/${eventId}`
+        : `${origin}/account`,
     });
 
     return { success: true, url: session2.url };

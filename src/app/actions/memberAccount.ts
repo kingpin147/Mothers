@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { member, person, creditEntry, booking, event, eventCategory, eventPass } from "@/db/schema";
+import { member, person, creditEntry, booking, event, eventCategory, eventPass, partner } from "@/db/schema";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import Stripe from "stripe";
@@ -113,6 +113,12 @@ export async function getAccountData() {
       .from(creditEntry)
       .where(eq(creditEntry.memberId, memberId));
 
+    // Fetch active partners
+    const activePartners = await db
+      .select()
+      .from(partner)
+      .where(eq(partner.status, "active"));
+
     return {
       success: true,
       member: {
@@ -137,6 +143,7 @@ export async function getAccountData() {
       godmother: {
         totalCreditsEarned: Number(godmotherStats[0]?.totalCreditsEarned || 0),
       },
+      partners: activePartners,
     };
   } catch (error: any) {
     console.error("getAccountData error:", error);
@@ -218,5 +225,32 @@ export async function cancelMembership() {
     };
   } catch (e: any) {
     return { success: false, error: e?.message || "CANCEL_FAILED" };
+  }
+}
+
+export async function getStripePortalUrl() {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+  const memberId = (session.user as any).memberId;
+  if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+
+  try {
+    const memberRecord = await db.query.member.findFirst({
+      where: eq(member.id, memberId),
+    });
+
+    if (!memberRecord || !memberRecord.stripeCustomerId) {
+      return { success: false, error: "STRIPE_CUSTOMER_NOT_FOUND" };
+    }
+
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: memberRecord.stripeCustomerId,
+      return_url: `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/account`,
+    });
+
+    return { success: true, url: portalSession.url };
+  } catch (e: any) {
+    console.error("getStripePortalUrl error:", e);
+    return { success: false, error: e?.message || "PORTAL_CREATION_FAILED" };
   }
 }

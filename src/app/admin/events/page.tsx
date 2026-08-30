@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getAdminEvents, createAdminEvent, confirmEventDecision, cancelEventDecision, duplicateAdminEvent } from "@/app/actions/adminEvents";
+import { getAdminEvents, createAdminEvent, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, updateAdminEvent } from "@/app/actions/adminEvents";
 import { getEventCategories, createEventCategory, deleteEvent } from "@/app/actions/events";
 import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
@@ -14,7 +14,10 @@ export default function AdminEventsPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   // Attendees & Ticketing Modal State
@@ -35,6 +38,74 @@ export default function AdminEventsPage() {
 
   const [newCatName, setNewCatName] = useState("");
   const [newCatStage, setNewCatStage] = useState("All Stages");
+
+  const [editForm, setEditForm] = useState({
+    id: "",
+    title: "",
+    categoryId: "",
+    venueName: "",
+    meetingPoint: "",
+    neighbourhood: "Eixample",
+    startsAt: "",
+    endsAt: "",
+    creditCost: 18,
+    capacityMember: 10,
+    capacityGuest: 2,
+    minToConfirm: 4,
+    isSignature: false,
+    description: "",
+  });
+
+  const handleOpenEdit = (ev: any) => {
+    const formatLocalDatetime = (dStr: string) => {
+      if (!dStr) return "";
+      const d = new Date(dStr);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    setEditForm({
+      id: ev.id,
+      title: ev.title,
+      categoryId: ev.categoryId || "",
+      venueName: ev.venueName,
+      meetingPoint: ev.meetingPoint,
+      neighbourhood: ev.neighbourhood,
+      startsAt: formatLocalDatetime(ev.startsAt),
+      endsAt: formatLocalDatetime(ev.endsAt),
+      creditCost: ev.creditCost,
+      capacityMember: ev.capacityMember,
+      capacityGuest: ev.capacityGuest,
+      minToConfirm: ev.minToConfirm || 4,
+      isSignature: !!ev.isSignature,
+      description: ev.description || "",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.title || !editForm.venueName || !editForm.meetingPoint || !editForm.startsAt || !editForm.endsAt) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    setLoading(true);
+    const res = await updateAdminEvent(editForm.id, {
+      ...editForm,
+      startsAt: new Date(editForm.startsAt),
+      endsAt: new Date(editForm.endsAt),
+    });
+    setLoading(false);
+
+    if (res.success) {
+      alert("Event updated successfully!");
+      setShowEditModal(false);
+      loadData();
+    } else {
+      alert(res.error || "Failed to update event");
+    }
+  };
 
   const [form, setForm] = useState({
     title: "",
@@ -294,10 +365,39 @@ export default function AdminEventsPage() {
                 fontSize: "12.5px",
                 fontWeight: 600
               }}>
-                {c.name} · <span style={{ color: "var(--color-text-muted)", fontWeight: 400 }}>{c.stageAffinity || "All"}</span>
+                {c.name}
               </span>
             ))}
           </div>
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
+          {["all", "draft", "published_pending", "confirmed", "completed", "cancelled"].map((status) => {
+            const isActive = statusFilter === status;
+            const label =
+              status === "all" ? "All" :
+              status === "published_pending" ? "Pending Min." :
+              status.charAt(0).toUpperCase() + status.slice(1);
+            return (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  border: "1px solid " + (isActive ? "var(--color-accent)" : "var(--color-divider)"),
+                  backgroundColor: isActive ? "var(--color-accent)" : "#ffffff",
+                  color: isActive ? "#ffffff" : "var(--color-text-main)",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {label} ({status === "all" ? events.length : events.filter(e => e.status === status).length})
+              </button>
+            );
+          })}
         </div>
 
         {/* Events Table */}
@@ -315,24 +415,40 @@ export default function AdminEventsPage() {
               + Create First Event
             </button>
           </div>
-        ) : (
-          <div className="card" style={{ padding: 0, overflowX: "auto", backgroundColor: "#fff", border: "1px solid var(--color-divider)", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <table style={{ width: "100%", minWidth: "1000px", borderCollapse: "collapse", fontSize: "13.5px" }}>
-              <thead>
-                <tr style={{ backgroundColor: "#fbf8f3", borderBottom: "1px solid var(--color-divider)", textAlign: "left" }}>
-                  <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Event Title</th>
-                  <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Date & Time</th>
-                  <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Neighbourhood</th>
-                  <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Capacity</th>
-                  <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Credits</th>
-                  <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Status</th>
-                  <th style={{ padding: "14px 18px", textAlign: "right", fontWeight: 600, color: "var(--color-text-main)" }}>Actions & Roster</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map((ev) => {
-                  const starts = new Date(ev.startsAt);
-                  const isPending = ev.status === "published_pending";
+        ) : (() => {
+          const filteredEvents = events.filter((ev) => {
+            if (statusFilter === "all") return true;
+            return ev.status === statusFilter;
+          });
+
+          if (filteredEvents.length === 0) {
+            return (
+              <div className="card" style={{ padding: "48px", textAlign: "center", backgroundColor: "#fff" }}>
+                <h3 style={{ fontSize: "18px", color: "var(--color-text-muted)" }}>
+                  No events found with status "{statusFilter === "published_pending" ? "Pending Min." : statusFilter}"
+                </h3>
+              </div>
+            );
+          }
+
+          return (
+            <div className="card" style={{ padding: 0, overflowX: "auto", backgroundColor: "#fff", border: "1px solid var(--color-divider)", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+              <table style={{ width: "100%", minWidth: "1000px", borderCollapse: "collapse", fontSize: "13.5px" }}>
+                <thead>
+                  <tr style={{ backgroundColor: "#fbf8f3", borderBottom: "1px solid var(--color-divider)", textAlign: "left" }}>
+                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Event Title</th>
+                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Date & Time</th>
+                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Neighbourhood</th>
+                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Capacity</th>
+                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Credits</th>
+                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Status</th>
+                    <th style={{ padding: "14px 18px", textAlign: "right", fontWeight: 600, color: "var(--color-text-main)" }}>Actions & Roster</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEvents.map((ev) => {
+                    const starts = new Date(ev.startsAt);
+                    const isPending = ev.status === "published_pending";
 
                   return (
                     <tr key={ev.id} style={{ borderBottom: "1px solid var(--color-divider)" }}>
@@ -443,6 +559,22 @@ export default function AdminEventsPage() {
                           )}
                           <button
                             type="button"
+                            onClick={() => handleOpenEdit(ev)}
+                            style={{
+                              backgroundColor: "#f5eee4",
+                              color: "var(--color-text)",
+                              border: "1px solid var(--color-divider)",
+                              borderRadius: "5px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleDuplicate(ev.id, ev.title)}
                             disabled={actionLoading === ev.id}
                             style={{
@@ -483,7 +615,8 @@ export default function AdminEventsPage() {
               </tbody>
             </table>
           </div>
-        )}
+          );
+        })()}
 
         {/* ─── MODAL: EVENT ATTENDEES & TICKETING ROSTER ─── */}
         {activeEventRoster && (
@@ -845,9 +978,12 @@ export default function AdminEventsPage() {
                       className="input"
                       value={form.capacityMember}
                       onChange={(e) => setForm({ ...form, capacityMember: Number(e.target.value) })}
-                      min={1}
+                      min={0}
                       required
                     />
+                    <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginTop: "2px" }}>
+                      Set to 0 for unlimited places.
+                    </div>
                   </div>
                   <div>
                     <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest Passes</label>
@@ -860,6 +996,16 @@ export default function AdminEventsPage() {
                       required
                     />
                   </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "4px 0" }}>
+                  <input
+                    type="checkbox"
+                    id="isSignature"
+                    checked={form.isSignature}
+                    onChange={(e) => setForm({ ...form, isSignature: e.target.checked })}
+                  />
+                  <label htmlFor="isSignature" style={{ fontWeight: 600, cursor: "pointer" }}>🔒 Members only / Signature event</label>
                 </div>
 
                 <div>
@@ -915,19 +1061,191 @@ export default function AdminEventsPage() {
                   />
                 </div>
 
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Stage Affinity</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={newCatStage}
-                    onChange={(e) => setNewCatStage(e.target.value)}
-                    placeholder="e.g. All Stages, Pregnancy, 0–3 years"
-                  />
-                </div>
+                {/* Stage Affinity removed */}
 
                 <button type="submit" className="btn btn-primary" style={{ marginTop: "8px", padding: "10px" }}>
                   Create Category
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Edit Event */}
+        {showEditModal && (
+          <div style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(57, 41, 42, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "24px",
+            zIndex: 100,
+          }}>
+            <div className="card" style={{ maxWidth: "620px", width: "100%", maxHeight: "90vh", overflowY: "auto", backgroundColor: "#fff", padding: "32px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h2 style={{ fontSize: "22px", margin: 0 }}>Edit Calendar Event</h2>
+                <button onClick={() => setShowEditModal(false)} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer" }}>✕</button>
+              </div>
+
+              <form onSubmit={handleUpdate} style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "13.5px" }}>
+                <div>
+                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Event Title *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    placeholder="e.g. Sensory Play & Coffee Meetup"
+                    required
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Category</label>
+                    <select
+                      className="input"
+                      value={editForm.categoryId}
+                      onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })}
+                    >
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Neighbourhood *</label>
+                    <select
+                      className="input"
+                      value={editForm.neighbourhood}
+                      onChange={(e) => setEditForm({ ...editForm, neighbourhood: e.target.value })}
+                    >
+                      <option value="Eixample">Eixample</option>
+                      <option value="Gràcia">Gràcia</option>
+                      <option value="Sarrià-Sant Gervasi">Sarrià-Sant Gervasi</option>
+                      <option value="Les Corts">Les Corts</option>
+                      <option value="Poblenou">Poblenou</option>
+                      <option value="Ciutat Vella">Ciutat Vella</option>
+                      <option value="Outside Barcelona">Outside Barcelona</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Venue Public Name *</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={editForm.venueName}
+                      onChange={(e) => setEditForm({ ...editForm, venueName: e.target.value })}
+                      placeholder="e.g. Jardins de la Tamarita"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Private Meeting Point *</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={editForm.meetingPoint}
+                      onChange={(e) => setEditForm({ ...editForm, meetingPoint: e.target.value })}
+                      placeholder="Released only to confirmed attendees"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Start Date & Time *</label>
+                    <input
+                      type="datetime-local"
+                      className="input"
+                      value={editForm.startsAt}
+                      onChange={(e) => setEditForm({ ...editForm, startsAt: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>End Date & Time *</label>
+                    <input
+                      type="datetime-local"
+                      className="input"
+                      value={editForm.endsAt}
+                      onChange={(e) => setEditForm({ ...editForm, endsAt: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Credit Cost</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={editForm.creditCost}
+                      onChange={(e) => setEditForm({ ...editForm, creditCost: Number(e.target.value) })}
+                      min={0}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Member Seats</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={editForm.capacityMember}
+                      onChange={(e) => setEditForm({ ...editForm, capacityMember: Number(e.target.value) })}
+                      min={0}
+                      required
+                    />
+                    <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginTop: "2px" }}>
+                      Set to 0 for unlimited places.
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest Passes</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={editForm.capacityGuest}
+                      onChange={(e) => setEditForm({ ...editForm, capacityGuest: Number(e.target.value) })}
+                      min={0}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "4px 0" }}>
+                  <input
+                    type="checkbox"
+                    id="editIsSignature"
+                    checked={editForm.isSignature}
+                    onChange={(e) => setEditForm({ ...editForm, isSignature: e.target.checked })}
+                  />
+                  <label htmlFor="editIsSignature" style={{ fontWeight: 600, cursor: "pointer" }}>🔒 Members only / Signature event</label>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Description</label>
+                  <textarea
+                    className="input"
+                    rows={3}
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    placeholder="Short description of the event flow and atmosphere..."
+                  />
+                </div>
+
+                <button type="submit" className="btn btn-primary" style={{ marginTop: "8px", padding: "12px" }}>
+                  Update Event Details →
                 </button>
               </form>
             </div>

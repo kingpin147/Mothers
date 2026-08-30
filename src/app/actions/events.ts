@@ -38,12 +38,14 @@ export async function getPublicEvents() {
         isSignature: event.isSignature,
         isFreeWalk: event.isFreeWalk,
         status: event.status,
+        childcare: event.childcare,
+        languages: event.languages,
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
       .where(
         and(
-          sql`${event.status} IN ('published_pending', 'confirmed', 'completed')`,
+          sql`${event.status} IN ('published_pending', 'confirmed', 'completed', 'cancelled')`,
           sql`LOWER(${event.title}) NOT LIKE '%test%'`,
           sql`LOWER(${event.title}) NOT LIKE '%rachel%'`,
           sql`(${event.description} IS NULL OR LOWER(${event.description}) NOT LIKE '%test%')`
@@ -89,6 +91,8 @@ export async function getPublicEvents() {
       const capacityTotal = ev.capacityMember;
       const capacityRemaining = capacityTotal !== null ? Math.max(0, capacityTotal - (countMap.get(ev.id) || 0)) : null;
 
+      const audienceType = ev.childcare === "adults_only" ? "moms_only" : "moms_child";
+
       return {
         ...ev,
         category: ev.categoryName || "General",
@@ -98,6 +102,8 @@ export async function getPublicEvents() {
         bookedMember: countMap.get(ev.id) || 0,
         capacityTotal,
         capacityRemaining,
+        audienceType,
+        languages: ev.languages || ["es", "en"],
       };
     });
 
@@ -195,6 +201,8 @@ export async function getPublicEventById(id: string) {
         stageAffinity: eventCategory.stageAffinity,
         guestOpenAt: event.guestOpenAt,
         guestCloseAt: event.guestCloseAt,
+        childcare: event.childcare,
+        languages: event.languages,
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
@@ -224,14 +232,27 @@ export async function getPublicEventById(id: string) {
     const bookedGuest = Number(guestCount[0]?.count || 0);
     const spotsRemaining = ev.capacityMember - bookedMember;
 
-    // Guest pass eligibility: confirmed, non-signature, ≤18 credits, T-14 to T-2
-    const daysUntil = Math.round((starts.getTime() - Date.now()) / 86400000);
-    const guestPassEligible =
+    // Guest pass eligibility: confirmed, non-signature, ≤18 credits, inside guest window (custom or static T-14 to T-2)
+    const now = new Date();
+    let guestPassEligible =
       ev.status === "confirmed" &&
       !ev.isSignature &&
-      ev.creditCost <= 18 &&
-      daysUntil >= 2 &&
-      daysUntil <= 14;
+      ev.creditCost <= 18;
+
+    if (guestPassEligible) {
+      if (ev.guestOpenAt && now < new Date(ev.guestOpenAt)) {
+        guestPassEligible = false;
+      } else if (ev.guestCloseAt && now > new Date(ev.guestCloseAt)) {
+        guestPassEligible = false;
+      } else if (!ev.guestOpenAt && !ev.guestCloseAt) {
+        const daysUntil = Math.round((starts.getTime() - now.getTime()) / 86400000);
+        if (daysUntil < 2 || daysUntil > 14) {
+          guestPassEligible = false;
+        }
+      }
+    }
+
+    const daysUntil = Math.round((starts.getTime() - now.getTime()) / 86400000);
 
     return {
       success: true,
@@ -244,6 +265,8 @@ export async function getPublicEventById(id: string) {
         spotsRemaining,
         daysUntil,
         guestPassEligible,
+        audienceType: ev.childcare === "adults_only" ? "moms_only" : "moms_child",
+        languages: ev.languages || ["es", "en"],
       },
     };
   } catch (error: any) {

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getAdminPartners, savePartner } from "@/app/actions/adminCms";
+import { getAdminPartners, savePartner, deletePartner } from "@/app/actions/adminCms";
 
 export default function AdminPartnersPage() {
   const [partners, setPartners] = useState<any[]>([]);
@@ -17,6 +17,7 @@ export default function AdminPartnersPage() {
     specialty: "",
     description: "",
     offerForMembers: "",
+    discountCode: "",
     exclusive: true,
   });
 
@@ -42,6 +43,7 @@ export default function AdminPartnersPage() {
         specialty: p.specialty,
         description: p.description,
         offerForMembers: p.offerForMembers,
+        discountCode: p.discountCode || "",
         exclusive: p.exclusive ?? true,
       });
     } else {
@@ -52,10 +54,22 @@ export default function AdminPartnersPage() {
         specialty: "",
         description: "",
         offerForMembers: "",
+        discountCode: "",
         exclusive: true,
       });
     }
     setShowModal(true);
+  };
+
+  const handleDeletePartner = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete partner "${name}"?`)) return;
+    const res = await deletePartner(id);
+    if (res.success) {
+      alert("Partner deleted successfully.");
+      loadPartners();
+    } else {
+      alert(res.error || "Failed to delete partner.");
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -141,6 +155,14 @@ export default function AdminPartnersPage() {
                         style={{ padding: "4px 10px", fontSize: "12px" }}
                       >
                         Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePartner(p.id, p.name)}
+                        className="btn btn-outline"
+                        style={{ padding: "4px 10px", fontSize: "12px", marginLeft: "8px", borderColor: "#fecdd3", color: "#b91c1c" }}
+                      >
+                        Delete
                       </button>
                     </td>
                   </tr>
@@ -231,6 +253,20 @@ export default function AdminPartnersPage() {
                     placeholder="e.g. 15% off consultations & priority WhatsApp"
                     required
                   />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Private Discount Code (Optional)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={form.discountCode}
+                    onChange={(e) => setForm({ ...form, discountCode: e.target.value })}
+                    placeholder="e.g. MOTHERS15"
+                  />
+                  <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "4px" }}>
+                    This is only shown to logged-in members under the account perks tab.
+                  </div>
                 </div>
 
                 <button type="submit" disabled={saving} className="btn btn-primary" style={{ marginTop: "8px", padding: "10px" }}>

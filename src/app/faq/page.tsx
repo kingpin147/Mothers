@@ -62,7 +62,7 @@ const FAQ_LIST: FaqEntry[] = [
   },
   {
     qEn: "How does the Godmother referral work?",
-    aEn: "Every Godmother has a personal referral code. A mother adds it to her application, and once she joins you earn 5 credits — plus 15 more when she reaches three months. Bonus credits sit outside the 40-credit balance cap and follow the same 6-month expiry as the rest.",
+    aEn: "Every Godmother has a personal referral code. A mother adds it to her application, and once she joins you earn 5 credits — plus 15 more when she reaches three months. Bonus credits follow the same 6-month expiry as the rest.",
     qEs: "¿Cómo funciona el referido de Madrina?",
     aEs: "Cada Madrina tiene un código de referido personal. Una madre lo añade en su solicitud y, cuando se une, ganas 5 créditos — más 15 cuando ella cumple tres meses. Los créditos extra son créditos normales: no hay ningún límite de acumulación y caducan a los 6 meses, como el resto.",
   },

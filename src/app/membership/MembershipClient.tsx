@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Locale } from "@/lib/i18n";
 import { WaitlistForm } from "./WaitlistForm";
@@ -19,6 +19,17 @@ export default function MembershipClient({
   const [windowOpen, setWindowOpen] = useState(initialWindowOpen);
   const [spotsRemaining, setSpotsRemaining] = useState(initialSpotsRemaining);
   const [applyModalOpen, setApplyModalOpen] = useState(autoOpenApply);
+
+  const famTrackRef = useRef<HTMLDivElement>(null);
+  const famScroll = (direction: "left" | "right") => {
+    if (famTrackRef.current) {
+      const scrollAmount = 320;
+      famTrackRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
 
   useEffect(() => {
     const updateLang = () => {
@@ -273,6 +284,266 @@ export default function MembershipClient({
           </div>
         </div>
       </div>
+
+      {/* ─── FIVE WAYS TO CONNECT (CAROUSEL MODULE) ─── */}
+      <section
+        style={{
+          maxWidth: "1160px",
+          margin: "0 auto",
+          padding: "clamp(48px, 6vw, 80px) clamp(24px, 5vw, 64px)",
+          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
+        }}
+      >
+        <div style={{ maxWidth: "640px", margin: "0 auto 44px", textAlign: "center" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontWeight: 600,
+              fontSize: "13px",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "#568b05",
+              marginBottom: "14px",
+            }}
+          >
+            {lang === "en" ? "WHAT'S INCLUDED" : "QUÉ INCLUYE"}
+          </div>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "clamp(28px, 3.6vw, 40px)", margin: "0 0 14px" }}>
+            {lang === "en" ? "Five ways to connect." : "Cinco maneras de conectar."}
+          </h2>
+          <p style={{ fontSize: "16px", lineHeight: "1.6", color: "rgba(57, 41, 42, 0.7)", margin: "0" }}>
+            {lang === "en"
+              ? "Included essentials give you a place to start. Credits unlock everything else — each event shows its own credit price on the calendar."
+              : "Lo esencial incluido te da un punto de partida. Los créditos desbloquean todo lo demás: cada evento muestra su precio en créditos en el calendario."}
+          </p>
+        </div>
+
+        <div style={{ position: "relative" }}>
+          {/* Scrollable Track */}
+          <div
+            ref={famTrackRef}
+            style={{
+              display: "flex",
+              alignItems: "stretch",
+              gap: "22px",
+              overflowX: "auto",
+              scrollSnapType: "x mandatory",
+              scrollBehavior: "smooth",
+              padding: "2px 2px 14px",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+            {[
+              {
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+                    <path d="M11 20A7 7 0 0 1 4 13c0-4 3-8 9-11 1 5 4 7 4 11a7 7 0 0 1-6 7Z" />
+                    <path d="M8 16c5-3 7-7 9-13" />
+                  </svg>
+                ),
+                titleEn: "Easy connection",
+                titleEs: "Conexión fácil",
+                badgeEn: "Mostly included",
+                badgeEs: "Casi siempre incluido",
+                bodyEn: "Walks, park socials & hosted meetups. The walks and park socials are usually included in the plan but can cost few credit depending on the partners involved.",
+                bodyEs: "Paseos, encuentros en el parque y quedadas con anfitriona. Los paseos y encuentros en el parque son gratis; los cafés y brunchs con anfitriona cuestan 2 créditos, y alguien se encarga de presentar a todas.",
+                isGreenBadge: true,
+              },
+              {
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+                    <circle cx="12" cy="8" r="3" />
+                    <circle cx="12" cy="16" r="3" />
+                    <circle cx="8" cy="12" r="3" />
+                    <circle cx="16" cy="12" r="3" />
+                    <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+                  </svg>
+                ),
+                titleEn: "Play date",
+                titleEs: "Play date",
+                badgeEn: "Credits",
+                badgeEs: "Créditos",
+                bodyEn: "Yoga, massage, music — your child right beside you.",
+                bodyEs: "Yoga, masaje, música — con tu hijo/a a tu lado.",
+                isGreenBadge: false,
+              },
+              {
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+                    <path d="M17 8h1a4 4 0 1 1 0 8h-1M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4ZM6 2v2M10 2v2M14 2v2" />
+                  </svg>
+                ),
+                titleEn: "MoM's date",
+                titleEs: "MoM's date",
+                badgeEn: "Credits",
+                badgeEs: "Créditos",
+                bodyEn: "Dinners, wellness, culture — a woman first.",
+                bodyEs: "Cenas, bienestar, cultura — una mujer primero.",
+                isGreenBadge: false,
+              },
+              {
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+                    <path d="M2 9 12 4l10 5-10 5Z" />
+                    <path d="M6 11.5V17c0 1.1 2.7 3 6 3s6-1.9 6-3v-5.5" />
+                  </svg>
+                ),
+                titleEn: "Learn & Grow",
+                titleEs: "Aprender y crecer",
+                badgeEn: "Credits",
+                badgeEs: "Créditos",
+                bodyEn: "Expert talks, workshops, and masterclasses.",
+                bodyEs: "Charlas de expertas, talleres y masterclasses.",
+                isGreenBadge: false,
+              },
+              {
+                icon: (
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                    <path d="M12 2c.6 3.2 1.6 5.7 3 7.1 1.4 1.4 3.9 2.4 7 3-3.1.6-5.6 1.6-7 3-1.4 1.4-2.4 3.9-3 7.1-.6-3.2-1.6-5.7-3-7.1-1.4-1.4-3.9-2.4-7-3 3.1-.6 5.6-1.6 7-3 1.4-1.4 2.4-3.9 3-7.1Z" />
+                  </svg>
+                ),
+                titleEn: "Signature moments",
+                titleEs: "Momentos únicos",
+                badgeEn: "Credits",
+                badgeEs: "Créditos",
+                bodyEn: "Seasonal moments and 1:1 expert sessions.",
+                bodyEs: "Momentos de temporada y sesiones 1:1 con expertas.",
+                isGreenBadge: false,
+              },
+            ].map((f, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: "0 0 clamp(238px, 25vw, 276px)",
+                  scrollSnapAlign: "start",
+                  display: "flex",
+                  flexDirection: "column",
+                  border: "1px solid rgba(57,41,42,0.16)",
+                  borderRadius: "6px",
+                  padding: "24px 20px",
+                  backgroundColor: "#fffdfa",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "space-between", marginBottom: "14px" }}>
+                  <span style={{ color: "#7b1f2c" }}>{f.icon}</span>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      letterSpacing: "0.04em",
+                      color: f.isGreenBadge ? "#568b05" : "#7b1f2c",
+                      border: f.isGreenBadge ? "1px solid rgba(86,139,5,0.4)" : "1px solid rgba(123,31,44,0.35)",
+                      borderRadius: "10px",
+                      padding: "2px 9px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {lang === "en" ? f.badgeEn : f.badgeEs}
+                  </span>
+                </div>
+                <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "17px", margin: "0 0 6px" }}>
+                  {lang === "en" ? f.titleEn : f.titleEs}
+                </h3>
+                <p style={{ fontSize: "13.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.65)", margin: "0" }}>
+                  {lang === "en" ? f.bodyEn : f.bodyEs}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Carousel Buttons */}
+          <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "2px" }}>
+            <button
+              type="button"
+              onClick={() => famScroll("left")}
+              aria-label="Previous"
+              style={{
+                width: "44px",
+                height: "44px",
+                border: "1px solid rgba(57,41,42,0.24)",
+                borderRadius: "50%",
+                background: "transparent",
+                color: "#7b1f2c",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
+                <path d="M19 12H5M11 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => famScroll("right")}
+              aria-label="Next"
+              style={{
+                width: "44px",
+                height: "44px",
+                border: "1px solid rgba(57,41,42,0.24)",
+                borderRadius: "50%",
+                background: "transparent",
+                color: "#7b1f2c",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── WHEN YOU ARE READY (BOTTOM CTA MODULE) ─── */}
+      <section
+        style={{
+          maxWidth: "960px",
+          margin: "0 auto",
+          padding: "clamp(36px, 5vw, 56px) clamp(24px, 5vw, 64px) clamp(52px, 7vw, 80px)",
+          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "20px",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: "var(--font-heading)",
+            fontWeight: 400,
+            fontSize: "clamp(22px, 2.6vw, 28px)",
+            lineHeight: 1.3,
+            margin: 0,
+            color: "rgba(57, 41, 42, 0.82)",
+          }}
+        >
+          {lang === "en" ? "When you are ready, we are here." : "Cuando estés lista, aquí estamos."}
+        </h2>
+        <button
+          type="button"
+          onClick={() => setApplyModalOpen(true)}
+          style={{
+            border: "1px solid rgba(123, 31, 44, 0.5)",
+            color: "#7b1f2c",
+            padding: "12px 26px",
+            borderRadius: "4px",
+            fontFamily: "var(--font-heading)",
+            fontWeight: 600,
+            fontSize: "14.5px",
+            whiteSpace: "nowrap",
+            background: "transparent",
+            cursor: "pointer",
+          }}
+        >
+          {lang === "en" ? "Apply" : "Solicitar plaza"}
+        </button>
+      </section>
 
       {/* ─── EXACT PROTOTYPE APPLY MODAL ─── */}
       <ApplyModal

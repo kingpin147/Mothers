@@ -131,6 +131,7 @@ export async function savePartner(data: {
   specialty: string;
   description: string;
   offerForMembers: string;
+  discountCode?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     await verifyAdminRole();
@@ -143,6 +144,7 @@ export async function savePartner(data: {
           specialty: data.specialty,
           description: data.description,
           offerForMembers: data.offerForMembers,
+          discountCode: data.discountCode || null,
           updatedAt: new Date(),
         })
         .where(eq(partner.id, data.id));
@@ -153,12 +155,23 @@ export async function savePartner(data: {
         specialty: data.specialty,
         description: data.description,
         offerForMembers: data.offerForMembers,
+        discountCode: data.discountCode || null,
       });
     }
 
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "SAVE_PARTNER_FAILED" };
+  }
+}
+
+export async function deletePartner(partnerId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await verifyAdminRole();
+    await db.delete(partner).where(eq(partner.id, partnerId));
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "DELETE_PARTNER_FAILED" };
   }
 }
 

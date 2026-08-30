@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/db";
-import { stripeEvent, member, payment, person, auditLog, creditEntry } from "@/db/schema";
+import { stripeEvent, member, payment, person, auditLog, creditEntry, event as eventTable, booking } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { grantMonthlySubscriptionCredits } from "@/lib/ledger";
 import { queueAndSendEmail } from "@/lib/brevo";
@@ -195,13 +195,90 @@ export async function POST(req: NextRequest) {
               expiresAt,
             });
 
+            // Perform auto-booking if eventId is provided
+            if (meta.eventId) {
+              const eventId = meta.eventId;
+              await db.transaction(async (tx) => {
+                const ev = await tx.query.event.findFirst({
+                  where: eq(eventTable.id, eventId),
+                });
+                if (ev) {
+                  // Deduct credits for the booking
+                  if (ev.creditCost > 0) {
+                    const { spendCredits } = await import("@/lib/ledger");
+                    await spendCredits(
+                      meta.memberId,
+                      ev.creditCost,
+                      "booking",
+                      eventId,
+                      `Booking for ${ev.title}`,
+                      tx
+                    );
+                  }
+
+                  // Insert booking
+                  const initialStatus = ev.status === "confirmed" ? "confirmed" : "held";
+                  const insertedBooking = await tx.insert(booking).values({
+                    eventId,
+                    personId: meta.personId,
+                    memberId: meta.memberId,
+                    kind: "member",
+                    status: initialStatus,
+                    creditsCharged: ev.creditCost,
+                    bookedAt: new Date(),
+                  }).returning({ id: booking.id });
+
+                  // Send email
+                  const personRecord = await tx.query.person.findFirst({
+                    where: eq(person.id, meta.personId),
+                  });
+                  if (personRecord) {
+                    const subject =
+                      personRecord.locale === "es"
+                        ? `Reserva Confirmada: ${ev.title} — The Mothers`
+                        : `Booking Confirmed: ${ev.title} — The Mothers`;
+
+                    const htmlContent = `
+                      <div style="font-family: 'Lora', Georgia, serif; color: #39292a; max-width: 600px; margin: 0 auto; padding: 32px; background: #fdf9f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 8px;">
+                        <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; margin: 0 0 16px;">
+                          ${personRecord.locale === "es" ? "Plaza Reservada" : "Place Confirmed"}
+                        </h2>
+                        <p style="font-size: 15px; line-height: 1.6;">
+                          ${
+                            personRecord.locale === "es"
+                              ? `Hola ${personRecord.firstName}, tienes tu plaza confirmada para <strong>${ev.title}</strong>.`
+                              : `Hi ${personRecord.firstName}, your place is confirmed for <strong>${ev.title}</strong>.`
+                          }
+                        </p>
+                        <div style="background: #fff; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px; padding: 16px; margin: 20px 0; font-size: 14px;">
+                          <div>📅 <strong>${new Date(ev.startsAt).toLocaleDateString()}</strong></div>
+                          <div>📍 <strong>${ev.venueName}</strong></div>
+                        </div>
+                      </div>
+                    `;
+
+                    await queueAndSendEmail({
+                      personId: meta.personId,
+                      toEmail: personRecord.email,
+                      toName: `${personRecord.firstName} ${personRecord.lastName}`,
+                      templateKey: "booking_confirmed",
+                      dedupeKey: `booking_confirmed_${insertedBooking[0].id}`,
+                      subject,
+                      htmlContent,
+                      isTransactional: true,
+                    });
+                  }
+                }
+              });
+            }
+
             await db.insert(auditLog).values({
               actorId: meta.personId || meta.memberId,
               actorType: "member",
               action: "buy_extra_credits",
               entity: "credit_entry",
               entityId: meta.memberId,
-              after: { creditAmount, sessionId: session.id, expiresAt: expiresAt.toISOString() },
+              after: { creditAmount, eventId: meta.eventId || null, sessionId: session.id, expiresAt: expiresAt.toISOString() },
             });
           }
         }

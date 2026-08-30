@@ -112,7 +112,7 @@ export function canBook(
     return { allowed: false, reasonCode: "ALREADY_BOOKED" };
   }
 
-  if (event.activeMemberBookingsCount >= event.capacityMember) {
+  if (event.capacityMember > 0 && event.activeMemberBookingsCount >= event.capacityMember) {
     return { allowed: false, reasonCode: "MEMBER_CAPACITY_FULL" };
   }
 
