@@ -332,6 +332,7 @@ export function ApplyModal({
         {/* Step Title & Sub */}
         <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(26px, 4vw, 32px)", lineHeight: 1.2, margin: "0 0 12px", color: "#39292a" }}>
           {lang === "en" ? currentMeta.titleEn : currentMeta.titleEs}
+          {[0, 1, 2, 4, 5, 6, 10].includes(step) && <span style={{ color: "#7b1f2c", marginLeft: "4px" }}>*</span>}
         </h2>
         {currentMeta && (
           <p style={{ fontSize: "15px", lineHeight: "1.6", color: "rgba(57,41,42,0.68)", margin: "0 0 28px" }}>

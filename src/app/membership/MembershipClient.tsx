@@ -121,8 +121,8 @@ export default function MembershipClient({
               </p>
               <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", margin: "4px 0 0" }}>
                 {lang === "en"
-                  ? "Plus a one-time joining fee of €48 — or €13 if you have taken an Event Pass in the last 30 days."
-                  : "Más una cuota única de inscripción de 48€ — o 13€ si has comprado un Event Pass en los últimos 30 días."}
+                  ? "Plus a one-time €19 joining fee, charged with your first payment — €48 in all. No joining fee at all if you have taken an Event Pass in the last 30 days."
+                  : "Más una cuota única de inscripción de 19€, que se cobra con tu primer pago — 48€ en total. Sin cuota de inscripción si has tomado un Event Pass en los últimos 30 días."}
               </p>
             </div>
 
@@ -180,8 +180,8 @@ export default function MembershipClient({
           <div style={{ borderTop: "1px solid rgba(57,41,42,0.14)", paddingTop: "16px", marginBottom: "16px" }}>
             <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.6)", margin: 0 }}>
               {lang === "en"
-                ? `Only ${spotsRemaining} spots remaining at the founding rate. Once the 50 spots are taken, membership becomes €39. Your €29 rate is held for 12 months.`
-                : `Solo quedan ${spotsRemaining} plazas a tarifa fundadora. Cuando se ocupen las 50 plazas, la membresía será de 39€. Tu tarifa de 29€ se mantiene 12 meses.`}
+                ? `${spotsRemaining} of 50 Opening Circle spots remaining. Once the 50 spots are taken, membership opens at €39. Your €29 rate is held for 12 months.`
+                : `${spotsRemaining} de 50 plazas del Opening Circle disponibles. Cuando se ocupen las 50 plazas, la membresía se abre a 39€. Tu tarifa de 29€ se mantiene doce meses completos.`}
             </p>
           </div>
           <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.65)", display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -251,7 +251,7 @@ export default function MembershipClient({
                 : "Ven a un evento como invitada, sin necesidad de membresía — la forma más fácil de sentir la comunidad antes de decidir."}
             </p>
             <ul style={{ margin: 0, paddingLeft: "18px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.6)" }}>
-              <li>{lang === "en" ? "Two passes per person, and your €35 comes off the joining fee if you join within 30 days." : "Dos pases por persona, y tus 35€ se descuentan de la cuota de inscripción si te unes en 30 días."}</li>
+              <li>{lang === "en" ? "Two passes per person, and no joining fee at all if you join within 30 days." : "Dos pases por persona, y sin cuota de inscripción si te unes en 30 días."}</li>
               <li style={{ marginTop: "4px" }}>{lang === "en" ? "Most events are open to a pass — the calendar marks what a pass can book." : "Casi todos los eventos aceptan pase — el calendario indica cuáles."}</li>
             </ul>
           </div>
