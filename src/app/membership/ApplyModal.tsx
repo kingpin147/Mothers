@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { submitApplication, ApplicationFormData } from "@/app/actions/application";
+import { submitApplication, checkEmailExists, ApplicationFormData } from "@/app/actions/application";
 
 const STORAGE_KEY = "tm_apply_form";
 
@@ -19,6 +19,7 @@ export function ApplyModal({
   const [loading, setLoading] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [showError, setShowError] = useState<boolean>(false);
+  const [existingMemberEmail, setExistingMemberEmail] = useState<boolean>(false);
 
   const [answers, setAnswers] = useState<ApplicationFormData & { referralCode?: string }>({
     firstName: "",
@@ -138,15 +139,26 @@ export function ApplyModal({
 
   const currentMeta = stepsMeta[step];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     setShowError(false);
+    setExistingMemberEmail(false);
     if (step === 0 && !answers.firstName.trim()) {
       setShowError(true);
       return;
     }
-    if (step === 1 && (!answers.email.trim() || !answers.email.includes("@"))) {
-      setShowError(true);
-      return;
+    if (step === 1) {
+      if (!answers.email.trim() || !answers.email.includes("@")) {
+        setShowError(true);
+        return;
+      }
+      // Check if this email already has an account
+      setLoading(true);
+      const emailCheck = await checkEmailExists(answers.email.trim());
+      setLoading(false);
+      if (emailCheck.exists) {
+        setExistingMemberEmail(true);
+        return;
+      }
     }
     if (step === 5 && answers.hopingToFind.length === 0) {
       setShowError(true);
@@ -196,6 +208,9 @@ export function ApplyModal({
     if (res.success) {
       localStorage.removeItem(STORAGE_KEY);
       setSubmitted(true);
+    } else if (res.error === "EXISTING_MEMBER") {
+      setExistingMemberEmail(true);
+      setStep(1); // go back to email step
     } else {
       setShowError(true);
     }
@@ -339,7 +354,7 @@ export function ApplyModal({
               type="text"
               value={answers.lastName || ""}
               onChange={(e) => setAnswers({ ...answers, lastName: e.target.value })}
-              placeholder={lang === "en" ? "Surname" : "Apellido"}
+              placeholder={lang === "en" ? "Last name" : "Apellido"}
               style={{ ...inputStyle, flex: "1 1 180px" }}
             />
           </div>
@@ -594,8 +609,31 @@ export function ApplyModal({
           </div>
         )}
 
-        {/* Error message */}
-        {showError && (
+        {/* Error messages */}
+        {existingMemberEmail && (
+          <p style={{ fontSize: "13.5px", color: "#993842", margin: "10px 0 0", lineHeight: 1.5 }}>
+            {lang === "en" ? (
+              <>
+                You already have an account with us.{" "}
+                <Link href="/account/login" style={{ color: "#7b1f2c", fontWeight: 600, textDecoration: "underline" }}>
+                  Log in
+                </Link>
+                {" "}
+                to access your account or book events.
+              </>
+            ) : (
+              <>
+                Ya tienes una cuenta con nosotras.{" "}
+                <Link href="/account/login" style={{ color: "#7b1f2c", fontWeight: 600, textDecoration: "underline" }}>
+                  Inicia sesión
+                </Link>
+                {" "}
+                para acceder a tu cuenta o reservar eventos.
+              </>
+            )}
+          </p>
+        )}
+        {showError && !existingMemberEmail && (
           <p style={{ fontSize: "13px", color: "#993842", margin: "10px 0 0" }}>
             {lang === "en" ? "Please answer this question to continue." : "Responde esta pregunta para continuar."}
           </p>

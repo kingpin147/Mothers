@@ -85,7 +85,9 @@ function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
   return true;
 }
 
-function getCardBg(status: string): string {
+function getCardBg(status: string, isPastOverride?: boolean): string {
+  // Cancelled-but-past events should look grey, not pink
+  if (isPastOverride) return "#e9eaea";
   switch (status) {
     case "confirmed":         return "#e8f1e9";
     case "published_pending": return "#fff3e4";
@@ -97,7 +99,9 @@ function getCardBg(status: string): string {
   }
 }
 
-function getCardBorder(status: string): string {
+function getCardBorder(status: string, isPastOverride?: boolean): string {
+  // Cancelled-but-past events should look grey, not pinkish
+  if (isPastOverride) return "rgba(96, 110, 118, 0.45)";
   switch (status) {
     case "confirmed":         return "rgba(74, 122, 80, 0.45)";
     case "published_pending": return "rgba(164, 118, 31, 0.4)";
@@ -276,7 +280,7 @@ function FreeWalkRsvpModal({
               <input
                 type="text"
                 required
-                placeholder={lang === "en" ? "Surname" : "Apellido"}
+                placeholder={lang === "en" ? "Last name" : "Apellido"}
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 style={modalInputStyle}
@@ -455,7 +459,7 @@ function GuestPassModal({
             <input
               type="text"
               required
-              placeholder={lang === "en" ? "Surname" : "Apellido"}
+              placeholder={lang === "en" ? "Last name" : "Apellido"}
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               style={modalInputStyle}
@@ -655,7 +659,11 @@ function EventCard({
 }: EventCardProps) {
   const eligible = isGuestPassEligible(ev, isMember);
   const isCancelled = ev.status === "cancelled";
-  const isPast = ev.status === "past" || ev.status === "completed" || (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
+  // isPast: event date has passed (regardless of status label)
+  const isPast = ev.status === "past" || ev.status === "completed" ||
+    (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
+  // isCancelledAndPast: cancelled event whose date has also passed — card should be grey
+  const isCancelledAndPast = isCancelled && isPast;
   const isPending = ev.status === "published_pending" || ev.status === "pending";
   const isFull = ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 0;
 
@@ -674,10 +682,10 @@ function EventCard({
   return (
     <article
       style={{
-        border: `1px solid ${getCardBorder(ev.status)}`,
+        border: `1px solid ${getCardBorder(ev.status, isCancelledAndPast)}`,
         borderRadius: "8px",
         padding: "24px 22px",
-        backgroundColor: getCardBg(ev.status),
+        backgroundColor: getCardBg(ev.status, isCancelledAndPast),
         display: "flex",
         flexDirection: "column",
         gap: "12px",
@@ -884,17 +892,7 @@ function EventCard({
                   </Link>
                 )
               ) : ev.isSignature && !isMember ? (
-                <Link
-                  href="/membership"
-                  style={{
-                    fontSize: "13.5px",
-                    color: "#7b1f2c",
-                    textDecoration: "underline",
-                    fontWeight: 500,
-                  }}
-                >
-                  {lang === "en" ? "This one is for members. See the membership →" : "Este evento es para socias. Ver la membresía →"}
-                </Link>
+                <></>
               ) : (
                 <>
                   {eligible && (
@@ -1028,14 +1026,20 @@ export function EventsCalendar({ events, categories }: Props) {
     }
 
     // Status match
-    const isPastEvent = ev.status === "past" || ev.status === "completed" || (ev.endsAt ? new Date(ev.endsAt) < now : new Date(ev.startsAt) < now);
+    const isPastEvent = ev.status === "past" || ev.status === "completed" ||
+      (ev.endsAt ? new Date(ev.endsAt) < now : new Date(ev.startsAt) < now);
     if (activeStatus === "past") {
+      // Past filter: only truly past events, exclude cancelled (cancelled have their own filter)
       if (!isPastEvent) return false;
+      if (ev.status === "cancelled") return false;
+    } else if (activeStatus === "cancelled") {
+      // Cancelled filter: show cancelled events regardless of whether they are past
+      if (ev.status !== "cancelled") return false;
     } else {
+      // For all other filters: exclude past events
       if (isPastEvent) return false;
       if (activeStatus === "confirmed" && ev.status !== "confirmed") return false;
       if (activeStatus === "pending" && ev.status !== "published_pending" && ev.status !== "pending") return false;
-      if (activeStatus === "cancelled" && ev.status !== "cancelled") return false;
     }
 
     return true;

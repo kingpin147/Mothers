@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { person, application, consentRecord, window } from "@/db/schema";
+import { person, application, consentRecord, window, memberCredential } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { queueAndSendEmail } from "@/lib/brevo";
 
@@ -43,6 +43,23 @@ const applicationSchema = z.object({
   locale: z.enum(["en", "es"]).default("es"),
 });
 
+// ─── CHECK EMAIL EXISTS (for early duplicate detection) ──────────────────────
+export async function checkEmailExists(email: string): Promise<{ exists: boolean }> {
+  try {
+    const normalised = email.toLowerCase().trim();
+    const existingPerson = await db.query.person.findFirst({
+      where: eq(person.email, normalised),
+    });
+    if (!existingPerson) return { exists: false };
+    const credential = await db.query.memberCredential.findFirst({
+      where: eq(memberCredential.personId, existingPerson.id),
+    });
+    return { exists: !!credential };
+  } catch {
+    return { exists: false };
+  }
+}
+
 export async function submitApplication(data: ApplicationFormData) {
   try {
     const parsed = applicationSchema.safeParse(data);
@@ -82,6 +99,13 @@ export async function submitApplication(data: ApplicationFormData) {
         .returning();
       personRecord = insertedPerson[0];
     } else {
+      // Check if this person already has a login (active member account)
+      const existingCredential = await db.query.memberCredential.findFirst({
+        where: eq(memberCredential.personId, personRecord.id),
+      });
+      if (existingCredential) {
+        return { success: false, error: "EXISTING_MEMBER" };
+      }
       // Update names
       await db
         .update(person)

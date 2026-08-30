@@ -2,12 +2,25 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  minHeight: "48px",
+  padding: "12px 16px",
+  fontSize: "15px",
+  fontFamily: "var(--font-body)",
+  color: "#39292a",
+  backgroundColor: "#ffffff",
+  border: "1px solid rgba(57,41,42,0.22)",
+  borderRadius: "5px",
+  boxSizing: "border-box",
+  outline: "none",
+};
 
 function LoginForm() {
   const { data: session, status } = useSession();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [lang, setLang] = useState<"en" | "es">("en");
   const [email, setEmail] = useState("");
@@ -24,14 +37,20 @@ function LoginForm() {
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
       const role = (session.user as any)?.role;
-      const isAdmin = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
+      const isAdmin =
+        role === "owner" ||
+        role === "manager" ||
+        role === "host" ||
+        role === "super_admin";
       const callbackUrl = searchParams?.get("callbackUrl");
 
       if (isAdmin) {
         window.location.href = callbackUrl || "/admin";
       } else {
-        // Members must never be redirected to /admin
-        const memberTarget = callbackUrl && !callbackUrl.startsWith("/admin") ? callbackUrl : "/account";
+        const memberTarget =
+          callbackUrl && !callbackUrl.startsWith("/admin")
+            ? callbackUrl
+            : "/account";
         window.location.href = memberTarget;
       }
     }
@@ -41,7 +60,9 @@ function LoginForm() {
     e.preventDefault();
     if (!email || !password) {
       setErrorMsg(
-        lang === "en" ? "Please enter both email and password." : "Por favor escribe tu correo y contraseña."
+        lang === "en"
+          ? "Please enter both email and password."
+          : "Por favor escribe tu correo y contraseña."
       );
       return;
     }
@@ -58,7 +79,10 @@ function LoginForm() {
       redirect: false,
     });
 
-    let targetRoute = callbackUrl && !callbackUrl.startsWith("/admin") ? callbackUrl : "/account";
+    let targetRoute =
+      callbackUrl && !callbackUrl.startsWith("/admin")
+        ? callbackUrl
+        : "/account";
 
     // 2. If member sign in failed, automatically try Admin Credentials
     if (res?.error) {
@@ -84,111 +108,232 @@ function LoginForm() {
   };
 
   return (
-    <div style={{
-      backgroundColor: "var(--color-bg)",
-      minHeight: "85vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "48px 24px"
-    }}>
-      <div className="card" style={{
-        maxWidth: "460px",
-        width: "100%",
-        backgroundColor: "#fdf9f2",
-        padding: "40px 32px",
-        border: "1px solid var(--color-divider)"
-      }}>
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          <img
-            src="/assets/logo-mark-alpha.svg"
-            alt="The Mothers"
-            style={{ height: "56px", width: "auto", margin: "0 auto 16px" }}
-          />
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "28px", marginBottom: "6px" }}>
-            {lang === "en" ? "Sign In to The Mothers" : "Acceso a The Mothers"}
-          </h1>
-          <p style={{ fontSize: "14px", color: "var(--color-text-muted)", margin: 0 }}>
-            {lang === "en"
-              ? "Sign in with your member or operator account."
-              : "Introduce tu correo y contraseña para acceder."}
-          </p>
+    <div
+      style={{
+        backgroundColor: "#FEFDF9",
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "48px 24px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "420px",
+          width: "100%",
+          textAlign: "center",
+        }}
+      >
+        {/* Page label */}
+        <div
+          style={{
+            fontFamily: "var(--font-heading)",
+            fontWeight: 600,
+            fontSize: "12px",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "var(--color-accent, #7b1f2c)",
+            marginBottom: "14px",
+          }}
+        >
+          {lang === "en" ? "MEMBER ACCOUNT" : "CUENTA DE SOCIA"}
         </div>
 
-        {errorMsg && (
-          <div style={{
-            backgroundColor: "var(--color-status-cancelled)",
-            color: "#993842",
-            padding: "10px 14px",
-            borderRadius: "4px",
-            fontSize: "13.5px",
-            marginBottom: "20px"
-          }}>
-            {errorMsg}
-          </div>
-        )}
+        {/* Heading */}
+        <h1
+          style={{
+            fontFamily: "var(--font-heading)",
+            fontSize: "clamp(34px, 6vw, 46px)",
+            fontWeight: 400,
+            lineHeight: 1.1,
+            color: "#39292a",
+            margin: "0 0 14px",
+          }}
+        >
+          {lang === "en" ? "Welcome back." : "Bienvenida de nuevo."}
+        </h1>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
-              {lang === "en" ? "Email Address" : "Correo electrónico"}
-            </label>
-            <input
-              type="email"
-              className="input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              autoFocus
-            />
-          </div>
+        {/* Subtitle */}
+        <p
+          style={{
+            fontSize: "15px",
+            lineHeight: "1.6",
+            color: "rgba(57,41,42,0.62)",
+            margin: "0 0 32px",
+          }}
+        >
+          {lang === "en"
+            ? "Log in to view your credits and your upcoming experiences."
+            : "Inicia sesión para ver tus créditos y tus próximas experiencias."}
+        </p>
 
-          <div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-              <label style={{ fontSize: "13px", fontWeight: 600 }}>
-                {lang === "en" ? "Password" : "Contraseña"}
-              </label>
-              <Link
-                href="/account/forgot-password"
-                style={{ fontSize: "12px", color: "var(--color-accent)" }}
-              >
-                {lang === "en" ? "Forgot password?" : "¿Olvidaste la contraseña?"}
-              </Link>
+        {/* Card */}
+        <div
+          style={{
+            backgroundColor: "#fdf9f2",
+            border: "1px solid rgba(57,41,42,0.14)",
+            borderRadius: "8px",
+            padding: "clamp(28px, 5vw, 40px)",
+            textAlign: "left",
+          }}
+        >
+          {/* Error message */}
+          {errorMsg && (
+            <div
+              style={{
+                backgroundColor: "rgba(153,56,66,0.07)",
+                border: "1px solid rgba(153,56,66,0.25)",
+                color: "#993842",
+                padding: "11px 14px",
+                borderRadius: "5px",
+                fontSize: "13.5px",
+                marginBottom: "20px",
+                lineHeight: 1.5,
+              }}
+            >
+              {errorMsg}
             </div>
-            <input
-              type="password"
-              className="input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-          </div>
+          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn btn-primary"
-            style={{ width: "100%", padding: "12px", marginTop: "8px", fontSize: "15px" }}
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: "flex", flexDirection: "column", gap: "18px" }}
           >
-            {loading
-              ? lang === "en" ? "Signing in..." : "Iniciando sesión..."
-              : lang === "en" ? "Sign In" : "Entrar"}
-          </button>
-        </form>
+            {/* Email */}
+            <div>
+              <label
+                htmlFor="login-email"
+                style={{
+                  display: "block",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "#39292a",
+                  marginBottom: "7px",
+                  fontFamily: "var(--font-body)",
+                }}
+              >
+                {lang === "en" ? "Email" : "Correo electrónico"}
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={lang === "en" ? "you@email.com" : "tu@correo.com"}
+                required
+                autoFocus
+                style={inputStyle}
+              />
+            </div>
 
-        <div style={{
-          marginTop: "24px",
-          paddingTop: "16px",
-          borderTop: "1px solid var(--color-divider)",
-          textAlign: "center"
-        }}>
-          <p style={{ fontSize: "13px", color: "var(--color-text-muted)", margin: 0 }}>
-            {lang === "en" ? "Not a member yet?" : "¿Aún no eres socia?"}{" "}
-            <Link href="/membership/apply" style={{ fontWeight: 600 }}>
-              {lang === "en" ? "Apply to join" : "Solicitar membresía"}
+            {/* Password */}
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  justifyContent: "space-between",
+                  marginBottom: "7px",
+                }}
+              >
+                <label
+                  htmlFor="login-password"
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: "#39292a",
+                    fontFamily: "var(--font-body)",
+                  }}
+                >
+                  {lang === "en" ? "Password" : "Contraseña"}
+                </label>
+                <Link
+                  href="/account/forgot-password"
+                  style={{
+                    fontSize: "12px",
+                    color: "rgba(57,41,42,0.55)",
+                    textDecoration: "underline",
+                    textUnderlineOffset: "2px",
+                  }}
+                >
+                  {lang === "en" ? "Forgot password?" : "¿Olvidaste la contraseña?"}
+                </Link>
+              </div>
+              <input
+                id="login-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={inputStyle}
+              />
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "13px 24px",
+                marginTop: "4px",
+                border: "1px solid #7b1f2c",
+                backgroundColor: "transparent",
+                color: "#7b1f2c",
+                fontFamily: "var(--font-heading)",
+                fontWeight: 600,
+                fontSize: "15px",
+                borderRadius: "4px",
+                cursor: loading ? "wait" : "pointer",
+                letterSpacing: "0.02em",
+                transition: "background-color 0.15s ease, color 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#7b1f2c";
+                  (e.currentTarget as HTMLButtonElement).style.color = "#f8efe2";
+                }
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
+                (e.currentTarget as HTMLButtonElement).style.color = "#7b1f2c";
+              }}
+            >
+              {loading
+                ? lang === "en"
+                  ? "Logging in..."
+                  : "Iniciando sesión..."
+                : lang === "en"
+                ? "Log in"
+                : "Entrar"}
+            </button>
+          </form>
+
+          {/* Footer link */}
+          <p
+            style={{
+              fontSize: "13px",
+              color: "rgba(57,41,42,0.62)",
+              margin: "20px 0 0",
+              textAlign: "center",
+              lineHeight: 1.55,
+            }}
+          >
+            {lang === "en" ? "Not a member?" : "¿No eres socia?"}{" "}
+            <Link
+              href="/events"
+              style={{
+                color: "#7b1f2c",
+                textDecoration: "underline",
+                textUnderlineOffset: "2px",
+                fontWeight: 500,
+              }}
+            >
+              {lang === "en"
+                ? "Take a €35 Event Pass for a single event"
+                : "Compra un Event Pass por 35€ para un evento"}
             </Link>
           </p>
         </div>
@@ -199,7 +344,30 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "85vh", display: "flex", alignItems: "center", justifyContent: "center" }}>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#FEFDF9",
+          }}
+        >
+          <div
+            style={{
+              width: "20px",
+              height: "20px",
+              border: "2px solid rgba(57,41,42,0.2)",
+              borderTop: "2px solid #7b1f2c",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+            }}
+          />
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );
