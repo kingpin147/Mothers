@@ -22,8 +22,8 @@ export default function AdminDashboardPage() {
   const [cronRunning, setCronRunning] = useState<string | null>(null);
   const [actionRunning, setActionRunning] = useState<string | null>(null);
 
-  const fetchMetrics = async () => {
-    setLoading(true);
+  const fetchMetrics = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const res = await getAdminDashboardMetrics();
       if (res.success) {
@@ -32,11 +32,18 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error(err);
     }
-    setLoading(false);
+    if (!isBackground) setLoading(false);
   };
 
   useEffect(() => {
     fetchMetrics();
+
+    // Background polling every 15 seconds
+    const intervalId = setInterval(() => {
+      fetchMetrics(true);
+    }, 15000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const handleTriggerCron = async (jobKey: "threshold-decisions" | "expire-credits") => {

@@ -13,10 +13,20 @@ export async function getAdminEvents() {
     return { success: false, error: "UNAUTHORIZED" };
   }
 
-  const events = await db
-    .select()
+  const eventsData = await db
+    .select({
+      event: event,
+      bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`
+    })
     .from(event)
+    .leftJoin(booking, eq(booking.eventId, event.id))
+    .groupBy(event.id)
     .orderBy(desc(event.startsAt));
+
+  const events = eventsData.map(e => ({
+    ...e.event,
+    bookingsCount: e.bookingsCount
+  }));
 
   return { success: true, events };
 }
@@ -125,8 +135,11 @@ export async function updateAdminEvent(eventId: string, data: {
   creditCost?: number;
   capacityMember?: number;
   capacityGuest?: number;
+  capacityGuestGathering?: number;
   minToConfirm?: number;
   isSignature?: boolean;
+  showEventPassCta?: boolean;
+  languages?: string[];
 }) {
   const session = await auth();
   const adminId = session?.user?.id;
@@ -158,8 +171,11 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.creditCost !== undefined && { creditCost: data.creditCost, isFreeWalk: data.creditCost === 0 }),
       ...(data.capacityMember !== undefined && { capacityMember: data.capacityMember }),
       ...(data.capacityGuest !== undefined && { capacityGuest: data.capacityGuest }),
+      ...(data.capacityGuestGathering !== undefined && { capacityGuestGathering: data.capacityGuestGathering }),
       ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
       ...(data.isSignature !== undefined && { isSignature: !!data.isSignature }),
+      ...(data.showEventPassCta !== undefined && { showEventPassCta: !!data.showEventPassCta }),
+      ...(data.languages !== undefined && { languages: data.languages }),
       updatedAt: new Date(),
     })
     .where(eq(event.id, eventId));

@@ -241,6 +241,19 @@ export async function createEventCategory(data: {
   return { success: true, category: inserted[0] };
 }
 
+export async function deleteEventCategory(categoryId: string) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  await db.delete(eventCategory).where(eq(eventCategory.id, categoryId));
+
+  return { success: true };
+}
+
 export async function deleteEvent(eventId: string) {
   const session = await auth();
   const role = (session?.user as any)?.role;

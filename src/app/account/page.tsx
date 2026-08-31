@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -157,6 +157,10 @@ export default function AccountPage() {
   // Membership pause state
   const [pauseLoading, setPauseLoading] = useState(false);
   const [pauseResult, setPauseResult] = useState<{ success: boolean; error?: string } | null>(null);
+  const [showPauseConfirm, setShowPauseConfirm] = useState(false);
+
+  // Ref for scrolling to top-up section
+  const topUpRef = useRef<HTMLDivElement>(null);
 
   // Membership cancel state
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -324,10 +328,7 @@ export default function AccountPage() {
 
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             <span style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", padding: "6px 14px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px" }}>
-              Opening Circle
-            </span>
-            <span style={{ border: "1px solid #568b05", color: "#568b05", padding: "6px 14px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px" }}>
-              ★ Godmother Active
+              {memberData?.monthlyPriceCents === 2900 ? "Opening Circle" : "The Circle"}
             </span>
           </div>
         </div>
@@ -664,7 +665,10 @@ export default function AccountPage() {
                 <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", flexWrap: "wrap" }}>
                   <button
                     type="button"
-                    onClick={() => { setTopUpError(null); }}
+                    onClick={() => {
+                      setTopUpError(null);
+                      setTimeout(() => topUpRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+                    }}
                     style={{
                       border: "1px solid #7b1f2c",
                       color: "#7b1f2c",
@@ -767,7 +771,7 @@ export default function AccountPage() {
             </div>
 
             {/* Custom Styled Add Credits Top Up Form (Image 2) */}
-            <div style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", padding: "clamp(24px, 4vw, 32px)", backgroundColor: "#fff" }}>
+            <div ref={topUpRef} style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", padding: "clamp(24px, 4vw, 32px)", backgroundColor: "#fff" }}>
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", margin: "0 0 6px" }}>
                 {lang === "en" ? "Add credits — €1 each" : "Añadir créditos — 1€ cada uno"}
               </div>
@@ -1087,11 +1091,21 @@ export default function AccountPage() {
                         : (lang === "en" ? "Inactive" : "Inactiva")}
                     </span>
                   </div>
-                  {memberData?.currentPeriodEnd && (
-                    <div style={{ fontSize: "11px", color: "rgba(57,41,42,0.5)", marginTop: "4px" }}>
-                      {lang === "en" ? "Renews" : "Renovación"}: {new Date(memberData.currentPeriodEnd).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" })}
-                    </div>
-                  )}
+                </div>
+
+                <div style={{ backgroundColor: "#f4ece0", borderRadius: "6px", padding: "18px 20px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", marginBottom: "9px" }}>
+                    {lang === "en" ? "Credits Renew" : "Créditos se renuevan"}
+                  </div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px" }}>
+                    {(() => {
+                      const d = memberData?.currentPeriodEnd ? new Date(memberData.currentPeriodEnd) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+                      return d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" });
+                    })()}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "rgba(57,41,42,0.5)", marginTop: "4px" }}>
+                    {lang === "en" ? "+20 credits" : "+20 créditos"}
+                  </div>
                 </div>
               </div>
 
@@ -1295,8 +1309,16 @@ export default function AccountPage() {
               </p>
 
               {pauseResult?.success ? (
-                <div style={{ padding: "12px 16px", backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "6px", fontSize: "13.5px", color: "rgba(57,41,42,0.85)", marginBottom: "12px" }}>
-                  ✓ {lang === "en" ? "Your membership has been paused for 1 month." : "Tu membresía ha sido pausada por 1 mes."}
+                <div style={{ padding: "14px 18px", backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "6px", fontSize: "13.5px", color: "rgba(57,41,42,0.85)", marginBottom: "12px" }}>
+                  <div style={{ fontWeight: 600, marginBottom: "4px" }}>✓ {lang === "en" ? "Your membership is paused." : "Tu membresía está pausada."}</div>
+                  <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.65)" }}>
+                    {lang === "en" ? "Your credits are frozen and nothing will be billed while you're away." : "Tus créditos están congelados y no se cobrará nada mientras estés en pausa."}
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap" }}>
+                    <button type="button" onClick={() => router.push("/account")} style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "9px 18px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
+                      {lang === "en" ? "Resume membership" : "Reanudar membresía"}
+                    </button>
+                  </div>
                 </div>
               ) : pauseResult?.error ? (
                 <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "12px" }}>
@@ -1304,42 +1326,69 @@ export default function AccountPage() {
                 </div>
               ) : null}
 
-              <button
-                type="button"
-                disabled={pauseLoading || (memberData?.pausedUntil && new Date(memberData.pausedUntil) > new Date())}
-                onClick={async () => {
-                  setPauseLoading(true);
-                  setPauseResult(null);
-                  try {
-                    const res = await pauseMembership();
-                    setPauseResult(res);
-                    if (res.success) {
-                      const refreshed = await getAccountData();
-                      if (refreshed.success) setAccountData(refreshed);
-                    }
-                  } finally {
-                    setPauseLoading(false);
-                  }
-                }}
-                style={{
-                  border: "1px solid #7b1f2c",
-                  color: "#7b1f2c",
-                  backgroundColor: "transparent",
-                  padding: "12px 22px",
-                  borderRadius: "4px",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "14.5px",
-                  cursor: pauseLoading ? "wait" : "pointer"
-                }}
-              >
-                {pauseLoading
-                  ? (lang === "en" ? "Processing…" : "Procesando…")
-                  : (lang === "en" ? "Request a pause" : "Solicitar una pausa")}
-              </button>
+              {!pauseResult?.success && (
+                !showPauseConfirm ? (
+                  <button
+                    type="button"
+                    disabled={pauseLoading || (memberData?.pausedUntil && new Date(memberData.pausedUntil) > new Date())}
+                    onClick={() => setShowPauseConfirm(true)}
+                    style={{
+                      border: "1px solid #7b1f2c",
+                      color: "#7b1f2c",
+                      backgroundColor: "transparent",
+                      padding: "12px 22px",
+                      borderRadius: "4px",
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "14.5px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    {lang === "en" ? "Request a pause" : "Solicitar una pausa"}
+                  </button>
+                ) : (
+                  <div style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "6px", padding: "18px 20px", backgroundColor: "#f4f7ee" }}>
+                    <p style={{ fontSize: "14px", lineHeight: "1.55", color: "#39292a", margin: "0 0 14px" }}>
+                      {lang === "en"
+                        ? "Pause for up to two months a year at no cost — your credit expiry clock pauses too, so nothing lapses while you're away."
+                        : "Pausa hasta dos meses al año sin coste — el reloj de caducidad de créditos también se detiene, así que no pierdes nada mientras estás fuera."}
+                    </p>
+                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        disabled={pauseLoading}
+                        onClick={async () => {
+                          setPauseLoading(true);
+                          try {
+                            const res = await pauseMembership();
+                            setPauseResult(res);
+                            setShowPauseConfirm(false);
+                            if (res.success) {
+                              const refreshed = await getAccountData();
+                              if (refreshed.success) setAccountData(refreshed);
+                            }
+                          } finally {
+                            setPauseLoading(false);
+                          }
+                        }}
+                        style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "10px 20px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}
+                      >
+                        {pauseLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, pause my membership" : "Sí, pausar mi membresía")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowPauseConfirm(false)}
+                        style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "10px 20px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", backgroundColor: "transparent", cursor: "pointer" }}
+                      >
+                        {lang === "en" ? "Keep my membership active" : "Mantener mi membresía activa"}
+                      </button>
+                    </div>
+                  </div>
+                )
+              )}
             </div>
 
-            {/* Cancel Membership */}
+            {/* Cancel Membership — always rendered; text changes when scheduled */}
             {!memberData?.cancelAtPeriodEnd ? (
               <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#fffdfa" }}>
                 <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px", color: "#993842" }}>

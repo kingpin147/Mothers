@@ -7,6 +7,22 @@ import { useRouter } from "next/navigation";
 import { Locale } from "@/lib/i18n";
 import { getAccountData } from "@/app/actions/memberAccount";
 
+function groupByMonth(entries: any[]) {
+  const map: Record<string, any[]> = {};
+  for (const e of entries) {
+    const d = new Date(e.createdAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!map[key]) map[key] = [];
+    map[key].push(e);
+  }
+  return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+}
+
+function formatMonthLabel(key: string, locale: string) {
+  const [year, month] = key.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString(locale, { month: "long", year: "numeric" });
+}
+
 export default function ActivityStatementPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -43,8 +59,8 @@ export default function ActivityStatementPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ fontFamily: "var(--font-heading)", fontSize: "18px" }}>Loading statement...</p>
+      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#FEFDF9" }}>
+        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", color: "#7b1f2c" }}>Loading statement...</p>
       </div>
     );
   }
@@ -52,143 +68,125 @@ export default function ActivityStatementPage() {
   if (error || !accountData) {
     return (
       <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "16px" }}>
-        <p style={{ fontFamily: "var(--font-heading)", fontSize: "18px" }}>Unable to load statement</p>
-        <Link href="/account" style={{ color: "var(--color-accent)", textDecoration: "underline" }}>
-          Return to Account
-        </Link>
+        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px" }}>Unable to load statement</p>
+        <Link href="/account" style={{ color: "#7b1f2c", textDecoration: "underline" }}>Return to Account</Link>
       </div>
     );
   }
 
   const { member, credits } = accountData;
-  const ledger = credits?.ledger || [];
-  
-  // Sort ledger by date descending for the statement
-  const sortedLedger = [...ledger].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const ledger: any[] = credits?.ledger || [];
+  const locale = lang === "en" ? "en-GB" : "es-ES";
 
-  // Compute stats
-  const totalGranted = ledger.filter((e: any) => e.amount > 0).reduce((sum: number, e: any) => sum + e.amount, 0);
-  const totalSpent = ledger.filter((e: any) => e.amount < 0).reduce((sum: number, e: any) => sum + Math.abs(e.amount), 0);
-  // (Assuming expired credits would be a specific type or reason, for now just 0 as per hardcoded)
-  const expiredCredits = 0;
+  const totalGranted = ledger.filter((e) => e.amount > 0).reduce((s, e) => s + e.amount, 0);
+  const totalSpent = ledger.filter((e) => e.amount < 0).reduce((s, e) => s + Math.abs(e.amount), 0);
+  const memberSince = member?.createdAt
+    ? new Date(member.createdAt).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" })
+    : "";
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const grouped = groupByMonth(ledger);
+
+  const handlePrint = () => window.print();
 
   return (
-    <div style={{ backgroundColor: "#FEFDF9", minHeight: "100vh", padding: "clamp(40px, 5vw, 64px) clamp(24px, 5vw, 64px) 88px" }}>
-      <style dangerouslySetInnerHTML={{__html: `
-        @media print {
-          body { background-color: white !important; }
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-          .ledger-container { border: none !important; padding: 0 !important; box-shadow: none !important; }
-        }
-      `}} />
-      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-        <div className="no-print" style={{ marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Link href="/account" style={{ color: "var(--color-text-muted)", fontSize: "14px", textDecoration: "none" }}>
+    <div style={{ backgroundColor: "#FEFDF9", minHeight: "100vh", padding: "clamp(40px, 5vw, 64px) clamp(24px, 5vw, 64px) 88px", fontFamily: "'Lora', Georgia, serif" }}>
+      <style dangerouslySetInnerHTML={{ __html: `@media print { body { background: white !important; } .no-print { display: none !important; } }` }} />
+      <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+
+        {/* Nav */}
+        <div className="no-print" style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Link href="/account" style={{ color: "rgba(57,41,42,0.6)", fontSize: "14px", textDecoration: "none" }}>
             ← {lang === "en" ? "Back to Member Account" : "Volver a Mi Cuenta"}
           </Link>
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="btn btn-primary"
-            style={{ padding: "8px 18px", fontSize: "13px" }}
-          >
+          <button type="button" onClick={handlePrint} style={{ border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#f8efe2", padding: "8px 18px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
             {lang === "en" ? "Print / Download PDF" : "Imprimir / Guardar PDF"}
           </button>
         </div>
 
-        <div className="ledger-container" style={{ border: "1px solid var(--color-divider)", borderRadius: "8px", padding: "clamp(32px, 5vw, 48px)", backgroundColor: "#fff" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid var(--color-divider)", paddingBottom: "20px", marginBottom: "28px" }}>
+        {/* Document */}
+        <div style={{ backgroundColor: "#fff", border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", padding: "clamp(32px, 5vw, 48px)" }}>
+          {/* Header */}
+          <div style={{ borderBottom: "1px solid rgba(57,41,42,0.12)", paddingBottom: "22px", marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
             <div>
-              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent)" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "6px" }}>
                 The Mothers · Barcelona
-              </span>
-              <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "28px", margin: "6px 0 0" }}>
-                {lang === "en" ? "Credit Ledger Statement" : "Extracto del Saldo de Créditos"}
+              </div>
+              <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(22px, 4vw, 30px)", fontWeight: 400, margin: "0 0 4px" }}>
+                {lang === "en" ? "Your activity since joining." : "Tu actividad desde que te uniste."}
               </h1>
+              {memberSince && (
+                <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.55)" }}>
+                  {lang === "en" ? `Founding Circle member since ${memberSince}` : `Socia del Opening Circle desde ${memberSince}`}
+                </div>
+              )}
+              <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.45)", marginTop: "4px" }}>
+                {lang === "en" ? "Issued" : "Emitido"} {new Date().toLocaleDateString(locale)}
+              </div>
             </div>
-            <div style={{ textAlign: "right", fontSize: "12.5px", color: "var(--color-text-muted)" }}>
-              <div>{lang === "en" ? "Issued:" : "Emitido:"} {new Date().toLocaleDateString(lang === "en" ? "en-GB" : "es-ES")}</div>
-              <div>Member: {member?.firstName} {member?.lastName}</div>
+            <div style={{ textAlign: "right", fontSize: "12.5px", color: "rgba(57,41,42,0.55)" }}>
+              {member?.firstName} {member?.lastName}
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "12px", marginBottom: "36px" }}>
-            <div style={{ backgroundColor: "#fdf9f2", border: "1px solid var(--color-divider)", borderRadius: "4px", padding: "12px 16px" }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 600, color: "var(--color-accent)" }}>{credits?.available}</div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", color: "var(--color-text-muted)", marginTop: "2px" }}>
-                {lang === "en" ? "Current Balance" : "Saldo Actual"}
+          {/* Stats strip */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "36px" }}>
+            {[
+              { label: lang === "en" ? "CREDITS SINCE JOINING" : "CRÉDITOS DESDE EL INICIO", value: `+${totalGranted}`, color: "#568b05" },
+              { label: lang === "en" ? "CREDITS TO SPEND" : "CRÉDITOS PARA USAR", value: `${credits?.available ?? 0}`, color: "#39292a" },
+              { label: lang === "en" ? "USED IN EVENTS" : "USADOS EN EVENTOS", value: `${totalSpent}`, color: "#7b1f2c" },
+            ].map((stat) => (
+              <div key={stat.label} style={{ backgroundColor: "#fdf9f2", border: "1px solid rgba(57,41,42,0.1)", borderRadius: "6px", padding: "14px 16px", textAlign: "center" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "28px", fontWeight: 600, color: stat.color }}>{stat.value}</div>
+                <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(57,41,42,0.5)", marginTop: "4px", lineHeight: 1.3 }}>{stat.label}</div>
               </div>
-            </div>
-            <div style={{ backgroundColor: "#fdf9f2", border: "1px solid var(--color-divider)", borderRadius: "4px", padding: "12px 16px" }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 600, color: "var(--color-accent-2)" }}>+{totalGranted}</div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", color: "var(--color-text-muted)", marginTop: "2px" }}>
-                {lang === "en" ? "Total Granted" : "Total Otorgado"}
-              </div>
-            </div>
-            <div style={{ backgroundColor: "#fdf9f2", border: "1px solid var(--color-divider)", borderRadius: "4px", padding: "12px 16px" }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 600, color: "var(--color-accent)" }}>-{totalSpent}</div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", color: "var(--color-text-muted)", marginTop: "2px" }}>
-                {lang === "en" ? "Total Spent" : "Total Utilizado"}
-              </div>
-            </div>
-            <div style={{ backgroundColor: "#fdf9f2", border: "1px solid var(--color-divider)", borderRadius: "4px", padding: "12px 16px" }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontSize: "24px", fontWeight: 600 }}>{expiredCredits}</div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", color: "var(--color-text-muted)", marginTop: "2px" }}>
-                {lang === "en" ? "Expired Credits" : "Créditos Caducados"}
-              </div>
-            </div>
+            ))}
           </div>
 
-          <h3 style={{ fontSize: "18px", marginBottom: "16px" }}>
-            {lang === "en" ? "Transaction History (Append-Only)" : "Historial de Movimientos"}
-          </h3>
-          <div style={{ border: "1px solid var(--color-divider)", borderRadius: "4px", overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px" }}>
-              <thead>
-                <tr style={{ backgroundColor: "#faf6f0", borderBottom: "1px solid var(--color-divider)", textAlign: "left" }}>
-                  <th style={{ padding: "10px 14px" }}>{lang === "en" ? "Date" : "Fecha"}</th>
-                  <th style={{ padding: "10px 14px" }}>{lang === "en" ? "Movement Type" : "Tipo de Movimiento"}</th>
-                  <th style={{ padding: "10px 14px" }}>{lang === "en" ? "Details" : "Detalles"}</th>
-                  <th style={{ padding: "10px 14px", textAlign: "right" }}>{lang === "en" ? "Amount" : "Importe"}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedLedger.map((entry, idx) => (
-                  <tr key={entry.id || idx} style={{ borderBottom: "1px solid var(--color-divider)" }}>
-                    <td style={{ padding: "12px 14px", color: "var(--color-text-muted)", fontSize: "12.5px" }}>
-                      {new Date(entry.createdAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { year: "numeric", month: "short", day: "numeric" })}
-                    </td>
-                    <td style={{ padding: "12px 14px", fontWeight: 600 }}>
-                      {entry.type}
-                    </td>
-                    <td style={{ padding: "12px 14px", color: "var(--color-text-muted)" }}>
-                      {entry.reason || "—"}
-                    </td>
-                    <td style={{ padding: "12px 14px", textAlign: "right", fontWeight: 600, color: entry.amount > 0 ? "var(--color-accent-2)" : "var(--color-accent)" }}>
-                      {entry.amount > 0 ? `+${entry.amount}` : entry.amount}
-                    </td>
-                  </tr>
-                ))}
-                {sortedLedger.length === 0 && (
-                  <tr>
-                    <td colSpan={4} style={{ padding: "24px 8px", textAlign: "center", color: "rgba(57,41,42,0.5)" }}>
-                      {lang === "en" ? "No activity found." : "No se encontró actividad."}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          {/* Month-grouped ledger */}
+          {grouped.length === 0 ? (
+            <p style={{ textAlign: "center", color: "rgba(57,41,42,0.5)", fontSize: "14px", padding: "24px 0" }}>
+              {lang === "en" ? "No activity yet." : "Sin actividad aún."}
+            </p>
+          ) : (
+            grouped.map(([monthKey, entries]) => (
+              <div key={monthKey} style={{ marginBottom: "32px" }}>
+                {/* Month heading */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid rgba(57,41,42,0.15)", paddingBottom: "8px", marginBottom: "12px" }}>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", textTransform: "capitalize", color: "#39292a" }}>
+                    {formatMonthLabel(monthKey, locale)}
+                  </span>
+                  <span style={{ fontSize: "11px", color: "rgba(57,41,42,0.45)", letterSpacing: "0.04em" }}>
+                    {entries.length} {lang === "en" ? (entries.length === 1 ? "entry" : "entries") : (entries.length === 1 ? "movimiento" : "movimientos")}
+                  </span>
+                </div>
 
-          <p style={{ fontSize: "12.5px", color: "var(--color-text-muted)", marginTop: "24px", lineHeight: "1.5" }}>
+                {/* Entries */}
+                {[...entries]
+                  .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .map((entry: any, idx: number) => (
+                    <div key={entry.id || idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.06)" }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: "14px", color: "#39292a", lineHeight: 1.3 }}>
+                          {entry.reason || entry.type || "Credit entry"}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.5)", marginTop: "2px" }}>
+                          {new Date(entry.createdAt).toLocaleDateString(locale, { day: "numeric", month: "short" })}
+                          {entry.type && entry.reason && ` · ${entry.type}`}
+                        </div>
+                      </div>
+                      <span style={{ fontWeight: 700, fontSize: "14px", color: entry.amount > 0 ? "#568b05" : "#7b1f2c", whiteSpace: "nowrap" }}>
+                        {entry.amount > 0 ? `+${entry.amount}` : `${entry.amount}`} {lang === "en" ? "credits" : "créditos"}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            ))
+          )}
+
+          <p style={{ fontSize: "12px", color: "rgba(57,41,42,0.45)", marginTop: "24px", lineHeight: "1.5", borderTop: "1px solid rgba(57,41,42,0.1)", paddingTop: "16px" }}>
             {lang === "en"
-              ? "Note: Monthly credits expire after 6 months on a FIFO basis with no rollover cap. The clock pauses during membership pauses."
-              : "Nota: Los créditos mensuales caducan a los 6 meses según el orden FIFO sin tope de acumulación. El plazo se congela durante las pausas de membresía."}
+              ? "Monthly credits expire after 6 months on a FIFO basis. The clock pauses during membership pauses."
+              : "Los créditos mensuales caducan a los 6 meses según el orden FIFO. El plazo se congela durante las pausas de membresía."}
           </p>
         </div>
       </div>

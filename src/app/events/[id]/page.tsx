@@ -457,18 +457,50 @@ export default function EventDetailPage() {
             </button>
 
             {bookingSuccess ? (
-              <div style={{ textAlign: "center", padding: "16px 0" }}>
-                <div style={{ fontSize: "40px", marginBottom: "12px" }}>✓</div>
-                <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "24px", marginBottom: "10px", color: "var(--color-accent-2)" }}>
-                  {lang === "en" ? "Place confirmed!" : "¡Plaza confirmada!"}
+              <div style={{ textAlign: "center", padding: "8px 0" }}>
+                {/* Green shield icon */}
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px" }}>
+                  <svg viewBox="0 0 48 48" width="56" height="56" fill="none">
+                    <path d="M24 4L6 12v12c0 11.05 7.7 21.38 18 24 10.3-2.62 18-12.95 18-24V12L24 4z" fill="#e8f1e9" stroke="#568b05" strokeWidth="2"/>
+                    <path d="M17 24l5 5 9-9" stroke="#568b05" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "24px", marginBottom: "8px", color: "#39292a", fontWeight: 500 }}>
+                  {lang === "en" ? "Your place is booked." : "Tu plaza está reservada."}
                 </h3>
-                <p style={{ fontSize: "14.5px", color: "rgba(57,41,42,0.7)", marginBottom: "24px", lineHeight: 1.6 }}>
+                <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.7)", marginBottom: "6px", lineHeight: 1.6 }}>
                   {lang === "en"
-                    ? "Check your email for the meeting point and confirmation details."
-                    : "Revisa tu correo para ver el punto de encuentro y los detalles de confirmación."}
+                    ? `Your place at “${ev.title}” — ${ev.dateStr} — is booked${ev.creditCost > 0 ? `, using ${ev.creditCost} credits` : ""}.`
+                    : `Tu plaza en “${ev.title}” — ${ev.dateStr} — está reservada${ev.creditCost > 0 ? `, usando ${ev.creditCost} créditos` : ""}.`}
                 </p>
-                <button type="button" onClick={() => { setModalOpen(false); router.push("/account"); }} style={{ backgroundColor: "var(--color-accent)", color: "#f8efe2", border: "none", padding: "12px 28px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: "pointer", width: "100%" }}>
-                  {lang === "en" ? "Go to My Account" : "Ir a Mi Cuenta"}
+                {memberCredits !== null && (
+                  <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.55)", marginBottom: "20px" }}>
+                    {lang === "en"
+                      ? `You have ${Math.max(0, memberCredits - ev.creditCost)} credits left for this month.`
+                      : `Te quedan ${Math.max(0, memberCredits - ev.creditCost)} créditos para este mes.`}
+                  </p>
+                )}
+
+                {/* Booking note */}
+                <div style={{ backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.3)", borderRadius: "6px", padding: "14px 16px", marginBottom: "22px", textAlign: "left" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#456f04" }}>
+                      &#9889; {lang === "en" ? "Booking fast" : "Reservando rápido"}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.72)", margin: 0, lineHeight: 1.55 }}>
+                    {lang === "en"
+                      ? `${ev.title} is moderated by the Community Manager. Meeting-point changes and last-minute spots are shared with only members on the list.`
+                      : `${ev.title} está moderado por la Community Manager. Los cambios de punto de encuentro y plazas de última hora solo se comparten con las socias de la lista.`}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => { setModalOpen(false); setBookingSuccess(false); setIsAlreadyBooked(true); }}
+                  style={{ backgroundColor: "var(--color-accent)", color: "#f8efe2", border: "none", padding: "12px 28px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: "pointer", width: "100%" }}
+                >
+                  {lang === "en" ? "Got it" : "Entendido"}
                 </button>
               </div>
             ) : (

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { MoreHorizontal, Trash2, Archive, Calendar, Users, CheckCircle, Ticket, Edit2, Copy, Printer, X } from "lucide-react";
 import { getAdminEvents, createAdminEvent, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, updateAdminEvent } from "@/app/actions/adminEvents";
-import { getEventCategories, createEventCategory, deleteEvent } from "@/app/actions/events";
+import { getEventCategories, createEventCategory, deleteEventCategory, deleteEvent } from "@/app/actions/events";
 import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
 
@@ -20,6 +21,7 @@ export default function AdminEventsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
 
   // Attendees & Ticketing Modal State
   const [activeEventRoster, setActiveEventRoster] = useState<any | null>(null);
@@ -52,8 +54,12 @@ export default function AdminEventsPage() {
     creditCost: 18,
     capacityMember: 10,
     capacityGuest: 2,
+    capacityGuestGathering: 2,
     minToConfirm: 4,
     isSignature: false,
+    showEventPassCta: false,
+    languages: ["English", "Spanish"],
+    targetStages: [] as string[],
     description: "",
   });
 
@@ -77,8 +83,12 @@ export default function AdminEventsPage() {
       creditCost: ev.creditCost,
       capacityMember: ev.capacityMember,
       capacityGuest: ev.capacityGuest,
+      capacityGuestGathering: ev.capacityGuestGathering || 2,
       minToConfirm: ev.minToConfirm || 4,
       isSignature: !!ev.isSignature,
+      showEventPassCta: !!ev.showEventPassCta,
+      languages: ev.languages || ["English", "Spanish"],
+      targetStages: [] as string[],
       description: ev.description || "",
     });
     setShowEditModal(true);
@@ -119,8 +129,12 @@ export default function AdminEventsPage() {
     creditCost: 18,
     capacityMember: 10,
     capacityGuest: 2,
+    capacityGuestGathering: 2,
     minToConfirm: 4,
     isSignature: false,
+    showEventPassCta: false,
+    languages: ["English", "Spanish"],
+    targetStages: [] as string[],
     description: "",
   });
 
@@ -274,6 +288,17 @@ export default function AdminEventsPage() {
     }
   };
 
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete the category "${name}"? Events in this category will become uncategorized.`)) return;
+    const res = await deleteEventCategory(id);
+    if (res.success) {
+      alert("Category deleted!");
+      loadData();
+    } else {
+      alert(res.error || "Failed to delete category");
+    }
+  };
+
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
@@ -374,8 +399,10 @@ export default function AdminEventsPage() {
             </span>
             {categories.map((c) => (
               <span key={c.id} 
-                onClick={() => setCategoryFilter(c.id)}
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
                   backgroundColor: categoryFilter === c.id ? "var(--color-accent)" : "var(--color-surface)",
                   color: categoryFilter === c.id ? "#fff" : "inherit",
                   border: "1px solid var(--color-divider)",
@@ -385,7 +412,8 @@ export default function AdminEventsPage() {
                   fontWeight: 600,
                   cursor: "pointer"
               }}>
-                {c.name}
+                <span onClick={() => setCategoryFilter(c.id)}>{c.name}</span>
+                <X size={14} style={{ opacity: 0.5, cursor: "pointer", marginLeft: "4px" }} onClick={(e) => { e.stopPropagation(); handleDeleteCategory(c.id, c.name); }} />
               </span>
             ))}
           </div>
@@ -397,7 +425,8 @@ export default function AdminEventsPage() {
             const isActive = statusFilter === status;
             const label =
               status === "all" ? "All" :
-              status === "published_pending" ? "Pending Min." :
+              status === "published_pending" ? "Published-Gathering" :
+              status === "completed" ? "Past" :
               status.charAt(0).toUpperCase() + status.slice(1);
             return (
               <button
@@ -446,7 +475,7 @@ export default function AdminEventsPage() {
             return (
               <div className="card" style={{ padding: "48px", textAlign: "center", backgroundColor: "#fff" }}>
                 <h3 style={{ fontSize: "18px", color: "var(--color-text-muted)" }}>
-                  No events found with status "{statusFilter === "published_pending" ? "Pending Min." : statusFilter}"
+                  No events found with status "{statusFilter === "published_pending" ? "Published-Gathering" : statusFilter === "completed" ? "Past" : statusFilter}"
                 </h3>
               </div>
             );
@@ -470,187 +499,163 @@ export default function AdminEventsPage() {
                   {filteredEvents.map((ev) => {
                     const starts = new Date(ev.startsAt);
                     const isPending = ev.status === "published_pending";
+                    const isActionOpen = openActionMenuId === ev.id;
+                    const bookingsCount = ev.bookingsCount || 0;
 
-                  return (
-                    <tr key={ev.id} style={{ borderBottom: "1px solid var(--color-divider)" }}>
-                      <td style={{ padding: "16px 18px" }}>
-                        <div style={{ fontWeight: 600, color: "var(--color-text-main)", fontSize: "14px" }}>{ev.title}</div>
-                        <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "2px" }}>{ev.venueName}</div>
-                      </td>
-                      <td style={{ padding: "16px 18px", color: "var(--color-text-main)" }}>
-                        <div style={{ fontWeight: 500 }}>{starts.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</div>
-                        <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{starts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-                      </td>
-                      <td style={{ padding: "16px 18px", color: "var(--color-text-muted)" }}>{ev.neighbourhood}</td>
-                      <td style={{ padding: "16px 18px" }}>
-                        <span style={{ fontWeight: 600, color: "var(--color-text-main)" }}>{ev.capacityMember}</span> members
-                        {ev.capacityGuest > 0 && (
-                          <span style={{ fontSize: "12px", color: "var(--color-text-muted)", display: "block" }}>
-                            + {ev.capacityGuest} guests
+                    const now = new Date();
+                    const daysUntil = Math.round((starts.getTime() - now.getTime()) / 86400000);
+                    let tSchedule = "";
+                    if (daysUntil > 0 && ev.status !== "cancelled" && ev.status !== "completed") {
+                      if (daysUntil <= 2) tSchedule = "T-2";
+                      else if (daysUntil <= 7) tSchedule = "T-7";
+                      else if (daysUntil <= 10) tSchedule = "T-10";
+                      else if (daysUntil <= 14) tSchedule = "T-14";
+                      else if (daysUntil <= 28) tSchedule = "T-28";
+                    }
+
+                    return (
+                      <tr key={ev.id} style={{ borderBottom: "1px solid var(--color-divider)", position: "relative" }}>
+                        <td style={{ padding: "16px 18px", verticalAlign: "top" }}>
+                          <div style={{ fontWeight: 600, color: "var(--color-text-main)", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
+                            {ev.title}
+                            {tSchedule && (
+                              <span style={{ fontSize: "10px", padding: "2px 6px", backgroundColor: "#39292a", color: "#fff", borderRadius: "10px", fontWeight: 700 }}>
+                                {tSchedule}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "2px" }}>{ev.venueName}</div>
+                          <div style={{ display: "flex", gap: "4px", marginTop: "6px", flexWrap: "wrap" }}>
+                            {ev.isSignature && <span style={{ fontSize: "10px", backgroundColor: "#f5eee4", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>Members Only</span>}
+                            {ev.showEventPassCta && <span style={{ fontSize: "10px", backgroundColor: "#eef8f0", color: "#1e6833", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>Pass Active</span>}
+                          </div>
+                        </td>
+                        <td style={{ padding: "16px 18px", color: "var(--color-text-main)", verticalAlign: "top" }}>
+                          <div style={{ fontWeight: 500 }}>{starts.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</div>
+                          <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{starts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
+                        </td>
+                        <td style={{ padding: "16px 18px", color: "var(--color-text-muted)", verticalAlign: "top" }}>{ev.neighbourhood}</td>
+                        <td style={{ padding: "16px 18px", verticalAlign: "top" }}>
+                          <div style={{ fontWeight: 600, color: "var(--color-text-main)" }}>
+                            {bookingsCount} <span style={{ fontWeight: 400, color: "var(--color-text-muted)", fontSize: "12px" }}>/ {ev.minToConfirm} min</span>
+                          </div>
+                          <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "2px" }}>
+                            Cap: {ev.capacityMember}M {ev.capacityGuest > 0 && `+ ${ev.capacityGuest}G`}
+                          </div>
+                        </td>
+                        <td style={{ padding: "16px 18px", fontWeight: 600, color: "var(--color-accent)", verticalAlign: "top" }}>
+                          {ev.isFreeWalk ? (
+                            <span style={{ color: "#285430", backgroundColor: "#eef8f0", padding: "3px 8px", borderRadius: "4px", fontSize: "12px" }}>Free</span>
+                          ) : (
+                            `${ev.creditCost} credits`
+                          )}
+                        </td>
+                        <td style={{ padding: "16px 18px", verticalAlign: "top" }}>
+                          <span style={{
+                            padding: "4px 10px",
+                            borderRadius: "4px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            letterSpacing: "0.04em",
+                            textTransform: "uppercase",
+                            backgroundColor:
+                              ev.status === "confirmed" ? "#eef8f0" :
+                              ev.status === "cancelled" ? "#fef2f2" :
+                              "#fff9eb",
+                            color:
+                              ev.status === "confirmed" ? "#1e6833" :
+                              ev.status === "cancelled" ? "#b91c1c" : "#b45309",
+                            border: `1px solid ${
+                              ev.status === "confirmed" ? "#bbf7d0" :
+                              ev.status === "cancelled" ? "#fecdd3" : "#fde68a"
+                            }`
+                          }}>
+                            {ev.status === "published_pending" ? "Published-Gathering" : ev.status === "completed" ? "Past" : ev.status}
                           </span>
-                        )}
-                      </td>
-                      <td style={{ padding: "16px 18px", fontWeight: 600, color: "var(--color-accent)" }}>
-                        {ev.isFreeWalk ? (
-                          <span style={{ color: "#285430", backgroundColor: "#eef8f0", padding: "3px 8px", borderRadius: "4px", fontSize: "12px" }}>Free</span>
-                        ) : (
-                          `${ev.creditCost} credits`
-                        )}
-                      </td>
-                      <td style={{ padding: "16px 18px" }}>
-                        <span style={{
-                          padding: "4px 10px",
-                          borderRadius: "4px",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          letterSpacing: "0.04em",
-                          textTransform: "uppercase",
-                          backgroundColor:
-                            ev.status === "confirmed" ? "#eef8f0" :
-                            ev.status === "cancelled" ? "#fef2f2" :
-                            "#fff9eb",
-                          color:
-                            ev.status === "confirmed" ? "#1e6833" :
-                            ev.status === "cancelled" ? "#b91c1c" : "#b45309",
-                          border: `1px solid ${
-                            ev.status === "confirmed" ? "#bbf7d0" :
-                            ev.status === "cancelled" ? "#fecdd3" : "#fde68a"
-                          }`
-                        }}>
-                          {ev.status === "published_pending" ? "Pending Min." : ev.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: "16px 18px", textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "8px", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
-                          {/* Attendees Roster Button */}
-                          <button
-                            type="button"
-                            onClick={() => openRosterModal(ev)}
-                            style={{
-                              backgroundColor: "#f5eee4",
-                              color: "var(--color-accent)",
-                              border: "1px solid rgba(123, 31, 44, 0.3)",
-                              borderRadius: "5px",
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                            }}
-                          >
-                            👥 Ticketing Desk
-                          </button>
-                          
-                          <Link
-                            href={`/admin/events/${ev.id}/roster`}
-                            style={{
-                              backgroundColor: "#f8efe2",
-                              color: "#39292a",
-                              border: "1px solid rgba(57, 41, 42, 0.3)",
-                              borderRadius: "5px",
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              textDecoration: "none",
-                              cursor: "pointer",
-                            }}
-                          >
-                            🖨️ Print Sheet
-                          </Link>
-
-                          {isPending && (
-                            <button
-                              type="button"
-                              onClick={() => handleConfirm(ev.id)}
-                              disabled={actionLoading === ev.id}
-                              style={{
-                                backgroundColor: "#1e6833",
-                                color: "#ffffff",
-                                border: "none",
-                                borderRadius: "5px",
-                                padding: "6px 12px",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              ✓ Confirm
-                            </button>
+                          {ev.status === "cancelled" && ev.cancelReason && (
+                            <div style={{ fontSize: "11px", color: "#b91c1c", marginTop: "4px", maxWidth: "150px" }}>
+                              {ev.cancelReason}
+                            </div>
                           )}
-                          {ev.status !== "cancelled" && (
-                            <button
-                              type="button"
-                              onClick={() => handleCancel(ev.id)}
-                              disabled={actionLoading === ev.id}
-                              style={{
-                                backgroundColor: "#f4ede4",
-                                color: "var(--color-text-main)",
-                                border: "1px solid var(--color-divider)",
-                                borderRadius: "5px",
-                                padding: "6px 12px",
-                                fontSize: "12px",
-                                fontWeight: 500,
-                                cursor: "pointer",
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(ev)}
-                            style={{
-                              backgroundColor: "#f5eee4",
-                              color: "var(--color-text)",
-                              border: "1px solid var(--color-divider)",
-                              borderRadius: "5px",
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                            }}
-                          >
-                            ✏️ Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDuplicate(ev.id, ev.title)}
-                            disabled={actionLoading === ev.id}
-                            style={{
-                              backgroundColor: "#f5eee4",
-                              color: "var(--color-text)",
-                              border: "1px solid var(--color-divider)",
-                              borderRadius: "5px",
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                            }}
-                          >
-                            📋 Duplicate
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(ev.id, ev.title)}
-                            disabled={actionLoading === ev.id}
-                            style={{
-                              backgroundColor: "#fff1f2",
-                              color: "#b91c1c",
-                              border: "1px solid #fecdd3",
-                              borderRadius: "5px",
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                            }}
-                          >
-                            🗑 Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
+                        </td>
+                        <td style={{ padding: "16px 18px", textAlign: "right", verticalAlign: "top" }}>
+                          <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                            {isPending && (
+                              <button
+                                type="button"
+                                onClick={() => handleConfirm(ev.id)}
+                                disabled={actionLoading === ev.id}
+                                className="btn btn-outline"
+                                style={{ padding: "6px 12px", fontSize: "12px", borderColor: "#1e6833", color: "#1e6833" }}
+                              >
+                                Confirm
+                              </button>
+                            )}
+                            <div style={{ position: "relative" }}>
+                              <button
+                                onClick={() => setOpenActionMenuId(isActionOpen ? null : ev.id)}
+                                style={{
+                                  background: "none",
+                                  border: "1px solid var(--color-divider)",
+                                  borderRadius: "4px",
+                                  padding: "6px",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "var(--color-text-main)",
+                                }}
+                              >
+                                <MoreHorizontal size={16} />
+                              </button>
+                              
+                              {isActionOpen && (
+                                <div style={{
+                                  position: "absolute",
+                                  right: 0,
+                                  top: "100%",
+                                  marginTop: "4px",
+                                  backgroundColor: "#fff",
+                                  border: "1px solid var(--color-divider)",
+                                  borderRadius: "6px",
+                                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                                  zIndex: 50,
+                                  minWidth: "160px",
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  overflow: "hidden"
+                                }}>
+                                  <button onClick={() => { openRosterModal(ev); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
+                                    <Users size={14} /> Ticketing Desk
+                                  </button>
+                                  <Link href={`/admin/events/${ev.id}/roster`} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", width: "100%", textDecoration: "none", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
+                                    <Printer size={14} /> Print Sheet
+                                  </Link>
+                                  <button onClick={() => { handleOpenEdit(ev); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
+                                    <Edit2 size={14} /> Edit Event
+                                  </button>
+                                  <button onClick={() => { handleDuplicate(ev.id, ev.title); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
+                                    <Copy size={14} /> Duplicate
+                                  </button>
+                                  {ev.status !== "cancelled" && ev.status !== "completed" && (
+                                    <button onClick={() => { handleCancel(ev.id); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
+                                      <X size={14} /> Cancel Event
+                                    </button>
+                                  )}
+                                  {bookingsCount === 0 && ev.status !== "completed" && (
+                                    <button onClick={() => { handleDelete(ev.id, ev.title); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "#b91c1c" }}>
+                                      <Archive size={14} /> Archive
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
             </table>
           </div>
           );
@@ -997,7 +1002,7 @@ export default function AdminEventsPage() {
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "12px" }}>
                   <div>
                     <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Credit Cost</label>
                     <input
@@ -1019,9 +1024,6 @@ export default function AdminEventsPage() {
                       min={0}
                       required
                     />
-                    <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginTop: "2px" }}>
-                      Set to 0 for unlimited places.
-                    </div>
                   </div>
                   <div>
                     <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest Passes</label>
@@ -1034,16 +1036,60 @@ export default function AdminEventsPage() {
                       required
                     />
                   </div>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest (Gathering)</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={form.capacityGuestGathering}
+                      onChange={(e) => setForm({ ...form, capacityGuestGathering: Number(e.target.value) })}
+                      min={0}
+                    />
+                  </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "4px 0" }}>
-                  <input
-                    type="checkbox"
-                    id="isSignature"
-                    checked={form.isSignature}
-                    onChange={(e) => setForm({ ...form, isSignature: e.target.checked })}
-                  />
-                  <label htmlFor="isSignature" style={{ fontWeight: 600, cursor: "pointer" }}>🔒 Members only / Signature event</label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Target Stages (e.g. 0-1yr)</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={form.targetStages.join(", ")}
+                      onChange={(e) => setForm({ ...form, targetStages: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+                      placeholder="Comma separated"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Languages</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={form.languages.join(", ")}
+                      onChange={(e) => setForm({ ...form, languages: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+                      placeholder="English, Spanish"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", margin: "4px 0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input
+                      type="checkbox"
+                      id="isSignature"
+                      checked={form.isSignature}
+                      onChange={(e) => setForm({ ...form, isSignature: e.target.checked })}
+                    />
+                    <label htmlFor="isSignature" style={{ fontWeight: 600, cursor: "pointer" }}>🔒 Members only / Signature event</label>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input
+                      type="checkbox"
+                      id="showEventPassCta"
+                      checked={form.showEventPassCta}
+                      onChange={(e) => setForm({ ...form, showEventPassCta: e.target.checked })}
+                    />
+                    <label htmlFor="showEventPassCta" style={{ fontWeight: 600, cursor: "pointer" }}>🎟️ Enable €35 Event Pass CTA</label>
+                  </div>
                 </div>
 
                 <div>
@@ -1222,7 +1268,7 @@ export default function AdminEventsPage() {
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "12px" }}>
                   <div>
                     <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Credit Cost</label>
                     <input
@@ -1244,9 +1290,6 @@ export default function AdminEventsPage() {
                       min={0}
                       required
                     />
-                    <div style={{ fontSize: "11px", color: "var(--color-text-muted)", marginTop: "2px" }}>
-                      Set to 0 for unlimited places.
-                    </div>
                   </div>
                   <div>
                     <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest Passes</label>
@@ -1259,16 +1302,60 @@ export default function AdminEventsPage() {
                       required
                     />
                   </div>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest (Gathering)</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={editForm.capacityGuestGathering}
+                      onChange={(e) => setEditForm({ ...editForm, capacityGuestGathering: Number(e.target.value) })}
+                      min={0}
+                    />
+                  </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "4px 0" }}>
-                  <input
-                    type="checkbox"
-                    id="editIsSignature"
-                    checked={editForm.isSignature}
-                    onChange={(e) => setEditForm({ ...editForm, isSignature: e.target.checked })}
-                  />
-                  <label htmlFor="editIsSignature" style={{ fontWeight: 600, cursor: "pointer" }}>🔒 Members only / Signature event</label>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Target Stages (e.g. 0-1yr)</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={editForm.targetStages.join(", ")}
+                      onChange={(e) => setEditForm({ ...editForm, targetStages: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+                      placeholder="Comma separated"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Languages</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={editForm.languages.join(", ")}
+                      onChange={(e) => setEditForm({ ...editForm, languages: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
+                      placeholder="English, Spanish"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", margin: "4px 0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input
+                      type="checkbox"
+                      id="editIsSignature"
+                      checked={editForm.isSignature}
+                      onChange={(e) => setEditForm({ ...editForm, isSignature: e.target.checked })}
+                    />
+                    <label htmlFor="editIsSignature" style={{ fontWeight: 600, cursor: "pointer" }}>🔒 Members only / Signature event</label>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input
+                      type="checkbox"
+                      id="editShowEventPassCta"
+                      checked={editForm.showEventPassCta}
+                      onChange={(e) => setEditForm({ ...editForm, showEventPassCta: e.target.checked })}
+                    />
+                    <label htmlFor="editShowEventPassCta" style={{ fontWeight: 600, cursor: "pointer" }}>🎟️ Enable €35 Event Pass CTA</label>
+                  </div>
                 </div>
 
                 <div>
