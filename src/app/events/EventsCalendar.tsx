@@ -76,6 +76,18 @@ interface Props {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Normalise raw DB stage value → canonical display label
+function getStageLabel(raw: string | null | undefined, lang: Lang): string {
+  if (!raw) return "";
+  const s = raw.toLowerCase();
+  if (s.includes("pregnant") || s.includes("embaraz")) return lang === "en" ? "Pregnant" : "Embarazada";
+  if (s.includes("postpartum") || s.includes("posparto") || s.includes("0") || s.includes("babies") || s.includes("baby") || s.includes("0–12") || s.includes("0-12")) return lang === "en" ? "Babies" : "Bebés";
+  if (s.includes("toddler") || s.includes("1–3") || s.includes("1-3") || s.includes("primera infancia")) return lang === "en" ? "Toddlers" : "Peques";
+  if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-")) return lang === "en" ? "Children" : "Niños";
+  if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10")) return lang === "en" ? "Big Kids" : "Mayores";
+  return raw; // fallback: show as-is
+}
+
 function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
   if (isMember) return false;
   if (ev.creditCost === 0 || ev.isFreeWalk) return false;
@@ -831,7 +843,7 @@ function EventCard({
           </span>
           {ev.stage && (
             <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
-              {ev.stage}
+              {getStageLabel(ev.stage, lang)}
             </span>
           )}
           {eligible && (
@@ -956,10 +968,16 @@ function EventCard({
                 {(() => {
                   const now = new Date();
                   const starts = new Date(ev.startsAt);
-                  const isGuestWindowClosed = !isMember && ev.status === "confirmed" && !ev.isSignature && ev.creditCost > 0 && ev.creditCost <= 18 && (
+                  // Guest window closed — only show if the guest sub-cap is actually exhausted
+                  // (i.e. bookedGuest >= capacityGuest). Never show if nobody has booked yet.
+                  const guestCapFull = ev.capacityGuest != null && ev.capacityGuest > 0 &&
+                    (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined) &&
+                    (ev.capacityTotal != null) &&
+                    ((ev.capacityTotal - (ev.capacityRemaining ?? ev.capacityTotal)) >= ev.capacityGuest);
+                  const windowExpired = !isMember && ev.status === "confirmed" && !ev.isSignature && ev.creditCost > 0 && ev.creditCost <= 18 && (
                     ev.guestCloseAt ? now > new Date(ev.guestCloseAt) : (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24) < 2
                   );
-                  if (isGuestWindowClosed) return (lang === "en" ? " · guest places have closed" : " · las plazas de invitada se han cerrado");
+                  if (windowExpired && guestCapFull) return (lang === "en" ? " · guest places have closed" : " · las plazas de invitada se han cerrado");
                   if (isMember && isFull && !ev.userStatus?.isWaitlisted) return (lang === "en" ? " · no credits taken to wait" : " · no se cobran créditos por esperar");
                   if (isMember && !isFull && !ev.userStatus?.isBooked && ev.creditCost > 0 && ev.creditCost <= 18) {
                     return (lang === "en" ? ` · you have ${creditBalance} credits` : ` · tienes ${creditBalance} créditos`);
@@ -1268,14 +1286,9 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent)", marginBottom: "12px" }}>
             {lang === "en" ? "CALENDAR" : "CALENDARIO"}
           </div>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(34px, 5vw, 54px)", fontWeight: 400, lineHeight: 1.1, margin: "0 0 16px 0" }}>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(34px, 5vw, 54px)", fontWeight: 400, lineHeight: 1.1, margin: "0 0 28px 0" }}>
             {lang === "en" ? "Upcoming events." : "Próximos eventos."}
           </h1>
-          <p style={{ fontSize: "16px", color: "var(--color-text-muted)", maxWidth: "620px", margin: "0 auto 8px", lineHeight: 1.6 }}>
-            {lang === "en"
-              ? "Walks, workshops, dinners, and seasonal moments — browse what's coming up and reserve your spot."
-              : "Paseos, talleres, cenas y momentos de temporada — descubre lo que viene y reserva tu plaza."}
-          </p>
 
         </div>
 
@@ -1352,9 +1365,9 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
-                    border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
-                    backgroundColor: selected ? "rgba(123, 31, 44, 0.08)" : "transparent",
-                    color: selected ? "#7b1f2c" : "rgba(57,41,42,0.72)",
+                    border: selected ? `1px solid ${chip.dotBorder}` : "1px solid rgba(57,41,42,0.18)",
+                    backgroundColor: selected ? chip.dotBg || "rgba(57,41,42,0.06)" : "transparent",
+                    color: selected ? "#39292a" : "rgba(57,41,42,0.72)",
                     fontWeight: selected ? 600 : 400,
                     padding: "6px 14px",
                     borderRadius: "20px",

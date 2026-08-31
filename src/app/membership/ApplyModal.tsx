@@ -353,19 +353,27 @@ export function ApplyModal({
             <input
               type="text"
               value={answers.firstName}
-              onChange={(e) => setAnswers({ ...answers, firstName: e.target.value })}
-              placeholder={lang === "en" ? "First name" : "Nombre"}
-              style={{ ...inputStyle, flex: "1 1 180px" }}
+              onChange={(e) => {
+                setAnswers({ ...answers, firstName: e.target.value });
+                if (showError) setShowError(false);
+              }}
+              placeholder={lang === "en" ? "First name *" : "Nombre *"}
+              style={{ ...inputStyle, flex: "1 1 180px", border: showError && !answers.firstName.trim() ? "1px solid #993842" : inputStyle.border }}
               autoFocus
             />
             <input
               type="text"
               value={answers.lastName || ""}
               onChange={(e) => setAnswers({ ...answers, lastName: e.target.value })}
-              placeholder={lang === "en" ? "Last name" : "Apellido"}
+              placeholder={lang === "en" ? "Last name (optional)" : "Apellido (opcional)"}
               style={{ ...inputStyle, flex: "1 1 180px" }}
             />
           </div>
+        )}
+        {showError && step === 0 && !answers.firstName.trim() && (
+          <p style={{ fontSize: "13px", color: "#993842", margin: "4px 0 0" }}>
+            {lang === "en" ? "Please answer this question to continue." : "Por favor, responde a esta pregunta para continuar."}
+          </p>
         )}
 
         {/* Step 1: Email */}
@@ -391,9 +399,10 @@ export function ApplyModal({
               style={inputStyle}
             >
               <option value="Pregnant">{lang === "en" ? "Pregnant" : "Embarazo"}</option>
-              <option value="Postpartum (0–12 months)">{lang === "en" ? "Postpartum (0–12 months)" : "Posparto (0–12 meses)"}</option>
-              <option value="Toddlerhood (1–3 years)">{lang === "en" ? "Toddlerhood (1–3 years)" : "Primera infancia (1–3 años)"}</option>
-              <option value="Primary school (4–10 years)">{lang === "en" ? "Primary school (4–10 years)" : "Etapa escolar (4–10 años)"}</option>
+              <option value="Babies (0–12 months)">{lang === "en" ? "Babies (0–12 months)" : "Bebés (0–12 meses)"}</option>
+              <option value="Toddlers (1–3 years)">{lang === "en" ? "Toddlers (1–3 years)" : "Peques (1–3 años)"}</option>
+              <option value="Children (3–10 years)">{lang === "en" ? "Children (3–10 years)" : "Niños/as (3–10 años)"}</option>
+              <option value="Big Kids (10+)">{lang === "en" ? "Big Kids (10+)" : "Mayores (10+)"}</option>
               <option value="More than one stage at once">{lang === "en" ? "More than one stage at once" : "Más de una etapa a la vez"}</option>
             </select>
           </div>

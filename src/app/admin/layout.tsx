@@ -20,7 +20,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link href="/membership" style={{ color: "#39292a", textDecoration: "none" }}>Membership</Link>
             <Link href="/events" style={{ color: "#39292a", textDecoration: "none" }}>Events</Link>
             <Link href="/admin" style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "6px 14px", textDecoration: "none" }}>Admin</Link>
-            <button onClick={() => signOut({ callbackUrl: "/super-admin/login" })} style={{ color: "rgba(57,41,42,0.55)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", padding: 0 }}>Log out</button>
+            <button onClick={() => signOut({ callbackUrl: "/account/login" })} style={{ color: "rgba(57,41,42,0.55)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", padding: 0 }}>Log out</button>
           </div>
         </div>
       </div>

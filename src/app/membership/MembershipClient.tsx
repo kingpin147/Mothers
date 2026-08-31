@@ -230,8 +230,8 @@ export default function MembershipClient({
                     </div>
                     <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)", whiteSpace: "nowrap" }}>
                       {isEn
-                        ? `${spotsRemaining} spot${spotsRemaining === 1 ? "" : "s"} left before the offer closes`
-                        : `Quedan ${spotsRemaining} plaza${spotsRemaining === 1 ? "" : "s"} antes de que se cierre la oferta`}
+                        ? `${spotsRemaining} of ${FOUNDING_CAP} Opening Circle spots remaining`
+                        : `${spotsRemaining} de ${FOUNDING_CAP} plazas del Opening Circle disponibles`}
                     </span>
                   </div>
                   <div style={{ height: "6px", borderRadius: "3px", background: "rgba(57,41,42,0.12)", overflow: "hidden", marginBottom: "16px" }}>
