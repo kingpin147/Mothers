@@ -320,10 +320,7 @@ export default function EventDetailPage() {
                   : (lang === "en" ? "Full" : "Completo")}
                 {(() => {
                   const now = new Date();
-                  const starts = new Date(ev.startsAt);
-                  const isGuestWindowClosed = !isMember && ev.status === "confirmed" && !ev.isSignature && ev.creditCost > 0 && ev.creditCost <= 18 && (
-                    ev.guestCloseAt ? now > new Date(ev.guestCloseAt) : (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24) < 2
-                  );
+                  const isGuestWindowClosed = !isMember && ev.guestPassEligible && ev.guestCloseAt && now > new Date(ev.guestCloseAt);
                   return isGuestWindowClosed ? (lang === "en" ? " · guest places have closed" : " · las plazas de invitada se han cerrado") : "";
                 })()}
               </div>

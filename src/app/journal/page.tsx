@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Locale } from "@/lib/i18n";
+import { subscribeToLetter } from "@/app/actions/publicWindow";
 
 /* ─── Article data ─────────────────────────────────────────── */
 
@@ -156,20 +157,24 @@ export default function JournalPage() {
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     const email = signupEmail.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setSignupError(true);
       return;
     }
-    try {
-      const list = JSON.parse(localStorage.getItem("tm_newsletter") || "[]");
-      list.push({ email: email.toLowerCase(), source: "journal", at: Date.now() });
-      localStorage.setItem("tm_newsletter", JSON.stringify(list));
-    } catch (e) { /* ignore */ }
     setSignupError(false);
-    setSignupDone(true);
-    setSignupEmail("");
+    try {
+      const res = await subscribeToLetter(email);
+      if (res.success) {
+        setSignupDone(true);
+        setSignupEmail("");
+      } else {
+        setSignupError(true);
+      }
+    } catch (e) {
+      setSignupError(true);
+    }
   };
 
   // Filter articles

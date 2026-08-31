@@ -114,11 +114,11 @@ export const DICTIONARIES = {
     godmother: {
       kicker: "Godmother programme",
       heading: "Bring a friend, earn a month of credits.",
-      body: "Members can become Godmothers: you get a personal referral code for the mothers already asking where you found your people. No selling, no quotas — just an honest recommendation, and credits when it turns into a membership.",
+      body: "Every member is a Godmother from day one: your personal referral code is already in your account, for the mothers who keep asking where you found your people. No selling, no quotas — just an honest recommendation, and credits when it turns into a membership.",
       cta: "See it in your account",
-      ctaNote: "Open to members. Apply from your account — we read every application personally.",
+      ctaNote: "No application, no approval — your code is waiting in your account.",
       steps: [
-        { n: "01", title: "Get your code", body: "Apply from your account. Approved Godmothers receive a personal code and a welcome call." },
+        { n: "01", title: "Find your code", body: "It is already in your account the day you join — nothing to apply for." },
         { n: "02", title: "Share it", body: "Hand it to the friend who keeps asking, or post about the walk you actually enjoyed." },
         { n: "03", title: "Earn 20 credits", body: "5 credits the moment she joins, 15 more at her third month — credits never cap, so nothing is lost." },
       ],
@@ -250,11 +250,11 @@ export const DICTIONARIES = {
     godmother: {
       kicker: "Programa de Madrinas",
       heading: "Trae a una amiga y gana un mes de créditos.",
-      body: "Las socias pueden ser Madrinas: recibes un código personal para las madres que ya te preguntan dónde encontraste a tu gente. Sin vender nada y sin objetivos — solo una recomendación honesta, y créditos cuando se convierte en membresía.",
+      body: "Cada socia es Madrina desde el primer día: tu código personal ya está en tu cuenta, para las madres que te preguntan dónde encontraste a tu gente. Sin vender nada y sin objetivos — solo una recomendación honesta, y créditos cuando se convierte en membresía.",
       cta: "Verlo en tu cuenta",
-      ctaNote: "Solo para socias. Se solicita desde tu cuenta — leemos cada solicitud personalmente.",
+      ctaNote: "Sin solicitud y sin aprobación — tu código ya está en tu cuenta.",
       steps: [
-        { n: "01", title: "Consigue tu código", body: "Solicítalo desde tu cuenta. Las Madrinas aprobadas reciben un código personal y una llamada de bienvenida." },
+        { n: "01", title: "Busca tu código", body: "Ya está en tu cuenta desde el día en que te unes — no hay que solicitar nada." },
         { n: "02", title: "Compártelo", body: "Dáselo a la amiga que siempre pregunta, o cuenta el paseo que de verdad disfrutaste." },
         { n: "03", title: "Gana 20 créditos", body: "5 créditos cuando se une y 15 más a los tres meses — los créditos no tienen límite, así que nada se pierde." },
       ],

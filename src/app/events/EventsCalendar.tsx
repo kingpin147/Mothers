@@ -56,11 +56,22 @@ export interface PublicEvent {
   guestCloseAt?: string | Date | null;
   childcare?: string | null;
   cancelReason?: string | null;
+  userStatus?: {
+    isBooked?: boolean;
+    isRefunded?: boolean;
+    bookedAt?: string | Date;
+    refundedAt?: string | Date | null;
+    creditsCharged?: number;
+    isWaitlisted?: boolean;
+    waitlistPosition?: number;
+    waitlistCreatedAt?: string | Date;
+  } | null;
 }
 
 interface Props {
   events: PublicEvent[];
   categories: { id: string; name: string; slug: string }[];
+  creditBalance?: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -69,7 +80,7 @@ function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
   if (isMember) return false;
   if (ev.creditCost === 0 || ev.isFreeWalk) return false;
   if (ev.isSignature || ev.creditCost > 18) return false;
-  if (ev.status !== "confirmed") return false;
+  if (ev.status !== "confirmed" && !ev.showEventPassCta) return false;
 
   const starts = new Date(ev.startsAt);
   const now = new Date();
@@ -642,7 +653,111 @@ function CeilingModal({
   );
 }
 
-// ─── EventCard ────────────────────────────────────────────────────────────────
+// ─── TopUpModal ───────────────────────────────────────────────────────────────
+
+import { buyExtraCredits } from "@/app/actions/booking";
+
+function TopUpModal({
+  event: ev,
+  lang,
+  creditBalance,
+  onClose,
+}: {
+  event: PublicEvent | null;
+  lang: Lang;
+  creditBalance: number;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!ev) return null;
+
+  const shortfall = ev.creditCost - creditBalance;
+  if (shortfall <= 0) return null;
+
+  const handleTopUp = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await buyExtraCredits(shortfall, ev.id);
+      if (res.success && res.url) {
+        window.location.href = res.url;
+      } else {
+        setError(res.error || "Payment failed");
+        setLoading(false);
+      }
+    } catch {
+      setError("Payment failed");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        backgroundColor: "rgba(57, 41, 42, 0.45)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "24px", overflowY: "auto",
+      }}
+    >
+      <div
+        style={{
+          position: "relative", width: "100%", maxWidth: "480px", margin: "auto",
+          border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px",
+          padding: "clamp(28px, 5vw, 40px)", backgroundColor: "#ffffff",
+          boxShadow: "0 24px 60px rgba(45,43,43,0.18)", textAlign: "center",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: "absolute", top: "18px", right: "18px",
+            border: "none", background: "transparent", cursor: "pointer",
+            color: "rgba(57,41,42,0.5)", width: "30px", height: "30px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="17" height="17"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        </button>
+
+        <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "24px", margin: "0 0 14px", color: "#39292a" }}>
+          {lang === "en" ? "Top up your credits" : "Recargar créditos"}
+        </h2>
+        <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "0 0 24px" }}>
+          {lang === "en"
+            ? `You have ${creditBalance} credits and need ${ev.creditCost} to book "${ev.title}". Top up the remaining ${shortfall} credits for €${shortfall} to complete your booking.`
+            : `Tienes ${creditBalance} créditos y necesitas ${ev.creditCost} para reservar "${ev.title}". Recarga los ${shortfall} créditos restantes por ${shortfall}€ para completar tu reserva.`}
+        </p>
+
+        {error && (
+          <div style={{ color: "#993842", fontSize: "14px", marginBottom: "16px", background: "#fbf1f1", padding: "10px", borderRadius: "4px" }}>
+            {error}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={handleTopUp}
+          disabled={loading}
+          style={{
+            border: "1px solid #7b1f2c", color: "#f8efe2", backgroundColor: "#7b1f2c",
+            padding: "12px 24px", borderRadius: "4px", fontFamily: "var(--font-heading)",
+            fontWeight: 600, fontSize: "15px", cursor: loading ? "not-allowed" : "pointer",
+            width: "100%", opacity: loading ? 0.7 : 1,
+          }}
+        >
+          {loading 
+            ? (lang === "en" ? "Processing..." : "Procesando...") 
+            : (lang === "en" ? `Pay €${shortfall}` : `Pagar ${shortfall}€`)}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 interface EventCardProps {
   ev: PublicEvent;
@@ -650,7 +765,9 @@ interface EventCardProps {
   onOpenGuestPass: (ev: PublicEvent) => void;
   onOpenFreeRsvp: (ev: PublicEvent) => void;
   onOpenCeiling: (ev: PublicEvent) => void;
+  onOpenTopUp: (ev: PublicEvent) => void;
   isMember: boolean;
+  creditBalance?: number;
 }
 
 function EventCard({
@@ -659,7 +776,9 @@ function EventCard({
   onOpenGuestPass,
   onOpenFreeRsvp,
   onOpenCeiling,
+  onOpenTopUp,
   isMember,
+  creditBalance = 0,
 }: EventCardProps) {
   const eligible = isGuestPassEligible(ev, isMember);
   const isCancelled = ev.status === "cancelled";
@@ -675,7 +794,11 @@ function EventCard({
     if (ev.isFreeWalk || ev.creditCost === 0) {
       onOpenFreeRsvp(ev);
     } else if (isMember) {
-      window.location.href = `/events/${ev.id}`;
+      if (creditBalance < ev.creditCost && ev.creditCost <= 18) {
+        onOpenTopUp(ev);
+      } else {
+        window.location.href = `/events/${ev.id}`;
+      }
     } else if (ev.creditCost > 18 || ev.isSignature) {
       onOpenCeiling(ev);
     } else {
@@ -828,7 +951,7 @@ function EventCard({
         {!isCancelled && !isPast && (
           <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>
             {ev.capacityTotal ? (
-              <span style={{ color: (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 3) ? "#993842" : "rgba(57,41,42,0.6)" }}>
+              <span style={{ color: (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 3) ? "#8a6516" : "rgba(57,41,42,0.7)" }}>
                 {lang === "en" ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}` : `Plazas disponibles: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`}
                 {(() => {
                   const now = new Date();
@@ -836,7 +959,12 @@ function EventCard({
                   const isGuestWindowClosed = !isMember && ev.status === "confirmed" && !ev.isSignature && ev.creditCost > 0 && ev.creditCost <= 18 && (
                     ev.guestCloseAt ? now > new Date(ev.guestCloseAt) : (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24) < 2
                   );
-                  return isGuestWindowClosed ? (lang === "en" ? " · guest places have closed" : " · las plazas de invitada se han cerrado") : "";
+                  if (isGuestWindowClosed) return (lang === "en" ? " · guest places have closed" : " · las plazas de invitada se han cerrado");
+                  if (isMember && isFull && !ev.userStatus?.isWaitlisted) return (lang === "en" ? " · no credits taken to wait" : " · no se cobran créditos por esperar");
+                  if (isMember && !isFull && !ev.userStatus?.isBooked && ev.creditCost > 0 && ev.creditCost <= 18) {
+                    return (lang === "en" ? ` · you have ${creditBalance} credits` : ` · tienes ${creditBalance} créditos`);
+                  }
+                  return "";
                 })()}
               </span>
             ) : (
@@ -845,9 +973,18 @@ function EventCard({
           </div>
         )}
         {isCancelled && (
-          <div style={{ fontSize: "13.5px", color: "#993842", fontWeight: 500 }}>
-            {lang === "en" ? "Cancelled" : "Cancelado"}
-            {ev.cancelReason && ` — ${ev.cancelReason}`}
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <div style={{ fontSize: "13.5px", color: "#39292a", fontWeight: 500 }}>
+              {lang === "en" ? "Cancelled" : "Cancelado"}
+              {ev.cancelReason && ` — ${ev.cancelReason}`}
+            </div>
+            {ev.userStatus?.isRefunded && ev.userStatus.refundedAt && ev.userStatus.creditsCharged ? (
+              <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)" }}>
+                {lang === "en"
+                  ? `Your ${ev.userStatus.creditsCharged} credits were returned in full on ${new Date(ev.userStatus.refundedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+                  : `Tus ${ev.userStatus.creditsCharged} créditos fueron devueltos en su totalidad el ${new Date(ev.userStatus.refundedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+              </div>
+            ) : null}
           </div>
         )}
         {isPast && (
@@ -861,7 +998,43 @@ function EventCard({
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" }}>
           {!isCancelled && !isPast && (
             <>
-              {isFull ? (
+              {ev.userStatus?.isBooked ? (
+                <Link
+                  href={`/events/${ev.id}`}
+                  style={{
+                    border: "1px solid #7b1f2c",
+                    backgroundColor: "transparent",
+                    color: "#7b1f2c",
+                    padding: "10px 22px",
+                    borderRadius: "4px",
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 600,
+                    fontSize: "14.5px",
+                    textDecoration: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {lang === "en" ? "See your ticket" : "Ver tu entrada"}
+                </Link>
+              ) : ev.userStatus?.isWaitlisted ? (
+                <Link
+                  href={`/events/${ev.id}`}
+                  style={{
+                    border: "1px solid rgba(57,41,42,0.3)",
+                    backgroundColor: "transparent",
+                    color: "rgba(57,41,42,0.7)",
+                    padding: "10px 22px",
+                    borderRadius: "4px",
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 600,
+                    fontSize: "14.5px",
+                    textDecoration: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {lang === "en" ? "Leave waitlist" : "Salir de lista"}
+                </Link>
+              ) : isFull ? (
                 isMember ? (
                   <button
                     type="button"
@@ -985,7 +1158,7 @@ function EventCard({
 
 // ─── Main EventsCalendar Component ───────────────────────────────────────────
 
-export function EventsCalendar({ events, categories }: Props) {
+export function EventsCalendar({ events, categories, creditBalance = 0 }: Props) {
   const { data: session } = useSession();
   const isMember = !!session?.user;
 
@@ -997,6 +1170,7 @@ export function EventsCalendar({ events, categories }: Props) {
   const [guestPassEvent, setGuestPassEvent] = useState<PublicEvent | null>(null);
   const [freeRsvpEvent, setFreeRsvpEvent] = useState<PublicEvent | null>(null);
   const [ceilingEvent, setCeilingEvent] = useState<PublicEvent | null>(null);
+  const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
 
   useEffect(() => {
     const sync = () => {
@@ -1228,7 +1402,9 @@ export function EventsCalendar({ events, categories }: Props) {
                 onOpenGuestPass={setGuestPassEvent}
                 onOpenFreeRsvp={setFreeRsvpEvent}
                 onOpenCeiling={(e) => setCeilingEvent(e)}
+                onOpenTopUp={(e) => setTopUpEvent(e)}
                 isMember={isMember}
+                creditBalance={creditBalance}
               />
             ))}
           </div>
@@ -1257,6 +1433,15 @@ export function EventsCalendar({ events, categories }: Props) {
           event={ceilingEvent}
           lang={lang}
           onClose={() => setCeilingEvent(null)}
+        />
+      )}
+      
+      {topUpEvent && (
+        <TopUpModal
+          event={topUpEvent}
+          lang={lang}
+          creditBalance={creditBalance}
+          onClose={() => setTopUpEvent(null)}
         />
       )}
     </div>

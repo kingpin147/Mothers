@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, person, creditEntry, auditLog, eventCategory } from "@/db/schema";
+import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
@@ -33,8 +33,17 @@ export async function createAdminEvent(data: {
   creditCost: number;
   capacityMember: number;
   capacityGuest: number;
+  capacityGuestGathering?: number;
   minToConfirm?: number;
   isSignature?: boolean;
+  status?: "draft" | "published_pending";
+  languages?: string[];
+  showEventPassCta?: boolean;
+  guestOpenAt?: Date;
+  guestCloseAt?: Date;
+  decisionAt?: Date;
+  publishedAt?: Date;
+  targetStages?: string[];
 }) {
   const session = await auth();
   const adminId = session?.user?.id;
@@ -61,24 +70,47 @@ export async function createAdminEvent(data: {
       creditCost: data.creditCost,
       capacityMember: data.capacityMember,
       capacityGuest: data.capacityGuest,
+      capacityGuestGathering: data.capacityGuestGathering,
       minToConfirm: data.minToConfirm || 4,
       isSignature: !!data.isSignature,
       isFreeWalk: data.creditCost === 0,
-      status: "published_pending",
+      showEventPassCta: !!data.showEventPassCta,
+      status: data.status || "published_pending",
+      languages: data.languages || [],
+      guestOpenAt: data.guestOpenAt,
+      guestCloseAt: data.guestCloseAt,
+      decisionAt: data.decisionAt,
+      publishedAt: data.status === "published_pending" ? new Date() : undefined,
       hostAdminId: adminId,
     })
     .returning();
+
+  const newEventId = inserted[0].id;
+
+  if (data.targetStages && data.targetStages.length > 0) {
+    const allStages = await db.select().from(stage);
+    const stagesToInsert = [];
+    for (const sName of data.targetStages) {
+      const found = allStages.find(st => st.labelEn.toLowerCase().includes(sName.toLowerCase()) || st.key.toLowerCase().includes(sName.toLowerCase()));
+      if (found) {
+        stagesToInsert.push({ eventId: newEventId, stageId: found.id });
+      }
+    }
+    if (stagesToInsert.length > 0) {
+      await db.insert(eventStage).values(stagesToInsert);
+    }
+  }
 
   await db.insert(auditLog).values({
     actorId: adminId,
     actorType: "admin",
     action: "create_event",
     entity: "event",
-    entityId: inserted[0].id,
-    after: { title: data.title, creditCost: data.creditCost },
+    entityId: newEventId,
+    after: { title: data.title, creditCost: data.creditCost, status: data.status },
   });
 
-  return { success: true, eventId: inserted[0].id };
+  return { success: true, eventId: newEventId };
 }
 
 export async function updateAdminEvent(eventId: string, data: {
@@ -267,17 +299,24 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
       .where(eq(event.id, eventId));
 
     // Fetch all active bookings to refund credits
-    const activeBookings = await tx
-      .select()
+    const activeBookingsWithPerson = await tx
+      .select({
+        booking: booking,
+        person: person,
+      })
       .from(booking)
+      .leftJoin(person, eq(booking.personId, person.id))
       .where(
         and(
           eq(booking.eventId, eventId),
-          sql`status IN ('held', 'confirmed')`
+          sql`${booking.status} IN ('held', 'confirmed')`
         )
       );
 
-    for (const b of activeBookings) {
+    for (const row of activeBookingsWithPerson) {
+      const b = row.booking;
+      const p = row.person;
+      
       await tx
         .update(booking)
         .set({
@@ -295,6 +334,51 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
           sourceId: eventId,
           reason: `Auto refund: ${ev.title} cancelled by club`,
         });
+      }
+
+      if (p && p.email) {
+        const { queueAndSendEmail } = await import("@/lib/brevo");
+        
+        // Members get the member template, guests get the guest template
+        if (b.memberId) {
+          await queueAndSendEmail({
+            personId: p.id,
+            toEmail: p.email,
+            toName: p.firstName || "Member",
+            templateKey: "event_cancelled",
+            dedupeKey: `event_cancel_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
+            subject: `Update regarding ${ev.title}`,
+            htmlContent: `
+              <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #f8efe2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
+                <h2 style="font-size: 22px; color: #7b1f2c; margin-top: 0;">Important update for ${ev.title}</h2>
+                <p style="font-size: 15px; line-height: 1.6;">Dear ${p.firstName || "Member"},</p>
+                <p style="font-size: 15px; line-height: 1.6;">We're sorry to let you know that we've had to cancel <strong>${ev.title}</strong>.</p>
+                <p style="font-size: 15px; line-height: 1.6;">Your ${b.creditsCharged} credits have been returned in full to your account and are ready to use for future gatherings.</p>
+                <p style="font-size: 14px; margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+              </div>
+            `,
+            isTransactional: true,
+          });
+        } else {
+          await queueAndSendEmail({
+            personId: p.id,
+            toEmail: p.email,
+            toName: p.firstName || "Guest",
+            templateKey: "event_cancelled_guest",
+            dedupeKey: `event_cancel_guest_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
+            subject: `Update regarding ${ev.title}`,
+            htmlContent: `
+              <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #f8efe2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
+                <h2 style="font-size: 22px; color: #7b1f2c; margin-top: 0;">Important update for ${ev.title}</h2>
+                <p style="font-size: 15px; line-height: 1.6;">Dear ${p.firstName || "Guest"},</p>
+                <p style="font-size: 15px; line-height: 1.6;">We're sorry to let you know that we've had to cancel <strong>${ev.title}</strong>.</p>
+                <p style="font-size: 15px; line-height: 1.6;">Our team has initiated a full refund for your guest pass. Please allow 3–5 days for the funds to appear on your statement.</p>
+                <p style="font-size: 14px; margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+              </div>
+            `,
+            isTransactional: true,
+          });
+        }
       }
     }
 

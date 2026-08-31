@@ -44,6 +44,7 @@ export function canSeeEvent(
     status: string;
     isSignature: boolean;
     creditCost: number;
+    showEventPassCta?: boolean;
     guestOpenAt?: Date | null;
     guestCloseAt?: Date | null;
   },
@@ -59,7 +60,11 @@ export function canSeeEvent(
 
   // Guests:
   if (event.status !== "confirmed") {
-    return { allowed: false, reasonCode: "GUEST_SEES_CONFIRMED_ONLY" };
+    if (event.status === "published_pending" && event.showEventPassCta) {
+      // Allowed if operator flagged it
+    } else {
+      return { allowed: false, reasonCode: "GUEST_SEES_CONFIRMED_ONLY" };
+    }
   }
 
   if (event.isSignature) {
@@ -132,6 +137,7 @@ export function canBuyPass(
     status: string;
     isSignature: boolean;
     creditCost: number;
+    showEventPassCta?: boolean;
     capacityGuest: number;
     activeGuestBookingsCount: number;
     guestOpenAt?: Date | null;

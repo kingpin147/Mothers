@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function Footer() {
+  const pathname = usePathname();
   const [lang, setLang] = useState<"en" | "es">("en");
 
   useEffect(() => {
@@ -15,6 +17,11 @@ export function Footer() {
     window.addEventListener("tm_lang_change", updateLang);
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
+
+  // Early return must come AFTER all hooks
+  if (pathname.startsWith("/admin") || pathname.startsWith("/super-admin")) {
+    return null;
+  }
 
   return (
     <footer

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, eventCategory, booking, auditLog } from "@/db/schema";
+import { event, eventCategory, booking, auditLog, eventWaitlist, member } from "@/db/schema";
 import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
@@ -9,6 +9,10 @@ import { auth } from "@/lib/auth";
 
 export async function getPublicEvents() {
   try {
+    const session = await auth();
+    const personId = session?.user?.id;
+    let creditBalance = 0;
+    
     // 1. Fetch categories
     const categories = await db
       .select()
@@ -40,6 +44,10 @@ export async function getPublicEvents() {
         status: event.status,
         childcare: event.childcare,
         languages: event.languages,
+        showEventPassCta: event.showEventPassCta,
+        guestOpenAt: event.guestOpenAt,
+        guestCloseAt: event.guestCloseAt,
+        cancelReason: event.cancelReason,
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
@@ -67,10 +75,59 @@ export async function getPublicEvents() {
     for (const b of bookingsCount) {
       if (b.eventId) countMap.set(b.eventId, b.count);
     }
+    
+    // 4. Fetch user statuses if authenticated
+    const userBookingsMap = new Map<string, any>();
+    const userWaitlistMap = new Map<string, any>();
+    
+    if (personId) {
+      const userBookings = await db
+        .select({
+          eventId: booking.eventId,
+          status: booking.status,
+          createdAt: booking.createdAt,
+          updatedAt: booking.updatedAt,
+          creditsCharged: booking.creditsCharged,
+        })
+        .from(booking)
+        .where(eq(booking.personId, personId));
+
+      for (const b of userBookings) {
+        const existing = userBookingsMap.get(b.eventId!);
+        if (!existing || b.createdAt! > existing.createdAt!) {
+          userBookingsMap.set(b.eventId!, b);
+        }
+      }
+
+      const userWaitlists = await db
+        .select({
+          eventId: eventWaitlist.eventId,
+          createdAt: eventWaitlist.createdAt,
+          position: eventWaitlist.position,
+        })
+        .from(eventWaitlist)
+        .where(eq(eventWaitlist.personId, personId));
+
+      for (const w of userWaitlists) {
+        userWaitlistMap.set(w.eventId!, w);
+      }
+      
+      const memberRec = await db.query.member.findFirst({
+        where: eq(member.personId, personId),
+      });
+      if (memberRec) {
+        const { creditEntry } = await import("@/db/schema");
+        const creditEntries = await db
+          .select()
+          .from(creditEntry)
+          .where(eq(creditEntry.memberId, memberRec.id));
+        creditBalance = creditEntries.reduce((sum, entry) => sum + entry.amount, 0);
+      }
+    }
 
     const formattedEvents = events.map((ev) => {
       const starts = new Date(ev.startsAt);
-      const ends = new Date(ev.endsAt);
+      const ends = ev.endsAt ? new Date(ev.endsAt) : null;
 
       const dateStr = starts.toLocaleDateString("en-GB", {
         weekday: "long",
@@ -83,27 +140,49 @@ export async function getPublicEvents() {
         hour: "2-digit",
         minute: "2-digit",
       });
-      const endTimeStr = ends.toLocaleTimeString("en-GB", {
+      const endTimeStr = ends ? ends.toLocaleTimeString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
-      });
+      }) : "";
 
       const capacityTotal = ev.capacityMember;
       const capacityRemaining = capacityTotal !== null ? Math.max(0, capacityTotal - (countMap.get(ev.id) || 0)) : null;
 
       const audienceType = ev.childcare === "adults_only" ? "moms_only" : "moms_child";
+      
+      let userStatus: Record<string, any> | null = null;
+      if (personId) {
+        const ub = userBookingsMap.get(ev.id);
+        const uw = userWaitlistMap.get(ev.id);
+        if (ub) {
+          userStatus = {
+            isBooked: ub.status === "held" || ub.status === "confirmed",
+            isRefunded: ub.status === "released",
+            bookedAt: ub.createdAt,
+            refundedAt: ub.status === "released" ? ub.updatedAt : null,
+            creditsCharged: ub.creditsCharged,
+          };
+        }
+        if (uw) {
+          if (!userStatus) userStatus = {};
+          userStatus.isWaitlisted = true;
+          userStatus.waitlistPosition = uw.position;
+          userStatus.waitlistCreatedAt = uw.createdAt;
+        }
+      }
 
       return {
         ...ev,
         category: ev.categoryName || "General",
         stage: ev.stage || "All Stages",
         dateStr,
-        timeStr: `${startTimeStr} – ${endTimeStr}`,
+        timeStr: ends ? `${startTimeStr} – ${endTimeStr}` : startTimeStr,
         bookedMember: countMap.get(ev.id) || 0,
         capacityTotal,
         capacityRemaining,
         audienceType,
         languages: ev.languages || ["es", "en"],
+        userStatus,
       };
     });
 
@@ -116,10 +195,11 @@ export async function getPublicEvents() {
         stageAffinity: c.stageAffinity,
       })),
       events: formattedEvents,
+      creditBalance,
     };
   } catch (error: any) {
     console.error("getPublicEvents error:", error);
-    return { success: false, categories: [], events: [], error: error?.message };
+    return { success: false, categories: [], events: [], creditBalance: 0, error: error?.message };
   }
 }
 

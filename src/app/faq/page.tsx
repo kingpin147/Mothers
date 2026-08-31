@@ -37,6 +37,12 @@ const FAQ_LIST: FaqEntry[] = [
     aEs: "Sí. The Mothers está hecho para madres, y el embarazo cuenta — si estás embarazada, apúntate. La membresía, los Event Pass y los eventos de pago son solo para madres; nuestros paseos y encuentros en el parque están abiertos en las mismas condiciones. Si la maternidad está todavía por delante, únete a la Carta y estaremos aquí cuando deje de estarlo.",
   },
   {
+    qEn: "Which stage group will I be in?",
+    aEn: "Five groups, by where you are right now: Pregnant (from your first trimester until birth), Babies (0–12 months), Toddlers (1–3 years), Children (3–6 years) and Big kids (6–10 years). Your group follows your child's age, so it changes as she grows.",
+    qEs: "¿En qué grupo de etapa estaré?",
+    aEs: "Cinco grupos, según el momento en el que estás: Embarazo (desde el primer trimestre hasta el parto), Bebés (0–12 meses), Peques (1–3 años), Niños (3–6 años) y Niños grandes (6–10 años). Tu grupo va con la edad de tu hija, así que cambia a medida que crece.",
+  },
+  {
     qEn: "What are credits, and how do they work?",
     aEn: "Every month you get 20 credits to spend across the calendar — walks and park socials are always free and unlimited. Unused credits roll over with no ceiling, and each credit expires 6 months after it's issued, oldest first, so a rollover credit is always used before a fresh one. Save three quiet months and a Signature moment is within reach. We'll email you a reminder about 30 days before any credit is due to expire, so nothing lapses as a surprise.",
     qEs: "¿Qué son los créditos y cómo funcionan?",

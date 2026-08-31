@@ -11,7 +11,9 @@ import {
   journalPost,
   booking,
   event,
-  auditLog
+  auditLog,
+  godmotherReferral,
+  emailLog
 } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -84,6 +86,94 @@ export async function adjustMemberCredits(data: {
   });
 
   return { success: true };
+}
+
+export async function getAdminMemberDetail(memberId: string) {
+  await verifyAdminRole();
+
+  // 1. Core Profile
+  const memberData = await db
+    .select({
+      id: member.id,
+      personId: member.personId,
+      status: member.status,
+      stage: member.stage,
+      neighbourhood: member.neighbourhood,
+      joinedAt: member.joinedAt,
+      monthlyPriceCents: member.monthlyPriceCents,
+      currentPeriodEnd: member.currentPeriodEnd,
+      atRiskSince: member.atRiskSince,
+      pauseMonthsUsedYear: member.pauseMonthsUsedYear,
+      priceLockedUntil: member.priceLockedUntil,
+      children: member.children,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      email: person.email,
+      phone: person.phoneE164,
+      languages: person.locale, // Or actual languages field if added
+    })
+    .from(member)
+    .innerJoin(person, eq(member.personId, person.id))
+    .where(eq(member.id, memberId))
+    .limit(1)
+    .then(res => res[0]);
+
+  if (!memberData) {
+    return { success: false, error: "MEMBER_NOT_FOUND" };
+  }
+
+  // 2. Credits Ledger
+  const ledgerEntries = await db
+    .select()
+    .from(creditEntry)
+    .where(eq(creditEntry.memberId, memberId))
+    .orderBy(desc(creditEntry.createdAt));
+  const totalBalance = ledgerEntries.reduce((sum, e) => sum + e.amount, 0);
+
+  // 3. Godmother Referral Stats
+  const godmotherStats = await db
+    .select()
+    .from(godmotherReferral)
+    .where(eq(godmotherReferral.referrerMemberId, memberId));
+
+  // 4. Attendance History
+  const attendance = await db
+    .select({
+      id: booking.id,
+      status: booking.status,
+      creditsCharged: booking.creditsCharged,
+      bookedAt: booking.bookedAt,
+      releasedAt: booking.releasedAt,
+      eventTitle: event.title,
+      eventStartsAt: event.startsAt,
+      isFreeWalk: event.isFreeWalk,
+    })
+    .from(booking)
+    .innerJoin(event, eq(booking.eventId, event.id))
+    .where(eq(booking.memberId, memberId))
+    .orderBy(desc(event.startsAt));
+
+  // 5. Contact History (Emails)
+  const contactHistory = await db
+    .select({
+      id: emailLog.id,
+      templateKey: emailLog.templateKey,
+      sentAt: emailLog.sentAt,
+      status: emailLog.status,
+    })
+    .from(emailLog)
+    .where(eq(emailLog.personId, memberData.personId))
+    .orderBy(desc(emailLog.sentAt));
+
+  return {
+    success: true,
+    member: memberData,
+    ledgerEntries,
+    totalBalance,
+    godmotherStats,
+    attendance,
+    contactHistory,
+  };
 }
 
 // ─── 2. FINANCE & PAYMENTS MANAGEMENT ───────────────────────────────────────

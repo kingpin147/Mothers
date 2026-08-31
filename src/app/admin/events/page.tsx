@@ -15,6 +15,7 @@ export default function AdminEventsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -340,13 +341,13 @@ export default function AdminEventsPage() {
             >
               + Add Category
             </button>
-            <button
-              onClick={() => setShowCreateModal(true)}
+            <Link
+              href="/admin/events/create"
               className="btn btn-primary"
-              style={{ fontSize: "13px" }}
+              style={{ fontSize: "13px", textDecoration: "none" }}
             >
               + Create Event
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -356,14 +357,33 @@ export default function AdminEventsPage() {
             Active Categories in Calendar ({categories.length})
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            {categories.map((c) => (
-              <span key={c.id} style={{
-                backgroundColor: "var(--color-surface)",
+            <span
+              onClick={() => setCategoryFilter("all")}
+              style={{
+                backgroundColor: categoryFilter === "all" ? "var(--color-accent)" : "var(--color-surface)",
+                color: categoryFilter === "all" ? "#fff" : "inherit",
                 border: "1px solid var(--color-divider)",
                 padding: "4px 12px",
                 borderRadius: "999px",
                 fontSize: "12.5px",
-                fontWeight: 600
+                fontWeight: 600,
+                cursor: "pointer"
+              }}
+            >
+              All
+            </span>
+            {categories.map((c) => (
+              <span key={c.id} 
+                onClick={() => setCategoryFilter(c.id)}
+                style={{
+                  backgroundColor: categoryFilter === c.id ? "var(--color-accent)" : "var(--color-surface)",
+                  color: categoryFilter === c.id ? "#fff" : "inherit",
+                  border: "1px solid var(--color-divider)",
+                  padding: "4px 12px",
+                  borderRadius: "999px",
+                  fontSize: "12.5px",
+                  fontWeight: 600,
+                  cursor: "pointer"
               }}>
                 {c.name}
               </span>
@@ -411,14 +431,15 @@ export default function AdminEventsPage() {
             <p style={{ fontSize: "14px", color: "var(--color-text-muted)", marginBottom: "20px" }}>
               Click "+ Create Event" to schedule your first gathering.
             </p>
-            <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
+            <Link href="/admin/events/create" className="btn btn-primary" style={{ textDecoration: "none" }}>
               + Create First Event
-            </button>
+            </Link>
           </div>
         ) : (() => {
           const filteredEvents = events.filter((ev) => {
-            if (statusFilter === "all") return true;
-            return ev.status === statusFilter;
+            const statusMatch = statusFilter === "all" || ev.status === statusFilter;
+            const categoryMatch = categoryFilter === "all" || ev.categoryId === categoryFilter;
+            return statusMatch && categoryMatch;
           });
 
           if (filteredEvents.length === 0) {
@@ -516,8 +537,25 @@ export default function AdminEventsPage() {
                               cursor: "pointer",
                             }}
                           >
-                            👥 Roster & Tickets
+                            👥 Ticketing Desk
                           </button>
+                          
+                          <Link
+                            href={`/admin/events/${ev.id}/roster`}
+                            style={{
+                              backgroundColor: "#f8efe2",
+                              color: "#39292a",
+                              border: "1px solid rgba(57, 41, 42, 0.3)",
+                              borderRadius: "5px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              textDecoration: "none",
+                              cursor: "pointer",
+                            }}
+                          >
+                            🖨️ Print Sheet
+                          </Link>
 
                           {isPending && (
                             <button

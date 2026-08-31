@@ -8,7 +8,9 @@ import {
   person,
   member,
   creditEntry,
-  auditLog
+  auditLog,
+  eventWaitlist,
+  adminUser
 } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -72,6 +74,79 @@ export async function getEventAttendees(eventId: string) {
     success: true,
     memberBookings,
     guestPasses,
+  };
+}
+
+export async function getEventRosterDetail(eventId: string) {
+  await verifyAdmin();
+
+  const ev = await db.query.event.findFirst({
+    where: eq(event.id, eventId),
+  });
+  if (!ev) return { success: false, error: "EVENT_NOT_FOUND" };
+
+  let hostUser = null;
+  if (ev.hostAdminId) {
+    const hostAdmin = await db.query.adminUser.findFirst({
+      where: eq(adminUser.id, ev.hostAdminId),
+    });
+    if (hostAdmin) hostUser = { email: hostAdmin.email };
+  }
+
+  const memberBookings = await db
+    .select({
+      id: booking.id,
+      memberId: booking.memberId,
+      status: booking.status,
+      creditsCharged: booking.creditsCharged,
+      createdAt: booking.createdAt,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      email: person.email,
+      phone: person.phoneE164,
+    })
+    .from(booking)
+    .innerJoin(member, eq(booking.memberId, member.id))
+    .innerJoin(person, eq(member.personId, person.id))
+    .where(eq(booking.eventId, eventId))
+    .orderBy(desc(booking.createdAt));
+
+  const guestPasses = await db
+    .select({
+      id: eventPass.id,
+      status: eventPass.status,
+      pricePaidCents: eventPass.priceCents,
+      createdAt: eventPass.purchasedAt,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      email: person.email,
+    })
+    .from(eventPass)
+    .innerJoin(person, eq(eventPass.personId, person.id))
+    .where(eq(eventPass.eventId, eventId))
+    .orderBy(desc(eventPass.purchasedAt));
+
+  const waitlist = await db
+    .select({
+      id: eventWaitlist.id,
+      position: eventWaitlist.position,
+      joinedAt: eventWaitlist.createdAt,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      email: person.email,
+    })
+    .from(eventWaitlist)
+    .innerJoin(person, eq(eventWaitlist.personId, person.id))
+    .where(eq(eventWaitlist.eventId, eventId))
+    .orderBy(eventWaitlist.position);
+
+  return {
+    success: true,
+    event: ev,
+    hostUser,
+    memberBookings,
+    guestPasses,
+    waitlist,
   };
 }
 

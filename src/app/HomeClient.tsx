@@ -147,7 +147,7 @@ export default function HomeClient({
             }}
           >
             {t.hero.ctaSecondary}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
           </Link>
         </div>
 
@@ -405,7 +405,7 @@ export default function HomeClient({
                 }}
               >
                 {t.membershipTeaser.cta}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
               </Link>
             </div>
           </div>
@@ -414,7 +414,7 @@ export default function HomeClient({
             {t.membershipTeaser.bullets.map((b, idx) => (
               <li key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "15px", lineHeight: 1.5, color: "#39292a" }}>
                 <span style={{ flex: "none", color: "#568b05", marginTop: "3px" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
                     <path d="M20 6 9 17l-5-5" />
                   </svg>
                 </span>
@@ -561,7 +561,7 @@ export default function HomeClient({
                 e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
                 <path d="M19 12H5M11 18l-6-6 6-6" />
               </svg>
             </button>
@@ -591,7 +591,7 @@ export default function HomeClient({
                 e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </button>
@@ -667,7 +667,7 @@ export default function HomeClient({
               {t.godmother.body}
             </p>
             <Link
-              href="/godmothers"
+              href="/account"
               style={{
                 display: "inline-block",
                 border: "1px solid #568b05",
@@ -679,6 +679,12 @@ export default function HomeClient({
                 fontSize: "15px",
                 textDecoration: "none",
                 backgroundColor: "transparent",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(86,139,5,0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
               {t.godmother.cta}

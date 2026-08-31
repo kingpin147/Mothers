@@ -28,7 +28,8 @@ export default async function MembershipPage() {
   return (
     <MembershipClient 
       initialWindowOpen={state.open} 
-      initialSpotsRemaining={state.spotsRemaining} 
+      initialSpotsRemaining={state.spotsRemaining}
+      nextWindowDate={state.nextWindowDate ?? null}
     />
   );
 }

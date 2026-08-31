@@ -258,17 +258,28 @@ export async function releaseBooking(bookingId: string) {
       if (!ev) throw new Error("EVENT_NOT_FOUND");
 
       // 3. Mark booking released
+      const msUntilEvent = new Date(ev.startsAt).getTime() - Date.now();
+      const hoursUntilEvent = msUntilEvent / (1000 * 60 * 60);
+      const isInside24h = hoursUntilEvent <= 24;
+
       await tx
         .update(booking)
         .set({
           status: "released",
           releasedAt: new Date(),
           updatedAt: new Date(),
+          ...(isInside24h && b.memberId && b.creditsCharged > 0
+            ? {
+                pendingReturnState: "awaiting_replacement",
+                pendingReturnCredits: b.creditsCharged,
+              }
+            : {}),
         })
         .where(eq(booking.id, bookingId));
 
       // 4. Return credits if member booking (§5)
-      if (b.memberId && b.creditsCharged > 0) {
+      let returnedCredits = 0;
+      if (b.memberId && b.creditsCharged > 0 && !isInside24h) {
         // Find the original spend entry for this booking
         const spendEntry = await tx.query.creditEntry.findFirst({
           where: and(
@@ -297,6 +308,7 @@ export async function releaseBooking(bookingId: string) {
             reason: `Released seat for ${ev.title}`,
           });
         }
+        returnedCredits = b.creditsCharged;
       }
 
       // 5. Trigger waitlist offer to Position 1 (§7.4)
@@ -345,10 +357,40 @@ export async function releaseBooking(bookingId: string) {
       return {
         eventId: b.eventId,
         eventTitle: ev.title,
-        returnedCredits: b.creditsCharged,
+        returnedCredits,
         offeredPersonId,
       };
     });
+    if (result.offeredPersonId) {
+      const offeredPerson = await db.query.person.findFirst({
+        where: eq(person.id, result.offeredPersonId)
+      });
+      if (offeredPerson) {
+        const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        await queueAndSendEmail({
+          personId: result.offeredPersonId,
+          toEmail: offeredPerson.email,
+          toName: offeredPerson.firstName || "Member",
+          templateKey: "window_is_open",
+          dedupeKey: `window_open_${result.eventId}_${Date.now().toString().slice(0, 8)}`,
+          subject: `A spot opened up for ${result.eventTitle}`,
+          htmlContent: `
+            <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #f8efe2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
+              <h2 style="font-size: 22px; color: #7b1f2c; margin-top: 0;">Good news!</h2>
+              <p style="font-size: 15px; line-height: 1.6;">Dear ${offeredPerson.firstName || "Member"},</p>
+              <p style="font-size: 15px; line-height: 1.6;">A place just became available for <strong>${result.eventTitle}</strong>.</p>
+              <p style="font-size: 15px; line-height: 1.6;">You have priority to claim this spot. Please click below to confirm your booking.</p>
+              <div style="margin: 32px 0; text-align: center;">
+                <a href="${origin}/events/${result.eventId}" style="display: inline-block; background: #7b1f2c; color: #f8efe2; padding: 12px 28px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 15px;">Claim your spot</a>
+              </div>
+              <p style="font-size: 14px; color: rgba(57,41,42,0.8); line-height: 1.5;">If you no longer wish to attend, you can simply ignore this email or remove yourself from the list.</p>
+              <p style="font-size: 14px; margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+            </div>
+          `,
+          isTransactional: true,
+        });
+      }
+    }
 
     return { success: true, returnedCredits: result.returnedCredits };
   } catch (error: any) {
@@ -356,7 +398,6 @@ export async function releaseBooking(bookingId: string) {
     return { success: false, error: error?.message || "RELEASE_FAILED" };
   }
 }
-
 // ─── 3. GUEST PASS PURCHASE WITH 32-BYTE TOKEN (§9) ─────────────────────────
 
 const buyGuestPassSchema = z.object({
@@ -415,14 +456,28 @@ export async function buyGuestPass(params: {
 
       const lifetimePassCount = Number(pastPasses[0]?.count || 0);
 
+      const guestBookingsCount = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(booking)
+        .where(
+          and(
+            eq(booking.eventId, eventId),
+            eq(booking.kind, "guest"),
+            sql`status IN ('held', 'confirmed')`
+          )
+        );
+
+      const activeGuestBookingsCount = Number(guestBookingsCount[0]?.count || 0);
+
       const passCheck = canBuyPass(
         { isMother: personRecord.isMother, lifetimePassCount },
         {
           status: ev.status,
           isSignature: ev.isSignature,
           creditCost: ev.creditCost,
+          showEventPassCta: ev.showEventPassCta,
           capacityGuest: ev.capacityGuest,
-          activeGuestBookingsCount: 0,
+          activeGuestBookingsCount,
         }
       );
 

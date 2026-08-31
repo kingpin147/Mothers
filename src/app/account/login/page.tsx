@@ -110,7 +110,7 @@ function LoginForm() {
   return (
     <div
       style={{
-        backgroundColor: "#FEFDF9",
+        backgroundColor: "#f8efe2",
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
@@ -352,7 +352,7 @@ export default function LoginPage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#FEFDF9",
+            backgroundColor: "#f8efe2",
           }}
         >
           <div

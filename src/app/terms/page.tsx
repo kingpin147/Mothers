@@ -125,7 +125,7 @@ export default function LegalPage() {
       </section>
 
       {/* ─── TERMS & CONDITIONS SECTION ─── */}
-      <section id="terms" style={{ maxWidth: "760px", margin: "0 auto", padding: "clamp(40px, 6vw, 64px) clamp(24px, 5vw, 64px) 8px", scrollMarginTop: "24px" }}>
+      <section id="terms" style={{ maxWidth: "760px", margin: "0 auto", padding: "clamp(40px, 6vw, 64px) clamp(24px, 5vw, 64px) 8px", scrollMarginTop: "100px" }}>
         <div style={{ borderTop: "2px solid rgba(57,41,42,0.5)", paddingTop: "26px" }}>
           <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(27px, 3.4vw, 38px)", lineHeight: 1.15, margin: "0 0 10px" }}>
             {isEn ? "Terms & Conditions" : "Términos y Condiciones"}
@@ -133,7 +133,7 @@ export default function LegalPage() {
           <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.5)", margin: "0 0 20px" }}>
             {isEn ? "Last updated 20 August 2026 · Barcelona, Spain" : "Última actualización: 20 de agosto de 2026 · Barcelona, España"}
           </p>
-          <p style={{ fontSize: "15.5px", lineHeight: 1.75, color: "rgba(57,41,42,0.78)", textAlign: "justify", margin: 0 }}>
+          <p style={{ fontSize: "15.5px", lineHeight: 1.75, color: "rgba(57,41,42,0.78)", margin: 0, maxWidth: "48em", textWrap: "pretty" }}>
             {isEn
               ? "These Terms & Conditions govern your use of the themothers.cc website and your membership with The Mothers, a private membership club for mothers operating in Barcelona, Spain. By submitting an application, booking a place as a guest, or otherwise using this website, you agree to be bound by these Terms. If you don't agree, please don't use the site or services."
               : "Estos Términos y Condiciones regulan el uso del sitio themothers.cc y tu membresía con The Mothers, un club privado de membresía para madres que opera en Barcelona, España. Al enviar una solicitud, reservar una plaza como invitada o utilizar este sitio web, aceptas quedar vinculada por estos Términos."}
@@ -148,7 +148,7 @@ export default function LegalPage() {
               <span style={{ color: "rgba(123,31,44,0.4)", fontWeight: 400 }}>{sec.n}</span>
               <span>{sec.title}</span>
             </h3>
-            <p style={{ fontSize: "15.5px", lineHeight: 1.75, color: "rgba(57,41,42,0.75)", textAlign: "justify", margin: 0 }}>
+            <p style={{ fontSize: "15.5px", lineHeight: 1.75, color: "rgba(57,41,42,0.75)", margin: 0, maxWidth: "48em", textWrap: "pretty" }}>
               {sec.body}
             </p>
           </div>
@@ -156,7 +156,7 @@ export default function LegalPage() {
       </section>
 
       {/* ─── PRIVACY POLICY SECTION ─── */}
-      <section id="privacy" style={{ maxWidth: "760px", margin: "0 auto", padding: "clamp(40px, 6vw, 64px) clamp(24px, 5vw, 64px) 8px", scrollMarginTop: "24px" }}>
+      <section id="privacy" style={{ maxWidth: "760px", margin: "0 auto", padding: "clamp(40px, 6vw, 64px) clamp(24px, 5vw, 64px) 8px", scrollMarginTop: "100px" }}>
         <div style={{ borderTop: "2px solid rgba(57,41,42,0.5)", paddingTop: "26px" }}>
           <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(27px, 3.4vw, 38px)", lineHeight: 1.15, margin: "0 0 10px" }}>
             {isEn ? "Privacy Policy" : "Política de Privacidad"}
@@ -164,7 +164,7 @@ export default function LegalPage() {
           <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.5)", margin: "0 0 20px" }}>
             {isEn ? "Last updated 20 August 2026 · Barcelona, Spain" : "Última actualización: 20 de agosto de 2026 · Barcelona, España"}
           </p>
-          <p style={{ fontSize: "15.5px", lineHeight: 1.75, color: "rgba(57,41,42,0.78)", textAlign: "justify", margin: 0 }}>
+          <p style={{ fontSize: "15.5px", lineHeight: 1.75, color: "rgba(57,41,42,0.78)", margin: 0, maxWidth: "48em", textWrap: "pretty" }}>
             {isEn
               ? "This Privacy Policy explains how The Mothers collects, uses and protects your personal data when you apply for membership, book events, or use themothers.cc. The Mothers is the data controller for the personal data described here, and can be reached at hello@themothers.cc for any privacy question."
               : "Esta Política de Privacidad explica cómo The Mothers recopila, utiliza y protege tus datos personales cuando solicitas tu membresía, reservas eventos o utilizas themothers.cc. The Mothers es la responsable del tratamiento de los datos personales descritos aquí."}
@@ -179,7 +179,7 @@ export default function LegalPage() {
               <span style={{ color: "rgba(123,31,44,0.4)", fontWeight: 400 }}>{sec.n}</span>
               <span>{sec.title}</span>
             </h3>
-            <p style={{ fontSize: "15.5px", lineHeight: 1.75, color: "rgba(57,41,42,0.75)", textAlign: "justify", margin: 0 }}>
+            <p style={{ fontSize: "15.5px", lineHeight: 1.75, color: "rgba(57,41,42,0.75)", margin: 0, maxWidth: "48em", textWrap: "pretty" }}>
               {sec.body}
             </p>
           </div>

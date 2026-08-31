@@ -9,7 +9,19 @@ export async function getPublicMembershipWindow() {
     where: eq(window.status, "open"),
   });
 
-  if (!currentWindow) return { open: false, spotsRemaining: 0 };
+  if (!currentWindow) {
+    // Look for the next scheduled (draft) window
+    const nextWindow = await db.query.window.findFirst({
+      where: eq(window.status, "draft"),
+      orderBy: [window.opensAt],
+    });
+
+    return {
+      open: false,
+      spotsRemaining: 0,
+      nextWindowDate: nextWindow?.opensAt?.toISOString() ?? null,
+    };
+  }
 
   const [result] = await db
     .select({ count: sql<number>`count(*)` })
@@ -22,6 +34,7 @@ export async function getPublicMembershipWindow() {
   return {
     open: true,
     spotsRemaining: Math.max(0, currentWindow.placesOffered - Number(result?.count || 0)),
+    nextWindowDate: null as string | null,
   };
 }
 

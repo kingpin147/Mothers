@@ -23,6 +23,10 @@ export function Navigation() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  if (pathname.startsWith("/admin") || pathname.startsWith("/super-admin")) {
+    return null;
+  }
+
   const switchLang = (newLang: "en" | "es") => {
     setLang(newLang);
     localStorage.setItem("tm_lang", newLang);

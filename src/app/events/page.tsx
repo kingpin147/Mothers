@@ -27,6 +27,7 @@ export default async function EventsPage() {
     <EventsCalendar
       events={data.events || []}
       categories={data.categories || []}
+      creditBalance={data.creditBalance || 0}
     />
   );
 }

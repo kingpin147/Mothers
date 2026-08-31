@@ -17,8 +17,6 @@ export default function AdminDashboardPage() {
     }
   }, [status, router]);
 
-  const role = (session?.user as any)?.role || "manager";
-
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [cronRunning, setCronRunning] = useState<string | null>(null);
@@ -26,11 +24,15 @@ export default function AdminDashboardPage() {
 
   const fetchMetrics = async () => {
     setLoading(true);
-    const res = await getAdminDashboardMetrics();
-    setLoading(false);
-    if (res.success) {
-      setData(res);
+    try {
+      const res = await getAdminDashboardMetrics();
+      if (res.success) {
+        setData(res);
+      }
+    } catch (err) {
+      console.error(err);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -62,7 +64,10 @@ export default function AdminDashboardPage() {
 
   const handleQuickCancel = async (eventId: string) => {
     const reason = prompt("Enter cancellation reason (credits returned automatically):", "Threshold not reached");
-    if (!reason) return;
+    if (!reason) {
+      setActionRunning(null);
+      return;
+    }
     setActionRunning(eventId);
     const res = await cancelEventDecision(eventId, reason);
     setActionRunning(null);
@@ -72,367 +77,279 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const metrics = data?.metrics || {
-    activeMembersCount: 0,
-    atRiskCount: 0,
-    pendingAppsCount: 0,
-    t7EventsCount: 0,
-    revenueCents: 0,
-    placesOffered: 50,
-    windowLockMonths: 12,
-  };
-
-  const alerts = data?.alerts || { t7Events: [] };
-  const recentActivity = data?.recentActivity || [];
+  const roleLabel = `Role · ${data?.role ?? 'Owner'}`;
+  const decisions = data?.decisions || [];
+  const warnings = data?.warnings || [];
+  const applications = data?.applications || [];
+  const money = data?.money || [];
+  const week = data?.week || [];
+  
+  const queues = [
+    { kicker: 'Queue 01 · Membership', title: 'Applications & intake', body: 'Read one at a time, accept with the 72-hour payment link, or decline to the waitlist.', cta: 'Open the queue', href: '/admin/applications' },
+    { kicker: 'Queue 02 · Events', title: 'Calendar & thresholds', body: 'Publish gatherings, set minimums and decision points, confirm or cancel with automatic refunds.', cta: 'Open the calendar', href: '/admin/events' },
+    { kicker: 'Queue 03 · Member care', title: 'Directory & credit ledger', body: 'Search by name, stage or neighbourhood, spot at-risk accounts, adjust credits with a reason.', cta: 'Open the directory', href: '/admin/members' },
+    { kicker: 'Queue 04 · Finance', title: 'Payments & revenue', body: 'Subscriptions, €35 Event Passes, €19 joining fees, refunds and shop orders.', cta: 'Open the ledger', href: '/admin/finance' }
+  ];
+  const cms = [
+    { label: 'Partner directory & perk codes', href: '/admin/partners' },
+    { label: 'FAQ — English & Spanish', href: '/admin/faq' },
+    { label: 'Journal & editorial', href: '/admin/journal' },
+    { label: 'Club & credit policy settings', href: '/admin/settings' }
+  ];
+  const jobs = [
+    { label: 'T-7 threshold check', last: 'Automated job', key: 'threshold-decisions' },
+    { label: 'Credit expiry, oldest first', last: 'Automated job', key: 'expire-credits' },
+    { label: 'Godmother three-month milestones', last: 'Automated job', key: 'godmother' }
+  ];
+  
+  const stats = data?.stats || [];
+  const audit = data?.audit || [];
 
   return (
-    <div style={{ backgroundColor: "var(--color-bg)", minHeight: "100vh", padding: "40px clamp(24px, 5vw, 64px) 96px" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        {/* Top Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px", flexWrap: "wrap", gap: "16px" }}>
-          <div>
-            <div style={{
-              fontFamily: "var(--font-heading)",
-              fontWeight: 600,
-              fontSize: "12px",
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--color-accent)",
-              marginBottom: "4px"
-            }}>
-              The Mothers · Operator Command Center
-            </div>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "36px", margin: "0 0 6px" }}>
-              Operational Care & Control Suite
-            </h1>
-            <p style={{ fontSize: "14.5px", color: "var(--color-text-muted)", margin: 0 }}>
-              Real-time monitoring across membership queues, event thresholds, credit ledgers, and editorial CMS.
-            </p>
+    <>
+      <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "clamp(26px,4vw,40px) clamp(18px,4vw,34px) 64px" }}>
+        
+        {/* TITLE ROW */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "28px" }}>
+          <div style={{ flex: "1 1 420px" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>The Mothers · Admin</div>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(32px,4.4vw,44px)", lineHeight: 1.1, margin: "0 0 9px" }}>What needs you today</h1>
+            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "64ch", textWrap: "pretty" }}>Sunday 30 August. Everything below has a deadline, a payment or a mother waiting behind it. The counts sit at the bottom.</p>
           </div>
-
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <span style={{
-              backgroundColor: "#fff",
-              border: "1px solid var(--color-divider)",
-              borderRadius: "5px",
-              padding: "7px 14px",
-              fontSize: "12.5px",
-              fontWeight: 600,
-              color: "var(--color-accent)"
-            }}>
-              Role: {role.toUpperCase()}
-            </span>
-            <button
-              onClick={() => signOut({ callbackUrl: "/account/login" })}
-              className="btn btn-secondary"
-              style={{ padding: "7px 14px", fontSize: "12.5px" }}
-            >
-              Sign Out
-            </button>
+          <div style={{ display: "flex", gap: "9px", alignItems: "center" }}>
+            <span style={{ border: "1px solid rgba(123,31,44,0.5)", color: "#7b1f2c", borderRadius: "4px", padding: "7px 13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{roleLabel}</span>
+            <button onClick={() => signOut({ callbackUrl: "/super-admin/login" })} style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", background: "transparent", borderRadius: "4px", padding: "7px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", whiteSpace: "nowrap", cursor: "pointer" }}>Sign out</button>
           </div>
         </div>
 
-        {/* ─── 1. REAL-TIME OPERATIONAL KPIS ─── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "18px", marginBottom: "28px" }}>
-          {/* Active Members & Quota */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "20px", border: "1px solid var(--color-divider)" }}>
-            <div style={{ fontSize: "11.5px", textTransform: "uppercase", color: "var(--color-text-muted)", fontWeight: 600, marginBottom: "4px" }}>
-              Founding Circle Quota
+        {/* DECISIONS DUE */}
+        <div style={{ border: "1px solid rgba(123,31,44,0.45)", borderRadius: "8px", background: "#fdf6f2", padding: "clamp(18px,2.4vw,24px)", marginBottom: "18px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", marginBottom: "5px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "11px" }}>
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>01</span>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0, color: "#7b1f2c" }}>Decisions due — {decisions.length} events at T-7</h2>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-              <span style={{ fontFamily: "var(--font-heading)", fontSize: "30px", fontWeight: 600, color: "var(--color-accent)" }}>
-                {metrics.activeMembersCount}
-              </span>
-              <span style={{ fontSize: "14px", color: "var(--color-text-muted)" }}>
-                / {metrics.placesOffered} places
-              </span>
-            </div>
-            <div style={{ fontSize: "12px", color: "#285430", fontWeight: 500, marginTop: "4px" }}>
-              Rate locked @ €29/mo ({metrics.windowLockMonths}m)
-            </div>
+            <Link href="/admin/events" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none" }}>Manage all events →</Link>
           </div>
-
-          {/* Pending Applications */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "20px", border: "1px solid var(--color-divider)" }}>
-            <div style={{ fontSize: "11.5px", textTransform: "uppercase", color: "var(--color-text-muted)", fontWeight: 600, marginBottom: "4px" }}>
-              Pending Applications
-            </div>
-            <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", fontWeight: 600, color: metrics.pendingAppsCount > 0 ? "#b45309" : "var(--color-text-main)" }}>
-              {metrics.pendingAppsCount}
-            </div>
-            <Link href="/admin/applications" style={{ fontSize: "12px", color: "var(--color-accent)", fontWeight: 600, marginTop: "4px", display: "inline-block" }}>
-              Open Review Queue →
-            </Link>
-          </div>
-
-          {/* T-7 Threshold Events */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "20px", border: "1px solid var(--color-divider)" }}>
-            <div style={{ fontSize: "11.5px", textTransform: "uppercase", color: "var(--color-text-muted)", fontWeight: 600, marginBottom: "4px" }}>
-              T-7 Decisions Pending
-            </div>
-            <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", fontWeight: 600, color: metrics.t7EventsCount > 0 ? "var(--color-accent)" : "#285430" }}>
-              {metrics.t7EventsCount}
-            </div>
-            <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "4px" }}>
-              Events starting within 7 days
-            </div>
-          </div>
-
-          {/* At-Risk Members */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "20px", border: "1px solid var(--color-divider)" }}>
-            <div style={{ fontSize: "11.5px", textTransform: "uppercase", color: "var(--color-text-muted)", fontWeight: 600, marginBottom: "4px" }}>
-              At-Risk Inactive Members
-            </div>
-            <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", fontWeight: 600, color: metrics.atRiskCount > 0 ? "#b91c1c" : "#285430" }}>
-              {metrics.atRiskCount}
-            </div>
-            <Link href="/admin/members" style={{ fontSize: "12px", color: "var(--color-accent-2)", fontWeight: 600, marginTop: "4px", display: "inline-block" }}>
-              Inspect Member Care →
-            </Link>
-          </div>
-
-          {/* Processed Volume */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "20px", border: "1px solid var(--color-divider)" }}>
-            <div style={{ fontSize: "11.5px", textTransform: "uppercase", color: "var(--color-text-muted)", fontWeight: 600, marginBottom: "4px" }}>
-              Total Processed Volume
-            </div>
-            <div style={{ fontFamily: "var(--font-heading)", fontSize: "30px", fontWeight: 600, color: "var(--color-accent)" }}>
-              €{(metrics.revenueCents / 100).toFixed(0)}
-            </div>
-            <Link href="/admin/finance" style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "4px", display: "inline-block" }}>
-              View Financial Ledger →
-            </Link>
-          </div>
-        </div>
-
-        {/* ─── 2. TIME-BOUND T-7 ACTION ALERTS ─── */}
-        {alerts.t7Events.length > 0 && (
-          <div style={{
-            backgroundColor: "#fff9eb",
-            border: "1px solid #fde68a",
-            borderRadius: "8px",
-            padding: "20px 24px",
-            marginBottom: "28px",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
-              <div style={{ fontWeight: 600, color: "#92400e", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-                ⚠️ <strong>Urgent T-7 Threshold Decisions ({alerts.t7Events.length})</strong> — Events starting within 7 days needing confirmation:
+          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "72ch", textWrap: "pretty" }}>Starting within seven days and still unconfirmed. Confirming charges nothing new; cancelling returns every credit held, automatically.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "11px" }}>
+            {decisions.length === 0 && <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>Nothing waiting.</div>}
+            {decisions.map((d: any, idx: number) => (
+              <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "6px", background: "#fffdfa", padding: "15px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "18px", flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 300px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", marginBottom: "5px" }}>{d.title}</div>
+                  <div style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)" }}>{d.meta}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", fontVariantNumeric: "tabular-nums", color: d.countColor }}>{d.count}</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)" }}>Booked / minimum</div>
+                  </div>
+                  <div style={{ display: "flex", gap: "9px" }}>
+                    <button type="button" onClick={() => handleQuickConfirm(d.id)} disabled={actionRunning === d.id} style={{ border: "1px solid #568b05", background: "transparent", color: "#3f6604", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>Confirm</button>
+                    <button type="button" onClick={() => handleQuickCancel(d.id)} disabled={actionRunning === d.id} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>Cancel &amp; refund</button>
+                  </div>
+                </div>
               </div>
-              <Link href="/admin/events" style={{ fontSize: "12.5px", color: "#92400e", fontWeight: 600 }}>
-                Manage All Events →
-              </Link>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {alerts.t7Events.map((ev: any) => (
-                <div key={ev.id} style={{
-                  backgroundColor: "#fff",
-                  padding: "12px 16px",
-                  borderRadius: "6px",
-                  border: "1px solid rgba(245, 158, 11, 0.2)",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "12px"
-                }}>
+        {/* EARLY WARNINGS */}
+        <div style={{ border: "1px solid rgba(182,130,53,0.5)", borderRadius: "8px", background: "#fffdf6", padding: "clamp(18px,2.4vw,24px)", marginBottom: "18px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "11px", marginBottom: "5px" }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>02</span>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0 }}>Early warnings — {warnings.length} events at T-10</h2>
+          </div>
+          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "72ch", textWrap: "pretty" }}>Under half their minimum with ten days to go. Each one names the group most likely to want it, with a message ready for that thread.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "11px" }}>
+            {warnings.length === 0 && <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>Nothing waiting.</div>}
+            {warnings.map((w: any, idx: number) => (
+              <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "6px", background: "#fffdfa", padding: "15px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "18px", flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 300px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16.5px", marginBottom: "4px" }}>{w.title}</div>
+                  <div style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)" }}>{w.meta}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", color: "#39292a", border: "1px solid rgba(182,130,53,0.65)", borderRadius: "4px", padding: "5px 11px", whiteSpace: "nowrap" }}>{w.group}</span>
+                  <Link href={`/admin/events/${w.id}`} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "8px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap", textDecoration: "none" }}>Draft the message →</Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 2-COLUMN GRID (Applications / Money) */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: "18px", marginBottom: "18px" }}>
+          
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "clamp(18px,2.4vw,24px)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "5px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "11px" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>03</span>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: 0 }}>Applications waiting — {applications.length}</h2>
+              </div>
+              <Link href="/admin/applications" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none" }}>Review queue →</Link>
+            </div>
+            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 15px", textWrap: "pretty" }}>Oldest first, against our 72-hour promise. Amber past 48 hours, wine past 72.</p>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {applications.length === 0 && <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>Nothing waiting.</div>}
+              {applications.map((a: any, idx: number) => (
+                <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", padding: "12px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                  <div style={{ flex: "1 1 200px" }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", marginBottom: "3px" }}>{a.name}</div>
+                    <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.65)" }}>{a.meta}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", color: a.color, border: `1px solid ${a.color}`, borderRadius: "4px", padding: "4px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{a.remaining}</span>
+                    <Link href={`/admin/applications`} style={{ fontSize: "13px", whiteSpace: "nowrap", color: "#7b1f2c", textDecoration: "none" }}>Read →</Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "clamp(18px,2.4vw,24px)" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "5px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "11px" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>04</span>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: 0 }}>Money needing attention</h2>
+              </div>
+              <Link href="/admin/members" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none" }}>Member records →</Link>
+            </div>
+            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 15px", textWrap: "pretty" }}>Failed renewals, cards about to expire, payment holds running out, partner agreements ending within thirty days.</p>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {money.map((m: any, idx: number) => (
+                <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", padding: "12px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                  <div style={{ flex: "1 1 220px" }}>
+                    <div style={{ fontSize: "14px", lineHeight: 1.5, marginBottom: "3px" }}><strong style={{ fontWeight: 600 }}>{m.who}</strong> — {m.what}</div>
+                    <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.62)" }}>{m.meta}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", fontVariantNumeric: "tabular-nums", color: m.color, whiteSpace: "nowrap" }}>{m.amount}</span>
+                    <Link href="/admin/members" style={{ fontSize: "13px", whiteSpace: "nowrap", color: "#7b1f2c", textDecoration: "none" }}>{m.action} →</Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* THIS WEEK */}
+        <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "clamp(18px,2.4vw,24px)", marginBottom: "18px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", marginBottom: "5px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "11px" }}>
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>05</span>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0 }}>This week</h2>
+            </div>
+            <Link href="/admin/events" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none" }}>Events calendar →</Link>
+          </div>
+          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "72ch", textWrap: "pretty" }}>The next seven days, with final headcounts, the meeting point, and a list you can print or send to the host.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,250px),1fr))", gap: "14px" }}>
+            {week.length === 0 && <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>Nothing waiting.</div>}
+            {week.map((e: any, idx: number) => (
+              <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "6px", padding: "16px 18px", background: "#fff", display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#7b1f2c" }}>{e.when}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16.5px", lineHeight: 1.25 }}>{e.title}</div>
+                <div style={{ fontSize: "12.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)" }}>{e.place}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", fontVariantNumeric: "tabular-nums" }}>{e.headcount}</span>
+                  <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.62)" }}>{e.headcountLabel}</span>
+                </div>
+                <Link href={`/admin/events/${e.id}/roster`} style={{ fontSize: "13px", marginTop: "auto", color: "#7b1f2c", textDecoration: "none" }}>Attendee list →</Link>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* EMPTY STATE NOTE */}
+        <div style={{ border: "1px dashed rgba(57,41,42,0.28)", borderRadius: "6px", padding: "12px 18px", marginBottom: "32px" }}>
+          <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.68)", margin: 0, textWrap: "pretty" }}><strong style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: "11px" }}>Empty-state rule</strong> — a section with nothing in it collapses to one quiet line, never a card with a zero in it: <em>“Nothing waiting — last answer sent three hours ago.”</em></p>
+        </div>
+
+        {/* QUEUES */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,230px),1fr))", gap: "16px", marginBottom: "18px" }}>
+          {queues.map((q: any, idx: number) => (
+            <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px", display: "flex", flexDirection: "column", gap: "9px" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)" }}>{q.kicker}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.25 }}>{q.title}</div>
+              <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 6px", textWrap: "pretty" }}>{q.body}</p>
+              <Link href={q.href} style={{ marginTop: "auto", border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "9px 14px", textAlign: "center", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", textDecoration: "none" }}>{q.cta} →</Link>
+            </div>
+          ))}
+        </div>
+
+        {/* CMS / JOBS */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,340px),1fr))", gap: "18px", marginBottom: "18px" }}>
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "clamp(18px,2.4vw,24px)" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: "0 0 14px" }}>Content &amp; partners</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
+              {cms.map((c: any, idx: number) => (
+                <Link key={idx} href={c.href} style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "5px", padding: "12px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
+                  <span>{c.label}</span><span style={{ color: "rgba(57,41,42,0.45)" }}>→</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "clamp(18px,2.4vw,24px)" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: "0 0 6px" }}>Scheduled jobs</h2>
+            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 14px", textWrap: "pretty" }}>These run themselves every night. Running one by hand is logged like any other action.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
+              {jobs.map((j: any, idx: number) => (
+                <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
                   <div>
-                    <strong style={{ fontSize: "14px" }}>{ev.title}</strong>
-                    <div style={{ fontSize: "12.5px", color: "var(--color-text-muted)" }}>
-                      Starts: {new Date(ev.startsAt).toLocaleDateString()} at {new Date(ev.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Min. required: {ev.minToConfirm}
-                    </div>
+                    <div style={{ fontSize: "14px", lineHeight: 1.5 }}>{j.label}</div>
+                    <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)" }}>{j.last}</div>
                   </div>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      onClick={() => handleQuickConfirm(ev.id)}
-                      disabled={actionRunning === ev.id}
-                      className="btn btn-primary"
-                      style={{ padding: "6px 12px", fontSize: "12px", backgroundColor: "#1e6833" }}
-                    >
-                      ✓ Confirm Run
-                    </button>
-                    <button
-                      onClick={() => handleQuickCancel(ev.id)}
-                      disabled={actionRunning === ev.id}
-                      className="btn btn-secondary"
-                      style={{ padding: "6px 12px", fontSize: "12px" }}
-                    >
-                      Cancel & Auto Refund
-                    </button>
-                  </div>
+                  <button type="button" onClick={() => handleTriggerCron(j.key as any)} disabled={cronRunning === j.key} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "7px 13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", cursor: "pointer", whiteSpace: "nowrap" }}>
+                    {cronRunning === j.key ? 'Running...' : 'Run now'}
+                  </button>
                 </div>
               ))}
             </div>
           </div>
-        )}
+        </div>
 
-        {/* ─── 3. CORE 4 OPERATIONAL QUEUES ─── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "32px" }}>
-          {/* Queue 1: Who gets in */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "24px", border: "1px solid var(--color-divider)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontSize: "11.5px", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 600, marginBottom: "8px" }}>
-                Queue 01 · Membership
-              </div>
-              <h3 style={{ fontSize: "20px", margin: "0 0 8px" }}>Applications & Intake</h3>
-              <p style={{ fontSize: "13px", color: "var(--color-text-muted)", marginBottom: "18px", lineHeight: 1.5 }}>
-                Review 11-step applicant submissions, issue 72h countdown payment links, or decline with waitlist.
-              </p>
-            </div>
-            <Link href="/admin/applications" className="btn btn-primary" style={{ width: "100%", textAlign: "center", fontSize: "13px" }}>
-              Open Applications Queue →
-            </Link>
+        {/* STATS */}
+        <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "clamp(18px,2.4vw,24px)", marginBottom: "18px" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "11px", marginBottom: "14px" }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>06</span>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: 0 }}>And then the numbers</h2>
           </div>
-
-          {/* Queue 2: Does this event run */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "24px", border: "1px solid var(--color-divider)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontSize: "11.5px", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 600, marginBottom: "8px" }}>
-                Queue 02 · Events & Seats
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,170px),1fr))", gap: "12px" }}>
+            {stats.map((s: any, idx: number) => (
+              <div key={idx} style={{ background: "#fff", border: "1px solid rgba(57,41,42,0.14)", borderRadius: "6px", padding: "15px 17px" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "24px", lineHeight: 1.1, marginBottom: "6px", fontVariantNumeric: "tabular-nums" }}>{s.value}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", lineHeight: 1.4 }}>{s.label}</div>
               </div>
-              <h3 style={{ fontSize: "20px", margin: "0 0 8px" }}>Thresholds & Categories</h3>
-              <p style={{ fontSize: "13px", color: "var(--color-text-muted)", marginBottom: "18px", lineHeight: 1.5 }}>
-                Publish gatherings, manage dynamic categories, evaluate T-7 attendance, and execute auto-refunds.
-              </p>
-            </div>
-            <Link href="/admin/events" className="btn btn-primary" style={{ width: "100%", textAlign: "center", fontSize: "13px" }}>
-              Manage Events Calendar →
-            </Link>
-          </div>
-
-          {/* Queue 3: Member care & At Risk */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "24px", border: "1px solid var(--color-divider)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontSize: "11.5px", textTransform: "uppercase", color: "var(--color-accent-2)", fontWeight: 600, marginBottom: "8px" }}>
-                Queue 03 · Member Care
-              </div>
-              <h3 style={{ fontSize: "20px", margin: "0 0 8px" }}>Directory & Credit Ledger</h3>
-              <p style={{ fontSize: "13px", color: "var(--color-text-muted)", marginBottom: "18px", lineHeight: 1.5 }}>
-                Inspect members, identify 60-day at-risk accounts, and perform manual ledger credit adjustments.
-              </p>
-            </div>
-            <Link href="/admin/members" className="btn btn-secondary" style={{ width: "100%", textAlign: "center", fontSize: "13px" }}>
-              Open Member Directory →
-            </Link>
-          </div>
-
-          {/* Queue 4: Finance & Accounting */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "24px", border: "1px solid var(--color-divider)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontSize: "11.5px", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 600, marginBottom: "8px" }}>
-                Queue 04 · Financial Ledger
-              </div>
-              <h3 style={{ fontSize: "20px", margin: "0 0 8px" }}>Finance & Revenue</h3>
-              <p style={{ fontSize: "13px", color: "var(--color-text-muted)", marginBottom: "18px", lineHeight: 1.5 }}>
-                Track Stripe recurring subscriptions, €35 guest tickets, and mirrored physical shop orders.
-              </p>
-            </div>
-            <Link href="/admin/finance" className="btn btn-secondary" style={{ width: "100%", textAlign: "center", fontSize: "13px" }}>
-              Open Financial Ledger →
-            </Link>
+            ))}
           </div>
         </div>
 
-        {/* ─── 4. CMS & SYSTEM DISPATCHERS ─── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "32px" }}>
-          {/* CMS Controls */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "24px", border: "1px solid var(--color-divider)" }}>
-            <h3 style={{ fontSize: "18px", margin: "0 0 16px" }}>Editorial & Content CMS</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Link href="/admin/partners" className="btn btn-outline" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", fontSize: "13px" }}>
-                <span>Partner Directory & Exclusivity</span>
-                <span>→</span>
-              </Link>
-              <Link href="/admin/faq" className="btn btn-outline" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", fontSize: "13px" }}>
-                <span>FAQ Questions (English & Spanish)</span>
-                <span>→</span>
-              </Link>
-              <Link href="/admin/journal" className="btn btn-outline" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", fontSize: "13px" }}>
-                <span>Journal Articles & Editorial</span>
-                <span>→</span>
-              </Link>
-              <Link href="/admin/settings" className="btn btn-outline" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", fontSize: "13px", backgroundColor: "#faf7f2" }}>
-                <span style={{ fontWeight: 600, color: "var(--color-accent)" }}>⚙️ Global Club & Credit Policy Settings</span>
-                <span>→</span>
-              </Link>
-            </div>
+        {/* AUDIT LOG */}
+        <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "clamp(18px,2.4vw,24px)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", marginBottom: "5px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: 0 }}>Audit log</h2>
+            <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.55)" }}>Append-only · full history exportable by the Owner</span>
           </div>
-
-          {/* Manual Background Engine Dispatchers */}
-          <div className="card" style={{ backgroundColor: "#fff", padding: "24px", border: "1px solid var(--color-divider)" }}>
-            <h3 style={{ fontSize: "18px", margin: "0 0 6px" }}>Engine Triggers & Jobs</h3>
-            <p style={{ fontSize: "12.5px", color: "var(--color-text-muted)", marginBottom: "16px" }}>
-              Background cron jobs run daily automatically. You can also trigger immediate runs on demand:
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <button
-                onClick={() => handleTriggerCron("threshold-decisions")}
-                disabled={cronRunning === "threshold-decisions"}
-                className="btn btn-secondary"
-                style={{ textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", fontSize: "12.5px" }}
-              >
-                <span>⚡ Run T-7 Threshold Auto-Confirmation Job</span>
-                <span>{cronRunning === "threshold-decisions" ? "Executing..." : "Run Now"}</span>
-              </button>
-              <button
-                onClick={() => handleTriggerCron("expire-credits")}
-                disabled={cronRunning === "expire-credits"}
-                className="btn btn-secondary"
-                style={{ textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", fontSize: "12.5px" }}
-              >
-                <span>⚡ Run 6-Month FIFO Credit Expiry Worker</span>
-                <span>{cronRunning === "expire-credits" ? "Executing..." : "Run Now"}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ─── 5. LIVE AUDIT LOG STREAM ─── */}
-        <div className="card" style={{ backgroundColor: "#fff", padding: "24px", border: "1px solid var(--color-divider)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-            <h3 style={{ fontSize: "18px", margin: 0 }}>Live System Audit Activity</h3>
-            <span style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>Immutable Log (§5)</span>
-          </div>
-
-          {recentActivity.length === 0 ? (
-            <p style={{ fontSize: "13px", color: "var(--color-text-muted)", margin: 0 }}>No audit actions recorded yet.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {recentActivity.map((log: any) => (
-                <div key={log.id} style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "13px",
-                  padding: "8px 12px",
-                  backgroundColor: "#faf7f2",
-                  borderRadius: "4px",
-                  border: "1px solid var(--color-divider)"
-                }}>
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                    <span style={{
-                      padding: "2px 6px",
-                      borderRadius: "3px",
-                      fontSize: "10.5px",
-                      fontWeight: 600,
-                      textTransform: "uppercase",
-                      backgroundColor: "var(--color-surface)",
-                      border: "1px solid var(--color-divider)"
-                    }}>
-                      {log.actorType}
-                    </span>
-                    <strong style={{ color: "var(--color-accent)" }}>{log.action.replace(/_/g, " ")}</strong>
-                    <span style={{ color: "var(--color-text-muted)" }}>({log.entity})</span>
-                  </div>
-                  <span style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>
-                    {new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
+          <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 15px", maxWidth: "72ch", textWrap: "pretty" }}>Who, what, what it was before, what it is now, when, and from where.</p>
+          <div>
+            {audit.map((l: any, idx: number) => (
+              <div key={idx} style={{ padding: "13px 0", borderBottom: "1px solid rgba(57,41,42,0.1)", display: "flex", gap: "16px", justifyContent: "space-between", flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 380px" }}>
+                  <div style={{ fontSize: "14px", lineHeight: 1.55, marginBottom: "4px" }}><strong style={{ fontWeight: 600 }}>{l.who}</strong> {l.did}</div>
+                  <div style={{ fontSize: "12.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.65)" }}>{l.change}</div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div style={{ textAlign: "right", fontSize: "12px", lineHeight: 1.6, color: "rgba(57,41,42,0.55)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                  <div>{l.when}</div>
+                  <div>{l.where}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+
       </div>
-    </div>
+    </>
   );
 }

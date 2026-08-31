@@ -112,9 +112,57 @@ const PARTNERS: PartnerItem[] = [
   },
 ];
 
+const APPLY_STRINGS = {
+  en: {
+    heading: 'Want to partner with us?',
+    sub: "We're always looking for specialists our members will love. Tell us about your business below.",
+    nameLabel: 'Your name', businessLabel: 'Business / studio name',
+    categoryLabel: 'What you do', categoryPlaceholder: 'e.g. pelvic-floor physiotherapy, family café, baby swim school', emailLabel: 'Email', websiteLabel: 'Website (optional)',
+    messageLabel: 'Tell us about what you offer',
+    required: 'Please fill in your name, business name, and email to continue.',
+    submitLabel: 'Send application',
+    confirmTitle: 'Thank you!',
+    confirmBody: "We've received your application and will be in touch within a few days."
+  },
+  es: {
+    heading: '¿Quieres ser partner?',
+    sub: 'Siempre buscamos especialistas que nuestras socias van a adorar. Cuéntanos sobre tu negocio.',
+    nameLabel: 'Tu nombre', businessLabel: 'Nombre del negocio / estudio',
+    categoryLabel: 'A qué te dedicas', categoryPlaceholder: 'ej. fisioterapia de suelo pélvico, café familiar, escuela de natación para bebés', emailLabel: 'Correo electrónico', websiteLabel: 'Sitio web (opcional)',
+    messageLabel: 'Cuéntanos qué ofreces',
+    required: 'Completa tu nombre, el nombre del negocio y tu correo para continuar.',
+    submitLabel: 'Enviar solicitud',
+    confirmTitle: '¡Gracias!',
+    confirmBody: 'Hemos recibido tu solicitud y te contactaremos en los próximos días.'
+  }
+};
+
 export default function PartnersPage() {
   const [lang, setLang] = useState<Locale>("en");
   const [activeUmbrella, setActiveUmbrella] = useState<string>("all");
+  
+  const [formName, setFormName] = useState("");
+  const [formBusiness, setFormBusiness] = useState("");
+  const [formCategory, setFormCategory] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formWebsite, setFormWebsite] = useState("");
+  const [formMessage, setFormMessage] = useState("");
+  const [formTouched, setFormTouched] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const isFormValid = () => {
+    return formName.trim().length > 0 && formBusiness.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail);
+  };
+
+  const submitForm = () => {
+    if (!isFormValid()) {
+      setFormTouched(true);
+      return;
+    }
+    setSubmitted(true);
+  };
+
+  const t = lang === "en" ? APPLY_STRINGS.en : APPLY_STRINGS.es;
 
   useEffect(() => {
     const updateLang = () => {
@@ -258,6 +306,130 @@ export default function PartnersPage() {
           ))}
         </div>
       </div>
+
+      {/* Partner Application Form */}
+      <section style={{ maxWidth: "640px", margin: "0 auto", padding: "0 clamp(24px, 5vw, 64px) clamp(64px, 8vw, 104px)" }}>
+        <div style={{ borderTop: "1px solid rgba(57, 41, 42, 0.16)", paddingTop: "clamp(40px, 6vw, 56px)", textAlign: "center", marginBottom: "32px" }}>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(26px, 3.6vw, 34px)", margin: "0 0 12px" }}>
+            {t.heading}
+          </h2>
+          <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.68)", margin: 0 }}>
+            {t.sub}
+          </p>
+        </div>
+
+        {!submitted ? (
+          <div style={{ border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", padding: "clamp(28px, 5vw, 40px)", backgroundColor: "#f8efe2", display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+              <div>
+                <label style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
+                  {t.nameLabel}
+                </label>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "11px 14px", fontFamily: "var(--font-body)", fontSize: "15px", backgroundColor: "#fff" }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
+                  {t.businessLabel}
+                </label>
+                <input
+                  type="text"
+                  value={formBusiness}
+                  onChange={(e) => setFormBusiness(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "11px 14px", fontFamily: "var(--font-body)", fontSize: "15px", backgroundColor: "#fff" }}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
+                {t.categoryLabel}
+              </label>
+              <input
+                type="text"
+                value={formCategory}
+                onChange={(e) => setFormCategory(e.target.value)}
+                placeholder={t.categoryPlaceholder}
+                style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "11px 14px", fontFamily: "var(--font-body)", fontSize: "15px", backgroundColor: "#f8efe2" }}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+              <div>
+                <label style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
+                  {t.emailLabel}
+                </label>
+                <input
+                  type="email"
+                  value={formEmail}
+                  onChange={(e) => setFormEmail(e.target.value)}
+                  placeholder="you@business.com"
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "11px 14px", fontFamily: "var(--font-body)", fontSize: "15px", backgroundColor: "#fff" }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
+                  {t.websiteLabel}
+                </label>
+                <input
+                  type="text"
+                  value={formWebsite}
+                  onChange={(e) => setFormWebsite(e.target.value)}
+                  placeholder="yourbusiness.com"
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "11px 14px", fontFamily: "var(--font-body)", fontSize: "15px", backgroundColor: "#fff" }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
+                {t.messageLabel}
+              </label>
+              <textarea
+                value={formMessage}
+                onChange={(e) => setFormMessage(e.target.value)}
+                rows={4}
+                style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "11px 14px", fontFamily: "var(--font-body)", fontSize: "15px", backgroundColor: "#fff", resize: "vertical" }}
+              />
+            </div>
+
+            {formTouched && !isFormValid() && (
+              <p style={{ fontSize: "12.5px", color: "#993842", margin: 0 }}>
+                {t.required}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={submitForm}
+              style={{ border: "1px solid var(--color-accent)", color: "var(--color-accent)", padding: "13px 26px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", backgroundColor: "transparent", cursor: "pointer", alignSelf: "flex-start", transition: "background 0.15s ease" }}
+              onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = "rgba(123, 31, 44, 0.1)"}
+              onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = "transparent"}
+            >
+              {t.submitLabel}
+            </button>
+          </div>
+        ) : (
+          <div style={{ border: "1px solid var(--color-accent)", borderRadius: "8px", padding: "clamp(32px, 5vw, 44px)", backgroundColor: "#f8efe2", textAlign: "center" }}>
+            <div style={{ color: "#568b05", marginBottom: "14px" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="30" height="30" style={{ margin: "0 auto", display: "block" }}>
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+            </div>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 10px" }}>
+              {t.confirmTitle}
+            </h3>
+            <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.7)", margin: 0 }}>
+              {t.confirmBody}
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
