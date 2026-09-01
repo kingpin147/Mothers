@@ -142,6 +142,7 @@ export function canBuyPass(
     activeGuestBookingsCount: number;
     guestOpenAt?: Date | null;
     guestCloseAt?: Date | null;
+    startsAt: Date;
   },
   at: Date = new Date()
 ): AccessResult {
@@ -155,6 +156,13 @@ export function canBuyPass(
 
   const seeCheck = canSeeEvent({ isMember: false }, event, at);
   if (!seeCheck.allowed) return seeCheck;
+  
+  if (!event.guestOpenAt && !event.guestCloseAt) {
+    const daysUntil = Math.round((new Date(event.startsAt).getTime() - at.getTime()) / 86400000);
+    if (daysUntil < 2 || daysUntil > 7) {
+      return { allowed: false, reasonCode: "GUEST_WINDOW_NOT_OPEN" };
+    }
+  }
 
   if (event.activeGuestBookingsCount >= event.capacityGuest) {
     return { allowed: false, reasonCode: "GUEST_CAPACITY_FULL" };

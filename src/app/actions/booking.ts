@@ -478,6 +478,9 @@ export async function buyGuestPass(params: {
           showEventPassCta: ev.showEventPassCta,
           capacityGuest: ev.capacityGuest,
           activeGuestBookingsCount,
+          guestOpenAt: ev.guestOpenAt,
+          guestCloseAt: ev.guestCloseAt,
+          startsAt: ev.startsAt,
         }
       );
 

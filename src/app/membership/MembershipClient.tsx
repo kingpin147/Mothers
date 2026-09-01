@@ -247,13 +247,13 @@ export default function MembershipClient({
                 {(isEn ? [
                   "Once the 50 places are taken, membership opens at €39. Your €29 is held for a full twelve months.",
                   "Applications open one week a month. When the Window is shut, join the waitlist.",
-                  "Pause for up to two months a year at no cost — your credits freeze with you.",
-                  "Credits roll over with no ceiling and expire six months after they are granted. No cancellation fees, ever.",
+                  "Pause for exactly two months per calendar year at no cost — your credits freeze with you.",
+                  "Credits roll over with no ceiling and expire six months after they are granted. Cancel up to 24h before an event to get credits back; later cancellations are returned only if your seat is filled.",
                 ] : [
                   "Cuando se ocupen las 50 plazas, la membresía se abre a 39€. Tus 29€ se mantienen doce meses completos.",
                   "Las solicitudes se abren una semana al mes. Si la Ventana está cerrada, únete a la lista de espera.",
-                  "Puedes pausar hasta dos meses al año sin coste — tus créditos se congelan contigo.",
-                  "Los créditos se acumulan sin techo y caducan seis meses después de concederse. Sin penalizaciones por cancelar, nunca.",
+                  "Puedes pausar exactamente dos meses por año natural sin coste — tus créditos se congelan contigo.",
+                  "Los créditos se acumulan sin techo y caducan a los seis meses. Cancela hasta 24h antes del evento para recuperar tus créditos; las cancelaciones tardías solo se devuelven si se ocupa tu plaza.",
                 ]).map((line, i) => (
                   <p key={i} style={{ fontSize: "12.5px", lineHeight: "1.5", color: "rgba(57,41,42,0.6)", margin: 0 }}>{line}</p>
                 ))}
@@ -320,7 +320,7 @@ export default function MembershipClient({
             ))}
           </div>
           <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.55)", borderTop: "1px solid rgba(57,41,42,0.16)", paddingTop: "16px", margin: 0 }}>
-            {isEn ? "Pause for up to two months a year at no cost. No cancellation fees, ever." : "Pausa tu membresía hasta dos meses al año sin coste. Nunca hay cuota de cancelación."}
+            {isEn ? "Pause for exactly two months per calendar year at no cost. Cancel membership anytime without fees." : "Pausa exactamente dos meses por año natural sin coste. Cancela tu membresía en cualquier momento sin penalizaciones."}
           </p>
         </div>
       </section>

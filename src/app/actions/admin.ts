@@ -101,6 +101,7 @@ export async function acceptApplication(applicationId: string) {
   });
 
   const answers = (appRecord.answers as any) || {};
+  const isQuarterly = answers.billingPreference === "quarterly";
 
   if (!existingMember) {
     await db.insert(member).values({
@@ -108,7 +109,9 @@ export async function acceptApplication(applicationId: string) {
       status: "accepted_awaiting_payment",
       stage: answers.stage || "Pregnant",
       neighbourhood: answers.neighbourhood || "Barcelona",
+      billingFrequency: isQuarterly ? "quarterly" : "monthly",
       monthlyPriceCents: 2900,
+      priceCents: isQuarterly ? 7900 : 2900,
     });
   } else {
     await db
@@ -117,6 +120,8 @@ export async function acceptApplication(applicationId: string) {
         status: "accepted_awaiting_payment",
         stage: answers.stage || existingMember.stage,
         neighbourhood: answers.neighbourhood || existingMember.neighbourhood,
+        billingFrequency: isQuarterly ? "quarterly" : "monthly",
+        priceCents: isQuarterly ? 7900 : 2900,
         updatedAt: new Date(),
       })
       .where(eq(member.id, existingMember.id));

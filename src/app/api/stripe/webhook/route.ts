@@ -162,13 +162,20 @@ async function handleMembershipActivation(memberId: string, customerId: string, 
       updatedAt: new Date()
     }).where(eq(member.id, memberId));
 
-    // Grant 40 credits for the first month
+    const isQuarterly = mem.billingFrequency === "quarterly";
+    const amount = isQuarterly ? 60 : 20;
+
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 6);
+
+    // Grant credits for the first month/quarter
     await tx.insert(creditEntry).values({
       memberId,
-      amount: 40,
+      amount,
       type: "grant",
       reason: "Initial Membership Grant",
       sourceType: "manual",
+      expiresAt,
     });
 
     await tx.insert(auditLog).values({
@@ -190,13 +197,20 @@ async function handleRecurringPayment(subscriptionId: string, amountPaidCents: n
     
     if (!mem || mem.status !== "active") return;
 
-    // Renew credits for the month
+    const isQuarterly = mem.billingFrequency === "quarterly";
+    const amount = isQuarterly ? 60 : 20;
+
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 6);
+
+    // Renew credits for the month/quarter
     await tx.insert(creditEntry).values({
       memberId: mem.id,
-      amount: 40,
+      amount,
       type: "grant",
       reason: "Monthly Subscription Renewal",
       sourceType: "manual",
+      expiresAt,
     });
 
     await tx.insert(auditLog).values({

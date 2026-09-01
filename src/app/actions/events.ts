@@ -339,7 +339,7 @@ export async function getPublicEventById(id: string) {
         guestPassEligible = false;
       } else if (!ev.guestOpenAt && !ev.guestCloseAt) {
         const daysUntil = Math.round((starts.getTime() - now.getTime()) / 86400000);
-        if (daysUntil < 2 || daysUntil > 14) {
+        if (daysUntil < 2 || daysUntil > 7) {
           guestPassEligible = false;
         }
       }

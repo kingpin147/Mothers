@@ -1160,9 +1160,13 @@ function EventCard({
                       boxShadow: "0 2px 6px rgba(123,31,44,0.2)",
                     }}
                   >
-                    {ev.creditCost === 0 || ev.isFreeWalk
-                      ? (lang === "en" ? "Join the list" : "Unirme a la lista")
-                      : (lang === "en" ? "Book" : "Reservar")}
+                    {ev.userStatus?.isWaitlisted 
+                      ? (lang === "en" ? "On waitlist" : "En lista de espera")
+                      : isFull
+                        ? (lang === "en" ? "Join waitlist" : "Unirme a la lista de espera")
+                        : ev.creditCost === 0 || ev.isFreeWalk
+                          ? (lang === "en" ? "Join the list" : "Unirme a la lista")
+                          : (lang === "en" ? "Book" : "Reservar")}
                   </button>
                 </>
               )}

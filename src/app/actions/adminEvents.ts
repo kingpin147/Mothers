@@ -120,6 +120,10 @@ export async function createAdminEvent(data: {
     after: { title: data.title, creditCost: data.creditCost, status: data.status },
   });
 
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+
   return { success: true, eventId: newEventId };
 }
 
@@ -246,6 +250,10 @@ export async function updateAdminEvent(eventId: string, data: {
     }
   }
 
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+
   return { success: true };
 }
 
@@ -285,6 +293,10 @@ export async function confirmEventDecision(eventId: string) {
       entityId: eventId,
     });
   });
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
 
   return { success: true };
 }
@@ -408,6 +420,10 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
     });
   });
 
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+
   return { success: true };
 }
 
@@ -465,6 +481,10 @@ export async function duplicateAdminEvent(eventId: string) {
     entityId: inserted[0].id,
     after: { originalEventId: eventId, newEventId: inserted[0].id },
   });
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
 
   return { success: true, eventId: inserted[0].id };
 }

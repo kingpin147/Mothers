@@ -60,6 +60,25 @@ export async function POST(req: Request) {
       productId = prod.id;
     }
 
+    const isQuarterly = memberRecord.billingFrequency === "quarterly";
+    const amountCents = memberRecord.priceCents > 0 
+      ? memberRecord.priceCents 
+      : (isQuarterly ? windowRecord.monthlyPriceCents * 3 - 800 : windowRecord.monthlyPriceCents); // fallback
+
+    const { eventPass } = await import("@/db/schema");
+    const pastPasses = await db.query.eventPass.findMany({
+      where: eq(eventPass.personId, session.user.id),
+    });
+    
+    // Calculate joining fee discount
+    // We cap the discount at the joining fee amount to avoid negative fees,
+    // although they should only have up to 2 passes.
+    const passDiscountCents = Math.min(
+      pastPasses.length * 3500,
+      windowRecord.joiningFeeCents
+    );
+    const finalJoiningFee = windowRecord.joiningFeeCents - passDiscountCents;
+
     // Create the subscription as incomplete
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
@@ -67,15 +86,18 @@ export async function POST(req: Request) {
         price_data: {
           currency: "eur",
           product: productId,
-          unit_amount: windowRecord.monthlyPriceCents,
-          recurring: { interval: "month" },
+          unit_amount: amountCents,
+          recurring: { 
+            interval: "month",
+            interval_count: isQuarterly ? 3 : 1
+          },
         },
       }],
-      add_invoice_items: windowRecord.joiningFeeCents > 0 ? [{
+      add_invoice_items: finalJoiningFee > 0 ? [{
         price_data: {
           currency: "eur",
-          product: productId, // Reusing same product for fee is fine, or we could create a fee product
-          unit_amount: windowRecord.joiningFeeCents,
+          product: productId, 
+          unit_amount: finalJoiningFee,
         }
       }] : undefined,
       payment_behavior: "default_incomplete",

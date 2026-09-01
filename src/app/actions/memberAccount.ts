@@ -163,12 +163,22 @@ export async function pauseMembership() {
     if (memberRecord.pausedUntil && new Date(memberRecord.pausedUntil) > new Date()) {
       return { success: false, error: "ALREADY_PAUSED" };
     }
-    // Pause for 1 month
+    if (memberRecord.pauseMonthsUsedYear >= 2) {
+      return { success: false, error: "PAUSE_LIMIT_REACHED" };
+    }
+    
+    // Pause for exactly 2 months
     const pausedUntil = new Date();
-    pausedUntil.setMonth(pausedUntil.getMonth() + 1);
+    pausedUntil.setMonth(pausedUntil.getMonth() + 2);
+    
     await db.update(member)
-      .set({ pausedUntil, updatedAt: new Date() })
+      .set({ 
+        pausedUntil, 
+        pauseMonthsUsedYear: memberRecord.pauseMonthsUsedYear + 2,
+        updatedAt: new Date() 
+      })
       .where(eq(member.id, memberId));
+      
     return { success: true, pausedUntil };
   } catch (e: any) {
     return { success: false, error: e?.message || "PAUSE_FAILED" };
