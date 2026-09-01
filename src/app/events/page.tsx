@@ -2,6 +2,8 @@ import { getPublicEvents } from "@/app/actions/events";
 import { EventsCalendar } from "./EventsCalendar";
 import { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Events & Calendar — The Mothers Barcelona",
   description: "Curated club gatherings, community walks, expert workshops, and signature evenings for mothers in Barcelona.",
