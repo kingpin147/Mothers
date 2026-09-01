@@ -284,15 +284,93 @@ export async function POST(req: NextRequest) {
         }
 
         if (meta.type === "guest_pass" && meta.eventId && meta.personId) {
-          // Guest pass already pre-created in route; just record payment
+          const eventId = meta.eventId;
+          const personId = meta.personId;
+
+          // 1. Record payment
           await db.insert(payment).values({
-            personId: meta.personId,
+            personId,
             purpose: "event_pass",
             amountCents: session.amount_total || 3500,
             currency: (session.currency || "eur").toUpperCase(),
             status: "succeeded",
             stripePaymentIntentId: session.payment_intent as string | null,
           }).onConflictDoNothing();
+
+          // 2. Generate secure ticket token
+          const { randomBytes, createHash } = await import("crypto");
+          const rawToken = randomBytes(32).toString("hex");
+          const ticketTokenHash = createHash("sha256").update(rawToken).digest("hex");
+
+          // 3. Create Event Pass & Booking
+          await db.transaction(async (tx) => {
+            const ev = await tx.query.event.findFirst({
+              where: eq(eventTable.id, eventId),
+            });
+            if (ev) {
+              const passInsert = await tx.insert(eventPass).values({
+                personId,
+                eventId,
+                priceCents: session.amount_total || 3500,
+                status: "paid",
+                ticketTokenHash,
+                creditExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+              }).returning({ id: eventPass.id });
+
+              const initialStatus = ev.status === "confirmed" ? "confirmed" : "held";
+              const insertedBooking = await tx.insert(booking).values({
+                eventId,
+                personId,
+                kind: "guest",
+                status: initialStatus,
+                creditsCharged: 0,
+                moneyPaidCents: session.amount_total || 3500,
+                passId: passInsert[0].id,
+                bookedAt: new Date(),
+              }).returning({ id: booking.id });
+
+              // Send email with the token link
+              const personRecord = await tx.query.person.findFirst({
+                where: eq(person.id, personId),
+              });
+              if (personRecord) {
+                const origin = process.env.NEXTAUTH_URL || "https://themothers.cc";
+                const ticketLink = `${origin}/ticket/${rawToken}`;
+                const subject = personRecord.locale === "es"
+                  ? `Tu Event Pass: ${ev.title} — The Mothers`
+                  : `Your Event Pass: ${ev.title} — The Mothers`;
+
+                const htmlContent = `
+                  <div style="font-family: 'Lora', Georgia, serif; color: #39292a; max-width: 600px; margin: 0 auto; padding: 32px; background: #fdf9f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 8px;">
+                    <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; margin: 0 0 16px;">
+                      ${personRecord.locale === "es" ? "Event Pass Confirmado" : "Event Pass Confirmed"}
+                    </h2>
+                    <p style="font-size: 15px; line-height: 1.6;">
+                      ${personRecord.locale === "es"
+                        ? `Hola ${personRecord.firstName}, aquí tienes tu pase de invitada para <strong>${ev.title}</strong>.`
+                        : `Hi ${personRecord.firstName}, here is your guest pass for <strong>${ev.title}</strong>.`}
+                    </p>
+                    <div style="margin: 32px 0; text-align: center;">
+                      <a href="${ticketLink}" style="display: inline-block; background: #7b1f2c; color: #f8efe2; padding: 12px 28px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 15px;">
+                        ${personRecord.locale === "es" ? "Ver tu entrada" : "View your ticket"}
+                      </a>
+                    </div>
+                  </div>
+                `;
+
+                await queueAndSendEmail({
+                  personId,
+                  toEmail: personRecord.email,
+                  toName: `${personRecord.firstName} ${personRecord.lastName}`,
+                  templateKey: "event_pass_ticket",
+                  dedupeKey: `event_pass_${insertedBooking[0].id}`,
+                  subject,
+                  htmlContent,
+                  isTransactional: true,
+                });
+              }
+            }
+          });
         }
         break;
       }

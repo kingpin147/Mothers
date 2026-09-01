@@ -109,14 +109,14 @@ function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
 }
 
 function getCardBg(status: string, isPast?: boolean): string {
-  if (isPast) return "#dde3e6";
+  if (isPast) return "#e9eaea";
   switch (status) {
     case "confirmed":         return "#e8f1e9";
     case "published_pending": return "#fff3e4";
     case "pending":           return "#fff3e4";
     case "cancelled":         return "#fbf1f1";
     case "past":
-    case "completed":         return "#dde3e6";
+    case "completed":         return "#e9eaea";
     default:                  return "#FEFDF9";
   }
 }
@@ -1295,7 +1295,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         {/* ─── 3 FILTER ROWS MATCHING EXACT MODEL ─── */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "36px" }}>
           {/* Row 1: Categories */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+          <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "10px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
             {categoryChips.map((chip) => {
               const selected = activeCategory === chip.id;
               return (
@@ -1324,7 +1324,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           </div>
 
           {/* Row 2: Dates */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+          <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
             {dateChips.map((chip) => {
               const selected = activeDateFilter === chip.id;
               return (
@@ -1353,7 +1353,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           </div>
 
           {/* Row 3: Status / State with Authentic Swatches */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+          <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", alignItems: "center", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
             {statusChips.map((chip) => {
               const selected = activeStatus === chip.id;
               return (
