@@ -35,7 +35,7 @@ export const DICTIONARIES = {
       pillars: [
         {
           title: "By your stage",
-          body: "Events grouped by stage — pregnancy through age ten.",
+          body: "Events grouped by stage — from pregnancy through age ten.",
         },
         {
           title: "Vetted & safe",
@@ -72,7 +72,7 @@ export const DICTIONARIES = {
       kicker: "Membership",
       heading: "The Circle",
       price: "From €29/month for Opening Circle members",
-      priceSub: "Standard rate €39/month, or €99/quarter",
+      priceSub: "Opening Circle €29/month or €79 every 3 months - standard €39 or €99",
       spotsLabel: (remaining: number) => `Only ${remaining} Opening Circle spots left`,
       bullets: [
         "Private community & stage groups",
@@ -108,7 +108,7 @@ export const DICTIONARIES = {
           body: "Maternity and baby-gear discounts",
         },
       ],
-      note: "Launch partners are announced as they join — one per specialty, always exclusive.",
+      note: "Launch partners are announced as they join.",
     },
     closing: { heading: "Your circle is waiting.", cta: "Join now" },
     godmother: {

@@ -3,19 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Locale } from "@/lib/i18n";
-
-interface PartnerItem {
-  id: string;
-  name: string;
-  umbrella: "wellness" | "expert" | "child" | "places" | "brands";
-  categoryEn: string;
-  categoryEs: string;
-  bodyEn: string;
-  bodyEs: string;
-  benefitEn: string;
-  benefitEs: string;
-  website?: string;
-}
+import { getPublicPartners, submitPartnerApplication } from "@/app/actions/publicWindow";
 
 const UMBRELLAS = [
   { id: "all", labelEn: "All partners", labelEs: "Todos los partners", noteEn: "One exclusive partner per specialty, across five umbrellas — so a body need, an expert need, a child need, a place and a shop all sit inside the network.", noteEs: "Un partner exclusivo por especialidad, en cinco grandes áreas — para que el cuerpo, la experta, el peque, el lugar y la tienda estén todos dentro de la red." },
@@ -24,92 +12,6 @@ const UMBRELLAS = [
   { id: "child", labelEn: "Baby & Child Activities", labelEs: "Actividades para el bebé", noteEn: "Built around the child being present.", noteEs: "Pensadas para venir con peque." },
   { id: "places", labelEn: "Places & Hospitality", labelEs: "Lugares y hostelería", noteEn: "Spaces we book again and again.", noteEs: "Espacios a los que volvemos." },
   { id: "brands", labelEn: "Brands & Retail", labelEs: "Marcas y retail", noteEn: "Perks only — no events, no calendar.", noteEs: "Solo ventajas — sin eventos ni agenda." },
-];
-
-const PARTNERS: PartnerItem[] = [
-  {
-    id: "loto-barcelona-yoga",
-    name: "Loto Barcelona Yoga",
-    umbrella: "wellness",
-    categoryEn: "Prenatal & postnatal yoga / Pilates",
-    categoryEs: "Yoga y pilates prenatal y posparto",
-    bodyEn: "Prenatal and postnatal yoga across three Barcelona studios, taught by instructors trained in fourth-trimester recovery.",
-    bodyEs: "Yoga prenatal y posparto en tres estudios de Barcelona, impartido por instructoras formadas en recuperación del cuarto trimestre.",
-    benefitEn: "Members get 15% off drop-in classes and 10% off class packs.",
-    benefitEs: "Las socias tienen 15% de descuento en clases sueltas y 10% en bonos.",
-    website: "lotobarcelonayoga.com",
-  },
-  {
-    id: "dorm-b-sleep-consultants",
-    name: "Dorm Bé Sleep Consultants",
-    umbrella: "expert",
-    categoryEn: "Infant sleep coaching",
-    categoryEs: "Coach de sueño infantil",
-    bodyEn: "Certified paediatric sleep consultants running our nighttime workshops and answering members' toughest questions.",
-    bodyEs: "Consultoras certificadas en sueño infantil que llevan nuestros talleres nocturnos y responden las preguntas más difíciles de las socias.",
-    benefitEn: "Members get 15% off a first consultation.",
-    benefitEs: "Las socias tienen 15% de descuento en la primera consulta.",
-    website: "dormbe.es",
-  },
-  {
-    id: "momentum-careers-barcelona",
-    name: "Momentum Careers Barcelona",
-    umbrella: "expert",
-    categoryEn: "Return-to-work coaching",
-    categoryEs: "Coaching de vuelta al trabajo",
-    bodyEn: "Career coaches specializing in the return to work after parental leave — CV refreshes, negotiation, confidence.",
-    bodyEs: "Coaches de carrera especializadas en la vuelta al trabajo tras el permiso parental — CV, negociación, confianza.",
-    benefitEn: "Members get 15% off a first coaching session.",
-    benefitEs: "Las socias tienen 15% de descuento en la primera sesión.",
-    website: "momentumcareers.bcn",
-  },
-  {
-    id: "petit-toucher",
-    name: "Petit Toucher",
-    umbrella: "child",
-    categoryEn: "Baby-and-me classes (swim, music, sensory, massage)",
-    categoryEs: "Clases con el bebé (natación, música, estimulación, masaje)",
-    bodyEn: "Infant massage classes that teach parents simple techniques to soothe and bond with their babies.",
-    bodyEs: "Clases de masaje infantil que enseñan a las familias técnicas sencillas para calmar y vincularse con su bebé.",
-    benefitEn: "Members get 15% off a first class.",
-    benefitEs: "Las socias tienen 15% de descuento en la primera clase.",
-    website: "petittoucher.com",
-  },
-  {
-    id: "can-culleretes",
-    name: "Can Culleretes",
-    umbrella: "places",
-    categoryEn: "Family-friendly café or restaurant",
-    categoryEs: "Café o restaurante family-friendly",
-    bodyEn: "Barcelona's oldest restaurant, hosting our monthly Mum's-only dinners in its historic dining rooms.",
-    bodyEs: "El restaurante más antiguo de Barcelona, sede de nuestras cenas mensuales solo para madres en sus salas históricas.",
-    benefitEn: "Shared starters on every MoM's Date dinner, plus 10% off group bookings.",
-    benefitEs: "Entrantes para compartir en cada cena MoM's Date, más 10% en reservas de grupo.",
-  },
-  {
-    id: "terraza-sarri",
-    name: "Terraza Sarrià",
-    umbrella: "places",
-    categoryEn: "Private event space",
-    categoryEs: "Espacio privado para eventos",
-    bodyEn: "A rooftop venue in Sarrià-Sant Gervasi hosting our seasonal brunches and member gatherings.",
-    bodyEs: "Un espacio en azotea en Sarrià-Sant Gervasi que acoge nuestros brunchs de temporada y encuentros de socias.",
-    benefitEn: "Members get 10% off group bookings.",
-    benefitEs: "Las socias tienen 10% de descuento en reservas de grupo.",
-    website: "terrazasarria.com",
-  },
-  {
-    id: "bambino-co",
-    name: "Bambino & Co.",
-    umbrella: "brands",
-    categoryEn: "Baby-gear & maternity brand",
-    categoryEs: "Marca de puericultura y maternidad",
-    bodyEn: "A maternity and baby-gear boutique offering members an ongoing discount on everyday essentials.",
-    bodyEs: "Una boutique de maternidad y artículos para bebé que ofrece a las socias un descuento permanente en lo esencial.",
-    benefitEn: "Members get a 15% discount code.",
-    benefitEs: "Las socias tienen un código de descuento del 15%.",
-    website: "bambinoandco.com",
-  },
 ];
 
 const APPLY_STRINGS = {
@@ -141,6 +43,9 @@ export default function PartnersPage() {
   const [lang, setLang] = useState<Locale>("en");
   const [activeUmbrella, setActiveUmbrella] = useState<string>("all");
   
+  const [partners, setPartners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [formName, setFormName] = useState("");
   const [formBusiness, setFormBusiness] = useState("");
   const [formCategory, setFormCategory] = useState("");
@@ -149,17 +54,43 @@ export default function PartnersPage() {
   const [formMessage, setFormMessage] = useState("");
   const [formTouched, setFormTouched] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchPartners = async () => {
+      const res = await getPublicPartners();
+      if (res.success && res.partners) {
+        setPartners(res.partners);
+      }
+      setLoading(false);
+    };
+    fetchPartners();
+  }, []);
 
   const isFormValid = () => {
     return formName.trim().length > 0 && formBusiness.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail);
   };
 
-  const submitForm = () => {
+  const submitForm = async () => {
     if (!isFormValid()) {
       setFormTouched(true);
       return;
     }
-    setSubmitted(true);
+    setSubmitting(true);
+    const res = await submitPartnerApplication({
+      name: formName,
+      business: formBusiness,
+      category: formCategory,
+      email: formEmail,
+      website: formWebsite,
+      message: formMessage,
+    });
+    setSubmitting(false);
+    if (res.success) {
+      setSubmitted(true);
+    } else {
+      alert("Something went wrong. Please try again.");
+    }
   };
 
   const t = lang === "en" ? APPLY_STRINGS.en : APPLY_STRINGS.es;
@@ -175,7 +106,7 @@ export default function PartnersPage() {
   }, []);
 
   const activeObj = UMBRELLAS.find((u) => u.id === activeUmbrella) || UMBRELLAS[0];
-  const visiblePartners = activeUmbrella === "all" ? PARTNERS : PARTNERS.filter((p) => p.umbrella === activeUmbrella);
+  const visiblePartners = activeUmbrella === "all" ? partners : partners.filter((p) => p.umbrella === activeUmbrella);
 
   return (
     <div style={{ backgroundColor: "var(--color-bg)", minHeight: "100vh", padding: "clamp(48px, 6vw, 88px) clamp(24px, 5vw, 64px)" }}>
@@ -246,65 +177,89 @@ export default function PartnersPage() {
         </p>
 
         {/* Partners Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px", marginBottom: "64px" }}>
-          {visiblePartners.map((partner) => (
-            <div
-              key={partner.id}
-              style={{
-                border: "1px solid rgba(57, 41, 42, 0.16)",
-                borderRadius: "8px",
-                padding: "26px 24px",
-                backgroundColor: "#fff",
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "11px",
-                  letterSpacing: "0.04em",
-                  color: "var(--color-accent)",
-                  border: "1px solid rgba(123, 31, 44, 0.3)",
-                  borderRadius: "10px",
-                  padding: "3px 10px",
-                  alignSelf: "flex-start",
-                  lineHeight: 1.4,
-                }}
-              >
-                {lang === "en" ? partner.categoryEn : partner.categoryEs}
-              </span>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "40px", color: "rgba(57,41,42,0.6)" }}>Loading partners...</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px", marginBottom: "64px" }}>
+            {visiblePartners.map((partner) => {
+              // Extract domain for display if link exists in JSON, fallback to links.website
+              let websiteDisplay = partner.links?.website || "";
+              if (!websiteDisplay && partner.links?.instagram) websiteDisplay = "Instagram";
+              
+              const linkUrl = partner.links?.website ? (partner.links.website.startsWith('http') ? partner.links.website : `https://${partner.links.website}`) : (partner.links?.instagram ? `https://instagram.com/${partner.links.instagram.replace('@','')}` : "");
+              const websiteLabel = partner.links?.website ? partner.links.website.replace(/^https?:\/\/(www\.)?/, '') : (partner.links?.instagram || "");
 
-              <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "20px", margin: 0 }}>
-                {partner.name}
-              </h3>
-
-              <p style={{ fontSize: "14px", lineHeight: "1.55", color: "rgba(57, 41, 42, 0.7)", margin: 0, flex: 1 }}>
-                {lang === "en" ? partner.bodyEn : partner.bodyEs}
-              </p>
-
-              <div style={{ borderTop: "1px solid rgba(86, 139, 5, 0.25)", paddingTop: "10px" }}>
-                <span style={{ fontSize: "10.5px", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent-2)", fontWeight: 600 }}>
-                  {lang === "en" ? "Member benefit" : "Beneficio para socias"}
-                </span>
-                <p style={{ fontSize: "13.5px", lineHeight: "1.5", color: "var(--color-text)", margin: "4px 0 0", fontWeight: 600 }}>
-                  {lang === "en" ? partner.benefitEn : partner.benefitEs}
-                </p>
-              </div>
-
-              {partner.website && (
-                <a
-                  href={`https://${partner.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontSize: "13px", color: "var(--color-accent)", fontWeight: 600, textDecoration: "none" }}
+              return (
+                <div
+                  key={partner.id}
+                  style={{
+                    border: "1px solid rgba(57, 41, 42, 0.16)",
+                    borderRadius: "8px",
+                    padding: "26px 24px",
+                    backgroundColor: "#fff",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                  }}
                 >
-                  {partner.website} ↗
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      letterSpacing: "0.04em",
+                      color: "var(--color-accent)",
+                      border: "1px solid rgba(123, 31, 44, 0.3)",
+                      borderRadius: "10px",
+                      padding: "3px 10px",
+                      alignSelf: "flex-start",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {partner.specialty}
+                  </span>
+
+                  <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "20px", margin: 0 }}>
+                    {partner.name}
+                  </h3>
+
+                  <p style={{ fontSize: "14px", lineHeight: "1.55", color: "rgba(57, 41, 42, 0.7)", margin: 0, flex: 1, whiteSpace: "pre-wrap" }}>
+                    {partner.description}
+                  </p>
+
+                  <div style={{ borderTop: "1px solid rgba(86, 139, 5, 0.25)", paddingTop: "10px" }}>
+                    <span style={{ fontSize: "10.5px", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent-2)", fontWeight: 600 }}>
+                      {lang === "en" ? "Member benefit" : "Beneficio para socias"}
+                    </span>
+                    <p style={{ fontSize: "13.5px", lineHeight: "1.5", color: "var(--color-text)", margin: "4px 0 0", fontWeight: 600 }}>
+                      {partner.offerForMembers}
+                    </p>
+                    {partner.discountCode && (
+                      <p style={{ fontSize: "12px", margin: "4px 0 0", color: "rgba(57,41,42,0.6)" }}>
+                        Code: {partner.discountCode}
+                      </p>
+                    )}
+                  </div>
+
+                  {linkUrl && (
+                    <a
+                      href={linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: "13px", color: "var(--color-accent)", fontWeight: 600, textDecoration: "none" }}
+                    >
+                      {websiteLabel} ↗
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+            
+            {visiblePartners.length === 0 && (
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "rgba(57,41,42,0.6)" }}>
+                No partners found in this category yet.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Partner Application Form */}
@@ -406,11 +361,12 @@ export default function PartnersPage() {
             <button
               type="button"
               onClick={submitForm}
-              style={{ border: "1px solid var(--color-accent)", color: "var(--color-accent)", padding: "13px 26px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", backgroundColor: "transparent", cursor: "pointer", alignSelf: "flex-start", transition: "background 0.15s ease" }}
+              disabled={submitting}
+              style={{ border: "1px solid var(--color-accent)", color: "var(--color-accent)", padding: "13px 26px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", backgroundColor: "transparent", cursor: submitting ? "wait" : "pointer", alignSelf: "flex-start", transition: "background 0.15s ease", opacity: submitting ? 0.7 : 1 }}
               onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = "rgba(123, 31, 44, 0.1)"}
               onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = "transparent"}
             >
-              {t.submitLabel}
+              {submitting ? "Sending..." : t.submitLabel}
             </button>
           </div>
         ) : (
@@ -433,3 +389,4 @@ export default function PartnersPage() {
     </div>
   );
 }
+

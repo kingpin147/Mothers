@@ -108,28 +108,25 @@ function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
   return true;
 }
 
-function getCardBg(status: string, isPast?: boolean): string {
-  if (isPast) return "#e9eaea";
-  switch (status) {
-    case "confirmed":         return "#e8f1e9";
-    case "published_pending": return "#fff3e4";
-    case "pending":           return "#fff3e4";
-    case "cancelled":         return "#fbf1f1";
-    case "past":
-    case "completed":         return "#e9eaea";
-    default:                  return "#FEFDF9";
+function getCardBg(ev: PublicEvent, isPast?: boolean): string {
+  if (isPast || ev.status === "cancelled") return "#f1eeea";
+  if (ev.isSignature) return "#f1eaea";
+  switch (ev.status) {
+    case "confirmed":         return "#eef4e9";
+    case "published_pending": 
+    case "pending":           return "#fbf3e4";
+    default:                  return "#f3f0ea";
   }
 }
 
-function getCardBorder(status: string, isPast?: boolean): string {
-  if (isPast) return "rgba(96, 110, 118, 0.45)";
-  switch (status) {
-    case "confirmed":         return "rgba(74, 122, 80, 0.45)";
-    case "published_pending": return "rgba(164, 118, 31, 0.4)";
-    case "pending":           return "rgba(164, 118, 31, 0.4)";
-    case "cancelled":         return "rgba(153, 56, 66, 0.28)";
-    case "past":              return "rgba(96, 110, 118, 0.45)";
-    default:                  return "rgba(57, 41, 42, 0.16)";
+function getCardBorder(ev: PublicEvent, isPast?: boolean): string {
+  if (isPast || ev.status === "cancelled") return "rgba(57, 41, 42, 0.18)";
+  if (ev.isSignature) return "rgba(123, 31, 44, 0.32)";
+  switch (ev.status) {
+    case "confirmed":         return "rgba(86, 139, 5, 0.34)";
+    case "published_pending": 
+    case "pending":           return "rgba(164, 118, 31, 0.45)";
+    default:                  return "rgba(57, 41, 42, 0.2)";
   }
 }
 
@@ -821,10 +818,10 @@ function EventCard({
   return (
     <article
       style={{
-        border: `1px solid ${getCardBorder(ev.status, isPast)}`,
+        border: `1px solid ${getCardBorder(ev, isPast)}`,
         borderRadius: "8px",
-        padding: "24px 22px",
-        backgroundColor: getCardBg(ev.status, isPast),
+        padding: "22px 24px",
+        backgroundColor: getCardBg(ev, isPast),
         display: "flex",
         flexDirection: "column",
         gap: "12px",
@@ -1238,17 +1235,20 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
 
   // Filtering
   const filtered = events.filter((ev) => {
-    // Category match
+    // 1. Category match
     if (activeCategory !== "all") {
-      const catSlug = (ev.categorySlug || ev.categoryName || "").toLowerCase();
-      if (activeCategory === "easy" && !catSlug.includes("easy") && !catSlug.includes("walk") && !catSlug.includes("fácil") && !catSlug.includes("social")) return false;
-      if (activeCategory === "baby" && !catSlug.includes("play") && !catSlug.includes("baby") && !catSlug.includes("date")) return false;
-      if (activeCategory === "evenings" && !catSlug.includes("mom") && !catSlug.includes("evening") && !catSlug.includes("dinner") && !catSlug.includes("cena")) return false;
-      if (activeCategory === "learn" && !catSlug.includes("learn") && !catSlug.includes("aprender") && !catSlug.includes("grow") && !catSlug.includes("workshop") && !catSlug.includes("taller")) return false;
-      if (activeCategory === "signature" && !catSlug.includes("signature") && !ev.isSignature) return false;
+      const cat = (ev.categorySlug || ev.categoryName || "").toLowerCase();
+      let mappedCat = "general";
+      if (cat.includes("walk") || cat.includes("easy") || cat.includes("social") || cat.includes("fácil")) mappedCat = "easy";
+      else if (cat.includes("play") || cat.includes("baby") || cat.includes("date")) mappedCat = "baby";
+      else if (cat.includes("mom") || cat.includes("evening") || cat.includes("dinner") || cat.includes("cena")) mappedCat = "evenings";
+      else if (cat.includes("learn") || cat.includes("aprender") || cat.includes("grow") || cat.includes("workshop") || cat.includes("taller")) mappedCat = "learn";
+      else if (cat.includes("signature") || ev.isSignature) mappedCat = "signature";
+      
+      if (activeCategory !== mappedCat) return false;
     }
 
-    // Date match
+    // 2. Date match
     if (activeDateFilter === "this_month") {
       const evDate = new Date(ev.startsAt);
       if (evDate.getMonth() !== now.getMonth() || evDate.getFullYear() !== now.getFullYear()) return false;
@@ -1257,32 +1257,45 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       if (evDate.getMonth() !== nextMonthDate.getMonth() || evDate.getFullYear() !== nextMonthDate.getFullYear()) return false;
     }
 
-    // Status match
+    // 3. Status match
+    const isCancelled = ev.status === "cancelled";
     const isPastEvent = ev.status === "past" || ev.status === "completed" ||
       (ev.endsAt ? new Date(ev.endsAt) < now : new Date(ev.startsAt) < now);
+    
+    // Dynamic status derivation (gathering vs confirmed)
+    let derivedStatus = "confirmed";
+    if (isPastEvent) {
+      derivedStatus = "past";
+    } else if (isCancelled) {
+      derivedStatus = "cancelled";
+    } else if ((ev.status === "published_pending" || ev.status === "pending") && ev.minToConfirm) {
+      const booked = ev.bookedMember || 0;
+      if (booked < ev.minToConfirm) {
+        derivedStatus = "pending";
+      } else {
+        derivedStatus = "confirmed";
+      }
+    }
 
     if (activeStatus === "past") {
-      // Past filter: only past events that were not cancelled
-      if (!isPastEvent) return false;
-      if (ev.status === "cancelled") return false;
+      if (derivedStatus !== "past" || isCancelled) return false;
     } else if (activeStatus === "cancelled") {
-      // Cancelled filter: show cancelled events
-      if (ev.status !== "cancelled") return false;
+      if (derivedStatus !== "cancelled") return false;
     } else if (activeStatus === "confirmed") {
-      // Confirmed filter: only upcoming confirmed events
-      if (isPastEvent || ev.status !== "confirmed") return false;
+      if (derivedStatus !== "confirmed") return false;
     } else if (activeStatus === "pending") {
-      // Pending/To be confirmed filter: only upcoming gathering events
-      if (isPastEvent || (ev.status !== "published_pending" && ev.status !== "pending")) return false;
+      if (derivedStatus !== "pending") return false;
     } else {
-      // "all" filter: show all events (confirmed, pending, cancelled, past)
+      // "all" filter: "Past events live behind the Past filter, never under 'Upcoming'."
+      // Hide past and cancelled events from the default "All" view.
+      if (isPastEvent || isCancelled) return false;
     }
 
     return true;
   });
 
   return (
-    <div style={{ backgroundColor: "#FEFDF9", minHeight: "100vh", padding: "clamp(48px, 6vw, 88px) clamp(24px, 5vw, 64px)" }}>
+    <div style={{ backgroundColor: "#f8efe2", minHeight: "100vh", padding: "clamp(48px, 6vw, 88px) clamp(24px, 5vw, 64px)" }}>
       <div style={{ maxWidth: "1160px", margin: "0 auto" }}>
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "36px" }}>
@@ -1308,7 +1321,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   onClick={() => setActiveCategory(chip.id)}
                   style={{
                     border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.22)",
-                    backgroundColor: selected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                    backgroundColor: "transparent",
                     color: selected ? "#7b1f2c" : "#39292a",
                     fontWeight: selected ? 600 : 400,
                     padding: "9px 18px",
@@ -1336,9 +1349,9 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   type="button"
                   onClick={() => setActiveDateFilter(chip.id)}
                   style={{
-                    border: selected ? "1px solid rgba(57,41,42,0.5)" : "1px solid rgba(57,41,42,0.2)",
-                    backgroundColor: selected ? "rgba(57,41,42,0.08)" : "transparent",
-                    color: selected ? "#39292a" : "rgba(57,41,42,0.7)",
+                    border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.2)",
+                    backgroundColor: "transparent",
+                    color: selected ? "#7b1f2c" : "rgba(57,41,42,0.7)",
                     fontWeight: selected ? 600 : 400,
                     padding: "7px 15px",
                     borderRadius: "20px",
@@ -1368,9 +1381,9 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
-                    border: selected ? `1px solid ${chip.dotBorder}` : "1px solid rgba(57,41,42,0.18)",
-                    backgroundColor: selected ? chip.dotBg || "rgba(57,41,42,0.06)" : "transparent",
-                    color: selected ? "#39292a" : "rgba(57,41,42,0.72)",
+                    border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
+                    backgroundColor: "transparent",
+                    color: selected ? "#7b1f2c" : "rgba(57,41,42,0.72)",
                     fontWeight: selected ? 600 : 400,
                     padding: "6px 14px",
                     borderRadius: "20px",
@@ -1386,8 +1399,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                       width: "11px",
                       height: "11px",
                       borderRadius: "3px",
-                      backgroundColor: chip.dotBg,
-                      border: `1px solid ${chip.dotBorder}`,
+                      backgroundColor: selected ? "transparent" : chip.dotBg,
+                      border: selected ? "1px solid #7b1f2c" : `1px solid ${chip.dotBorder}`,
                       flexShrink: 0,
                     }}
                   />

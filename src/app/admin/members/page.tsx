@@ -3,36 +3,41 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAdminMembers, adjustMemberCredits } from "@/app/actions/adminCms";
-import { getMemberLedgerDetails, adminUpdateMemberStatus } from "@/app/actions/adminEventsControl";
-import { adminUpdateMemberProfile } from "@/app/actions/adminSettings";
+
+const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
+
+const STATUS_COLORS: Record<string, string> = { 
+  active: GREEN, 
+  paused: AMBER, 
+  past_due: WINE, 
+  cancelled_at_period_end: WINE,
+  lapsed: WINE
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "Active",
+  paused: "Paused",
+  past_due: "Past due",
+  cancelled_at_period_end: "Ending",
+  lapsed: "Lapsed",
+  applicant: "Applicant"
+};
 
 export default function AdminMembersPage() {
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [query, setQuery] = useState("");
+  const [stageFilter, setStageFilter] = useState("all");
+  const [areaFilter, setAreaFilter] = useState("all");
+  const [planFilter, setPlanFilter] = useState("all");
+  const [sortFilter, setSortFilter] = useState("risk");
   const [statusFilter, setStatusFilter] = useState("all");
-
-  // Credit Adjustment State
-  const [selectedMember, setSelectedMember] = useState<any | null>(null);
-  const [adjustmentAmount, setAdjustmentAmount] = useState<number>(10);
-  const [adjustmentReason, setAdjustmentReason] = useState<string>("");
-  const [adjusting, setAdjusting] = useState(false);
-
-  // Full Ledger History Modal State
-  const [activeLedgerMember, setActiveLedgerMember] = useState<any | null>(null);
-  const [ledgerLoading, setLedgerLoading] = useState(false);
-  const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
-  const [totalBalance, setTotalBalance] = useState<number>(0);
-
-  // Edit Profile Modal State
-  const [editingMember, setEditingMember] = useState<any | null>(null);
-  const [profileForm, setProfileForm] = useState({
-    stage: "Postpartum (0–12 months)",
-    neighbourhood: "Eixample",
-    phone: "",
-    notesInternal: "",
-  });
-  const [savingProfile, setSavingProfile] = useState(false);
+  const [adjustingId, setAdjustingId] = useState<string | null>(null);
+  
+  const [adjustAmount, setAdjustAmount] = useState<number | "">("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [exported, setExported] = useState(false);
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -47,512 +52,350 @@ export default function AdminMembersPage() {
     fetchMembers();
   }, []);
 
-  const openLedgerModal = async (m: any) => {
-    setActiveLedgerMember(m);
-    setLedgerLoading(true);
-    const res = await getMemberLedgerDetails(m.id);
-    setLedgerLoading(false);
-    if (res.success) {
-      setLedgerEntries(res.entries || []);
-      setTotalBalance(res.totalBalance || 0);
-    }
+  const handleExportCSV = (list: any[]) => {
+    const head = ['Name','Email','Stage','Neighbourhood','Children','Plan','Status','Credits','Attended 90d','Member since','Needs a word'];
+    const rows = list.map(m => [
+      `${m.firstName} ${m.lastName}`,
+      m.email,
+      m.stage || '',
+      m.neighbourhood || '',
+      m.children?.length ? `${m.children.length} child(ren)` : '—',
+      `€${(m.monthlyPriceCents / 100).toFixed(0)}/mo`,
+      STATUS_LABELS[m.status] || m.status,
+      m.credits || 0,
+      m.attended || 0,
+      new Date(m.joinedAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+      m.atRiskSince ? 'At risk' : ''
+    ]);
+
+    const csvContent = [head.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob(['\ufeff' + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `the-mothers-members-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    
+    setExported(true);
+    setTimeout(() => setExported(false), 2500);
   };
 
-  const openEditProfile = (m: any) => {
-    setEditingMember(m);
-    setProfileForm({
-      stage: m.stage || "Postpartum (0–12 months)",
-      neighbourhood: m.neighbourhood || "Eixample",
-      phone: m.phone || "",
-      notesInternal: m.notesInternal || "",
-    });
-  };
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingMember) return;
-    setSavingProfile(true);
-    const res = await adminUpdateMemberProfile({
-      memberId: editingMember.id,
-      ...profileForm,
-    });
-    setSavingProfile(false);
-    if (res.success) {
-      alert("Member profile updated!");
-      setEditingMember(null);
-      fetchMembers();
-    } else {
-      alert("Failed to update profile.");
-    }
-  };
-
-  const handleStatusChange = async (memberId: string, newStatus: any) => {
-    if (!confirm(`Change member status to "${newStatus}"?`)) return;
-    const res = await adminUpdateMemberStatus(memberId, newStatus);
-    if (res.success) {
-      alert("Member status updated!");
-      fetchMembers();
-    } else {
-      alert("Failed to update status.");
-    }
-  };
-
-  const handleAdjustCredits = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedMember || !adjustmentReason.trim()) {
-      alert("A valid explanation/reason is strictly required for ledger adjustments.");
+  const handleAdjustCredits = async (memberId: string) => {
+    if (!adjustReason.trim() || adjustAmount === "") {
+      alert("A valid explanation/reason and amount are required for ledger adjustments.");
       return;
     }
 
-    setAdjusting(true);
+    setIsAdjusting(true);
     const res = await adjustMemberCredits({
-      memberId: selectedMember.id,
-      amount: adjustmentAmount,
-      reason: adjustmentReason,
+      memberId: memberId,
+      amount: Number(adjustAmount),
+      reason: adjustReason,
     });
-    setAdjusting(false);
+    setIsAdjusting(false);
 
     if (res.success) {
-      alert("Credit adjustment recorded in ledger!");
-      setSelectedMember(null);
-      setAdjustmentReason("");
-      fetchMembers();
+      setAdjustingId(null);
+      setAdjustReason("");
+      setAdjustAmount("");
+      fetchMembers(); // refresh balances
     } else {
       alert(res.error || "Adjustment failed.");
     }
   };
 
-  const handleExportCSV = () => {
-    const headers = ["ID", "First Name", "Last Name", "Email", "Status", "Stage", "Neighbourhood", "Monthly Rate", "Joined At"];
-    const rows = filteredMembers.map((m) => [
-      m.id,
-      `"${m.firstName}"`,
-      `"${m.lastName}"`,
-      `"${m.email}"`,
-      m.status,
-      `"${m.stage || ""}"`,
-      `"${m.neighbourhood || ""}"`,
-      `€${(m.monthlyPriceCents / 100).toFixed(2)}`,
-      new Date(m.joinedAt).toISOString(),
-    ]);
+  const q = query.trim().toLowerCase();
+  
+  let filtered = members.filter(m => {
+    const isRisk = !!m.atRiskSince;
+    const isEnding = m.status === 'cancelled_at_period_end';
+    const stateMatched = 
+      statusFilter === 'all' || 
+      (statusFilter === 'risk' && isRisk) || 
+      (statusFilter === 'ending' && isEnding) ||
+      m.status === statusFilter;
+      
+    const stageMatched = stageFilter === 'all' || m.stage === stageFilter;
+    const areaMatched = areaFilter === 'all' || m.neighbourhood === areaFilter;
+    const planMatched = planFilter === 'all'; // Currently simplified plan matching
+    
+    const textMatched = !q || (`${m.firstName} ${m.lastName} ${m.email}`).toLowerCase().includes(q);
 
-    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `themothers_members_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const filteredMembers = members.filter((m) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      m.firstName.toLowerCase().includes(query) ||
-      m.lastName.toLowerCase().includes(query) ||
-      m.email.toLowerCase().includes(query) ||
-      (m.neighbourhood && m.neighbourhood.toLowerCase().includes(query));
-
-    if (!matchesSearch) return false;
-    if (statusFilter === "all") return true;
-    if (statusFilter === "at_risk") return !!m.atRiskSince;
-    return m.status === statusFilter;
+    return stateMatched && stageMatched && areaMatched && planMatched && textMatched;
   });
 
+  if (sortFilter === 'risk') {
+    filtered = filtered.slice().sort((a,b) => (b.atRiskSince?1:0) - (a.atRiskSince?1:0));
+  } else if (sortFilter === 'name') {
+    filtered = filtered.slice().sort((a,b) => a.firstName.localeCompare(b.firstName));
+  } else if (sortFilter === 'quiet') {
+    filtered = filtered.slice().sort((a,b) => (a.attended || 0) - (b.attended || 0));
+  } else if (sortFilter === 'joined') {
+    filtered = filtered.slice().sort((a,b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
+  }
+
+  const riskyCount = members.filter(m => !!m.atRiskSince).length;
+
+  const topFilters = [
+    { id:'all', label:`All (${members.length})` },
+    { id:'active', label:`Active (${members.filter(m => m.status === 'active').length})` },
+    { id:'risk', label:`Needs a word (${riskyCount})` },
+    { id:'paused', label:`Paused (${members.filter(m => m.status === 'paused').length})` },
+    { id:'past_due', label:`Past due (${members.filter(m => m.status === 'past_due').length})` },
+    { id:'ending', label:`Ending (${members.filter(m => m.status === 'cancelled_at_period_end').length})` }
+  ];
+
   return (
-    <div style={{ backgroundColor: "var(--color-bg)", minHeight: "100vh", padding: "40px clamp(24px, 5vw, 64px) 80px" }}>
-      <div style={{ maxWidth: "1250px", margin: "0 auto" }}>
-        {/* Top Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px", flexWrap: "wrap", gap: "16px" }}>
-          <div>
-            <div style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--color-accent-2)", fontWeight: 600 }}>
-              Back Office · Queue 03
-            </div>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "32px", margin: "4px 0 0" }}>
-              Member Care, Credit Ledgers & Directory
-            </h1>
+    <div style={{ minHeight: "100vh", backgroundColor: "#f8efe2" }}>
+      <div style={{ borderBottom: "1px solid rgba(57,41,42,0.16)" }}>
+        <div style={{ maxWidth: "1320px", margin: "0 auto", padding: "14px clamp(18px, 3vw, 30px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+            <img src="/assets/logo-mark-alpha.png" alt="The Mothers" style={{ height: "56px", width: "auto", display: "block" }} />
+            <span aria-hidden="true" style={{ width: "1px", height: "26px", background: "rgba(57,41,42,0.28)", flex: "none" }}></span>
+            <img src="/assets/logo-wordmark-alpha.png" alt="The Mothers" style={{ height: "14px", width: "auto", display: "block" }} />
+          </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: "22px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px" }}>
+            <Link href="/membership" style={{ color: "#39292a" }}>Membership</Link>
+            <Link href="/events" style={{ color: "#39292a" }}>Events</Link>
+            <Link href="/admin" style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "6px 14px" }}>Admin</Link>
+            <Link href="/" style={{ color: "rgba(57,41,42,0.55)" }}>Log out</Link>
           </div>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <Link href="/admin" className="btn btn-secondary" style={{ fontSize: "13px" }}>
-              ← Admin Dashboard
-            </Link>
-            <button onClick={handleExportCSV} className="btn btn-outline" style={{ fontSize: "13px" }}>
-              📥 Export CSV
+        </div>
+      </div>
+
+      <div style={{ maxWidth: "1320px", margin: "0 auto", padding: "clamp(24px, 3.4vw, 36px) clamp(18px, 3vw, 30px) 60px" }}>
+        
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "22px" }}>
+          <div style={{ flex: "1 1 400px" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
+              <Link href="/admin" style={{ color: "#7b1f2c" }}>← Dashboard</Link> · Members
+            </div>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(30px, 4vw, 42px)", lineHeight: 1.1, margin: "0 0 9px" }}>The membership</h1>
+            <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "70ch", textWrap: "pretty" }}>
+              Stage is in the list because it is how you think about them. The at-risk flag is a prompt to write to someone — never a message the system sends by itself.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
+            <button type="button" onClick={() => handleExportCSV(filtered)} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer", whiteSpace: "nowrap" }}>
+              {exported ? 'Downloaded' : `Export CSV (${filtered.length})`}
             </button>
+            <Link href="/admin" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap" }}>
+              ← Dashboard
+            </Link>
           </div>
         </div>
 
-        {/* Search & Filter Bar */}
-        <div className="card" style={{ backgroundColor: "#fff", padding: "16px 20px", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-          <div style={{ flex: 1, minWidth: "260px" }}>
-            <input
-              type="text"
-              className="input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="🔍 Search member name, email, neighbourhood..."
-            />
-          </div>
+        <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "16px 18px", marginBottom: "16px", display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, email or phone" style={{ flex: "1 1 240px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }} />
+          
+          <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
+            <option value="all">All stages</option>
+            <option value="Pregnant">Pregnant</option>
+            <option value="Babies">Babies</option>
+            <option value="Toddlers">Toddlers</option>
+            <option value="Children">Children</option>
+            <option value="Big kids">Big kids</option>
+          </select>
+          
+          <select value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
+            <option value="all">All neighbourhoods</option>
+            <option value="Gràcia">Gràcia</option>
+            <option value="Eixample">Eixample</option>
+            <option value="Sarrià–Sant Gervasi">Sarrià–Sant Gervasi</option>
+            <option value="Ciutat Vella">Ciutat Vella</option>
+            <option value="Sant Martí">Sant Martí</option>
+          </select>
 
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            {["all", "active", "at_risk", "paused", "past_due"].map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setStatusFilter(tab)}
-                className={`btn ${statusFilter === tab ? "btn-primary" : "btn-secondary"}`}
-                style={{ padding: "6px 14px", fontSize: "12.5px", textTransform: "capitalize" }}
-              >
-                {tab === "at_risk" ? "At-Risk (60d)" : tab}
+          <select value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
+            <option value="all">All plans</option>
+            <option value="29">€29 monthly · Opening Circle</option>
+            <option value="79">€79 quarterly · Opening Circle</option>
+            <option value="39">€39 monthly · standard</option>
+          </select>
+
+          <select value={sortFilter} onChange={(e) => setSortFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
+            <option value="risk">At-risk first</option>
+            <option value="name">Name</option>
+            <option value="joined">Newest first</option>
+            <option value="quiet">Longest since attending</option>
+          </select>
+        </div>
+
+        <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", marginBottom: "18px" }}>
+          {topFilters.map(f => {
+            const isOn = statusFilter === f.id;
+            return (
+              <button 
+                key={f.id} 
+                type="button" 
+                onClick={() => setStatusFilter(f.id)} 
+                style={{ 
+                  border: `1px solid ${isOn ? WINE : 'rgba(57,41,42,0.25)'}`, 
+                  background: isOn ? 'rgba(123,31,44,0.08)' : 'transparent', 
+                  color: isOn ? WINE : '#39292a', 
+                  borderRadius: "20px", 
+                  padding: "8px 16px", 
+                  fontFamily: "'Cormorant Garamond', serif", 
+                  fontWeight: 600, 
+                  fontSize: "13px", 
+                  cursor: "pointer", 
+                  whiteSpace: "nowrap" 
+                }}>
+                {f.label}
               </button>
-            ))}
-          </div>
+            )
+          })}
         </div>
 
         {loading ? (
-          <div className="card" style={{ padding: "40px", textAlign: "center" }}>
-            <p>Loading member directory...</p>
-          </div>
+          <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>Loading members...</div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: selectedMember ? "1fr 400px" : "1fr", gap: "24px" }}>
-            {/* Members Table */}
-            <div className="card" style={{ padding: 0, overflowX: "auto", backgroundColor: "#fff", border: "1px solid var(--color-divider)", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-              <table style={{ width: "100%", minWidth: "1050px", borderCollapse: "collapse", fontSize: "13.5px" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#fbf8f3", borderBottom: "1px solid var(--color-divider)", textAlign: "left" }}>
-                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>Member</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>Stage & Area</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>Plan & Rate</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600 }}>Status</th>
-                    <th style={{ padding: "14px 18px", textAlign: "right", fontWeight: 600 }}>Controls & Ledger</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMembers.map((m) => (
-                    <tr key={m.id} style={{ borderBottom: "1px solid var(--color-divider)", backgroundColor: selectedMember?.id === m.id ? "#f4ece2" : "transparent" }}>
-                      <td style={{ padding: "16px 18px" }}>
-                        <div style={{ fontWeight: 600, fontSize: "14px" }}>{m.firstName} {m.lastName}</div>
-                        <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{m.email}</div>
-                      </td>
-                      <td style={{ padding: "16px 18px" }}>
-                        <div>{m.stage || "—"}</div>
-                        <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{m.neighbourhood || "—"}</div>
-                      </td>
-                      <td style={{ padding: "16px 18px", fontWeight: 600, color: "var(--color-accent)" }}>
-                        €{(m.monthlyPriceCents / 100).toFixed(0)}/mo
-                      </td>
-                      <td style={{ padding: "16px 18px" }}>
-                        <select
-                          value={m.status}
-                          onChange={(e) => handleStatusChange(m.id, e.target.value)}
-                          style={{
-                            padding: "4px 8px",
-                            borderRadius: "4px",
-                            fontSize: "11.5px",
-                            fontWeight: 600,
-                            border: "1px solid var(--color-divider)",
-                            backgroundColor:
-                              m.status === "active" ? "#eef8f0" :
-                              m.status === "past_due" ? "#fef2f2" :
-                              "#faf7f2",
-                            color:
-                              m.status === "active" ? "#1e6833" :
-                              m.status === "past_due" ? "#b91c1c" : "#8a5800"
-                          }}
-                        >
-                          <option value="active">Active</option>
-                          <option value="paused">Paused</option>
-                          <option value="past_due">Past Due</option>
-                          <option value="cancelled_at_period_end">Cancelled at Period End</option>
-                          <option value="lapsed">Lapsed</option>
-                        </select>
-                        {m.atRiskSince && (
-                          <span style={{ display: "block", marginTop: "4px", backgroundColor: "#fff3e4", color: "#8a5800", padding: "2px 6px", borderRadius: "3px", fontSize: "10.5px", fontWeight: 600, width: "fit-content" }}>
-                            At-Risk (60d)
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: "16px 18px", textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "8px", justifyContent: "flex-end" }}>
-                          {/* Edit Profile Button */}
-                          <button
-                            type="button"
-                            onClick={() => openEditProfile(m)}
-                            style={{
-                              backgroundColor: "#fff",
-                              color: "var(--color-text-main)",
-                              border: "1px solid var(--color-divider)",
-                              borderRadius: "5px",
-                              padding: "6px 10px",
-                              fontSize: "12px",
-                              fontWeight: 500,
-                              cursor: "pointer",
-                            }}
-                          >
-                            ✏️ Edit
-                          </button>
-
-                          {/* Ledger History Button */}
-                          <button
-                            type="button"
-                            onClick={() => openLedgerModal(m)}
-                            style={{
-                              backgroundColor: "#f4ede4",
-                              color: "var(--color-text-main)",
-                              border: "1px solid var(--color-divider)",
-                              borderRadius: "5px",
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              fontWeight: 500,
-                              cursor: "pointer",
-                            }}
-                          >
-                            📜 Ledger
-                          </button>
-
-                          {/* Adjust Credits Button */}
-                          <button
-                            type="button"
-                            onClick={() => setSelectedMember(m)}
-                            style={{
-                              backgroundColor: "var(--color-accent)",
-                              color: "#ffffff",
-                              border: "none",
-                              borderRadius: "5px",
-                              padding: "6px 12px",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                            }}
-                          >
-                            + / - Credits
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Adjust Credits Drawer */}
-            {selectedMember && (
-              <div className="card" style={{ padding: "24px", backgroundColor: "#fff", border: "1px solid var(--color-divider)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                  <h3 style={{ fontSize: "18px", margin: 0 }}>Adjust Credit Ledger</h3>
-                  <button onClick={() => setSelectedMember(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "16px" }}>✕</button>
-                </div>
-
-                <p style={{ fontSize: "13px", color: "var(--color-text-muted)", marginBottom: "20px" }}>
-                  Adjust balance for <strong>{selectedMember.firstName} {selectedMember.lastName}</strong>. Changes are appended to the immutable audit log (§5).
-                </p>
-
-                <form onSubmit={handleAdjustCredits} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, marginBottom: "4px" }}>
-                      Credit Delta (+ to grant / - to debit)
-                    </label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={adjustmentAmount}
-                      onChange={(e) => setAdjustmentAmount(Number(e.target.value))}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "12.5px", fontWeight: 600, marginBottom: "4px" }}>
-                      Reason / Reference Note (Mandatory)
-                    </label>
-                    <textarea
-                      className="input"
-                      rows={3}
-                      value={adjustmentReason}
-                      onChange={(e) => setAdjustmentReason(e.target.value)}
-                      placeholder="e.g. Courtesy compensation for rain reschedule, Godmother bonus, offline workshop credit..."
-                      required
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={adjusting}
-                    className="btn btn-primary"
-                    style={{ width: "100%", padding: "10px", fontSize: "14px" }}
-                  >
-                    {adjusting ? "Recording..." : "Apply Adjustment →"}
-                  </button>
-                </form>
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", overflowX: "auto", marginBottom: "18px" }}>
+            <div style={{ minWidth: "1140px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 1.1fr 1fr 0.8fr 1fr 1.4fr", gap: "14px", padding: "14px 18px", borderBottom: "1px solid rgba(57,41,42,0.18)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)" }}>
+                <div>Member</div>
+                <div>Stage & area</div>
+                <div>Plan</div>
+                <div>Status</div>
+                <div>Credits</div>
+                <div>Attended · 90d</div>
+                <div>Care</div>
               </div>
+
+              {filtered.map(m => {
+                const isRisk = !!m.atRiskSince;
+                const creditColor = (m.credits || 0) <= 8 ? AMBER : '#39292a';
+                const attendColor = (m.attended || 0) === 0 ? WINE : (m.attended || 0) <= 2 ? AMBER : GREEN;
+                const isAdjustingThis = adjustingId === m.id;
+                
+                const joinedDate = new Date(m.joinedAt);
+                let lastSeenText = 'Not seen yet';
+                if (m.lastSeenDate) {
+                  const daysSince = Math.floor((new Date().getTime() - new Date(m.lastSeenDate).getTime()) / (1000 * 3600 * 24));
+                  lastSeenText = `Last seen ${daysSince} days ago`;
+                }
+                
+                let childrenStr = m.children && m.children.length > 0 ? `${m.children.length} child(ren)` : '—';
+                const statusName = STATUS_LABELS[m.status] || m.status;
+
+                return (
+                  <div key={m.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 1.1fr 1fr 0.8fr 1fr 1.4fr", gap: "14px", padding: "15px 18px", borderBottom: "1px solid rgba(57,41,42,0.1)", alignItems: "start", background: isRisk ? 'rgba(168,117,44,0.04)' : 'transparent' }}>
+                    
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", lineHeight: 1.3, marginBottom: "3px" }}>{m.firstName} {m.lastName}</div>
+                      <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.68)" }}>{m.email}</div>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.55)", marginTop: "3px" }}>Member since {joinedDate.toLocaleDateString('en-GB', {month:'short', year:'numeric'})}</div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: "13.5px", lineHeight: 1.5 }}>{m.stage || "Not given"}</div>
+                      <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.65)", marginTop: "3px" }}>{m.neighbourhood || "Not given"}</div>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.55)", marginTop: "3px" }}>{childrenStr}</div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: "13.5px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>€{(m.monthlyPriceCents / 100).toFixed(0)} / mo</div>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>Standard</div>
+                    </div>
+
+                    <div>
+                      <span style={{ display: "inline-block", border: `1px solid ${STATUS_COLORS[m.status] || GREY}`, color: STATUS_COLORS[m.status] || GREY, borderRadius: "3px", padding: "4px 9px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>{statusName}</span>
+                    </div>
+
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: creditColor }}>{m.credits || 0}</div>
+                      <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}></div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: attendColor }}>{m.attended || 0}</div>
+                      <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>{lastSeenText}</div>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "7px", alignItems: "flex-start" }}>
+                      {isRisk && (
+                        <div style={{ border: "1px solid rgba(168,117,44,0.6)", borderRadius: "4px", padding: "7px 10px", background: "rgba(168,117,44,0.06)", width: "100%", boxSizing: "border-box" }}>
+                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#8a6220", marginBottom: "3px" }}>Needs a word</div>
+                          <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)" }}>Flagged at risk manually or system rule.</div>
+                        </div>
+                      )}
+                      
+                      <div style={{ display: "flex", gap: "7px", flexWrap: "wrap", alignItems: "center" }}>
+                        <Link href={`/admin/members`} style={{ fontSize: "12.5px" }}>Record</Link>
+                        <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
+                        <Link href={`/admin/members`} style={{ fontSize: "12.5px" }}>Ledger</Link>
+                        <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
+                        <button type="button" onClick={() => setAdjustingId(isAdjustingThis ? null : m.id)} style={{ border: "none", background: "transparent", color: "#7b1f2c", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Adjust credits</button>
+                      </div>
+
+                      {isAdjustingThis && (
+                        <div style={{ border: "1px solid rgba(123,31,44,0.35)", borderRadius: "5px", background: "#fdf6f2", padding: "12px", width: "100%", boxSizing: "border-box", marginTop: "8px" }}>
+                          <div style={{ display: "flex", gap: "7px", marginBottom: "9px" }}>
+                            <input 
+                              type="number" 
+                              placeholder="±" 
+                              value={adjustAmount}
+                              onChange={(e) => setAdjustAmount(e.target.value ? Number(e.target.value) : "")}
+                              style={{ width: "64px", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "8px 9px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", background: "#fff" }} 
+                            />
+                            <input 
+                              type="text" 
+                              placeholder="Reason — required" 
+                              value={adjustReason}
+                              onChange={(e) => setAdjustReason(e.target.value)}
+                              style={{ flex: "1 1 90px", minWidth: 0, boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "8px 9px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", background: "#fff" }} 
+                            />
+                          </div>
+                          <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.68)", marginBottom: "9px" }}>
+                            Written to her ledger and the audit log with your name. New credits carry a fresh six-month life.
+                          </div>
+                          <div style={{ display: "flex", gap: "7px" }}>
+                            <button type="button" onClick={() => handleAdjustCredits(m.id)} disabled={isAdjusting} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "7px 12px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", cursor: "pointer" }}>{isAdjusting ? '...' : 'Apply'}</button>
+                            <button type="button" onClick={() => setAdjustingId(null)} style={{ border: "1px solid rgba(57,41,42,0.25)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "7px 12px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", cursor: "pointer" }}>Cancel</button>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            
+            {filtered.length === 0 && (
+              <div style={{ padding: "24px 18px", fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>No one matches. Widen the filters.</div>
             )}
           </div>
         )}
 
-        {/* ─── MODAL: FULL MEMBER CREDIT LEDGER HISTORY ─── */}
-        {activeLedgerMember && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(57, 41, 42, 0.65)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            zIndex: 110,
-          }}>
-            <div className="card" style={{ maxWidth: "780px", width: "100%", maxHeight: "90vh", overflowY: "auto", backgroundColor: "#fff", padding: "32px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", borderBottom: "1px solid var(--color-divider)", paddingBottom: "16px" }}>
-                <div>
-                  <div style={{ fontSize: "12px", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 600 }}>
-                    Member Credit Ledger Audit
-                  </div>
-                  <h2 style={{ fontSize: "24px", margin: "4px 0 2px" }}>{activeLedgerMember.firstName} {activeLedgerMember.lastName}</h2>
-                  <div style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>
-                    Account: {activeLedgerMember.email} · Total Current Balance: <strong style={{ color: "var(--color-accent)", fontSize: "15px" }}>{totalBalance} credits</strong>
-                  </div>
-                </div>
-                <button onClick={() => setActiveLedgerMember(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}>✕</button>
-              </div>
-
-              {ledgerLoading ? (
-                <p style={{ textAlign: "center", padding: "32px" }}>Loading credit ledger...</p>
-              ) : ledgerEntries.length === 0 ? (
-                <p style={{ fontSize: "13.5px", color: "var(--color-text-muted)", padding: "20px", textAlign: "center" }}>
-                  No credit movements recorded for this member.
-                </p>
-              ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                  <thead>
-                    <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
-                      <th style={{ padding: "10px 12px" }}>Date</th>
-                      <th style={{ padding: "10px 12px" }}>Movement Type</th>
-                      <th style={{ padding: "10px 12px" }}>Reason / Notes</th>
-                      <th style={{ padding: "10px 12px", textAlign: "right" }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ledgerEntries.map((e) => (
-                      <tr key={e.id} style={{ borderBottom: "1px solid var(--color-divider)" }}>
-                        <td style={{ padding: "10px 12px", color: "var(--color-text-muted)" }}>
-                          {new Date(e.createdAt).toLocaleDateString()} {new Date(e.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </td>
-                        <td style={{ padding: "10px 12px" }}>
-                          <span style={{
-                            padding: "2px 6px",
-                            borderRadius: "3px",
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                            backgroundColor: e.amount > 0 ? "#eef8f0" : "#fef2f2",
-                            color: e.amount > 0 ? "#1e6833" : "#b91c1c"
-                          }}>
-                            {e.type.replace(/_/g, " ")}
-                          </span>
-                        </td>
-                        <td style={{ padding: "10px 10px", color: "var(--color-text-main)" }}>
-                          {e.reason || "—"}
-                        </td>
-                        <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 700, color: e.amount > 0 ? "#1e6833" : "#b91c1c" }}>
-                          {e.amount > 0 ? `+${e.amount}` : e.amount} cr
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "16px" }}>
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>What puts someone on the at-risk list</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
+              <div>Nothing attended in sixty days.</div>
+              <div>Credits unspent two months running.</div>
+              <div>A payment that failed.</div>
+              <div>A rate step-up within thirty days — the month-eleven moment.</div>
+              <div>A booking released twice in a row.</div>
+            </div>
+            <p style={{ fontSize: "12.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.65)", margin: "12px 0 0", textWrap: "pretty" }}>Surfaced for you to act on, and we record that you did. Nothing automated goes to her.</p>
+          </div>
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>Rules this page holds</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
+              <div><strong style={{ fontWeight: 600 }}>Status is not a dropdown.</strong> Pausing, cancelling or reinstating is its own action on her record, with a reason, and it is logged. A stray click should never end a membership.</div>
+              <div><strong style={{ fontWeight: 600 }}>Every credit adjustment needs a reason</strong> and appears in her own statement — she can see what you did.</div>
+              <div><strong style={{ fontWeight: 600 }}>Stage groups are the five we use</strong>: Pregnant, Babies, Toddlers, Children, Big kids. Her children can sit in several; she herself is in one.</div>
+              <div><strong style={{ fontWeight: 600 }}>Export is Owner-only</strong> and the export itself is written to the audit log.</div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* ─── MODAL: EDIT MEMBER PROFILE ─── */}
-        {editingMember && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(57, 41, 42, 0.65)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            zIndex: 110,
-          }}>
-            <div className="card" style={{ maxWidth: "520px", width: "100%", backgroundColor: "#fff", padding: "32px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h2 style={{ fontSize: "20px", margin: 0 }}>Edit Member: {editingMember.firstName} {editingMember.lastName}</h2>
-                <button onClick={() => setEditingMember(null)} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer" }}>✕</button>
-              </div>
-
-              <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "13.5px" }}>
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Motherhood Stage</label>
-                  <select
-                    className="input"
-                    value={profileForm.stage}
-                    onChange={(e) => setProfileForm({ ...profileForm, stage: e.target.value })}
-                  >
-                    <option value="Pregnant">Pregnant</option>
-                    <option value="Postpartum (0–12 months)">Postpartum (0–12 months)</option>
-                    <option value="Toddler (1–3 years)">Toddler (1–3 years)</option>
-                    <option value="School Age (3+ years)">School Age (3+ years)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Neighbourhood Circle</label>
-                  <select
-                    className="input"
-                    value={profileForm.neighbourhood}
-                    onChange={(e) => setProfileForm({ ...profileForm, neighbourhood: e.target.value })}
-                  >
-                    <option value="Eixample">Eixample</option>
-                    <option value="Gràcia">Gràcia</option>
-                    <option value="Sarrià-Sant Gervasi">Sarrià-Sant Gervasi</option>
-                    <option value="Les Corts">Les Corts</option>
-                    <option value="Poblenou">Poblenou</option>
-                    <option value="Ciutat Vella">Ciutat Vella</option>
-                    <option value="Outside Barcelona">Outside Barcelona</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Phone / WhatsApp (E.164)</label>
-                  <input
-                    type="tel"
-                    className="input"
-                    value={profileForm.phone}
-                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                    placeholder="+34 600 000 000"
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Internal Care & Operator Notes</label>
-                  <textarea
-                    className="input"
-                    rows={3}
-                    value={profileForm.notesInternal}
-                    onChange={(e) => setProfileForm({ ...profileForm, notesInternal: e.target.value })}
-                    placeholder="Private notes for club operators..."
-                  />
-                </div>
-
-                <button type="submit" disabled={savingProfile} className="btn btn-primary" style={{ marginTop: "8px", padding: "10px" }}>
-                  {savingProfile ? "Saving..." : "Save Member Details"}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
+
     </div>
   );
 }

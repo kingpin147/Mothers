@@ -553,10 +553,12 @@ export const journalPost = pgTable(
     body: text("body").notNull(),
     author: text("author").notNull(),
     heroImageId: text("hero_image_id"),
+    audience: text("audience").default("public").notNull(),
     status: text("status").default("draft").notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     seoTitle: text("seo_title"),
     seoDescription: text("seo_description"),
+    views: integer("views").default(0).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   }

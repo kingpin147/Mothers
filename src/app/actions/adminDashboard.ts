@@ -36,7 +36,9 @@ export async function getAdminDashboardMetrics() {
     t10EventsData,
     pendingApps,
     weekEvents,
-    recentLogs
+    recentLogs,
+    failedPayments,
+    creditStats
   ] = await Promise.all([
     // 1. Stats
     db.select({
@@ -83,7 +85,8 @@ export async function getAdminDashboardMetrics() {
     // 7. This Week (Confirmed events starting within 7 days)
     db.select({
       event: event,
-      bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`
+      bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
+      waitlistCount: sql<number>`count(CASE WHEN ${booking.status} = 'waitlist' THEN 1 END)::int`
     }).from(event)
       .leftJoin(booking, eq(booking.eventId, event.id))
       .where(and(eq(event.status, "confirmed"), lte(event.startsAt, t7Date), gte(event.startsAt, now)))
@@ -96,7 +99,25 @@ export async function getAdminDashboardMetrics() {
       entity: auditLog.entity,
       actorType: auditLog.actorType,
       createdAt: auditLog.at,
-    }).from(auditLog).orderBy(desc(auditLog.at)).limit(5)
+    }).from(auditLog).orderBy(desc(auditLog.at)).limit(5),
+
+    // 9. Failed Payments
+    db.select({
+      id: payment.id,
+      amountCents: payment.amountCents,
+      occurredAt: payment.occurredAt,
+      purpose: payment.purpose,
+      p: person
+    }).from(payment)
+      .innerJoin(person, eq(payment.personId, person.id))
+      .where(eq(payment.status, 'failed'))
+      .orderBy(desc(payment.occurredAt)).limit(5),
+
+    // 10. Credit Stats
+    db.select({
+      issued: sql<number>`SUM(CASE WHEN CAST(amount AS INT) > 0 THEN CAST(amount AS INT) ELSE 0 END)::int`,
+      spent: sql<number>`SUM(CASE WHEN CAST(amount AS INT) < 0 THEN ABS(CAST(amount AS INT)) ELSE 0 END)::int`,
+    }).from(creditEntry)
   ]);
 
   let activeMembersCount = 0;
@@ -139,29 +160,46 @@ export async function getAdminDashboardMetrics() {
     };
   });
 
-  const money = [
-    { who: 'Elena Prats', what: 'renewal failed twice', meta: 'Declined recently · pauses in 2 days', amount: '€29', color: '#7b1f2c', action: 'Retry' },
-    { who: 'Sofia Marín', what: 'payment hold running out', meta: 'Accepted recently · 11h of 72 left', amount: '€48', color: '#7b1f2c', action: 'Extend' },
-    { who: 'Ana Vidal', what: 'card expires next month', meta: 'Renews soon · card ends 09/26', amount: '€79', color: '#a8752c', action: 'Ask for a new card' },
-    { who: 'Clínica Bonanova', what: 'agreement ends in 21 days', meta: 'Perk live in 34 accounts', amount: '21 days', color: '#a8752c', action: 'Renew' }
-  ];
+  const money = failedPayments.map(fp => {
+    const purposeStr = fp.purpose.replace(/_/g, " ");
+    return {
+      who: `${fp.p.firstName} ${fp.p.lastName}`,
+      what: `${purposeStr} failed`,
+      meta: `Declined ${new Date(fp.occurredAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`,
+      amount: `€${(fp.amountCents / 100).toFixed(0)}`,
+      color: '#7b1f2c',
+      action: 'Retry'
+    };
+  });
 
-  const week = weekEvents.map(e => ({
-    id: e.event.id,
-    when: `${new Date(e.event.startsAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} · ${new Date(e.event.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`,
-    title: e.event.title,
-    place: `${e.event.meetingPoint} · ${e.event.isFreeWalk ? 'free' : e.event.creditCost + ' credits'}`,
-    headcount: e.bookingsCount > 0 ? `${e.bookingsCount} of ${e.event.capacityMember}` : String(e.bookingsCount),
-    headcountLabel: e.bookingsCount === e.event.capacityMember ? 'places taken · full' : 'places taken'
-  }));
+  let totalCapacity = 0;
+  let totalBooked = 0;
+  let totalWaitlist = 0;
+
+  const week = weekEvents.map(e => {
+    totalCapacity += e.event.capacityMember;
+    totalBooked += e.bookingsCount;
+    totalWaitlist += e.waitlistCount;
+
+    return {
+      id: e.event.id,
+      when: `${new Date(e.event.startsAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} · ${new Date(e.event.startsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'})}`,
+      title: e.event.title,
+      place: `${e.event.meetingPoint || "TBD"} · ${e.event.isFreeWalk ? 'free' : e.event.creditCost + ' credits'}`,
+      headcount: e.bookingsCount > 0 ? `${e.bookingsCount} of ${e.event.capacityMember}` : String(e.bookingsCount),
+      headcountLabel: e.bookingsCount === e.event.capacityMember ? 'places taken · full' : 'places taken'
+    };
+  });
+
+  const fillRate = totalCapacity > 0 ? Math.round((totalBooked / totalCapacity) * 100) : 0;
 
   const stats = [
     { value: `${activeMembersCount} of ${placesOffered}`, label: 'Opening Circle places taken' },
     { value: `${activeMembersCount}`, label: 'Active members' },
-    { value: '1,220', label: 'Credits issued recently' },
-    { value: '844', label: 'Credits spent recently' },
+    { value: `${creditStats[0]?.issued || 0}`, label: 'Credits issued recently' },
+    { value: `${creditStats[0]?.spent || 0}`, label: 'Credits spent recently' },
     { value: `€${(revenueCents / 100).toFixed(0)}`, label: 'Total Revenue' },
-    { value: '78%', label: 'Fill rate · 9 on waitlists' }
+    { value: `${fillRate}%`, label: `Fill rate · ${totalWaitlist} on waitlists` }
   ];
 
   const audit = recentLogs.length > 0 ? recentLogs.map(l => ({
@@ -171,11 +209,7 @@ export async function getAdminDashboardMetrics() {
     when: new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
     where: 'web'
   })) : [
-    { who: 'Belén', did: 'confirmed an event', change: 'Sleep & routines workshop — “filling” → “confirmed”, 9 booked against a minimum of 6', when: '30 Aug · 22:50', where: 'Barcelona · web' },
-    { who: 'Belén', did: 'adjusted credits', change: 'Eolia Serra — balance 4 → 22, reason “goodwill, class cancelled in June”', when: '30 Aug · 22:46', where: 'Barcelona · web' },
-    { who: 'Marc', did: 'created an event', change: 'Vineyard long-table lunch — Alella, 6 Sep 13:00, minimum 8, 45 credits', when: '30 Aug · 22:22', where: 'Barcelona · web' },
-    { who: 'System', did: 'ran the credit expiry job', change: '38 credits expired across 4 members, oldest first', when: '30 Aug · 06:00', where: 'Scheduled job' },
-    { who: 'Belén', did: 'accepted an application', change: 'Sofia Marín — “waiting” → “accepted”, payment link valid until 31 Aug 14:20', when: '28 Aug · 14:20', where: 'Barcelona · web' }
+    { who: 'System', did: 'awaiting logs', change: 'Audit logs will appear here once actions are taken.', when: '-', where: '-' }
   ];
 
   return {

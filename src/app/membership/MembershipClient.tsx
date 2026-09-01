@@ -245,10 +245,10 @@ export default function MembershipClient({
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "7px 32px" }}>
                 {(isEn ? [
-                  "Once the 50 places are taken, membership opens at €39. Your €29 is held for a full twelve months.",
+                  "Once the 50 places are taken, membership opens at €39. Your €28 is held for a full twelve months.",
                   "Applications open one week a month. When the Window is shut, join the waitlist.",
-                  "Pause for exactly two months per calendar year at no cost — your credits freeze with you.",
-                  "Credits roll over with no ceiling and expire six months after they are granted. Cancel up to 24h before an event to get credits back; later cancellations are returned only if your seat is filled.",
+                  "Pause for up to two months a year at no cost — your credits freeze with you.",
+                  "Credits roll over with no ceiling and expire six months after they are granted. No cancellation fees, ever.",
                 ] : [
                   "Cuando se ocupen las 50 plazas, la membresía se abre a 39€. Tus 29€ se mantienen doce meses completos.",
                   "Las solicitudes se abren una semana al mes. Si la Ventana está cerrada, únete a la lista de espera.",
@@ -320,7 +320,7 @@ export default function MembershipClient({
             ))}
           </div>
           <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.55)", borderTop: "1px solid rgba(57,41,42,0.16)", paddingTop: "16px", margin: 0 }}>
-            {isEn ? "Pause for exactly two months per calendar year at no cost. Cancel membership anytime without fees." : "Pausa exactamente dos meses por año natural sin coste. Cancela tu membresía en cualquier momento sin penalizaciones."}
+            {isEn ? "Pause for up to two months a year at no cost. No cancellation fees, ever." : "Pausa exactamente dos meses por año natural sin coste. Cancela tu membresía en cualquier momento sin penalizaciones."}
           </p>
         </div>
       </section>
@@ -377,10 +377,10 @@ export default function MembershipClient({
         <div style={{ position: "relative" }}>
           <div ref={famTrackRef} style={{ display: "flex", alignItems: "stretch", gap: "22px", overflowX: "auto", scrollSnapType: "x mandatory", scrollBehavior: "smooth", padding: "2px 2px 14px", scrollbarWidth: "none" }}>
             {([
-              { icon: "flame", en: ["Easy connection","Mostly included","Walks, park socials & hosted meetups. Usually included in the plan, occasionally a few credits depending on the partner."], es: ["Conexión fácil","Casi siempre incluido","Paseos, encuentros en el parque y quedadas con anfitriona. Los paseos son gratis; los cafés con anfitriona cuestan 2 créditos."], green: true },
+              { icon: "flame", en: ["Easy connection","Mostly included","Walks, park socials & hosted meetups. The walks and park socials are usually included in the plan but can cost few credit depending on the parters involved."], es: ["Conexión fácil","Casi siempre incluido","Paseos, encuentros en el parque y quedadas con anfitriona. Los paseos son gratis; los cafés con anfitriona cuestan 2 créditos."], green: true },
               { icon: "cluster", en: ["Play date","Credits","Yoga, massage, music — your child right beside you."], es: ["Play date","Créditos","Yoga, masaje, música — con tu hijo/a a tu lado."], green: false },
               { icon: "cup", en: ["MoM's date","Credits","Dinners, wellness, culture — a woman first."], es: ["MoM's date","Créditos","Cenas, bienestar, cultura — una mujer primero."], green: false },
-              { icon: "edu", en: ["Learn & Grow","Credits","Expert talks, workshops, and masterclasses."], es: ["Aprender y crecer","Créditos","Charlas de expertas, talleres y masterclasses."], green: false },
+              { icon: "edu", en: ["Learn & Grow","Credits","Expert talks, works masterclasses."], es: ["Aprender y crecer","Créditos","Charlas de expertas, talleres y masterclasses."], green: false },
               { icon: "star", en: ["Signature moments","Credits","Seasonal moments and 1:1 expert sessions."], es: ["Momentos únicos","Créditos","Momentos de temporada y sesiones 1:1 con expertas."], green: false },
             ] as const).map((f, i) => {
               const [title, badge, body] = isEn ? f.en : f.es;

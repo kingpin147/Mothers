@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage } from "@/db/schema";
+import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
@@ -487,4 +487,96 @@ export async function duplicateAdminEvent(eventId: string) {
   revalidatePath("/admin/events");
 
   return { success: true, eventId: inserted[0].id };
+}
+
+export async function getEventRoster(eventId: string) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "host", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  const ev = await db.query.event.findFirst({
+    where: eq(event.id, eventId),
+  });
+
+  if (!ev) return { success: false, error: "EVENT_NOT_FOUND" };
+
+  // Get active bookings (held, confirmed, attended)
+  const bookingsWithPerson = await db
+    .select({
+      booking: booking,
+      person: person,
+      member: member,
+    })
+    .from(booking)
+    .innerJoin(person, eq(booking.personId, person.id))
+    .leftJoin(member, eq(booking.memberId, member.id))
+    .where(
+      and(
+        eq(booking.eventId, eventId),
+        sql`${booking.status} IN ('held', 'confirmed', 'attended')`
+      )
+    )
+    .orderBy(desc(booking.bookedAt));
+
+  // Get recently released bookings (for audit / waitlist reference)
+  const releasedBookings = await db
+    .select({
+      booking: booking,
+      person: person,
+    })
+    .from(booking)
+    .innerJoin(person, eq(booking.personId, person.id))
+    .where(
+      and(
+        eq(booking.eventId, eventId),
+        eq(booking.status, "released")
+      )
+    )
+    .orderBy(desc(booking.releasedAt));
+
+  // Get waitlist
+  const { eventWaitlist } = await import("@/db/schema");
+  const waitlist = await db
+    .select({
+      waitlist: eventWaitlist,
+      person: person,
+    })
+    .from(eventWaitlist)
+    .innerJoin(person, eq(eventWaitlist.personId, person.id))
+    .where(eq(eventWaitlist.eventId, eventId))
+    .orderBy(eventWaitlist.createdAt);
+
+  return { 
+    success: true, 
+    event: ev, 
+    bookings: bookingsWithPerson, 
+    released: releasedBookings, 
+    waitlist 
+  };
+}
+
+export async function markAttendance(bookingId: string, attended: boolean) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "host", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  await db
+    .update(booking)
+    .set({
+      status: attended ? "attended" : "confirmed", // if unchecked, revert to confirmed
+      attendedAt: attended ? new Date() : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(booking.id, bookingId));
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/admin/events");
+
+  return { success: true };
 }

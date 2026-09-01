@@ -40,6 +40,7 @@ export async function getAdminMembers() {
       status: member.status,
       stage: member.stage,
       neighbourhood: member.neighbourhood,
+      children: member.children,
       joinedAt: member.joinedAt,
       monthlyPriceCents: member.monthlyPriceCents,
       currentPeriodEnd: member.currentPeriodEnd,
@@ -47,6 +48,9 @@ export async function getAdminMembers() {
       firstName: person.firstName,
       lastName: person.lastName,
       email: person.email,
+      credits: sql<number>`(SELECT COALESCE(SUM(amount), 0) FROM ${creditEntry} WHERE member_id = ${member.id})::int`.as('credits'),
+      attended: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended' AND e.starts_at >= NOW() - INTERVAL '90 days')`.as('attended'),
+      lastSeenDate: sql<Date>`(SELECT MAX(e.starts_at) FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended')`.as('last_seen_date'),
     })
     .from(member)
     .innerJoin(person, eq(member.personId, person.id))
@@ -192,13 +196,35 @@ export async function getAdminFinance() {
       stripeInvoiceId: payment.stripeInvoiceId,
       occurredAt: payment.occurredAt,
       personEmail: person.email,
-      personName: person.firstName,
+      personFirstName: person.firstName,
+      personLastName: person.lastName,
     })
     .from(payment)
     .innerJoin(person, eq(payment.personId, person.id))
     .orderBy(desc(payment.occurredAt));
 
-  return { success: true, payments };
+  const creditEntries = await db
+    .select({
+      id: creditEntry.id,
+      memberId: creditEntry.memberId,
+      amount: creditEntry.amount,
+      type: creditEntry.type,
+      expiresAt: creditEntry.expiresAt,
+      sourceType: creditEntry.sourceType,
+      sourceId: creditEntry.sourceId,
+      reason: creditEntry.reason,
+      actorAdminId: creditEntry.actorAdminId,
+      createdAt: creditEntry.createdAt,
+      personFirstName: person.firstName,
+      personLastName: person.lastName,
+      personEmail: person.email,
+    })
+    .from(creditEntry)
+    .innerJoin(member, eq(creditEntry.memberId, member.id))
+    .innerJoin(person, eq(member.personId, person.id))
+    .orderBy(desc(creditEntry.createdAt));
+
+  return { success: true, payments, creditEntries };
 }
 
 // ─── 3. PARTNERS DIRECTORY CMS ──────────────────────────────────────────────
@@ -286,6 +312,7 @@ export async function saveFaq(data: {
   questionEs: string;
   answerEs: string;
   sortOrder?: number;
+  active?: boolean;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     await verifyAdminRole();
@@ -300,6 +327,7 @@ export async function saveFaq(data: {
           questionEs: data.questionEs,
           answerEs: data.answerEs,
           sortOrder: data.sortOrder || 0,
+          active: data.active !== undefined ? data.active : true,
           updatedAt: new Date(),
         })
         .where(eq(faqItem.id, data.id));
@@ -311,6 +339,7 @@ export async function saveFaq(data: {
         questionEs: data.questionEs,
         answerEs: data.answerEs,
         sortOrder: data.sortOrder || 0,
+        active: data.active !== undefined ? data.active : true,
       });
     }
 
@@ -340,6 +369,8 @@ export async function saveJournalPost(data: {
   body: string;
   author?: string;
   published?: boolean;
+  publishedAt?: Date | null;
+  audience?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     await verifyAdminRole();
@@ -352,8 +383,9 @@ export async function saveJournalPost(data: {
           title: data.title,
           excerpt: data.excerpt,
           body: data.body,
+          audience: data.audience || "public",
           status: data.published ? "published" : "draft",
-          publishedAt: data.published ? new Date() : null,
+          publishedAt: data.publishedAt !== undefined ? data.publishedAt : (data.published ? new Date() : null),
           updatedAt: new Date(),
         })
         .where(eq(journalPost.id, data.id));
@@ -364,8 +396,9 @@ export async function saveJournalPost(data: {
         excerpt: data.excerpt,
         body: data.body,
         author: data.author || "The Mothers Editorial",
+        audience: data.audience || "public",
         status: data.published ? "published" : "draft",
-        publishedAt: data.published ? new Date() : null,
+        publishedAt: data.publishedAt !== undefined ? data.publishedAt : (data.published ? new Date() : null),
       });
     }
 
