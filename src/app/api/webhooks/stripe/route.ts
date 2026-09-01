@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/db";
-import { stripeEvent, member, payment, person, auditLog, creditEntry, event as eventTable, booking } from "@/db/schema";
+import { stripeEvent, member, payment, person, auditLog, creditEntry, event as eventTable, booking, eventPass } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { grantMonthlySubscriptionCredits } from "@/lib/ledger";
 import { queueAndSendEmail } from "@/lib/brevo";
