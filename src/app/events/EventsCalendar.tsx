@@ -1271,8 +1271,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       // Pending/To be confirmed filter: only upcoming gathering events
       if (isPastEvent || (ev.status !== "published_pending" && ev.status !== "pending")) return false;
     } else {
-      // "all" filter: show all upcoming events (confirmed, pending, cancelled)
-      if (isPastEvent) return false;
+      // "all" filter: show all events (confirmed, pending, cancelled, past)
     }
 
     return true;
