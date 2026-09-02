@@ -18,7 +18,32 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
   const [statusReason, setStatusReason] = useState("");
   
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustAmount, setAdjustAmount] = useState<number | "">("");
+  const [adjustReason, setAdjustReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAdjust = async () => {
+    if (!adjustReason.trim() || adjustAmount === "") {
+      alert("A reason and amount are required.");
+      return;
+    }
+    setIsSubmitting(true);
+    const { adjustMemberCredits } = await import("@/app/actions/adminCms");
+    const res = await adjustMemberCredits({
+      memberId: resolvedParams.id,
+      amount: Number(adjustAmount),
+      reason: adjustReason,
+    });
+    setIsSubmitting(false);
+    if (res.success) {
+      setAdjustOpen(false);
+      setAdjustAmount("");
+      setAdjustReason("");
+      loadData();
+    } else {
+      alert(res.error || "Failed to adjust credits");
+    }
+  };
 
   const loadData = async () => {
     const res = await getAdminMemberDetail(resolvedParams.id);
@@ -161,11 +186,11 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {member.status === 'past_due' && (
+        {!!member.atRiskSince && (
           <div style={{ border: "1px solid rgba(123,31,44,0.45)", borderRadius: "8px", background: "#fdf6f2", padding: "clamp(18px,2.4vw,22px)", marginBottom: "18px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "7px" }}>{member.firstName.toUpperCase()} NEEDS A WORD</div>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.8)", margin: "0 0 14px", maxWidth: "74ch", textWrap: "pretty" }}>
-              A failed payment, and nothing attended in 71 days. A note from you, not a dunning email.
+              She has been flagged as at risk. A note from you, not a dunning email.
             </p>
             <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
               <button type="button" onClick={() => setWriteOpen(!writeOpen)} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>Write to her</button>
@@ -246,12 +271,12 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
             {adjustOpen && (
               <div style={{ marginTop: "12px", border: "1px solid rgba(123,31,44,0.35)", borderRadius: "6px", background: "#fdf6f2", padding: "13px 15px" }}>
                 <div style={{ display: "flex", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
-                  <input type="number" placeholder="±" style={{ width: "70px", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "9px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", background: "#fff" }} />
-                  <input type="text" placeholder="Reason — she will see this" style={{ flex: "1 1 140px", minWidth: 0, boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "9px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", background: "#fff" }} />
+                  <input type="number" value={adjustAmount} onChange={e => setAdjustAmount(e.target.value === "" ? "" : Number(e.target.value))} placeholder="±" style={{ width: "70px", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "9px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", background: "#fff" }} />
+                  <input type="text" value={adjustReason} onChange={e => setAdjustReason(e.target.value)} placeholder="Reason — she will see this" style={{ flex: "1 1 140px", minWidth: 0, boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "9px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", background: "#fff" }} />
                 </div>
                 <div style={{ fontSize: "12px", lineHeight: 1.55, color: "rgba(57,41,42,0.7)", marginBottom: "10px" }}>Appears in her own statement as an adjustment by the team. New credits carry a fresh six-month life.</div>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button type="button" onClick={() => setAdjustOpen(false)} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "8px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", cursor: "pointer" }}>Apply</button>
+                  <button type="button" onClick={handleAdjust} disabled={isSubmitting} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "8px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", cursor: "pointer" }}>{isSubmitting ? "..." : "Apply"}</button>
                   <button type="button" onClick={() => setAdjustOpen(false)} style={{ border: "1px solid rgba(57,41,42,0.25)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "8px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", cursor: "pointer" }}>Cancel</button>
                 </div>
               </div>

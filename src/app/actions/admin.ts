@@ -278,3 +278,82 @@ export async function declineApplication(applicationId: string, reasonCode?: str
 
   return { success: true };
 }
+
+// Extend payment window by 72 hours
+export async function extendApplicationPayment(applicationId: string) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) return { success: false, error: "UNAUTHORIZED_ADMIN" };
+
+  const appRecord = await db.query.application.findFirst({
+    where: eq(application.id, applicationId),
+  });
+
+  if (!appRecord || appRecord.status !== "accepted") {
+    return { success: false, error: "APPLICATION_NOT_ELIGIBLE" };
+  }
+
+  const newExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+
+  await db.update(application)
+    .set({
+      acceptExpiresAt: newExpiresAt,
+      updatedAt: new Date(),
+    })
+    .where(eq(application.id, applicationId));
+
+  await db.insert(auditLog).values({
+    actorId: session?.user?.id,
+    actorType: "admin",
+    action: "extend_application",
+    entity: "application",
+    entityId: applicationId,
+    after: { acceptExpiresAt: newExpiresAt.toISOString() },
+  });
+
+  return { success: true };
+}
+
+// Release the place (cancel application and member awaiting payment)
+export async function releaseApplicationPlace(applicationId: string) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) return { success: false, error: "UNAUTHORIZED_ADMIN" };
+
+  const appRecord = await db.query.application.findFirst({
+    where: eq(application.id, applicationId),
+  });
+
+  if (!appRecord || appRecord.status !== "accepted") {
+    return { success: false, error: "APPLICATION_NOT_ELIGIBLE" };
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.update(application)
+      .set({
+        status: "declined",
+        declineReasonCode: "RELEASED_BY_ADMIN",
+        updatedAt: new Date(),
+      })
+      .where(eq(application.id, applicationId));
+
+    await tx.update(member)
+      .set({
+        status: "lapsed",
+        updatedAt: new Date(),
+      })
+      .where(eq(member.personId, appRecord.personId));
+
+    await tx.insert(auditLog).values({
+      actorId: session?.user?.id,
+      actorType: "admin",
+      action: "release_application_place",
+      entity: "application",
+      entityId: applicationId,
+    });
+  });
+
+  return { success: true };
+}

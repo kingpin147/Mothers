@@ -254,11 +254,11 @@ export function ApplyModal({
           <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "28px", margin: "0 0 12px", color: "#39292a" }}>
             {lang === "en" ? "Application received." : "Solicitud recibida."}
           </h2>
-          <p style={{ fontSize: "15.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.72)", margin: "0 0 24px" }}>
-            {lang === "en"
-              ? "We review every application individually. You'll get an email letting you know whether you've been accepted — if you have, it'll include a payment link, and your membership is only confirmed once that payment is completed."
-              : "Revisamos cada solicitud de forma individual. Recibirás un correo indicándote si has sido aceptada — si lo eres, incluirá un enlace de pago, y tu membresía solo queda confirmada una vez completado dicho pago."}
-          </p>
+            <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 auto", maxWidth: "480px" }}>
+              {lang === "en"
+                ? "We review every application individually, and you'll hear from us within 72 hours. You'll get an email letting you know whether you've been accepted — if you have, it'll include a payment link, and your membership is only confirmed once that payment is completed."
+                : "Revisamos cada solicitud individualmente y recibirás noticias nuestras en menos de 72 horas. Recibirás un email confirmando si has sido aceptada; en ese caso, incluirá un enlace de pago y tu membresía solo estará confirmada una vez completado dicho pago."}
+            </p>
           <button
             type="button"
             onClick={onClose}

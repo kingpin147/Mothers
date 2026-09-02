@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getApplicationsForAdmin, acceptApplication, declineApplication } from "@/app/actions/admin";
+import { getApplicationsForAdmin, acceptApplication, declineApplication, extendApplicationPayment, releaseApplicationPlace } from "@/app/actions/admin";
 
 const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
 
@@ -181,7 +181,11 @@ export default function AdminApplicationsPage() {
                     READING {currentIndex + 1} OF {waitingApps.length} WAITING
                   </div>
                   <div style={{ fontSize: "12px", color: WINE, fontWeight: 500 }}>
-                    4h left of our 72-hour promise
+                    {(() => {
+                      const diff = new Date(currentApp.submittedAt).getTime() + 72 * 60 * 60 * 1000 - Date.now();
+                      if (diff <= 0) return "Overdue on 72-hour promise";
+                      return `${Math.floor(diff / (1000 * 60 * 60))}h left of our 72-hour promise`;
+                    })()}
                   </div>
                 </div>
 
@@ -318,23 +322,52 @@ export default function AdminApplicationsPage() {
             </p>
             
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {[
-                { name: "Sofia Marín", date: "Accepted 28 Aug · reminder sent at 48h", time: "11h left" },
-                { name: "Laia Puig", date: "Accepted 29 Aug · reminder due tomorrow", time: "38h left" }
-              ].map((a, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                  <div>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: "#39292a" }}>{a.name}</div>
-                    <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>{a.date}</div>
+              {awaitingPaymentApps.map((a, i) => {
+                const diff = new Date(a.acceptExpiresAt || Date.now()).getTime() - Date.now();
+                const hoursLeft = Math.max(0, Math.floor(diff / (1000 * 60 * 60)));
+                const dateStr = `Accepted ${new Date(a.decidedAt || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+                
+                return (
+                  <div key={a.id || i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: "#39292a" }}>
+                        {a.personName} {a.personLastName}
+                      </div>
+                      <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>{dateStr}</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span style={{ border: `1px solid ${WINE}`, color: WINE, borderRadius: "4px", padding: "4px 8px", fontSize: "11px", fontWeight: 600, fontFamily: "'Cormorant Garamond', serif" }}>
+                        {hoursLeft}h left
+                      </span>
+                      <button onClick={async () => {
+                        setActionLoading(a.id);
+                        const res = await extendApplicationPayment(a.id);
+                        setActionLoading(null);
+                        if (res.success) {
+                          alert("Payment window extended by 72 hours.");
+                          fetchApps();
+                        } else alert(res.error || "Failed to extend");
+                      }} disabled={!!actionLoading} style={{ border: "none", background: "none", color: "#39292a", fontSize: "13px", cursor: "pointer", fontFamily: "'Lora', Georgia, serif" }}>Extend</button>
+                      <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
+                      <button onClick={async () => {
+                        if (!confirm("Are you sure you want to release this place and lapse the member?")) return;
+                        setActionLoading(a.id);
+                        const res = await releaseApplicationPlace(a.id);
+                        setActionLoading(null);
+                        if (res.success) {
+                          alert("Place released.");
+                          fetchApps();
+                        } else alert(res.error || "Failed to release");
+                      }} disabled={!!actionLoading} style={{ border: "none", background: "none", color: WINE, fontSize: "13px", cursor: "pointer", textDecoration: "underline", fontFamily: "'Lora', Georgia, serif" }}>Release the place</button>
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <span style={{ border: `1px solid ${WINE}`, color: WINE, borderRadius: "4px", padding: "4px 8px", fontSize: "11px", fontWeight: 600, fontFamily: "'Cormorant Garamond', serif" }}>{a.time}</span>
-                    <button style={{ border: "none", background: "none", color: "#39292a", fontSize: "13px", cursor: "pointer", fontFamily: "'Lora', Georgia, serif" }}>Extend</button>
-                    <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
-                    <button style={{ border: "none", background: "none", color: WINE, fontSize: "13px", cursor: "pointer", textDecoration: "underline", fontFamily: "'Lora', Georgia, serif" }}>Release the place</button>
-                  </div>
+                );
+              })}
+              {awaitingPaymentApps.length === 0 && (
+                <div style={{ padding: "16px 0", color: "rgba(57,41,42,0.6)" }}>
+                  No one is currently awaiting payment.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         ) : (

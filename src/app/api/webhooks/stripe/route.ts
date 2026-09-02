@@ -59,21 +59,37 @@ export async function POST(req: NextRequest) {
 
           if (memberRecord) {
             await db.transaction(async (tx) => {
-              // 1. Record Payment
-              const insertedPayment = await tx
-                .insert(payment)
-                .values({
-                  personId: memberRecord.personId,
-                  purpose: "subscription_monthly",
-                  amountCents: invoice.amount_paid,
-                  currency: invoice.currency.toUpperCase(),
-                  status: "succeeded",
-                  stripeInvoiceId: invoice.id,
-                })
-                .returning({ id: payment.id });
+              // 1. Record Payment for each line item to separate joining fees from subscriptions
+              let mainPaymentId = null;
+              for (const line of invoice.lines.data) {
+                const purpose = line.subscription ? "subscription_monthly" : "joining_fee";
+                const insertedPayment = await tx
+                  .insert(payment)
+                  .values({
+                    personId: memberRecord.personId,
+                    purpose,
+                    amountCents: line.amount,
+                    currency: invoice.currency.toUpperCase(),
+                    status: "succeeded",
+                    stripeInvoiceId: invoice.id,
+                  })
+                  .returning({ id: payment.id });
+                
+                if (purpose === "subscription_monthly") {
+                  mainPaymentId = insertedPayment[0].id;
+                }
+              }
+
+              if (!mainPaymentId) {
+                 // Fallback if somehow there's no subscription line item
+                 const fallbackPayment = await tx.query.payment.findFirst({ where: eq(payment.stripeInvoiceId, invoice.id) });
+                 mainPaymentId = fallbackPayment?.id;
+              }
 
               // 2. Grant Monthly Credits with 40-cap rollover protection (§5)
-              await grantMonthlySubscriptionCredits(memberRecord.id, insertedPayment[0].id, tx);
+              if (mainPaymentId) {
+                await grantMonthlySubscriptionCredits(memberRecord.id, mainPaymentId, tx);
+              }
 
               // 3. Advance billing period end
               const nextPeriodEnd = invoice.lines.data[0]?.period?.end
@@ -194,6 +210,17 @@ export async function POST(req: NextRequest) {
               reason: `Extra credits purchase (${creditAmount} × €1)`,
               expiresAt,
             });
+
+            // 2. Track in Finance Ledger
+            await db.insert(payment).values({
+              personId: meta.personId,
+              purpose: "extra_credits",
+              amountCents: session.amount_total || (creditAmount * 100),
+              currency: (session.currency || "eur").toUpperCase(),
+              status: "succeeded",
+              stripeInvoiceId: session.invoice as string | null,
+              stripePaymentIntentId: session.payment_intent as string | null,
+            }).onConflictDoNothing();
 
             // Perform auto-booking if eventId is provided
             if (meta.eventId) {
