@@ -20,14 +20,15 @@ export async function getAdminDashboardMetrics() {
   const role = (session?.user as any)?.role;
   const allowed = ["owner", "manager", "host", "super_admin"];
   if (!role || !allowed.includes(role)) {
-    throw new Error("UNAUTHORIZED_ADMIN");
+    return { success: false as const, error: "UNAUTHORIZED_ADMIN" };
   }
 
-  const now = new Date();
-  const t7Date = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const t10Date = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
+  try {
+    const now = new Date();
+    const t7Date = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const t10Date = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
 
-  // Start all queries concurrently
+    // Start all queries concurrently
   const [
     memberStats,
     totalRevenue,
@@ -47,7 +48,7 @@ export async function getAdminDashboardMetrics() {
     }).from(member).groupBy(member.status),
 
     // 2. Revenue
-    db.select({ total: sql<number>`COALESCE(sum(amount_cents), 0)::int` })
+    db.select({ total: sql<number>`COALESCE(sum(${payment.amountCents}), 0)::int` })
       .from(payment).where(eq(payment.status, "succeeded")),
 
     // 3. Current Window
@@ -115,8 +116,8 @@ export async function getAdminDashboardMetrics() {
 
     // 10. Credit Stats
     db.select({
-      issued: sql<number>`SUM(CASE WHEN CAST(amount AS INT) > 0 THEN CAST(amount AS INT) ELSE 0 END)::int`,
-      spent: sql<number>`SUM(CASE WHEN CAST(amount AS INT) < 0 THEN ABS(CAST(amount AS INT)) ELSE 0 END)::int`,
+      issued: sql<number>`COALESCE(SUM(CASE WHEN ${creditEntry.amount} > 0 THEN ${creditEntry.amount} ELSE 0 END), 0)::int`,
+      spent: sql<number>`COALESCE(SUM(CASE WHEN ${creditEntry.amount} < 0 THEN ABS(${creditEntry.amount}) ELSE 0 END), 0)::int`,
     }).from(creditEntry)
   ]);
 
@@ -213,7 +214,7 @@ export async function getAdminDashboardMetrics() {
   ];
 
   return {
-    success: true,
+    success: true as const,
     role: role,
     decisions,
     warnings,
@@ -223,6 +224,10 @@ export async function getAdminDashboardMetrics() {
     stats,
     audit
   };
+  } catch (err: any) {
+    console.error(err);
+    return { success: false as const, error: err.message || "Failed to load dashboard metrics" };
+  }
 }
 
 export async function runManualCron(jobKey: "threshold-decisions" | "expire-credits") {

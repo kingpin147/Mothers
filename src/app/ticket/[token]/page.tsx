@@ -144,14 +144,6 @@ export default function GuestTicketPage() {
 
   return (
     <div style={{ background: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "18px", padding: "20px clamp(24px, 5vw, 64px)", borderBottom: "1px solid rgba(57, 41, 42, 0.16)" }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-          <Image src="/assets/logo-mark-alpha.png" alt="The Mothers" width={64} height={64} style={{ display: "block" }} />
-          <span aria-hidden="true" style={{ width: "1px", height: "26px", background: "rgba(57,41,42,0.28)", flex: "none" }}></span>
-          <Image src="/assets/logo-wordmark-alpha.png" alt="The Mothers" width={100} height={14} style={{ height: "14px", width: "auto", display: "block" }} />
-        </Link>
-      </header>
-
       <main style={{ flex: "1 1 auto", width: "100%", maxWidth: "600px", margin: "0 auto", padding: "clamp(34px, 5vw, 60px) clamp(20px, 5vw, 40px) clamp(52px, 7vw, 80px)" }}>
         {isBooked && (
           <>
@@ -338,10 +330,6 @@ export default function GuestTicketPage() {
 
       </main>
 
-      <footer style={{ borderTop: "1px solid rgba(57,41,42,0.16)", padding: "24px clamp(24px, 5vw, 64px)", display: "flex", flexWrap: "wrap", gap: "14px", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.55)" }}>{t.footer}</span>
-        <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.55)" }}>hello@themothers.cc</span>
-      </footer>
     </div>
   );
 }

@@ -17,6 +17,9 @@ export default function AdminEventsPage() {
 
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stageFilter, setStageFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("dateAsc");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -376,47 +379,43 @@ export default function AdminEventsPage() {
           </div>
         </div>
 
-        {/* Existing Categories Summary */}
-        <div className="card" style={{ backgroundColor: "#fff", padding: "18px 24px", marginBottom: "24px" }}>
-          <div style={{ fontSize: "12px", textTransform: "uppercase", color: "var(--color-text-muted)", fontWeight: 600, marginBottom: "10px" }}>
-            Active Categories in Calendar ({categories.length})
-          </div>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <span
-              onClick={() => setCategoryFilter("all")}
-              style={{
-                backgroundColor: categoryFilter === "all" ? "var(--color-accent)" : "var(--color-surface)",
-                color: categoryFilter === "all" ? "#fff" : "inherit",
-                border: "1px solid var(--color-divider)",
-                padding: "4px 12px",
-                borderRadius: "999px",
-                fontSize: "12.5px",
-                fontWeight: 600,
-                cursor: "pointer"
-              }}
-            >
-              All
-            </span>
-            {categories.map((c) => (
-              <span key={c.id} 
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  backgroundColor: categoryFilter === c.id ? "var(--color-accent)" : "var(--color-surface)",
-                  color: categoryFilter === c.id ? "#fff" : "inherit",
-                  border: "1px solid var(--color-divider)",
-                  padding: "4px 12px",
-                  borderRadius: "999px",
-                  fontSize: "12.5px",
-                  fontWeight: 600,
-                  cursor: "pointer"
-              }}>
-                <span onClick={() => setCategoryFilter(c.id)}>{c.name}</span>
-                <X size={14} style={{ opacity: 0.5, cursor: "pointer", marginLeft: "4px" }} onClick={(e) => { e.stopPropagation(); handleDeleteCategory(c.id, c.name); }} />
-              </span>
-            ))}
-          </div>
+        {/* Guidelines Box */}
+        <div style={{ backgroundColor: "#fbf8f3", border: "1px solid var(--color-divider)", borderRadius: "8px", padding: "20px 24px", marginBottom: "24px", fontSize: "13.5px", color: "var(--color-text-main)", lineHeight: 1.6 }}>
+          <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-accent)", margin: "0 0 10px" }}>Rules this page holds</h3>
+          <ul style={{ margin: 0, paddingLeft: "20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "8px 24px" }}>
+            <li><strong>Categories</strong> can be created and deleted, but a deleted category will leave its events uncategorized.</li>
+            <li><strong>Duplicating</strong> an event creates a draft exactly 7 days later.</li>
+            <li><strong>Cancelling</strong> an event requires a reason and will automatically refund credits to all booked members.</li>
+            <li><strong>Confirming</strong> an event locks in all "held" bookings as "confirmed".</li>
+          </ul>
+        </div>
+
+        {/* Advanced Filters */}
+        <div className="card" style={{ backgroundColor: "#fff", padding: "18px 24px", marginBottom: "24px", display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ padding: "8px 12px", border: "1px solid var(--color-divider)", borderRadius: "4px", fontSize: "13.5px", minWidth: "200px" }}
+          />
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--color-divider)", borderRadius: "4px", fontSize: "13.5px" }}>
+            <option value="all">All Categories</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--color-divider)", borderRadius: "4px", fontSize: "13.5px" }}>
+            <option value="all">All Stages</option>
+            <option value="Pregnant">Pregnant</option>
+            <option value="Babies">Babies</option>
+            <option value="Toddlers">Toddlers</option>
+            <option value="Children">Children</option>
+            <option value="Big kids">Big kids</option>
+          </select>
+          <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--color-divider)", borderRadius: "4px", fontSize: "13.5px" }}>
+            <option value="dateAsc">Date: Earliest First</option>
+            <option value="dateDesc">Date: Latest First</option>
+            <option value="alpha">Alphabetical</option>
+          </select>
         </div>
 
         {/* Status Filter Tabs */}
@@ -468,7 +467,13 @@ export default function AdminEventsPage() {
           const filteredEvents = events.filter((ev) => {
             const statusMatch = statusFilter === "all" || ev.status === statusFilter;
             const categoryMatch = categoryFilter === "all" || ev.categoryId === categoryFilter;
-            return statusMatch && categoryMatch;
+            const searchMatch = !searchQuery || ev.title.toLowerCase().includes(searchQuery.toLowerCase());
+            return statusMatch && categoryMatch && searchMatch;
+          }).sort((a, b) => {
+            if (sortOrder === "dateAsc") return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+            if (sortOrder === "dateDesc") return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
+            if (sortOrder === "alpha") return a.title.localeCompare(b.title);
+            return 0;
           });
 
           if (filteredEvents.length === 0) {
@@ -631,9 +636,9 @@ export default function AdminEventsPage() {
                                   <Link href={`/admin/events/${ev.id}/roster`} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", width: "100%", textDecoration: "none", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
                                     <Printer size={14} /> Print Sheet
                                   </Link>
-                                  <button onClick={() => { handleOpenEdit(ev); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
+                                  <Link href={`/admin/events/${ev.id}/edit`} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", width: "100%", textDecoration: "none", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
                                     <Edit2 size={14} /> Edit Event
-                                  </button>
+                                  </Link>
                                   <button onClick={() => { handleDuplicate(ev.id, ev.title); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
                                     <Copy size={14} /> Duplicate
                                   </button>
@@ -823,7 +828,7 @@ export default function AdminEventsPage() {
                           value={selectedMemberId}
                           onChange={(e) => setSelectedMemberId(e.target.value)}
                         >
-                          {allMembers.map((m) => (
+                          {allMembers.filter(m => !memberBookings.some(b => b.email === m.email)).map((m) => (
                             <option key={m.id} value={m.id}>{m.firstName} {m.lastName} ({m.email})</option>
                           ))}
                         </select>
@@ -845,6 +850,7 @@ export default function AdminEventsPage() {
                     {/* Direct Guest Pass Issue */}
                     <div style={{ backgroundColor: "#faf7f2", padding: "18px", borderRadius: "6px", border: "1px solid var(--color-divider)" }}>
                       <h4 style={{ fontSize: "14px", margin: "0 0 10px", color: "var(--color-accent)" }}>+ Issue €35 Guest Ticket Pass</h4>
+                      <p style={{ fontSize: "12px", color: "var(--color-text-muted)", margin: "0 0 12px" }}>Generates a unique payment link. The guest is only confirmed once they complete checkout.</p>
                       <form onSubmit={handleIssueGuest} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                           <input
@@ -1155,227 +1161,7 @@ export default function AdminEventsPage() {
           </div>
         )}
 
-        {/* Modal: Edit Event */}
-        {showEditModal && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(57, 41, 42, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            zIndex: 100,
-          }}>
-            <div className="card" style={{ maxWidth: "620px", width: "100%", maxHeight: "90vh", overflowY: "auto", backgroundColor: "#fff", padding: "32px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h2 style={{ fontSize: "22px", margin: 0 }}>Edit Calendar Event</h2>
-                <button onClick={() => setShowEditModal(false)} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer" }}>✕</button>
-              </div>
 
-              <form onSubmit={handleUpdate} style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "13.5px" }}>
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Event Title *</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={editForm.title}
-                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                    placeholder="e.g. Sensory Play & Coffee Meetup"
-                    required
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Category</label>
-                    <select
-                      className="input"
-                      value={editForm.categoryId}
-                      onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })}
-                    >
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Neighbourhood *</label>
-                    <select
-                      className="input"
-                      value={editForm.neighbourhood}
-                      onChange={(e) => setEditForm({ ...editForm, neighbourhood: e.target.value })}
-                    >
-                      <option value="Eixample">Eixample</option>
-                      <option value="Gràcia">Gràcia</option>
-                      <option value="Sarrià-Sant Gervasi">Sarrià-Sant Gervasi</option>
-                      <option value="Les Corts">Les Corts</option>
-                      <option value="Poblenou">Poblenou</option>
-                      <option value="Ciutat Vella">Ciutat Vella</option>
-                      <option value="Outside Barcelona">Outside Barcelona</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Venue Public Name *</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={editForm.venueName}
-                      onChange={(e) => setEditForm({ ...editForm, venueName: e.target.value })}
-                      placeholder="e.g. Jardins de la Tamarita"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Private Meeting Point *</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={editForm.meetingPoint}
-                      onChange={(e) => setEditForm({ ...editForm, meetingPoint: e.target.value })}
-                      placeholder="Released only to confirmed attendees"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Start Date & Time *</label>
-                    <input
-                      type="datetime-local"
-                      className="input"
-                      value={editForm.startsAt}
-                      onChange={(e) => setEditForm({ ...editForm, startsAt: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>End Date & Time *</label>
-                    <input
-                      type="datetime-local"
-                      className="input"
-                      value={editForm.endsAt}
-                      onChange={(e) => setEditForm({ ...editForm, endsAt: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Credit Cost</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={editForm.creditCost}
-                      onChange={(e) => setEditForm({ ...editForm, creditCost: Number(e.target.value) })}
-                      min={0}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Member Seats</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={editForm.capacityMember}
-                      onChange={(e) => setEditForm({ ...editForm, capacityMember: Number(e.target.value) })}
-                      min={0}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest Passes</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={editForm.capacityGuest}
-                      onChange={(e) => setEditForm({ ...editForm, capacityGuest: Number(e.target.value) })}
-                      min={0}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest (Gathering)</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={editForm.capacityGuestGathering}
-                      onChange={(e) => setEditForm({ ...editForm, capacityGuestGathering: Number(e.target.value) })}
-                      min={0}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Target Stages (e.g. 0-1yr)</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={editForm.targetStages.join(", ")}
-                      onChange={(e) => setEditForm({ ...editForm, targetStages: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
-                      placeholder="Comma separated"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Languages</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={editForm.languages.join(", ")}
-                      onChange={(e) => setEditForm({ ...editForm, languages: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
-                      placeholder="English, Spanish"
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", margin: "4px 0" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <input
-                      type="checkbox"
-                      id="editIsSignature"
-                      checked={editForm.isSignature}
-                      onChange={(e) => setEditForm({ ...editForm, isSignature: e.target.checked })}
-                    />
-                    <label htmlFor="editIsSignature" style={{ fontWeight: 600, cursor: "pointer" }}>🔒 Members only / Signature event</label>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <input
-                      type="checkbox"
-                      id="editShowEventPassCta"
-                      checked={editForm.showEventPassCta}
-                      onChange={(e) => setEditForm({ ...editForm, showEventPassCta: e.target.checked })}
-                    />
-                    <label htmlFor="editShowEventPassCta" style={{ fontWeight: 600, cursor: "pointer" }}>🎟️ Enable €35 Event Pass CTA</label>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Description</label>
-                  <textarea
-                    className="input"
-                    rows={3}
-                    value={editForm.description}
-                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                    placeholder="Short description of the event flow and atmosphere..."
-                  />
-                </div>
-
-                <button type="submit" className="btn btn-primary" style={{ marginTop: "8px", padding: "12px" }}>
-                  Update Event Details →
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

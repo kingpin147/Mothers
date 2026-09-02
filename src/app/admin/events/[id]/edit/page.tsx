@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { createAdminEvent } from "@/app/actions/adminEvents";
+import { updateAdminEvent, getEventRoster } from "@/app/actions/adminEvents";
 
-export default function AdminCreateEventPage() {
+export default function AdminEditEventPage() {
   const router = useRouter();
+  const params = useParams();
+  const eventId = params?.id as string;
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -38,6 +41,44 @@ export default function AdminCreateEventPage() {
   const [schGuestsOpen, setSchGuestsOpen] = useState("T-14");
   const [schDecision, setSchDecision] = useState("T-7");
   const [schGuestsClose, setSchGuestsClose] = useState("T-2");
+
+  useEffect(() => {
+    async function loadEvent() {
+      if (!eventId) return;
+      setFetching(true);
+      const res = await getEventRoster(eventId);
+      if (res.success && res.event) {
+        const ev = res.event;
+        setTitle(ev.title || "");
+        if (ev.categoryId) setCategory(ev.categoryId);
+        setNeighbourhood(ev.neighbourhood || "Ciutat Vella");
+        setVenueName(ev.venueName || "");
+        setMeetingPoint(ev.meetingPoint || "");
+        setStartsAt(ev.startsAt ? new Date(new Date(ev.startsAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
+        setEndsAt(ev.endsAt ? new Date(new Date(ev.endsAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
+        setMinToConfirm(ev.minToConfirm?.toString() || "");
+        setMemberPlaces(ev.capacityMember?.toString() || "");
+        setCreditCost(ev.creditCost?.toString() || "");
+        setGuestPlaces(ev.capacityGuest?.toString() || "0");
+        setGuestGathering(ev.capacityGuestGathering?.toString() || "");
+        setDescription(ev.description || "");
+        setLangs(ev.languages || ["English"]);
+        setPassCta(ev.showEventPassCta || false);
+        
+        if (ev.creditCost === 0) {
+          setFreeEvent(true);
+        }
+        if (ev.capacityGuest === 0) {
+          setMembersOnly(true);
+        }
+      } else {
+        alert("Failed to load event.");
+        router.push("/admin/events");
+      }
+      setFetching(false);
+    }
+    loadEvent();
+  }, [eventId, router]);
 
   const toggleLang = (l: string) => {
     setLangs(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
@@ -80,35 +121,17 @@ export default function AdminCreateEventPage() {
     ? 'Still needed before publishing: title, venue, meeting point, dates, minimum, description.'
     : 'Still needed before publishing: title, venue, meeting point, dates, minimum, credit cost, description.';
 
-  // Helper to parse T-X schedule into Dates
-  const calculateDate = (startD: string, expr: string) => {
-    if (!startD) return undefined;
-    const d = new Date(startD);
-    if (isNaN(d.getTime())) return undefined;
-    if (expr.startsWith("T-")) {
-      const days = parseInt(expr.replace("T-", ""), 10);
-      if (!isNaN(days)) {
-        d.setDate(d.getDate() - days);
-        return d;
-      }
-    }
-    // If they typed an explicit date string (fallback)
-    const exact = new Date(expr);
-    if (!isNaN(exact.getTime())) return exact;
-    return undefined;
-  };
 
-  const handleSave = async (status: "draft" | "published_pending") => {
+  const handleSave = async () => {
     if (!title || !venueName || !meetingPoint || !startsAt || !endsAt) {
-      alert("Please fill in core details (title, venue, dates) even for draft.");
+      alert("Please fill in core details (title, venue, dates).");
       return;
     }
 
     setLoading(true);
-
     const start = new Date(startsAt);
     
-    const res = await createAdminEvent({
+    const res = await updateAdminEvent(eventId, {
       title,
       categoryId: undefined, // category is just a string here matching UI, might need mapping to ID in real app
       neighbourhood,
@@ -122,24 +145,22 @@ export default function AdminCreateEventPage() {
       capacityGuestGathering: membersOnly ? 0 : (parseInt(guestGathering) || undefined),
       minToConfirm: parseInt(minToConfirm) || 0,
       description,
-      status,
       languages: langs,
-      targetStages: stages,
       showEventPassCta: passCta,
-      guestOpenAt: calculateDate(startsAt, schGuestsOpen),
-      guestCloseAt: calculateDate(startsAt, schGuestsClose),
-      decisionAt: calculateDate(startsAt, schDecision),
-      publishedAt: status === "published_pending" ? new Date() : undefined,
     });
 
     setLoading(false);
     if (res.success) {
-      alert(status === "draft" ? "Draft saved successfully!" : "Event published successfully!");
+      alert("Event updated successfully!");
       router.push("/admin/events");
     } else {
       alert(res.error || "Failed to save event");
     }
   };
+
+  if (fetching) {
+    return <div style={{ padding: "40px", textAlign: "center", fontFamily: "'Cormorant Garamond', serif", color: "#7b1f2c", fontSize: "18px" }}>Loading event details...</div>;
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "rgba(57,41,42,0.34)", padding: "clamp(18px,4vw,46px) clamp(14px,3vw,30px)", fontFamily: "'Lora', Georgia, serif", color: "#39292a", WebkitFontSmoothing: "antialiased" }}>
@@ -154,9 +175,9 @@ export default function AdminCreateEventPage() {
         
         <div style={{ padding: "clamp(22px,3vw,30px) clamp(22px,3vw,32px) 18px", borderBottom: "1px solid rgba(57,41,42,0.14)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "18px" }}>
           <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "8px" }}>New event</div>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px,3.2vw,33px)", lineHeight: 1.15, margin: "0 0 7px" }}>Put something in the calendar</h1>
-            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: 0, maxWidth: "62ch", textWrap: "pretty" }}>Nothing is published until you say so, and nothing is pre-filled that only you can know.</p>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "8px" }}>Edit event</div>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px,3.2vw,33px)", lineHeight: 1.15, margin: "0 0 7px" }}>Update calendar details</h1>
+            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: 0, maxWidth: "62ch", textWrap: "pretty" }}>Changes to time or venue will trigger an automatic email to any booked members.</p>
           </div>
           <Link href="/admin/events" style={{ border: "1px solid rgba(57,41,42,0.25)", color: "#39292a", borderRadius: "4px", width: "34px", height: "34px", fontSize: "16px", lineHeight: 1, flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>✕</Link>
         </div>
@@ -377,26 +398,9 @@ export default function AdminCreateEventPage() {
         <div style={{ padding: "18px clamp(22px,3vw,32px) clamp(22px,3vw,28px)", borderTop: "1px solid rgba(57,41,42,0.14)", background: "rgba(57,41,42,0.02)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap" }}>
           <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.65)", maxWidth: "44ch", textWrap: "pretty" }}>{validationLine}</div>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button type="button" onClick={() => handleSave("draft")} disabled={loading} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "11px 18px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
-              {loading ? "Saving..." : "Save as draft"}
+            <button type="button" onClick={handleSave} disabled={loading} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
+              {loading ? "Saving..." : "Save changes"}
             </button>
-            <button type="button" onClick={() => handleSave("published_pending")} disabled={loading} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
-              {loading ? "Publishing..." : "Publish to the calendar →"}
-            </button>
-          </div>
-        </div>
-
-        <div style={{ maxWidth: "880px", margin: "20px auto 0", border: "1px solid rgba(255,253,250,0.35)", borderRadius: "8px", background: "rgba(255,253,250,0.92)", padding: "18px 22px" }}>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "10px" }}>Rules this page holds</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 270px), 1fr))", gap: "8px 22px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.78)" }}>
-            <div><strong style={{ fontWeight: 600 }}>Minimum to run</strong> — was missing entirely. Without it there is no T-10 warning and no T-7 decision.</div>
-            <div><strong style={{ fontWeight: 600 }}>Credit cost starts empty.</strong> The 18 that was pre-filled is exactly what the brief forbids — no default, no inheritance, no category price.</div>
-            <div><strong style={{ fontWeight: 600 }}>Guest places while gathering</strong> — the optional higher cap while an event is short.</div>
-            <div><strong style={{ fontWeight: 600 }}>Event Pass button is a switch, off by default</strong>, and disables itself with a reason when the event is members-only or has no guest places.</div>
-            <div><strong style={{ fontWeight: 600 }}>Stage groups and the head start</strong> — which threads it goes to, and who may book early.</div>
-            <div><strong style={{ fontWeight: 600 }}>The T-schedule is editable per event</strong>, not hard-coded.</div>
-            <div><strong style={{ fontWeight: 600 }}>Save as draft</strong> — publishing was the only way out of the old modal.</div>
-            <div><strong style={{ fontWeight: 600 }}>Host, languages, free-event RSVP</strong> and a required description, so a published event is never half a page.</div>
           </div>
         </div>
 

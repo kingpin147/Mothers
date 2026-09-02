@@ -19,6 +19,7 @@ export default function AdminDashboardPage() {
 
   const [data, setData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cronRunning, setCronRunning] = useState<string | null>(null);
   const [actionRunning, setActionRunning] = useState<string | null>(null);
 
@@ -28,9 +29,13 @@ export default function AdminDashboardPage() {
       const res = await getAdminDashboardMetrics();
       if (res.success) {
         setData(res);
+        setErrorMsg(null);
+      } else {
+        setErrorMsg(res.error || "Failed to load metrics.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setErrorMsg(err.message || "An unexpected error occurred while fetching metrics.");
     }
     if (!isBackground) setLoading(false);
   };
@@ -110,7 +115,9 @@ export default function AdminDashboardPage() {
   ];
   
   const stats = data?.stats || [];
-  const audit = data?.audit || [];
+  const audit = data?.audit || [
+    { who: 'System', did: 'loading / unavailable', change: 'Audit logs could not be loaded.', when: '-', where: '-' }
+  ];
 
   return (
     <>
@@ -128,6 +135,12 @@ export default function AdminDashboardPage() {
             <button onClick={() => signOut({ callbackUrl: "/account/login" })} style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", background: "transparent", borderRadius: "4px", padding: "7px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", whiteSpace: "nowrap", cursor: "pointer" }}>Sign out</button>
           </div>
         </div>
+
+        {errorMsg && (
+          <div style={{ padding: "16px", background: "#fef2f2", color: "#991b1b", border: "1px solid #f87171", borderRadius: "6px", marginBottom: "24px" }}>
+            <strong style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px" }}>Dashboard Error:</strong> {errorMsg}
+          </div>
+        )}
 
         {/* DECISIONS DUE */}
         <div style={{ border: "1px solid rgba(123,31,44,0.45)", borderRadius: "8px", background: "#fdf6f2", padding: "clamp(18px,2.4vw,24px)", marginBottom: "18px" }}>
