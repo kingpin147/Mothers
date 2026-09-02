@@ -17,7 +17,7 @@ export default function AdminSettingsPage() {
   });
 
   const [form, setForm] = useState({
-    joiningFee: 58,
+    joiningFee: 19,
     openingMonthly: 29,
     openingQuarterly: 79,
     standardMonthly: 39,
@@ -32,12 +32,12 @@ export default function AdminSettingsPage() {
     
     monthlyGrant: 20,
     creditLifeMonths: 6,
-    rolloverCeiling: 40,
+    rolloverCeiling: 0,
     expiryWarningDays: 30,
     topUpPrice: 1,
     releaseDeadlineHours: 48,
     
-    godmotherJoinBonus: 20,
+    godmotherJoinBonus: 5,
     godmotherThreeMonthBonus: 15,
     godmotherFriendsLimit: 0, // 0 for no limit
     godmotherBonusLife: 6,

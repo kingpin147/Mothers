@@ -44,9 +44,9 @@ const FAQ_LIST: FaqEntry[] = [
   },
   {
     qEn: "What are credits, and how do they work?",
-    aEn: "Every month you get 20 credits to spend across the calendar — walks and park socials are always free and unlimited. Unused credits roll over with no ceiling, and each credit expires 6 months after it's issued, oldest first, so a rollover credit is always used before a fresh one. Save three quiet months and a Signature moment is within reach. We'll email you a reminder about 30 days before any credit is due to expire, so nothing lapses as a surprise.",
+    aEn: "Every month you get {{monthlyGrant}} credits to spend across the calendar — walks and park socials are always free and unlimited. Unused credits roll over with {{rolloverCapText}}, and each credit expires 6 months after it's issued, oldest first, so a rollover credit is always used before a fresh one. Save three quiet months and a Signature moment is within reach. We'll email you a reminder about 30 days before any credit is due to expire, so nothing lapses as a surprise.",
     qEs: "¿Qué son los créditos y cómo funcionan?",
-    aEs: "Cada mes recibes 20 créditos para usar en el calendario — los paseos y encuentros en el parque son siempre gratuitos e ilimitados. Los créditos no usados se acumulan sin límite, y cada crédito caduca 6 meses después de emitirse, empezando por los más antiguos, así que un crédito acumulado siempre se usa antes que uno nuevo. Ahorra tres meses tranquilos y un Signature moment queda a tu alcance. Te avisaremos por correo unos 30 días antes de que caduque cualquier crédito, para que nunca sea una sorpresa.",
+    aEs: "Cada mes recibes {{monthlyGrant}} créditos para usar en el calendario — los paseos y encuentros en el parque son siempre gratuitos e ilimitados. Los créditos no usados se acumulan {{rolloverCapTextEs}}, y cada crédito caduca 6 meses después de emitirse, empezando por los más antiguos, así que un crédito acumulado siempre se usa antes que uno nuevo. Ahorra tres meses tranquilos y un Signature moment queda a tu alcance. Te avisaremos por correo unos 30 días antes de que caduque cualquier crédito, para que nunca sea una sorpresa.",
   },
   {
     qEn: "Can I buy extra credits?",
@@ -68,9 +68,9 @@ const FAQ_LIST: FaqEntry[] = [
   },
   {
     qEn: "How does the Godmother referral work?",
-    aEn: "Every Godmother has a personal referral code. A mother adds it to her application, and once she joins you earn 5 credits — plus 15 more when she reaches three months. Bonus credits follow the same 6-month expiry as the rest.",
+    aEn: "Every Godmother has a personal referral code. A mother adds it to her application, and once she joins you earn {{referralBonus}} credits — plus {{threeMonthBonus}} more when she reaches three months. Bonus credits follow the same 6-month expiry as the rest.",
     qEs: "¿Cómo funciona el referido de Madrina?",
-    aEs: "Cada Madrina tiene un código de referido personal. Una madre lo añade en su solicitud y, cuando se une, ganas 5 créditos — más 15 cuando ella cumple tres meses. Los créditos extra son créditos normales: no hay ningún límite de acumulación y caducan a los 6 meses, como el resto.",
+    aEs: "Cada Madrina tiene un código de referido personal. Una madre lo añade en su solicitud y, cuando se une, ganas {{referralBonus}} créditos — más {{threeMonthBonus}} cuando ella cumple tres meses. Los créditos extra son créditos normales: no hay ningún límite de acumulación y caducan a los 6 meses, como el resto.",
   },
   {
     qEn: "Can I come to an event without being a member?",
@@ -142,11 +142,35 @@ const FAQ_LIST: FaqEntry[] = [
 
 interface FaqClientProps {
   dynamicFaqs: FaqEntry[];
+  publicSettings?: any;
 }
 
-export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
+export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: FaqClientProps) {
   const [lang, setLang] = useState<Locale>("en");
   const [openIdx, setOpenIdx] = useState<number | null>(0);
+
+  const processText = (text: string) => {
+    let t = text;
+    t = t.replace(/\{\{monthlyGrant\}\}/g, String(publicSettings?.monthlyGrantCredits ?? 20));
+    t = t.replace(/\{\{referralBonus\}\}/g, String(publicSettings?.referralBonusCredits ?? 5));
+    t = t.replace(/\{\{threeMonthBonus\}\}/g, String(publicSettings?.godmotherThreeMonthBonus ?? 15));
+    
+    const rolloverCap = publicSettings?.rolloverCapCredits ?? 0;
+    const rolloverCapText = rolloverCap === 0 ? "no ceiling" : `a ceiling of ${rolloverCap}`;
+    const rolloverCapTextEs = rolloverCap === 0 ? "sin límite" : `con un límite de ${rolloverCap}`;
+    t = t.replace(/\{\{rolloverCapText\}\}/g, rolloverCapText);
+    t = t.replace(/\{\{rolloverCapTextEs\}\}/g, rolloverCapTextEs);
+    return t;
+  };
+
+  const processedList = FAQ_LIST.map((f) => ({
+    qEn: f.qEn,
+    aEn: processText(f.aEn),
+    qEs: f.qEs,
+    aEs: processText(f.aEs)
+  }));
+
+  const allFaqs = [...processedList, ...dynamicFaqs];
 
   useEffect(() => {
     const updateLang = () => {

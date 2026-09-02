@@ -100,6 +100,8 @@ export async function getAdminDashboardMetrics() {
       entity: auditLog.entity,
       actorType: auditLog.actorType,
       createdAt: auditLog.at,
+      before: auditLog.before,
+      after: auditLog.after,
     }).from(auditLog).orderBy(desc(auditLog.at)).limit(5),
 
     // 9. Failed Payments
@@ -203,7 +205,7 @@ export async function getAdminDashboardMetrics() {
     { value: `${fillRate}%`, label: `Fill rate · ${totalWaitlist} on waitlists` }
   ];
 
-  function formatAuditAction(action: string, entity: string): string {
+  function formatAuditAction(log: any): string {
     const actionMap: Record<string, string> = {
       update_club_settings: "Changed club and credit policies",
       create_membership_window: "Created a new membership window",
@@ -228,13 +230,43 @@ export async function getAdminDashboardMetrics() {
       approve_application: "Approved an application",
       decline_application: "Declined an application"
     };
-    return actionMap[action] || `Action on ${entity}`;
+    
+    if (log.action === "update_club_settings" && log.before && log.after) {
+      const changes: string[] = [];
+      const beforeStr = (log.before as any) || {};
+      const afterStr = (log.after as any) || {};
+      
+      const keyMap: Record<string, string> = {
+        joining_fee_cents: "Joining fee",
+        rollover_cap_credits: "Rollover ceiling",
+        referral_bonus_credits: "Godmother join bonus",
+        godmother_three_month_bonus: "Godmother three month bonus"
+      };
+      
+      for (const [k, title] of Object.entries(keyMap)) {
+        const oldVal = beforeStr[k];
+        const newVal = afterStr[k];
+        if (oldVal !== newVal) {
+          if (k === 'joining_fee_cents') {
+            changes.push(`${title} from €${(Number(oldVal) || 0) / 100} to €${(Number(newVal) || 0) / 100}`);
+          } else {
+            changes.push(`${title} from ${oldVal} to ${newVal}`);
+          }
+        }
+      }
+      
+      if (changes.length > 0) {
+        return `Changed: ${changes.join(", ")}`;
+      }
+    }
+    
+    return actionMap[log.action] || `Action on ${log.entity}`;
   }
 
   const audit = recentLogs.length > 0 ? recentLogs.map(l => ({
     who: l.actorType,
     did: l.action === "update_club_settings" ? "Settings" : l.entity,
-    change: formatAuditAction(l.action, l.entity),
+    change: formatAuditAction(l),
     when: new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
     where: 'web'
   })) : [

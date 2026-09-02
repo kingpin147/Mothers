@@ -106,7 +106,8 @@ export default function AdminDashboardPage() {
     { label: 'Partner directory & perk codes', href: '/admin/partners' },
     { label: 'FAQ — English & Spanish', href: '/admin/faq' },
     { label: 'Journal & editorial', href: '/admin/journal' },
-    { label: 'Club & credit policy settings', href: '/admin/settings' }
+    { label: 'Club & credit policy settings', href: '/admin/settings' },
+    { label: 'Email previews (all 10 templates)', href: '/admin/emails' }
   ];
   const jobs = [
     { label: 'T-7 threshold check', last: 'Automated job', key: 'threshold-decisions' },

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { application, window, waitlistEntry, person } from "@/db/schema";
+import { application, window, waitlistEntry, person, setting } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 export async function getPublicMembershipWindow() {
@@ -35,6 +35,21 @@ export async function getPublicMembershipWindow() {
     open: true,
     spotsRemaining: Math.max(0, currentWindow.placesOffered - Number(result?.count || 0)),
     nextWindowDate: null as string | null,
+  };
+}
+
+export async function getPublicSettings() {
+  const settingsRows = await db.select().from(setting);
+  const settingsMap: Record<string, any> = {};
+  for (const s of settingsRows) {
+    settingsMap[s.key] = s.value;
+  }
+  return {
+    joiningFeeCents: settingsMap["joining_fee_cents"] ?? 1900,
+    monthlyGrantCredits: settingsMap["monthly_grant_credits"] ?? 20,
+    rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? 0,
+    referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 5,
+    godmotherThreeMonthBonus: settingsMap["godmother_three_month_bonus"] ?? 15,
   };
 }
 

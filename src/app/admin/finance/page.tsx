@@ -34,10 +34,10 @@ export default function AdminFinancePage() {
   }, []);
 
   const SEED_ATTENTION = [
-    { who: "Elena Prats", what: "renewal failed twice", meta: "Declined 28 and 30 Aug · membership pauses in 2 days", amount: "€29", color: WINE, action: "Retry or write" },
-    { who: "Sofia Marín", what: "payment hold running out", meta: "Accepted 28 Aug · 11h of the 72 remaining", amount: "€48", color: WINE, action: "Extend" },
-    { who: "Lina Djedir", what: "card declined, now past due", meta: "Failed 24 Aug · no card on file since", amount: "€29", color: AMBER, action: "Ask for a new card" },
-    { who: "Clínica Bonanova", what: "partner agreement ends in 21 days", meta: "Perk live in 34 accounts", amount: "21 days", color: AMBER, action: "Renew" },
+    { id: "cm0s8q1f0000008jla7z7b6a1", who: "Elena Prats", what: "renewal failed twice", meta: "Declined 28 and 30 Aug · membership pauses in 2 days", amount: "€29", color: WINE, action: "Retry or write" },
+    { id: "cm0s8q1f0000008jla7z7b6a1", who: "Sofia Marín", what: "payment hold running out", meta: "Accepted 28 Aug · 11h of the 72 remaining", amount: "€48", color: WINE, action: "Extend" },
+    { id: "cm0s8q1f0000008jla7z7b6a1", who: "Lina Djedir", what: "card declined, now past due", meta: "Failed 24 Aug · no card on file since", amount: "€29", color: AMBER, action: "Ask for a new card" },
+    { id: "cm0s8q1f0000008jla7z7b6a1", who: "Clínica Bonanova", what: "partner agreement ends in 21 days", meta: "Perk live in 34 accounts", amount: "21 days", color: AMBER, action: "Renew" },
   ];
 
   // Helper functions
@@ -241,7 +241,7 @@ export default function AdminFinancePage() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
                   <span style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontSize: "15px", fontVariantNumeric: "tabular-nums", color: a.color, whiteSpace: "nowrap" }}>{a.amount}</span>
-                  <Link href="/admin/members" style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
+                  <Link href={a.who.includes("Bonanova") ? "/admin/partners" : `/admin/members/${a.id}`} style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
                     {a.action} →
                   </Link>
                 </div>

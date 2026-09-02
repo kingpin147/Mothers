@@ -34,8 +34,8 @@ export async function getClubSettings() {
     success: true,
     settings: {
       monthlyGrantCredits: settingsMap["monthly_grant_credits"] ?? 20,
-      rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? 40,
-      referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 20,
+      rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? 0,
+      referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 5,
       guestPassPriceCents: settingsMap["guest_pass_price_cents"] ?? 3500,
       maxLifetimeGuestPasses: settingsMap["max_lifetime_guest_passes"] ?? 2,
       

@@ -1,6 +1,6 @@
 import React from "react";
 import MembershipClient from "./MembershipClient";
-import { getPublicMembershipWindow } from "@/app/actions/publicWindow";
+import { getPublicMembershipWindow, getPublicSettings } from "@/app/actions/publicWindow";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -24,12 +24,14 @@ export const metadata: Metadata = {
 
 export default async function MembershipPage() {
   const state = await getPublicMembershipWindow();
+  const settings = await getPublicSettings();
   
   return (
     <MembershipClient 
       initialWindowOpen={state.open} 
       initialSpotsRemaining={state.spotsRemaining}
       nextWindowDate={state.nextWindowDate ?? null}
+      publicSettings={settings}
     />
   );
 }

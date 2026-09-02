@@ -14,17 +14,22 @@ export default function MembershipClient({
   initialSpotsRemaining,
   nextWindowDate = null,
   autoOpenApply = false,
+  publicSettings,
 }: {
   initialWindowOpen: boolean;
   initialSpotsRemaining: number;
   nextWindowDate?: string | null;
   autoOpenApply?: boolean;
+  publicSettings?: any;
 }) {
   const [lang, setLang] = useState<Locale>("en");
   const [windowOpen] = useState(initialWindowOpen);
   const [spotsRemaining] = useState(initialSpotsRemaining);
   const [applyModalOpen, setApplyModalOpen] = useState(autoOpenApply);
   const famTrackRef = useRef<HTMLDivElement>(null);
+  
+  const joiningFee = (publicSettings?.joiningFeeCents ?? 1900) / 100;
+  const monthlyGrant = publicSettings?.monthlyGrantCredits ?? 20;
 
   const famScroll = (direction: "left" | "right") => {
     if (famTrackRef.current) {
@@ -169,8 +174,8 @@ export default function MembershipClient({
                 <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.62)", margin: "10px 0 0" }}>{isEn ? "or €79 every 3 months" : "o 79€ cada 3 meses"}</p>
                 <p style={{ fontSize: "13px", lineHeight: "1.5", color: "rgba(57,41,42,0.62)", margin: "3px 0 0" }}>
                   {isEn
-                    ? "Plus a one-time €19 joining fee, charged with your first payment — €48 in all. No joining fee at all if you have taken an Event Pass in the last 30 days."
-                    : "Más una cuota única de inscripción de 19€, que se cobra con tu primer pago — 48€ en total. Sin cuota de inscripción si has tomado un Event Pass en los últimos 30 días."}
+                    ? `Plus a one-time €${joiningFee} joining fee, charged with your first payment — €${29 + joiningFee} in all. No joining fee at all if you have taken an Event Pass in the last 30 days.`
+                    : `Más una cuota única de inscripción de ${joiningFee}€, que se cobra con tu primer pago — ${29 + joiningFee}€ en total. Sin cuota de inscripción si has tomado un Event Pass en los últimos 30 días.`}
                 </p>
                 {/* Launch note */}
                 <p style={{ fontSize: "13px", lineHeight: "1.55", color: "#568b05", margin: "10px 0 0", maxWidth: "38ch" }}>
@@ -200,14 +205,14 @@ export default function MembershipClient({
               {(isEn ? [
                 "Private member community",
                 "Stage groups — by trimester, child's age and neighbourhood",
-                "20 experience credits every month, rolling over with no ceiling",
+                `${monthlyGrant} experience credits every month, rolling over with no ceiling`,
                 "Walks and park socials included, no credits needed",
                 "Partner perks across five categories",
                 "Priority booking and concierge support",
               ] : [
                 "Comunidad privada de socias",
                 "Grupos por etapa — por trimestre, edad de tu hijo y barrio",
-                "20 créditos de experiencia cada mes, acumulables sin techo",
+                `${monthlyGrant} créditos de experiencia cada mes, acumulables sin techo`,
                 "Paseos y quedadas en el parque incluidos, sin gastar créditos",
                 "Ventajas con partners en cinco categorías",
                 "Reserva prioritaria y atención personal",

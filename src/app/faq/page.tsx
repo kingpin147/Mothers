@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { faqItem } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import FaqClient from "./FaqClient";
+import { getPublicSettings } from "@/app/actions/publicWindow";
 
 export const revalidate = 60; // optionally revalidate every minute or let layout handle it
 
@@ -19,5 +20,7 @@ export default async function FaqPage() {
     aEs: faq.answerEs,
   }));
 
-  return <FaqClient dynamicFaqs={dynamicFaqs} />;
+  const publicSettings = await getPublicSettings();
+
+  return <FaqClient dynamicFaqs={dynamicFaqs} publicSettings={publicSettings} />;
 }

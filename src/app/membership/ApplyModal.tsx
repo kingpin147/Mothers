@@ -18,6 +18,7 @@ export function ApplyModal({
   const [step, setStep] = useState<number>(0); // 0-indexed (0 to 10 = 11 steps)
   const [loading, setLoading] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const [alreadySubmitted, setAlreadySubmitted] = useState<boolean>(false);
   const [showError, setShowError] = useState<boolean>(false);
   const [existingMemberEmail, setExistingMemberEmail] = useState<boolean>(false);
 
@@ -208,7 +209,10 @@ export function ApplyModal({
     const res = await submitApplication(answers);
     setLoading(false);
 
-    if (res.success) {
+    if (res.success && (res as any).message === "ALREADY_SUBMITTED") {
+      localStorage.removeItem(STORAGE_KEY);
+      setAlreadySubmitted(true);
+    } else if (res.success) {
       localStorage.removeItem(STORAGE_KEY);
       setSubmitted(true);
     } else if (res.error === "EXISTING_MEMBER") {
@@ -236,6 +240,30 @@ export function ApplyModal({
     width: "100%",
     outline: "none",
   };
+
+  // ─── ALREADY APPLIED MODAL ───
+  if (alreadySubmitted) {
+    return (
+      <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(57,41,42,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", zIndex: 1000, overflowY: "auto" }}>
+        <div style={{ position: "relative", width: "100%", maxWidth: "480px", margin: "auto", border: "1px solid rgba(57,41,42,0.3)", borderRadius: "10px", padding: "clamp(32px, 5vw, 48px)", textAlign: "center", backgroundColor: "#f8efe2", boxShadow: "0 18px 44px rgba(45,43,43,0.14)" }}>
+          <button type="button" onClick={onClose} aria-label="Close" style={{ border: "none", background: "transparent", cursor: "pointer", position: "absolute", top: "16px", right: "16px", width: "30px", height: "30px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(57,41,42,0.5)" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="17"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "28px", lineHeight: 1.2, marginBottom: "14px" }}>
+            {lang === "en" ? "You have already applied" : "Ya has enviado tu solicitud"}
+          </div>
+          <p style={{ fontSize: "15px", lineHeight: 1.65, color: "rgba(57,41,42,0.75)", margin: "0 0 20px" }}>
+            {lang === "en"
+              ? "We have your application on file. You will hear from us within 72 hours of the window closing — we read every one carefully."
+              : "Tenemos tu solicitud. Te responderemos en 72 horas desde que se cierre la ventana — las leemos todas con detenimiento."}
+          </p>
+          <button type="button" onClick={onClose} style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", background: "transparent", border: "1px solid rgba(57,41,42,0.35)", borderRadius: "5px", padding: "10px 22px", cursor: "pointer", color: "#39292a" }}>
+            {lang === "en" ? "Close" : "Cerrar"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ─── CONFIRMATION MODAL ───
   if (submitted) {
