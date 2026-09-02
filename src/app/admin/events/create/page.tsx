@@ -55,7 +55,7 @@ export default function AdminCreateEventPage() {
 
   const chip = (on: boolean) => ({
     border: on ? '#7b1f2c' : 'rgba(57,41,42,0.25)',
-    bg: on ? 'rgba(123,31,44,0.08)' : 'transparent',
+    bg: 'transparent',
     color: on ? '#7b1f2c' : '#39292a'
   });
 
@@ -74,7 +74,7 @@ export default function AdminCreateEventPage() {
   const costBg = freeEvent ? 'rgba(57,41,42,0.05)' : '#fff';
   const costHint = freeEvent
     ? 'No credits taken for a free event.'
-    : 'Required, and yours alone to set. Comparable Learn & grow events have cost 16–20 credits — for information, never written into the field.';
+    : 'Required, and yours alone to set. Comparable events have cost 16–20 credits — for information, never written into the field.';
 
   const validationLine = freeEvent
     ? 'Still needed before publishing: title, venue, meeting point, dates, minimum, description.'
@@ -239,6 +239,7 @@ export default function AdminCreateEventPage() {
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Starts <span style={{ color: "#7b1f2c" }}>*</span></label>
                 <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Pick a date and the T-schedule counts back from it.</div>
               </div>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Ends <span style={{ color: "#7b1f2c" }}>*</span></label>
@@ -268,6 +269,7 @@ export default function AdminCreateEventPage() {
                   <option>Toddlers, two days early</option>
                   <option>Pregnant, three days early</option>
                 </select>
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Lets one stage book before everyone else, so places are held for the group the event is designed for. Everyone else sees it when the head start ends.</div>
               </div>
               <div style={{ display: "flex", alignItems: "flex-end" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer", paddingBottom: "11px" }}>
@@ -337,7 +339,7 @@ export default function AdminCreateEventPage() {
           {/* SCHEDULE */}
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "6px" }}>The schedule</div>
-            <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: "0 0 12px", maxWidth: "70ch", textWrap: "pretty" }}>Our standing schedule, filled in for you. Change it here when a partner will only hold the room until a different date.</p>
+            <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: "0 0 12px", maxWidth: "70ch", textWrap: "pretty" }}>Our standing schedule, filled in for you from settings. Change it here when a partner will only hold the room until a different date.</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: "12px" }}>
               <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Members book from</div>
@@ -386,17 +388,13 @@ export default function AdminCreateEventPage() {
           </div>
         </div>
 
-        <div style={{ maxWidth: "880px", margin: "20px auto 0", border: "1px solid rgba(255,253,250,0.35)", borderRadius: "8px", background: "rgba(255,253,250,0.92)", padding: "18px 22px" }}>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "10px" }}>Rules this page holds</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 270px), 1fr))", gap: "8px 22px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.78)" }}>
-            <div><strong style={{ fontWeight: 600 }}>Minimum to run</strong> — was missing entirely. Without it there is no T-10 warning and no T-7 decision.</div>
-            <div><strong style={{ fontWeight: 600 }}>Credit cost starts empty.</strong> The 18 that was pre-filled is exactly what the brief forbids — no default, no inheritance, no category price.</div>
-            <div><strong style={{ fontWeight: 600 }}>Guest places while gathering</strong> — the optional higher cap while an event is short.</div>
-            <div><strong style={{ fontWeight: 600 }}>Event Pass button is a switch, off by default</strong>, and disables itself with a reason when the event is members-only or has no guest places.</div>
-            <div><strong style={{ fontWeight: 600 }}>Stage groups and the head start</strong> — which threads it goes to, and who may book early.</div>
-            <div><strong style={{ fontWeight: 600 }}>The T-schedule is editable per event</strong>, not hard-coded.</div>
-            <div><strong style={{ fontWeight: 600 }}>Save as draft</strong> — publishing was the only way out of the old modal.</div>
-            <div><strong style={{ fontWeight: 600 }}>Host, languages, free-event RSVP</strong> and a required description, so a published event is never half a page.</div>
+        <div style={{ maxWidth: "880px", margin: "20px auto 0", border: "1px solid rgba(255,253,250,0.35)", borderRadius: "8px", background: "rgba(255,253,250,0.92)", padding: "24px 28px" }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "16px" }}>Where this goes when you publish</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))", gap: "20px 32px", fontSize: "14px", lineHeight: 1.6, color: "#39292a" }}>
+            <div><strong style={{ color: "#7b1f2c", fontWeight: 400 }}>The public calendar</strong> — Events shows it under its category, in its month, with its credit cost and the gathering line if it has a minimum.</div>
+            <div><strong style={{ color: "#7b1f2c", fontWeight: 400 }}>The admin calendar</strong> — Admin Events lists it with live booked-against-minimum counts as members book.</div>
+            <div><strong style={{ color: "#7b1f2c", fontWeight: 400 }}>The dashboard</strong> — it enters the T-10 and T-7 queues on the dashboard by date, and This week when it is within seven days.</div>
+            <div><strong style={{ color: "#7b1f2c", fontWeight: 400 }}>The audit log</strong> — creating, confirming and cancelling are all written down with what changed.</div>
           </div>
         </div>
 
