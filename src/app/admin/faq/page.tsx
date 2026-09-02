@@ -137,6 +137,8 @@ export default function AdminFaqPage() {
 
         {loading ? (
           <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>Loading FAQs...</div>
+        ) : faqs.length === 0 && !composingItem ? (
+          <div style={{ padding: "12px 18px", fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>There are no FAQs yet.</div>
         ) : (
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", marginBottom: "32px", overflow: "hidden" }}>
             
@@ -185,7 +187,7 @@ export default function AdminFaqPage() {
             {filtered.map((f, i) => {
               const isOpen = openIds.has(f.id);
               const isEditing = composingItem && composingItem.id === f.id;
-              if (isEditing) return null; // already rendering above or we could render it here instead
+              if (isEditing) return null;
 
               return (
                 <div key={f.id} style={{ borderBottom: i === filtered.length - 1 ? "none" : "1px solid rgba(57,41,42,0.1)" }}>
@@ -233,24 +235,7 @@ export default function AdminFaqPage() {
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "16px" }}>
-          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>What goes in FAQs</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
-              <div>Anything you find yourself explaining twice in WhatsApp.</div>
-              <div>The absolute minutiae of credits and boundaries.</div>
-              <div>Things that would break the flow of the main landing pages.</div>
-            </div>
-          </div>
-          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>Rules this page holds</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
-              <div><strong style={{ fontWeight: 600 }}>A draft is invisible publicly.</strong> Unpublishing is how you retire a question — there is no delete so that old links or references don't break.</div>
-              <div><strong style={{ fontWeight: 600 }}>We group everything into four buckets</strong>: General, Joining, Credits, Events.</div>
-              <div><strong style={{ fontWeight: 600 }}>Policy figures shouldn't be here</strong>. The system pulls prices and limits directly from Settings. Anything reading €19 or 20 credits is auto-flagged to ensure it doesn't contradict the single source of truth.</div>
-            </div>
-          </div>
-        </div>
+
 
       </div>
 

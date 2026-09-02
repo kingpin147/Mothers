@@ -156,6 +156,8 @@ export default function AdminJournalPage() {
 
         {loading ? (
           <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>Loading journal...</div>
+        ) : posts.length === 0 ? (
+          <div style={{ padding: "12px 18px", fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>There are no articles in the journal yet.</div>
         ) : (
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", overflowX: "auto", marginBottom: "18px" }}>
             <div style={{ minWidth: "960px" }}>
@@ -168,110 +170,93 @@ export default function AdminJournalPage() {
                 <div>Status & Actions</div>
               </div>
 
-              {filtered.map(p => {
-                const isLive = p.status === 'published' && new Date(p.publishedAt) <= now;
-                const isScheduled = p.status === 'published' && new Date(p.publishedAt) > now;
-                const isDraft = p.status === 'draft';
-                const isUnpublished = p.status === 'unpublished';
-                
-                return (
-                  <div key={p.id} style={{ display: "grid", gridTemplateColumns: "3fr 1.5fr 1fr 1fr 1fr 1.5fr", gap: "14px", padding: "18px", borderBottom: "1px solid rgba(57,41,42,0.1)", alignItems: "start" }}>
-                    
-                    <div>
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", lineHeight: 1.3, marginBottom: "5px" }}>{p.title}</div>
-                      <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.68)", marginBottom: "7px", paddingRight: "20px" }}>{p.excerpt}</div>
-                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.4)" }}>/journal/{p.slug}</div>
-                    </div>
-
-                    <div>
-                      <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "3px" }}>{p.author || "General"}</div>
-                      <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.65)" }}>{p.author}</div>
-                    </div>
-
-                    <div>
-                      {p.audience === 'members_only' ? (
-                        <>
-                          <span style={{ display: "inline-block", border: `1px solid ${WINE}`, color: WINE, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Members only</span>
-                          <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.55)" }}>invisible to non-members</div>
-                        </>
-                      ) : (
-                        <>
-                          <span style={{ display: "inline-block", border: `1px solid ${GREEN}`, color: GREEN, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Public</span>
-                          <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.55)" }}>anyone can read it</div>
-                        </>
-                      )}
-                    </div>
-
-                    <div>
-                      {isDraft ? (
-                        <>
-                          <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "3px" }}>Edited {new Date(p.updatedAt).toLocaleDateString('en-GB', {day:'numeric', month:'short'})}</div>
-                          <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)" }}>unfinished</div>
-                        </>
-                      ) : (
-                        <>
-                          <div style={{ fontSize: "13.5px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums", marginBottom: "3px" }}>{new Date(p.publishedAt).toLocaleDateString('en-GB', {day:'numeric', month:'short', year: 'numeric'})}</div>
-                          <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)" }}>{isScheduled ? `goes live ${new Date(p.publishedAt).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'})}` : 'published'}</div>
-                        </>
-                      )}
-                    </div>
-
-                    <div>
-                      {isLive ? (
-                        <>
-                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: "#39292a", marginBottom: "4px" }}>{(Math.floor(Math.random() * 2000) + 500).toLocaleString()}</div>
-                          <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)" }}>lifetime</div>
-                        </>
-                      ) : (
-                        <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.4)" }}>—<br/>not yet live</div>
-                      )}
-                    </div>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: "7px", alignItems: "flex-start" }}>
-                      {isScheduled && <span style={{ display: "inline-block", border: `1px solid ${AMBER}`, color: AMBER, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Scheduled</span>}
-                      {isLive && <span style={{ display: "inline-block", border: `1px solid ${GREEN}`, color: GREEN, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Published</span>}
-                      {isDraft && <span style={{ display: "inline-block", border: `1px solid rgba(57,41,42,0.4)`, color: "rgba(57,41,42,0.6)", borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Draft</span>}
-                      {isUnpublished && <span style={{ display: "inline-block", border: `1px solid rgba(57,41,42,0.4)`, color: "rgba(57,41,42,0.6)", borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px", background: "rgba(57,41,42,0.04)" }}>Unpublished</span>}
+              {filtered.length === 0 ? (
+                <div style={{ padding: "24px 18px", fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>No articles match the current filters.</div>
+              ) : (
+                filtered.map(p => {
+                  const isLive = p.status === 'published' && new Date(p.publishedAt) <= now;
+                  const isScheduled = p.status === 'published' && new Date(p.publishedAt) > now;
+                  const isDraft = p.status === 'draft';
+                  const isUnpublished = p.status === 'unpublished';
+                  
+                  return (
+                    <div key={p.id} style={{ display: "grid", gridTemplateColumns: "3fr 1.5fr 1fr 1fr 1fr 1.5fr", gap: "14px", padding: "18px", borderBottom: "1px solid rgba(57,41,42,0.1)", alignItems: "start" }}>
                       
-                      <div style={{ display: "flex", gap: "7px", flexWrap: "wrap", alignItems: "center" }}>
-                        <Link href={`/admin/journal/${p.id}`} style={{ fontSize: "12.5px" }}>Edit</Link>
-                        <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
-                        <button type="button" style={{ border: "none", background: "transparent", color: "#39292a", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-                          {isLive || isScheduled ? 'Unpublish' : isDraft ? 'Publish' : 'Restore'}
-                        </button>
-                        <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
-                        <Link href={`/journal/${p.slug}`} style={{ fontSize: "12.5px" }}>More</Link>
+                      <div>
+                        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", lineHeight: 1.3, marginBottom: "5px" }}>{p.title}</div>
+                        <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.68)", marginBottom: "7px", paddingRight: "20px" }}>{p.excerpt}</div>
+                        <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.4)" }}>/journal/{p.slug}</div>
+                      </div>
+
+                      <div>
+                        <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "3px" }}>{p.author || "General"}</div>
+                        <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.65)" }}>{p.author}</div>
+                      </div>
+
+                      <div>
+                        {p.audience === 'members_only' ? (
+                          <>
+                            <span style={{ display: "inline-block", border: `1px solid ${WINE}`, color: WINE, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Members only</span>
+                            <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.55)" }}>invisible to non-members</div>
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ display: "inline-block", border: `1px solid ${GREEN}`, color: GREEN, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Public</span>
+                            <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.55)" }}>anyone can read it</div>
+                          </>
+                        )}
+                      </div>
+
+                      <div>
+                        {isDraft ? (
+                          <>
+                            <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "3px" }}>Edited {new Date(p.updatedAt).toLocaleDateString('en-GB', {day:'numeric', month:'short'})}</div>
+                            <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)" }}>unfinished</div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ fontSize: "13.5px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums", marginBottom: "3px" }}>{new Date(p.publishedAt).toLocaleDateString('en-GB', {day:'numeric', month:'short', year: 'numeric'})}</div>
+                            <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)" }}>{isScheduled ? `goes live ${new Date(p.publishedAt).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'})}` : 'published'}</div>
+                          </>
+                        )}
+                      </div>
+
+                      <div>
+                        {isLive ? (
+                          <>
+                            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: "#39292a", marginBottom: "4px" }}>{(Math.floor(Math.random() * 2000) + 500).toLocaleString()}</div>
+                            <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)" }}>lifetime</div>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.4)" }}>—<br/>not yet live</div>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: "7px", alignItems: "flex-start" }}>
+                        {isScheduled && <span style={{ display: "inline-block", border: `1px solid ${AMBER}`, color: AMBER, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Scheduled</span>}
+                        {isLive && <span style={{ display: "inline-block", border: `1px solid ${GREEN}`, color: GREEN, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Published</span>}
+                        {isDraft && <span style={{ display: "inline-block", border: `1px solid rgba(57,41,42,0.4)`, color: "rgba(57,41,42,0.6)", borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Draft</span>}
+                        {isUnpublished && <span style={{ display: "inline-block", border: `1px solid rgba(57,41,42,0.4)`, color: "rgba(57,41,42,0.6)", borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px", background: "rgba(57,41,42,0.04)" }}>Unpublished</span>}
+                        
+                        <div style={{ display: "flex", gap: "7px", flexWrap: "wrap", alignItems: "center" }}>
+                          <Link href={`/admin/journal/${p.id}`} style={{ fontSize: "12.5px" }}>Edit</Link>
+                          <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
+                          <button type="button" style={{ border: "none", background: "transparent", color: "#39292a", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                            {isLive || isScheduled ? 'Unpublish' : isDraft ? 'Publish' : 'Restore'}
+                          </button>
+                          <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
+                          <Link href={`/journal/${p.slug}`} style={{ fontSize: "12.5px" }}>More</Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })
+              )}
             </div>
-            
-            {filtered.length === 0 && (
-              <div style={{ padding: "24px 18px", fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>No articles match.</div>
-            )}
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 400px), 1fr))", gap: "16px" }}>
-          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>What changed from the current page</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "7px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
-              <div><strong style={{ fontWeight: 600 }}>No audience column.</strong> Public or members-only is the single most consequential setting on an article, and it was not on the page.</div>
-              <div><strong style={{ fontWeight: 600 }}>No author, no topic, no standfirst</strong> — nothing to tell two articles apart at a glance.</div>
-              <div><strong style={{ fontWeight: 600 }}>Date had no meaning attached.</strong> A date is a publication date, a scheduled date or a last-edited date, and they behave differently.</div>
-            </div>
-          </div>
-          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>Rules this page holds</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
-              <div><strong style={{ fontWeight: 600 }}>A slug is set once and never changed</strong> after publishing — an old link must keep working. Renaming the title leaves the slug alone.</div>
-              <div><strong style={{ fontWeight: 600 }}>Members-only articles are invisible</strong> to a non-member: not in the list, not by direct link, no teaser paragraph.</div>
-              <div><strong style={{ fontWeight: 600 }}>There is no delete.</strong> Unpublishing takes it off the journal and keeps the record.</div>
-            </div>
-          </div>
-        </div>
+
 
       </div>
 

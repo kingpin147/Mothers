@@ -388,15 +388,7 @@ export default function AdminCreateEventPage() {
           </div>
         </div>
 
-        <div style={{ maxWidth: "880px", margin: "20px auto 0", border: "1px solid rgba(255,253,250,0.35)", borderRadius: "8px", background: "rgba(255,253,250,0.92)", padding: "24px 28px" }}>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "16px" }}>Where this goes when you publish</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))", gap: "20px 32px", fontSize: "14px", lineHeight: 1.6, color: "#39292a" }}>
-            <div><strong style={{ color: "#7b1f2c", fontWeight: 400 }}>The public calendar</strong> — Events shows it under its category, in its month, with its credit cost and the gathering line if it has a minimum.</div>
-            <div><strong style={{ color: "#7b1f2c", fontWeight: 400 }}>The admin calendar</strong> — Admin Events lists it with live booked-against-minimum counts as members book.</div>
-            <div><strong style={{ color: "#7b1f2c", fontWeight: 400 }}>The dashboard</strong> — it enters the T-10 and T-7 queues on the dashboard by date, and This week when it is within seven days.</div>
-            <div><strong style={{ color: "#7b1f2c", fontWeight: 400 }}>The audit log</strong> — creating, confirming and cancelling are all written down with what changed.</div>
-          </div>
-        </div>
+
 
       </div>
 

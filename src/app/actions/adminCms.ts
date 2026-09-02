@@ -180,6 +180,74 @@ export async function getAdminMemberDetail(memberId: string) {
   };
 }
 
+export async function contactMember(memberId: string, messageText: string) {
+  const { adminId } = await verifyAdminRole();
+  const m = await db.select({ personId: member.personId }).from(member).where(eq(member.id, memberId)).limit(1).then(r => r[0]);
+  if (!m) return { success: false, error: "Member not found" };
+
+  await db.transaction(async (tx) => {
+    await tx.insert(emailLog).values({
+      personId: m.personId,
+      templateKey: "admin_manual_message",
+      dedupeKey: `admin_msg_${memberId}_${Date.now()}`,
+      payload: { message: messageText },
+      status: "sent",
+      sentAt: new Date()
+    });
+
+    await tx.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "contact_member",
+      entity: "member",
+      entityId: memberId,
+      after: { message: messageText }
+    });
+  });
+
+  return { success: true };
+}
+
+export async function pauseMember(memberId: string, reason: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { adminId } = await verifyAdminRole();
+    await db.transaction(async (tx) => {
+      await tx.update(member).set({ status: 'paused', updatedAt: new Date() }).where(eq(member.id, memberId));
+      await tx.insert(auditLog).values({
+        actorId: adminId,
+        actorType: "admin",
+        action: "pause_member",
+        entity: "member",
+        entityId: memberId,
+        after: { reason }
+      });
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function cancelMember(memberId: string, reason: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { adminId } = await verifyAdminRole();
+    await db.transaction(async (tx) => {
+      await tx.update(member).set({ status: 'cancelled_at_period_end', updatedAt: new Date() }).where(eq(member.id, memberId));
+      await tx.insert(auditLog).values({
+        actorId: adminId,
+        actorType: "admin",
+        action: "cancel_member",
+        entity: "member",
+        entityId: memberId,
+        after: { reason }
+      });
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 // ─── 2. FINANCE & PAYMENTS MANAGEMENT ───────────────────────────────────────
 
 export async function getAdminFinance() {

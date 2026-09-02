@@ -379,16 +379,7 @@ export default function AdminEventsPage() {
           </div>
         </div>
 
-        {/* Guidelines Box */}
-        <div style={{ backgroundColor: "#fbf8f3", border: "1px solid var(--color-divider)", borderRadius: "8px", padding: "20px 24px", marginBottom: "24px", fontSize: "13.5px", color: "var(--color-text-main)", lineHeight: 1.6 }}>
-          <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-accent)", margin: "0 0 10px" }}>Rules this page holds</h3>
-          <ul style={{ margin: 0, paddingLeft: "20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "8px 24px" }}>
-            <li><strong>Categories</strong> can be created and deleted, but a deleted category will leave its events uncategorized.</li>
-            <li><strong>Duplicating</strong> an event creates a draft exactly 7 days later.</li>
-            <li><strong>Cancelling</strong> an event requires a reason and will automatically refund credits to all booked members.</li>
-            <li><strong>Confirming</strong> an event locks in all "held" bookings as "confirmed".</li>
-          </ul>
-        </div>
+
 
         {/* Advanced Filters */}
         <div className="card" style={{ backgroundColor: "#fff", padding: "18px 24px", marginBottom: "24px", display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}>
@@ -454,15 +445,7 @@ export default function AdminEventsPage() {
             <p>Loading events...</p>
           </div>
         ) : events.length === 0 ? (
-          <div className="card" style={{ padding: "48px", textAlign: "center", backgroundColor: "#fff" }}>
-            <h3 style={{ fontSize: "20px", color: "var(--color-accent)" }}>No events created yet</h3>
-            <p style={{ fontSize: "14px", color: "var(--color-text-muted)", marginBottom: "20px" }}>
-              Click "+ Create Event" to schedule your first gathering.
-            </p>
-            <Link href="/admin/events/create" className="btn btn-primary" style={{ textDecoration: "none" }}>
-              + Create First Event
-            </Link>
-          </div>
+          <div style={{ padding: "12px 18px", fontSize: "14px", color: "var(--color-text-muted)" }}>There are no events yet.</div>
         ) : (() => {
           const filteredEvents = events.filter((ev) => {
             const statusMatch = statusFilter === "all" || ev.status === statusFilter;
@@ -478,11 +461,7 @@ export default function AdminEventsPage() {
 
           if (filteredEvents.length === 0) {
             return (
-              <div className="card" style={{ padding: "48px", textAlign: "center", backgroundColor: "#fff" }}>
-                <h3 style={{ fontSize: "18px", color: "var(--color-text-muted)" }}>
-                  No events found with status "{statusFilter === "published_pending" ? "Published-Gathering" : statusFilter === "completed" ? "Past" : statusFilter}"
-                </h3>
-              </div>
+              <div style={{ padding: "12px 18px", fontSize: "14px", color: "var(--color-text-muted)" }}>No events found with status "{statusFilter === "published_pending" ? "Published-Gathering" : statusFilter === "completed" ? "Past" : statusFilter}".</div>
             );
           }
 

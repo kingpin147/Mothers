@@ -4,19 +4,13 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export function Navigation() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [lang, setLang] = useState<"en" | "es">("en");
+  const { language: lang, setLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("tm_lang");
-    if (saved === "es" || saved === "en") {
-      setLang(saved);
-    }
-  }, []);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -28,9 +22,7 @@ export function Navigation() {
   }
 
   const switchLang = (newLang: "en" | "es") => {
-    setLang(newLang);
-    localStorage.setItem("tm_lang", newLang);
-    window.dispatchEvent(new Event("tm_lang_change"));
+    setLanguage(newLang);
   };
 
   // The 3 approved header navigation links
@@ -106,6 +98,24 @@ export function Navigation() {
           })}
 
 
+
+          {/* Language Toggle */}
+          <button
+            onClick={() => switchLang(lang === "en" ? "es" : "en")}
+            style={{
+              border: "1px solid rgba(57, 41, 42, 0.2)",
+              background: "transparent",
+              color: "var(--color-text)",
+              padding: "6px 10px",
+              borderRadius: "4px",
+              fontSize: "13px",
+              fontFamily: "var(--font-heading)",
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            {lang === "en" ? "ES" : "EN"}
+          </button>
 
           {/* Login / Members Area CTA */}
           {session?.user ? (

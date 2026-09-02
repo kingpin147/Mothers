@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { buyGuestPass } from "@/app/actions/booking";
 import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export type Lang = "en" | "es";
 
@@ -1209,7 +1210,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const { data: session } = useSession();
   const isMember = !!session?.user;
 
-  const [lang, setLang] = useState<Lang>("en");
+  const { language: lang } = useLanguage();
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeDateFilter, setActiveDateFilter] = useState<string>("all");
   const [activeStatus, setActiveStatus] = useState<string>("all");
@@ -1218,16 +1219,6 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [freeRsvpEvent, setFreeRsvpEvent] = useState<PublicEvent | null>(null);
   const [ceilingEvent, setCeilingEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
-
-  useEffect(() => {
-    const sync = () => {
-      const saved = localStorage.getItem("tm_lang");
-      if (saved === "es" || saved === "en") setLang(saved);
-    };
-    sync();
-    window.addEventListener("tm_lang_change", sync);
-    return () => window.removeEventListener("tm_lang_change", sync);
-  }, []);
 
   // Category items matching prototype exactly
   const categoryChips = [

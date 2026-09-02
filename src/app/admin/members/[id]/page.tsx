@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { getAdminMemberDetail } from "@/app/actions/adminCms";
+import { getAdminMemberDetail, contactMember, pauseMember, cancelMember } from "@/app/actions/adminCms";
 
 export default function MemberRecordPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -15,20 +15,58 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
   const [draftMessage, setDraftMessage] = useState("");
   
   const [statusOpen, setStatusOpen] = useState<"pause" | "cancel" | null>(null);
+  const [statusReason, setStatusReason] = useState("");
   
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadData = async () => {
+    const res = await getAdminMemberDetail(resolvedParams.id);
+    if (res.success && res.member) {
+      setData(res);
+      setDraftMessage(`${res.member.firstName} — no rush at all about the payment, it can wait. I noticed you have not been to anything since June and I wanted to check you are alright. If now is not the moment, we can pause your membership and everything waits for you. Belén`);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    async function loadData() {
-      const res = await getAdminMemberDetail(resolvedParams.id);
-      if (res.success && res.member) {
-        setData(res);
-        setDraftMessage(`${res.member.firstName} — no rush at all about the payment, it can wait. I noticed you have not been to anything since June and I wanted to check you are alright. If now is not the moment, we can pause your membership and everything waits for you. Belén`);
-      }
-      setLoading(false);
-    }
     loadData();
   }, [resolvedParams.id]);
+
+  const handleContact = async () => {
+    if (!draftMessage.trim()) return;
+    setIsSubmitting(true);
+    const res = await contactMember(resolvedParams.id, draftMessage);
+    setIsSubmitting(false);
+    if (res.success) {
+      setWriteOpen(false);
+      loadData();
+    } else {
+      alert(res.error || "Failed to send message.");
+    }
+  };
+
+  const handleStatusChange = async () => {
+    if (!statusReason.trim()) {
+      alert("A reason is required.");
+      return;
+    }
+    setIsSubmitting(true);
+    let res;
+    if (statusOpen === "pause") {
+      res = await pauseMember(resolvedParams.id, statusReason);
+    } else {
+      res = await cancelMember(resolvedParams.id, statusReason);
+    }
+    setIsSubmitting(false);
+    if (res?.success) {
+      setStatusOpen(null);
+      setStatusReason("");
+      loadData();
+    } else {
+      alert(res?.error || "Failed to update status.");
+    }
+  };
 
   if (loading) {
     return <div style={{ minHeight: "100vh", background: "#f8efe2", padding: "40px", textAlign: "center" }}>Loading member record...</div>;
@@ -143,7 +181,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                   style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", lineHeight: 1.65, background: "#fff", resize: "vertical", marginBottom: "10px" }}
                 />
                 <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", alignItems: "center" }}>
-                  <button type="button" onClick={() => setWriteOpen(false)} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>Send it</button>
+                  <button type="button" onClick={handleContact} disabled={isSubmitting} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>{isSubmitting ? 'Sending...' : 'Send it'}</button>
                   <button type="button" onClick={() => setWriteOpen(false)} style={{ border: "1px solid rgba(57,41,42,0.28)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>Not now</button>
                   <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.62)" }}>Sent from hello@themothers.cc and recorded below.</span>
                 </div>
@@ -181,9 +219,9 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
               <div style={{ marginTop: "14px", border: "1px solid rgba(123,31,44,0.4)", borderRadius: "6px", background: "#fdf6f2", padding: "14px 16px" }}>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", marginBottom: "6px" }}>{statusTitle}</div>
                 <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)", margin: "0 0 12px", textWrap: "pretty" }}>{statusBody}</p>
-                <input type="text" placeholder="Reason — required, and kept for our record" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", background: "#fff", marginBottom: "11px" }} />
+                <input type="text" placeholder="Reason — required, and kept for our record" value={statusReason} onChange={e => setStatusReason(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", background: "#fff", marginBottom: "11px" }} />
                 <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
-                  <button type="button" onClick={() => setStatusOpen(null)} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>{statusConfirm}</button>
+                  <button type="button" onClick={handleStatusChange} disabled={isSubmitting} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>{isSubmitting ? '...' : statusConfirm}</button>
                   <button type="button" onClick={() => setStatusOpen(null)} style={{ border: "1px solid rgba(57,41,42,0.28)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>Not now</button>
                 </div>
               </div>

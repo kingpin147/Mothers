@@ -597,3 +597,49 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
     return { success: false, error: error?.message || "CHECKOUT_FAILED" };
   }
 }
+
+// ─── 5. JOIN EVENT WAITLIST (§7.4) ───────────────────────────────────────────
+
+export async function joinEventWaitlist(eventId: string) {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+
+  const personId = (session.user as any).personId || session.user.id;
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      // 1. Check if already on waitlist
+      const existing = await tx.query.eventWaitlist.findFirst({
+        where: and(
+          eq(eventWaitlist.eventId, eventId),
+          eq(eventWaitlist.personId, personId)
+        )
+      });
+
+      if (existing) {
+        throw new Error("ALREADY_ON_WAITLIST");
+      }
+
+      // 2. Determine position
+      const maxPos = await tx
+        .select({ max: sql<number>`MAX(position)` })
+        .from(eventWaitlist)
+        .where(eq(eventWaitlist.eventId, eventId));
+      
+      const nextPosition = (maxPos[0]?.max || 0) + 1;
+
+      // 3. Insert
+      await tx.insert(eventWaitlist).values({
+        eventId,
+        personId,
+        position: nextPosition,
+      });
+
+      return { position: nextPosition };
+    });
+
+    return { success: true, position: result.position };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "WAITLIST_JOIN_FAILED" };
+  }
+}

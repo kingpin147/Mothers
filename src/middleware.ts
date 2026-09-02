@@ -14,8 +14,8 @@ export async function middleware(request: NextRequest) {
 
   const isSecure = request.url.startsWith("https://") || process.env.NODE_ENV === "production";
 
-  // 1. Strict Server-Side Protection for /admin routes (§12)
-  if (pathname.startsWith("/admin")) {
+  // 1. Strict Server-Side Protection for /admin and /uat routes (§12)
+  if (pathname.startsWith("/admin") || pathname === "/uat") {
     const token =
       (await getToken({ req: request, secret, secureCookie: isSecure })) ||
       (await getToken({ req: request, secret, secureCookie: !isSecure }));
@@ -66,6 +66,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/account/:path*", "/api/cron/:path*"],
+  matcher: ["/admin/:path*", "/account/:path*", "/api/cron/:path*", "/uat"],
 };
 

@@ -62,17 +62,43 @@ export default function AdminSettingsPage() {
     if (windowsRes.success) setWindows(windowsRes.windows || []);
     
     if (res.success && res.settings) {
-      // Mapping the few returned properties, the rest remain local mock state for now until backend is fully extended
       setForm(prev => ({
         ...prev,
-        monthlyGrant: res.settings.monthlyGrantCredits || 20,
-        rolloverCeiling: res.settings.rolloverCapCredits || 40,
-        godmotherJoinBonus: res.settings.referralBonusCredits || 20,
-        eventPassPrice: (res.settings.guestPassPriceCents || 3500) / 100,
-        lifetimeGuestPasses: res.settings.maxLifetimeGuestPasses || 2,
-        openingCirclePlaces: res.currentWindow?.placesOffered || 50,
-        openingMonthly: (res.currentWindow?.monthlyPriceCents || 2900) / 100,
-        joiningFee: (res.currentWindow?.joiningFeeCents || 5800) / 100,
+        monthlyGrant: res.settings.monthlyGrantCredits ?? prev.monthlyGrant,
+        rolloverCeiling: res.settings.rolloverCapCredits ?? prev.rolloverCeiling,
+        godmotherJoinBonus: res.settings.referralBonusCredits ?? prev.godmotherJoinBonus,
+        eventPassPrice: (res.settings.guestPassPriceCents ?? 3500) / 100,
+        lifetimeGuestPasses: res.settings.maxLifetimeGuestPasses ?? prev.lifetimeGuestPasses,
+        
+        passToMemberDays: res.settings.passToMemberDays ?? prev.passToMemberDays,
+        passCreditCeiling: res.settings.passCreditCeiling ?? prev.passCreditCeiling,
+        guestPlacesDefault: res.settings.guestPlacesDefault ?? prev.guestPlacesDefault,
+        guestsOpenDays: res.settings.guestsOpenDays ?? prev.guestsOpenDays,
+        guestsCloseDays: res.settings.guestsCloseDays ?? prev.guestsCloseDays,
+        
+        creditLifeMonths: res.settings.creditLifeMonths ?? prev.creditLifeMonths,
+        expiryWarningDays: res.settings.expiryWarningDays ?? prev.expiryWarningDays,
+        topUpPrice: (res.settings.topUpPriceCents ?? 100) / 100,
+        releaseDeadlineHours: res.settings.releaseDeadlineHours ?? prev.releaseDeadlineHours,
+        
+        godmotherThreeMonthBonus: res.settings.godmotherThreeMonthBonus ?? prev.godmotherThreeMonthBonus,
+        godmotherFriendsLimit: res.settings.godmotherFriendsLimit ?? prev.godmotherFriendsLimit,
+        godmotherBonusLife: res.settings.godmotherBonusLife ?? prev.godmotherBonusLife,
+        
+        answerAppHours: res.settings.answerAppHours ?? prev.answerAppHours,
+        paymentLinkHours: res.settings.paymentLinkHours ?? prev.paymentLinkHours,
+        pauseAllowanceMonths: res.settings.pauseAllowanceMonths ?? prev.pauseAllowanceMonths,
+        rateHeldMonths: res.settings.rateHeldMonths ?? prev.rateHeldMonths,
+        
+        scheduleMembersFrom: res.settings.scheduleMembersFrom ?? prev.scheduleMembersFrom,
+        scheduleGuestsOpen: res.settings.scheduleGuestsOpen ?? prev.scheduleGuestsOpen,
+        scheduleEarlyWarning: res.settings.scheduleEarlyWarning ?? prev.scheduleEarlyWarning,
+        scheduleDecisionPoint: res.settings.scheduleDecisionPoint ?? prev.scheduleDecisionPoint,
+        scheduleGuestsClose: res.settings.scheduleGuestsClose ?? prev.scheduleGuestsClose,
+
+        openingCirclePlaces: res.currentWindow?.placesOffered ?? prev.openingCirclePlaces,
+        openingMonthly: (res.currentWindow?.monthlyPriceCents ?? (prev.openingMonthly * 100)) / 100,
+        joiningFee: (res.currentWindow?.joiningFeeCents ?? (prev.joiningFee * 100)) / 100,
       }));
     }
     setLoading(false);
@@ -113,14 +139,42 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     const payload = {
-      monthlyGrantCredits: form.monthlyGrant,
-      rolloverCapCredits: form.rolloverCeiling,
-      referralBonusCredits: form.godmotherJoinBonus,
-      guestPassPriceCents: form.eventPassPrice * 100,
-      maxLifetimeGuestPasses: form.lifetimeGuestPasses,
-      placesOffered: form.openingCirclePlaces,
-      monthlyPriceCents: form.openingMonthly * 100,
       joiningFeeCents: form.joiningFee * 100,
+      openingMonthlyPriceCents: form.openingMonthly * 100,
+      openingQuarterlyPriceCents: form.openingQuarterly * 100,
+      standardMonthlyPriceCents: form.standardMonthly * 100,
+      passToMemberDays: form.passToMemberDays,
+      
+      guestPassPriceCents: form.eventPassPrice * 100,
+      passCreditCeiling: form.passCreditCeiling,
+      maxLifetimeGuestPasses: form.lifetimeGuestPasses,
+      guestPlacesDefault: form.guestPlacesDefault,
+      guestsOpenDays: form.guestsOpenDays,
+      guestsCloseDays: form.guestsCloseDays,
+      
+      monthlyGrantCredits: form.monthlyGrant,
+      creditLifeMonths: form.creditLifeMonths,
+      rolloverCapCredits: form.rolloverCeiling,
+      expiryWarningDays: form.expiryWarningDays,
+      topUpPriceCents: form.topUpPrice * 100,
+      releaseDeadlineHours: form.releaseDeadlineHours,
+      
+      referralBonusCredits: form.godmotherJoinBonus,
+      godmotherThreeMonthBonus: form.godmotherThreeMonthBonus,
+      godmotherFriendsLimit: form.godmotherFriendsLimit,
+      godmotherBonusLife: form.godmotherBonusLife,
+      
+      answerAppHours: form.answerAppHours,
+      paymentLinkHours: form.paymentLinkHours,
+      pauseAllowanceMonths: form.pauseAllowanceMonths,
+      placesOffered: form.openingCirclePlaces,
+      rateHeldMonths: form.rateHeldMonths,
+      
+      scheduleMembersFrom: form.scheduleMembersFrom,
+      scheduleGuestsOpen: form.scheduleGuestsOpen,
+      scheduleEarlyWarning: form.scheduleEarlyWarning,
+      scheduleDecisionPoint: form.scheduleDecisionPoint,
+      scheduleGuestsClose: form.scheduleGuestsClose
     };
     const res = await updateClubSettings(payload);
     setSaving(false);

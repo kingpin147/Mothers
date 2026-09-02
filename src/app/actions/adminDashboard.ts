@@ -203,10 +203,38 @@ export async function getAdminDashboardMetrics() {
     { value: `${fillRate}%`, label: `Fill rate · ${totalWaitlist} on waitlists` }
   ];
 
+  function formatAuditAction(action: string, entity: string): string {
+    const actionMap: Record<string, string> = {
+      update_club_settings: "Changed club and credit policies",
+      create_membership_window: "Created a new membership window",
+      open_membership_window: "Opened a membership window",
+      closed_membership_window: "Closed a membership window",
+      update_member_profile: "Updated member profile",
+      pause_member: "Paused a membership",
+      cancel_member: "Cancelled a membership",
+      confirm_event: "Confirmed an event",
+      cancel_event: "Cancelled an event",
+      create_event: "Published a new event",
+      update_event: "Updated an event",
+      create_journal: "Published a journal article",
+      update_journal: "Updated a journal article",
+      delete_journal: "Deleted a journal article",
+      update_faq: "Updated FAQ",
+      create_faq: "Added FAQ item",
+      delete_faq: "Deleted FAQ item",
+      create_partner: "Added a partner",
+      update_partner: "Updated a partner",
+      delete_partner: "Deleted a partner",
+      approve_application: "Approved an application",
+      decline_application: "Declined an application"
+    };
+    return actionMap[action] || `Action on ${entity}`;
+  }
+
   const audit = recentLogs.length > 0 ? recentLogs.map(l => ({
     who: l.actorType,
-    did: l.action,
-    change: `Action on ${l.entity}`,
+    did: l.action === "update_club_settings" ? "Settings" : l.entity,
+    change: formatAuditAction(l.action, l.entity),
     when: new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
     where: 'web'
   })) : [

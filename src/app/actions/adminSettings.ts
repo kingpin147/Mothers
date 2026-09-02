@@ -38,30 +38,105 @@ export async function getClubSettings() {
       referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 20,
       guestPassPriceCents: settingsMap["guest_pass_price_cents"] ?? 3500,
       maxLifetimeGuestPasses: settingsMap["max_lifetime_guest_passes"] ?? 2,
+      
+      passToMemberDays: settingsMap["pass_to_member_days"] ?? 30,
+      passCreditCeiling: settingsMap["pass_credit_ceiling"] ?? 18,
+      guestPlacesDefault: settingsMap["guest_places_default"] ?? 2,
+      guestsOpenDays: settingsMap["guests_open_days"] ?? 14,
+      guestsCloseDays: settingsMap["guests_close_days"] ?? 2,
+      
+      creditLifeMonths: settingsMap["credit_life_months"] ?? 6,
+      expiryWarningDays: settingsMap["expiry_warning_days"] ?? 30,
+      topUpPriceCents: settingsMap["top_up_price_cents"] ?? 100,
+      releaseDeadlineHours: settingsMap["release_deadline_hours"] ?? 48,
+      
+      godmotherThreeMonthBonus: settingsMap["godmother_three_month_bonus"] ?? 15,
+      godmotherFriendsLimit: settingsMap["godmother_friends_limit"] ?? 0,
+      godmotherBonusLife: settingsMap["godmother_bonus_life"] ?? 6,
+      
+      answerAppHours: settingsMap["answer_app_hours"] ?? 72,
+      paymentLinkHours: settingsMap["payment_link_hours"] ?? 72,
+      pauseAllowanceMonths: settingsMap["pause_allowance_months"] ?? 2,
+      rateHeldMonths: settingsMap["rate_held_months"] ?? 12,
+      
+      scheduleMembersFrom: settingsMap["schedule_members_from"] ?? 28,
+      scheduleGuestsOpen: settingsMap["schedule_guests_open"] ?? 14,
+      scheduleEarlyWarning: settingsMap["schedule_early_warning"] ?? 10,
+      scheduleDecisionPoint: settingsMap["schedule_decision_point"] ?? 7,
+      scheduleGuestsClose: settingsMap["schedule_guests_close"] ?? 2,
     },
     currentWindow: currentWindow || null,
   };
 }
 
 export async function updateClubSettings(data: {
-  monthlyGrantCredits: number;
-  rolloverCapCredits: number;
-  referralBonusCredits: number;
-  guestPassPriceCents: number;
-  maxLifetimeGuestPasses: number;
-  placesOffered?: number;
-  monthlyPriceCents?: number;
   joiningFeeCents?: number;
+  openingMonthlyPriceCents?: number;
+  openingQuarterlyPriceCents?: number;
+  standardMonthlyPriceCents?: number;
+  passToMemberDays?: number;
+  
+  guestPassPriceCents?: number;
+  passCreditCeiling?: number;
+  maxLifetimeGuestPasses?: number;
+  guestPlacesDefault?: number;
+  guestsOpenDays?: number;
+  guestsCloseDays?: number;
+  
+  monthlyGrantCredits?: number;
+  creditLifeMonths?: number;
+  rolloverCapCredits?: number;
+  expiryWarningDays?: number;
+  topUpPriceCents?: number;
+  releaseDeadlineHours?: number;
+  
+  referralBonusCredits?: number;
+  godmotherThreeMonthBonus?: number;
+  godmotherFriendsLimit?: number;
+  godmotherBonusLife?: number;
+  
+  answerAppHours?: number;
+  paymentLinkHours?: number;
+  pauseAllowanceMonths?: number;
+  placesOffered?: number;
+  rateHeldMonths?: number;
+  
+  scheduleMembersFrom?: number;
+  scheduleGuestsOpen?: number;
+  scheduleEarlyWarning?: number;
+  scheduleDecisionPoint?: number;
+  scheduleGuestsClose?: number;
 }) {
   const { adminId } = await verifyAdmin();
 
   const settingEntries = [
-    { key: "monthly_grant_credits", value: data.monthlyGrantCredits },
-    { key: "rollover_cap_credits", value: data.rolloverCapCredits },
-    { key: "referral_bonus_credits", value: data.referralBonusCredits },
+    { key: "pass_to_member_days", value: data.passToMemberDays },
     { key: "guest_pass_price_cents", value: data.guestPassPriceCents },
+    { key: "pass_credit_ceiling", value: data.passCreditCeiling },
     { key: "max_lifetime_guest_passes", value: data.maxLifetimeGuestPasses },
-  ];
+    { key: "guest_places_default", value: data.guestPlacesDefault },
+    { key: "guests_open_days", value: data.guestsOpenDays },
+    { key: "guests_close_days", value: data.guestsCloseDays },
+    { key: "monthly_grant_credits", value: data.monthlyGrantCredits },
+    { key: "credit_life_months", value: data.creditLifeMonths },
+    { key: "rollover_cap_credits", value: data.rolloverCapCredits },
+    { key: "expiry_warning_days", value: data.expiryWarningDays },
+    { key: "top_up_price_cents", value: data.topUpPriceCents },
+    { key: "release_deadline_hours", value: data.releaseDeadlineHours },
+    { key: "referral_bonus_credits", value: data.referralBonusCredits },
+    { key: "godmother_three_month_bonus", value: data.godmotherThreeMonthBonus },
+    { key: "godmother_friends_limit", value: data.godmotherFriendsLimit },
+    { key: "godmother_bonus_life", value: data.godmotherBonusLife },
+    { key: "answer_app_hours", value: data.answerAppHours },
+    { key: "payment_link_hours", value: data.paymentLinkHours },
+    { key: "pause_allowance_months", value: data.pauseAllowanceMonths },
+    { key: "rate_held_months", value: data.rateHeldMonths },
+    { key: "schedule_members_from", value: data.scheduleMembersFrom },
+    { key: "schedule_guests_open", value: data.scheduleGuestsOpen },
+    { key: "schedule_early_warning", value: data.scheduleEarlyWarning },
+    { key: "schedule_decision_point", value: data.scheduleDecisionPoint },
+    { key: "schedule_guests_close", value: data.scheduleGuestsClose },
+  ].filter(s => s.value !== undefined);
 
   for (const s of settingEntries) {
     await db
@@ -74,7 +149,7 @@ export async function updateClubSettings(data: {
   }
 
   // Update open window if places / pricing provided
-  if (data.placesOffered !== undefined || data.monthlyPriceCents !== undefined) {
+  if (data.placesOffered !== undefined || data.openingMonthlyPriceCents !== undefined || data.joiningFeeCents !== undefined) {
     const openWindow = await db.query.window.findFirst({
       where: eq(window.status, "open"),
     });
@@ -84,7 +159,7 @@ export async function updateClubSettings(data: {
         .update(window)
         .set({
           placesOffered: data.placesOffered ?? openWindow.placesOffered,
-          monthlyPriceCents: data.monthlyPriceCents ?? openWindow.monthlyPriceCents,
+          monthlyPriceCents: data.openingMonthlyPriceCents ?? openWindow.monthlyPriceCents,
           joiningFeeCents: data.joiningFeeCents ?? openWindow.joiningFeeCents,
           updatedAt: new Date(),
         })

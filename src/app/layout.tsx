@@ -21,6 +21,8 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { SessionProviderWrapper } from "@/components/SessionProviderWrapper";
 
+import { LanguageProvider } from "@/components/LanguageProvider";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://themothers.cc"),
   title: "The Mothers — Private Members Club for Mothers in Barcelona",
@@ -36,11 +38,13 @@ export default function RootLayout({
     <html lang="en" className={`${cormorant.variable} ${lora.variable}`} suppressHydrationWarning>
       <body suppressHydrationWarning>
         <SessionProviderWrapper>
-          <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-            <Navigation />
-            <main style={{ flex: 1 }}>{children}</main>
-            <Footer />
-          </div>
+          <LanguageProvider>
+            <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+              <Navigation />
+              <main style={{ flex: 1 }}>{children}</main>
+              <Footer />
+            </div>
+          </LanguageProvider>
         </SessionProviderWrapper>
       </body>
     </html>

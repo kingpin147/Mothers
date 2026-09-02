@@ -311,9 +311,9 @@ export default function AdminMembersPage() {
                       )}
                       
                       <div style={{ display: "flex", gap: "7px", flexWrap: "wrap", alignItems: "center" }}>
-                        <Link href={`/admin/members`} style={{ fontSize: "12.5px", color: "#39292a" }}>Record</Link>
+                        <Link href={`/admin/members/${m.id}`} style={{ fontSize: "12.5px", color: "#39292a" }}>Record</Link>
                         <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
-                        <Link href={`/admin/members`} style={{ fontSize: "12.5px", color: "#39292a" }}>Ledger</Link>
+                        <Link href={`/admin/members/${m.id}`} style={{ fontSize: "12.5px", color: "#39292a" }}>Ledger</Link>
                       </div>
                       <button type="button" onClick={() => setAdjustingId(isAdjustingThis ? null : m.id)} style={{ border: "none", background: "transparent", color: "#7b1f2c", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Adjust credits</button>
 
