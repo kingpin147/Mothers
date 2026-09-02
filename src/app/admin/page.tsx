@@ -128,7 +128,7 @@ export default function AdminDashboardPage() {
           <div style={{ flex: "1 1 420px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>The Mothers · Admin</div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(32px,4.4vw,44px)", lineHeight: 1.1, margin: "0 0 9px" }}>What needs you today</h1>
-            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "64ch", textWrap: "pretty" }}>Sunday 30 August. Everything below has a deadline, a payment or a mother waiting behind it. The counts sit at the bottom.</p>
+            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "64ch", textWrap: "pretty" }}>Wednesday 2 September. Everything below has a deadline, a payment or a mother waiting behind it. The counts sit at the bottom.</p>
           </div>
           <div style={{ display: "flex", gap: "9px", alignItems: "center" }}>
             <span style={{ border: "1px solid rgba(123,31,44,0.5)", color: "#7b1f2c", borderRadius: "4px", padding: "7px 13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{roleLabel}</span>
@@ -282,10 +282,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* EMPTY STATE NOTE */}
-        <div style={{ border: "1px dashed rgba(57,41,42,0.28)", borderRadius: "6px", padding: "12px 18px", marginBottom: "32px" }}>
-          <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.68)", margin: 0, textWrap: "pretty" }}><strong style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: "11px" }}>Empty-state rule</strong> — a section with nothing in it collapses to one quiet line, never a card with a zero in it: <em>“Nothing waiting — last answer sent three hours ago.”</em></p>
-        </div>
+
 
         {/* QUEUES */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,230px),1fr))", gap: "16px", marginBottom: "18px" }}>
@@ -367,6 +364,14 @@ export default function AdminDashboardPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* TEST DATA FOOTER */}
+        <div style={{ border: "1px dashed rgba(57,41,42,0.28)", borderRadius: "6px", padding: "18px 24px", marginTop: "40px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
+          <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.65)", margin: 0, maxWidth: "66ch", textWrap: "pretty" }}>
+            <strong style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: "11px" }}>While you are testing</strong> — events you create, applications sent from the site, bookings, credits and the audit log are all held in this browser. Clearing puts every page back to its seeded state.
+          </p>
+          <button style={{ border: "1px solid rgba(57,41,42,0.25)", color: "#39292a", background: "transparent", borderRadius: "4px", padding: "9px 18px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", cursor: "pointer" }}>Clear the test data</button>
         </div>
 
       </div>

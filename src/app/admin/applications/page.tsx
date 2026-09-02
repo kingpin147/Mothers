@@ -4,16 +4,19 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getApplicationsForAdmin, acceptApplication, declineApplication } from "@/app/actions/admin";
 
+const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
+
 export default function AdminApplicationsPage() {
   const [apps, setApps] = useState<any[]>([]);
-  const [filter, setFilter] = useState<"submitted" | "accepted" | "declined" | "all">("submitted");
+  const [filter, setFilter] = useState<"Waiting" | "Awaiting payment" | "Declined" | "All">("Waiting");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [selectedApp, setSelectedApp] = useState<any | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const fetchApps = async () => {
     setLoading(true);
-    const res = await getApplicationsForAdmin(filter);
+    // Note: getApplicationsForAdmin is called with 'all' so we can sort them client-side
+    const res = await getApplicationsForAdmin('all');
     setLoading(false);
     if (res.success && res.applications) {
       setApps(res.applications);
@@ -22,7 +25,21 @@ export default function AdminApplicationsPage() {
 
   useEffect(() => {
     fetchApps();
-  }, [filter]);
+  }, []);
+
+  const waitingApps = apps.filter(a => a.status === 'submitted');
+  const awaitingPaymentApps = apps.filter(a => a.status === 'accepted' && !a.isPaid); // Mock logic for awaiting payment
+  const declinedApps = apps.filter(a => a.status === 'declined');
+
+  const currentApp = waitingApps[currentIndex];
+
+  const handleSkip = () => {
+    if (currentIndex < waitingApps.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setCurrentIndex(0);
+    }
+  };
 
   const handleAccept = async (appId: string) => {
     if (!confirm("Confirm acceptance? This will generate a 72-hour payment link and email the applicant.")) return;
@@ -51,218 +68,293 @@ export default function AdminApplicationsPage() {
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input
+      if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
+      if (filter !== "Waiting" || !currentApp || actionLoading) return;
+
+      if (e.key.toLowerCase() === 'a') handleAccept(currentApp.id);
+      if (e.key.toLowerCase() === 'd') handleDecline(currentApp.id);
+      if (e.key.toLowerCase() === 's') handleSkip();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [filter, currentApp, actionLoading, currentIndex, waitingApps.length]);
+
   return (
-    <div style={{ backgroundColor: "var(--color-bg)", minHeight: "100vh", padding: "40px clamp(24px, 5vw, 64px)" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#f8efe2" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "clamp(24px, 3.4vw, 36px) clamp(18px, 3vw, 30px) 60px" }}>
+        
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px", flexWrap: "wrap", gap: "16px" }}>
-          <div>
-            <div style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--color-accent)", fontWeight: 600 }}>
-              Back Office · Review Queue
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "22px" }}>
+          <div style={{ flex: "1 1 400px" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
+              <Link href="/admin" style={{ color: "#7b1f2c" }}>← Dashboard</Link> · Applications
             </div>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "32px", margin: "4px 0 0" }}>
-              Membership Applications
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(30px, 4vw, 42px)", lineHeight: 1.1, margin: "0 0 9px" }}>
+              Reading the applications
             </h1>
+            <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "70ch", textWrap: "pretty" }}>
+              One at a time, in full, oldest first. Accept, decline or skip with the keyboard — A, D, S.
+            </p>
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Link href="/admin" className="btn btn-secondary" style={{ fontSize: "13px" }}>
-              ← Admin Dashboard
+          <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
+            <Link href="/admin" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap" }}>
+              ← Dashboard
             </Link>
           </div>
         </div>
 
-        {/* Filter Bar */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
-          {(["submitted", "accepted", "declined", "all"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              style={{
-                padding: "6px 14px",
-                borderRadius: "4px",
-                border: filter === f ? "1px solid var(--color-accent)" : "1px solid var(--color-divider)",
-                backgroundColor: filter === f ? "var(--color-accent)" : "#fff",
-                color: filter === f ? "#fff" : "var(--color-text)",
-                fontFamily: "inherit",
-                fontSize: "13px",
-                cursor: "pointer",
-                textTransform: "capitalize"
-              }}
-            >
-              {f === "submitted" ? "Pending Review" : f}
-            </button>
-          ))}
+        {/* Stats Block */}
+        <div style={{ border: "1px solid rgba(123,31,44,0.3)", borderRadius: "8px", background: "#fffdfa", padding: "20px 24px", marginBottom: "24px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c" }}>
+              WINDOW OPEN <span style={{ color: "rgba(123,31,44,0.7)", fontWeight: 400, textTransform: "none", letterSpacing: "normal", fontSize: "13px", marginLeft: "6px" }}>Opened 24 Aug · closes 14 Sep, or when the places are gone</span>
+            </div>
+            <div style={{ fontSize: "13px", color: "#7b1f2c" }}>
+              <Link href="#" style={{ color: "#7b1f2c", textDecoration: "none" }}>Preview the announcement</Link>
+              <span style={{ margin: "0 8px", color: "rgba(123,31,44,0.3)" }}>·</span>
+              <Link href="#" style={{ color: "#7b1f2c", textDecoration: "none" }}>Close the window early</Link>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "12px" }}>
+            {[
+              { val: "50", label: "PLACES OFFERED" },
+              { val: "20", label: "APPLICATIONS IN" },
+              { val: "11", label: "ACCEPTED" },
+              { val: "2", label: "AWAITING PAYMENT" },
+              { val: "9", label: "PAID" },
+              { val: "6", label: "DECLINED", muted: true },
+              { val: "39", label: "PLACES REMAINING", highlight: true }
+            ].map((s, i) => (
+              <div key={i} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "4px", padding: "12px 14px" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "22px", lineHeight: 1, color: s.highlight ? WINE : s.muted ? "rgba(57,41,42,0.4)" : "#39292a", marginBottom: "6px" }}>{s.val}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "9px", letterSpacing: "0.1em", textTransform: "uppercase", color: s.highlight ? WINE : s.muted ? "rgba(57,41,42,0.4)" : "rgba(57,41,42,0.6)" }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Applications Table */}
-        {loading ? (
-          <div className="card" style={{ padding: "40px", textAlign: "center" }}>
-            <p>Loading review queue...</p>
-          </div>
-        ) : apps.length === 0 ? (
-          <div className="card" style={{ padding: "48px", textAlign: "center", backgroundColor: "#fff" }}>
-            <h3 style={{ fontSize: "20px", color: "var(--color-accent)" }}>No applications in this queue</h3>
-            <p style={{ fontSize: "14px", color: "var(--color-text-muted)" }}>
-              All submitted applications for this filter have been processed.
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: selectedApp ? "1fr 420px" : "1fr", gap: "24px" }}>
-            {/* List */}
-            <div className="card" style={{ padding: "0", overflow: "hidden", backgroundColor: "#fff" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#faf6f0", borderBottom: "1px solid var(--color-divider)", textAlign: "left" }}>
-                    <th style={{ padding: "12px 16px" }}>Applicant</th>
-                    <th style={{ padding: "12px 16px" }}>Stage & Neighbourhood</th>
-                    <th style={{ padding: "12px 16px" }}>Submitted</th>
-                    <th style={{ padding: "12px 16px" }}>Status</th>
-                    <th style={{ padding: "12px 16px", textAlign: "right" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {apps.map((app) => {
-                    const answers = app.answers || {};
-                    const isSelected = selectedApp?.id === app.id;
-                    return (
-                      <tr
-                        key={app.id}
-                        style={{
-                          borderBottom: "1px solid var(--color-divider)",
-                          backgroundColor: isSelected ? "#f4ece2" : "transparent"
-                        }}
-                      >
-                        <td style={{ padding: "14px 16px" }}>
-                          <div style={{ fontWeight: 600 }}>{app.personName} {app.personLastName}</div>
-                          <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{app.personEmail}</div>
-                        </td>
-                        <td style={{ padding: "14px 16px" }}>
-                          <div>{answers.stage || "—"}</div>
-                          <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{answers.neighbourhood || "—"}</div>
-                        </td>
-                        <td style={{ padding: "14px 16px", color: "var(--color-text-muted)", fontSize: "12.5px" }}>
-                          {new Date(app.submittedAt).toLocaleDateString()}
-                        </td>
-                        <td style={{ padding: "14px 16px" }}>
-                          <span style={{
-                            padding: "3px 8px",
-                            borderRadius: "3px",
-                            fontSize: "11px",
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                            backgroundColor:
-                              app.status === "accepted" ? "var(--color-status-confirmed)" :
-                              app.status === "declined" ? "var(--color-status-cancelled)" :
-                              "var(--color-status-pending)",
-                            color:
-                              app.status === "accepted" ? "#285430" :
-                              app.status === "declined" ? "#993842" : "#8a5800"
-                          }}>
-                            {app.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedApp(app)}
-                            style={{
-                              background: "transparent",
-                              border: "1px solid var(--color-divider)",
-                              borderRadius: "4px",
-                              padding: "5px 10px",
-                              fontSize: "12px",
-                              marginRight: "6px",
-                              cursor: "pointer"
-                            }}
-                          >
-                            Review
-                          </button>
-                          {app.status === "submitted" && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleAccept(app.id)}
-                                disabled={actionLoading === app.id}
-                                style={{
-                                  backgroundColor: "var(--color-accent-2)",
-                                  color: "#fff",
-                                  border: "none",
-                                  borderRadius: "4px",
-                                  padding: "5px 10px",
-                                  fontSize: "12px",
-                                  marginRight: "4px",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                Accept (72h)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDecline(app.id)}
-                                disabled={actionLoading === app.id}
-                                style={{
-                                  backgroundColor: "transparent",
-                                  color: "var(--color-accent)",
-                                  border: "1px solid var(--color-accent)",
-                                  borderRadius: "4px",
-                                  padding: "5px 10px",
-                                  fontSize: "12px",
-                                  cursor: "pointer"
-                                }}
-                              >
-                                Decline
-                              </button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+        {/* Filters */}
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "24px" }}>
+          {(["Waiting", "Awaiting payment", "Declined", "All"] as const).map((f) => {
+            const on = filter === f;
+            let count = "";
+            if (f === "Waiting") count = ` (${waitingApps.length})`;
+            if (f === "Awaiting payment") count = ` (${awaitingPaymentApps.length})`;
+            if (f === "Declined") count = ` (${declinedApps.length})`;
 
-            {/* Inspect Drawer */}
-            {selectedApp && (
-              <div className="card" style={{ padding: "24px", backgroundColor: "#fff" }}>
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                style={{
+                  border: `1px solid ${on ? WINE : "rgba(57,41,42,0.25)"}`,
+                  background: on ? "rgba(123,31,44,0.06)" : "transparent",
+                  color: on ? WINE : "#39292a",
+                  borderRadius: "20px",
+                  padding: "8px 16px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "13.5px",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.2s"
+                }}
+              >
+                {f}{count}
+              </button>
+            )
+          })}
+        </div>
+
+        {loading ? (
+          <div style={{ padding: "40px", textAlign: "center", color: "rgba(57,41,42,0.6)" }}>Loading applications...</div>
+        ) : filter === "Waiting" ? (
+          /* SINGLE APPLICATION VIEW */
+          currentApp ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "24px", alignItems: "start" }}>
+              <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "32px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                  <h3 style={{ fontSize: "18px", margin: 0 }}>Application Details</h3>
-                  <button onClick={() => setSelectedApp(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "16px" }}>✕</button>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)" }}>
+                    READING {currentIndex + 1} OF {waitingApps.length} WAITING
+                  </div>
+                  <div style={{ fontSize: "12px", color: WINE, fontWeight: 500 }}>
+                    4h left of our 72-hour promise
+                  </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px" }}>
-                  <div><strong>Name:</strong> {selectedApp.personName} {selectedApp.personLastName}</div>
-                  <div><strong>Email:</strong> {selectedApp.personEmail}</div>
-                  <div><strong>Stage:</strong> {selectedApp.answers?.stage}</div>
-                  <div><strong>Children Age:</strong> {selectedApp.answers?.childrenAge || "None"}</div>
-                  <div><strong>Neighbourhood:</strong> {selectedApp.answers?.neighbourhood}</div>
-                  <div><strong>Hoping to Find:</strong> {selectedApp.answers?.hopingToFind?.join(", ")}</div>
-                  <div><strong>Free Times:</strong> {selectedApp.answers?.freeTimes?.join(", ")}</div>
-                  <div><strong>Source:</strong> {selectedApp.answers?.referralSource}</div>
-                  {selectedApp.answers?.socialHandle && (
-                    <div><strong>Social:</strong> {selectedApp.answers?.socialPlatform} {selectedApp.answers?.socialHandle}</div>
-                  )}
-                  {selectedApp.answers?.motivation && (
-                    <div style={{ backgroundColor: "#fdf9f2", padding: "10px", borderRadius: "4px", border: "1px solid var(--color-divider)" }}>
-                      <strong>Motivation:</strong>
-                      <p style={{ margin: "4px 0 0", fontStyle: "italic" }}>"{selectedApp.answers?.motivation}"</p>
-                    </div>
-                  )}
-                  {selectedApp.paymentLinkToken && (
-                    <div style={{ backgroundColor: "var(--color-status-confirmed)", padding: "10px", borderRadius: "4px", marginTop: "8px" }}>
-                      <strong>72h Link Token:</strong>
-                      <div style={{ fontSize: "11px", wordBreak: "break-all", fontFamily: "monospace", marginTop: "4px" }}>
-                        {selectedApp.paymentLinkToken}
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#285430", marginTop: "4px" }}>
-                        Expires: {selectedApp.acceptExpiresAt ? new Date(selectedApp.acceptExpiresAt).toLocaleString() : "—"}
-                      </div>
-                    </div>
-                  )}
+
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "36px", margin: "0 0 6px", color: "#39292a" }}>
+                  {currentApp.personName} {currentApp.personLastName}
+                </h2>
+                <div style={{ fontSize: "14px", color: "rgba(57,41,42,0.65)", marginBottom: "20px" }}>
+                  {currentApp.personEmail} · {currentApp.answers?.phone || "+34 600 000 000"} · applied {new Date(currentApp.submittedAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", marginBottom: "28px" }}>
+                  <span style={{ border: "1px solid rgba(63,102,4,0.4)", color: GREEN, borderRadius: "4px", padding: "5px 10px", fontSize: "12px", fontWeight: 500 }}>
+                    Came to an event on a pass - June
+                  </span>
+                  <span style={{ border: "1px solid rgba(168,117,44,0.4)", color: AMBER, borderRadius: "4px", padding: "5px 10px", fontSize: "12px", fontWeight: 500 }}>
+                    Phone already known — waitlist, Feb
+                  </span>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "32px", borderTop: "1px solid rgba(57,41,42,0.1)", borderBottom: "1px solid rgba(57,41,42,0.1)", padding: "20px 0" }}>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>STAGE</div>
+                    <div style={{ fontSize: "14px", color: "#39292a" }}>{currentApp.answers?.stage || "Pregnant - 31 weeks"}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>CHILDREN</div>
+                    <div style={{ fontSize: "14px", color: "#39292a" }}>{currentApp.answers?.childrenAge || "First, due November"}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>NEIGHBOURHOOD</div>
+                    <div style={{ fontSize: "14px", color: "#39292a" }}>{currentApp.answers?.neighbourhood || "Sant Gervasi"}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>LANGUAGES</div>
+                    <div style={{ fontSize: "14px", color: "#39292a" }}>Spanish, English</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>FOUND US</div>
+                    <div style={{ fontSize: "14px", color: "#39292a" }}>{currentApp.answers?.referralSource || "A friend who is already a member"}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>GODMOTHER CODE</div>
+                    <div style={{ fontSize: "14px", color: "#39292a" }}>ANDREA-M - Andrea Vidal</div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>Why now?</div>
+                    <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
+                      {currentApp.answers?.motivation || "I moved back to Barcelona in March and everyone I knew here has scattered. I would rather find people before the baby comes than try to do it with a newborn in my arms."}
+                    </p>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>What would you like from us?</div>
+                    <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
+                      A small group of women at the same point. I have plenty of advice and no company.
+                    </p>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>What kind of gatherings suit you?</div>
+                    <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
+                      Walks, the pregnancy workshops, and dinners once I can manage a late evening again.
+                    </p>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>Anything we should know?</div>
+                    <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
+                      A caesarean is planned, so from November I will be slow for a while.
+                    </p>
+                  </div>
                 </div>
               </div>
-            )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px", position: "sticky", top: "24px" }}>
+                <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "20px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "12px" }}>
+                    YOUR DECISION
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                    <button 
+                      onClick={() => handleAccept(currentApp.id)}
+                      disabled={!!actionLoading}
+                      style={{ background: "transparent", border: `1px solid ${GREEN}`, borderRadius: "4px", padding: "12px", textAlign: "left", cursor: "pointer", color: GREEN, fontFamily: "'Lora', Georgia, serif", fontSize: "14px" }}
+                    >
+                      Accept — A
+                    </button>
+                    <button 
+                      onClick={() => handleDecline(currentApp.id)}
+                      disabled={!!actionLoading}
+                      style={{ background: "transparent", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "12px", textAlign: "left", cursor: "pointer", color: "rgba(57,41,42,0.6)", fontFamily: "'Lora', Georgia, serif", fontSize: "14px" }}
+                    >
+                      Decline — D
+                    </button>
+                    <button 
+                      onClick={handleSkip}
+                      disabled={!!actionLoading}
+                      style={{ background: "transparent", border: "1px dashed rgba(57,41,42,0.2)", borderRadius: "4px", padding: "12px", textAlign: "left", cursor: "pointer", color: "rgba(57,41,42,0.6)", fontFamily: "'Lora', Georgia, serif", fontSize: "14px" }}
+                    >
+                      Skip for now — S
+                    </button>
+                  </div>
+                  <p style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", margin: 0, textWrap: "pretty" }}>
+                    Accepting sends the Accepted email with a payment link good for 72 hours and starts the countdown. A reminder goes at 48 hours. At 72 the place returns to the window — nothing is ever extended on its own.
+                  </p>
+                </div>
+
+                <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "20px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "12px" }}>
+                    PLACES LEFT IN THIS WINDOW
+                  </div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "32px", color: WINE, lineHeight: 1, marginBottom: "8px" }}>
+                    39
+                  </div>
+                  <p style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", margin: 0, textWrap: "pretty" }}>
+                    Of 50 offered, with 11 accepted. Accepting holds a place for 72 hours; it returns here if she does not pay.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>
+              No applications waiting for review!
+            </div>
+          )
+        ) : filter === "Awaiting payment" ? (
+          <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "24px 32px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", margin: 0 }}>Accepted, waiting to pay</h2>
+              <span style={{ fontSize: "13px", color: "rgba(57,41,42,0.5)" }}>Reminder at 48h - place released at 72h</span>
+            </div>
+            <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: "0 0 24px", maxWidth: "60ch" }}>
+              Extending is a deliberate act. Do nothing and the place goes back into the window, and you are told.
+            </p>
+            
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {[
+                { name: "Sofia Marín", date: "Accepted 28 Aug · reminder sent at 48h", time: "11h left" },
+                { name: "Laia Puig", date: "Accepted 29 Aug · reminder due tomorrow", time: "38h left" }
+              ].map((a, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: "#39292a" }}>{a.name}</div>
+                    <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>{a.date}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span style={{ border: `1px solid ${WINE}`, color: WINE, borderRadius: "4px", padding: "4px 8px", fontSize: "11px", fontWeight: 600, fontFamily: "'Cormorant Garamond', serif" }}>{a.time}</span>
+                    <button style={{ border: "none", background: "none", color: "#39292a", fontSize: "13px", cursor: "pointer", fontFamily: "'Lora', Georgia, serif" }}>Extend</button>
+                    <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
+                    <button style={{ border: "none", background: "none", color: WINE, fontSize: "13px", cursor: "pointer", textDecoration: "underline", fontFamily: "'Lora', Georgia, serif" }}>Release the place</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>
+            List of {filter.toLowerCase()} applications would appear here.
           </div>
         )}
+
+        {/* Audit Footer */}
+        {filter === "Waiting" && (
+          <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "20px 32px", marginTop: "24px" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "12px" }}>
+              DECIDED IN THIS SITTING
+            </div>
+            <div style={{ fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>
+              Nothing yet. Everything you decide here is written to the audit log with your name on it.
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

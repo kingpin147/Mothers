@@ -325,6 +325,7 @@ export default function AdminFinancePage() {
                     </div>
                     <div>
                       <div style={{ fontSize: "13.5px", lineHeight: 1.5, textTransform: "capitalize" }}>{r.purposeStr}</div>
+                      {r.purposeSubtext && <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "2px" }}>{r.purposeSubtext}</div>}
                     </div>
                     <div style={{ fontSize: "13px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>{r.dateStr}</div>
                     <div>
@@ -380,45 +381,36 @@ export default function AdminFinancePage() {
                 </div>
               </div>
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: "16px" }}>
-              <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
-                <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>What the money is made of</h2>
-                <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
-                  {[
-                    { label: "Subscriptions", value: eur(sum(subs)), pct: pct(sum(subs)) },
-                    { label: "Event Passes", value: eur(sum(passes)), pct: pct(sum(passes)) },
-                    { label: "Joining fees", value: eur(sum(joining)), pct: pct(sum(joining)) },
-                    { label: "Extra credits", value: eur(0), pct: "0%" }, // Not tracked in DB yet
-                    { label: "Refunded", value: `−${eur(sum(refunds))}`, pct: pct(sum(refunds)) },
-                  ].map((m, i) => (
-                    <div key={i}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13.5px", lineHeight: 1.5, marginBottom: "4px" }}>
-                        <span>{m.label}</span>
-                        <span style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{m.value}</span>
-                      </div>
-                      <div style={{ height: "3px", background: "rgba(57,41,42,0.12)", borderRadius: "2px", overflow: "hidden" }}>
-                        <div style={{ height: "3px", width: m.pct, background: "#7b1f2c" }}></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p style={{ fontSize: "12px", lineHeight: 1.55, color: "rgba(57,41,42,0.62)", margin: "12px 0 0", textWrap: "pretty" }}>
-                  {monthLabel} so far. There is no shop and no orders — that was cancelled.
-                </p>
-              </div>
-              <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
-                <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>Rules this page holds</h2>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
-                  <div><strong style={{ fontWeight: 600 }}>Nothing here is editable.</strong> A mistake is corrected by adding a correction entry, never by changing history.</div>
-                  <div><strong style={{ fontWeight: 600 }}>We cancel an event, everyone is made whole:</strong> members get credits back at their original expiry, guests get €35 back to the card and the pass restored so it does not count against their two.</div>
-                  <div><strong style={{ fontWeight: 600 }}>Expiry runs as a visible job</strong>, oldest credits first, and shows here — never silently.</div>
-                  <div><strong style={{ fontWeight: 600 }}>Prices come from settings</strong>, so €19, €29, €35 and €39 are the same numbers the public pages quote.</div>
-                </div>
-              </div>
-            </div>
           </>
         )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,300px),1fr))", gap: "16px", marginTop: "18px" }}>
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>What the money is made of</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
+              {[
+                { label: "Subscriptions", value: eur(sum(subs)), pct: pct(sum(subs)) },
+                { label: "Event Passes", value: eur(sum(passes)), pct: pct(sum(passes)) },
+                { label: "Joining fees", value: eur(sum(joining)), pct: pct(sum(joining)) },
+                { label: "Extra credits", value: eur(0), pct: "0%" }, // Not tracked in DB yet
+                { label: "Refunded", value: `−${eur(sum(refunds))}`, pct: pct(sum(refunds)) },
+              ].map((m, i) => (
+                <div key={i}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13.5px", lineHeight: 1.5, marginBottom: "4px" }}>
+                    <span>{m.label}</span>
+                    <span style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{m.value}</span>
+                  </div>
+                  <div style={{ height: "3px", background: "rgba(57,41,42,0.12)", borderRadius: "2px", overflow: "hidden" }}>
+                    <div style={{ height: "3px", width: m.pct, background: "#7b1f2c" }}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: "12px", lineHeight: 1.55, color: "rgba(57,41,42,0.62)", margin: "12px 0 0", textWrap: "pretty" }}>
+              {monthLabel} so far. There is no shop and no orders — that was cancelled.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

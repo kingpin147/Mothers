@@ -150,21 +150,7 @@ export default function AdminMembersPage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8efe2" }}>
-      <div style={{ borderBottom: "1px solid rgba(57,41,42,0.16)" }}>
-        <div style={{ maxWidth: "1320px", margin: "0 auto", padding: "14px clamp(18px, 3vw, 30px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-            <img src="/assets/logo-mark-alpha.png" alt="The Mothers" style={{ height: "56px", width: "auto", display: "block" }} />
-            <span aria-hidden="true" style={{ width: "1px", height: "26px", background: "rgba(57,41,42,0.28)", flex: "none" }}></span>
-            <img src="/assets/logo-wordmark-alpha.png" alt="The Mothers" style={{ height: "14px", width: "auto", display: "block" }} />
-          </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: "22px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px" }}>
-            <Link href="/membership" style={{ color: "#39292a" }}>Membership</Link>
-            <Link href="/events" style={{ color: "#39292a" }}>Events</Link>
-            <Link href="/admin" style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "6px 14px" }}>Admin</Link>
-            <Link href="/" style={{ color: "rgba(57,41,42,0.55)" }}>Log out</Link>
-          </div>
-        </div>
-      </div>
+
 
       <div style={{ maxWidth: "1320px", margin: "0 auto", padding: "clamp(24px, 3.4vw, 36px) clamp(18px, 3vw, 30px) 60px" }}>
         
@@ -297,17 +283,18 @@ export default function AdminMembersPage() {
                     </div>
 
                     <div>
-                      <div style={{ fontSize: "13.5px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>€{(m.monthlyPriceCents / 100).toFixed(0)} / mo</div>
-                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>Standard</div>
+                      <div style={{ fontSize: "13.5px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>€{(m.monthlyPriceCents / 100).toFixed(0)} / {m.planName?.includes('quarter') ? 'quarter' : 'month'}</div>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>{m.planSubtext || m.planName || "Standard"}</div>
                     </div>
 
                     <div>
                       <span style={{ display: "inline-block", border: `1px solid ${STATUS_COLORS[m.status] || GREY}`, color: STATUS_COLORS[m.status] || GREY, borderRadius: "3px", padding: "4px 9px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>{statusName}</span>
+                      {m.statusSubtext && <div style={{ fontSize: "11.5px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>{m.statusSubtext}</div>}
                     </div>
 
                     <div>
                       <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: creditColor }}>{m.credits || 0}</div>
-                      <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}></div>
+                      {m.creditsSubtext && <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>{m.creditsSubtext}</div>}
                     </div>
 
                     <div>
@@ -317,19 +304,18 @@ export default function AdminMembersPage() {
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "7px", alignItems: "flex-start" }}>
                       {isRisk && (
-                        <div style={{ border: "1px solid rgba(168,117,44,0.6)", borderRadius: "4px", padding: "7px 10px", background: "rgba(168,117,44,0.06)", width: "100%", boxSizing: "border-box" }}>
+                        <div style={{ border: "1px solid rgba(168,117,44,0.6)", borderRadius: "4px", padding: "7px 10px", background: "rgba(168,117,44,0.06)", width: "100%", boxSizing: "border-box", marginBottom: "2px" }}>
                           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#8a6220", marginBottom: "3px" }}>Needs a word</div>
-                          <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)" }}>Flagged at risk manually or system rule.</div>
+                          <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)" }}>{m.riskReason || "Flagged at risk manually or system rule."}</div>
                         </div>
                       )}
                       
                       <div style={{ display: "flex", gap: "7px", flexWrap: "wrap", alignItems: "center" }}>
-                        <Link href={`/admin/members`} style={{ fontSize: "12.5px" }}>Record</Link>
+                        <Link href={`/admin/members`} style={{ fontSize: "12.5px", color: "#39292a" }}>Record</Link>
                         <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
-                        <Link href={`/admin/members`} style={{ fontSize: "12.5px" }}>Ledger</Link>
-                        <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
-                        <button type="button" onClick={() => setAdjustingId(isAdjustingThis ? null : m.id)} style={{ border: "none", background: "transparent", color: "#7b1f2c", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Adjust credits</button>
+                        <Link href={`/admin/members`} style={{ fontSize: "12.5px", color: "#39292a" }}>Ledger</Link>
                       </div>
+                      <button type="button" onClick={() => setAdjustingId(isAdjustingThis ? null : m.id)} style={{ border: "none", background: "transparent", color: "#7b1f2c", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Adjust credits</button>
 
                       {isAdjustingThis && (
                         <div style={{ border: "1px solid rgba(123,31,44,0.35)", borderRadius: "5px", background: "#fdf6f2", padding: "12px", width: "100%", boxSizing: "border-box", marginTop: "8px" }}>
@@ -382,15 +368,6 @@ export default function AdminMembersPage() {
               <div>A booking released twice in a row.</div>
             </div>
             <p style={{ fontSize: "12.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.65)", margin: "12px 0 0", textWrap: "pretty" }}>Surfaced for you to act on, and we record that you did. Nothing automated goes to her.</p>
-          </div>
-          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>Rules this page holds</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
-              <div><strong style={{ fontWeight: 600 }}>Status is not a dropdown.</strong> Pausing, cancelling or reinstating is its own action on her record, with a reason, and it is logged. A stray click should never end a membership.</div>
-              <div><strong style={{ fontWeight: 600 }}>Every credit adjustment needs a reason</strong> and appears in her own statement — she can see what you did.</div>
-              <div><strong style={{ fontWeight: 600 }}>Stage groups are the five we use</strong>: Pregnant, Babies, Toddlers, Children, Big kids. Her children can sit in several; she herself is in one.</div>
-              <div><strong style={{ fontWeight: 600 }}>Export is Owner-only</strong> and the export itself is written to the audit log.</div>
-            </div>
           </div>
         </div>
 

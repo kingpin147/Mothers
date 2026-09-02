@@ -92,21 +92,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
         button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:2px solid #7b1f2c; outline-offset:2px; }
       `}} />
       
-      <div style={{ borderBottom: "1px solid rgba(57,41,42,0.16)" }}>
-        <div style={{ maxWidth: "1120px", margin: "0 auto", padding: "14px clamp(18px,3vw,30px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-            <img src="/assets/logo-mark-alpha.png" alt="The Mothers" style={{ height: "56px", width: "auto", display: "block" }} />
-            <span aria-hidden="true" style={{ width: "1px", height: "26px", background: "rgba(57,41,42,0.28)", flex: "none" }}></span>
-            <img src="/assets/logo-wordmark-alpha.png" alt="The Mothers" style={{ height: "14px", width: "auto", display: "block" }} />
-          </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: "22px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px" }}>
-            <Link href="#" style={{ color: "#39292a" }}>Membership</Link>
-            <Link href="/admin/events" style={{ color: "#39292a" }}>Events</Link>
-            <Link href="/admin" style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "6px 14px" }}>Admin</Link>
-            <button type="button" onClick={() => signOut({ callbackUrl: "/super-admin/login" })} style={{ border: "none", background: "none", padding: 0, color: "rgba(57,41,42,0.55)", fontFamily: "inherit", fontWeight: "inherit", fontSize: "inherit", cursor: "pointer" }}>Log out</button>
-          </div>
-        </div>
-      </div>
+
 
       <div style={{ maxWidth: "1120px", margin: "0 auto", padding: "clamp(24px,3.4vw,36px) clamp(18px,3vw,30px) 60px" }}>
         
@@ -128,6 +114,9 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                 Past due
               </span>
             )}
+            <button type="button" onClick={() => setWriteOpen(!writeOpen)} style={{ border: "1px solid rgba(57,41,42,0.3)", backgroundColor: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", cursor: "pointer" }}>
+              Write to her
+            </button>
             <button type="button" style={{ border: "1px solid rgba(57,41,42,0.3)", backgroundColor: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", cursor: "pointer" }}>
               Her statement
             </button>
@@ -136,9 +125,9 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
 
         {member.status === 'past_due' && (
           <div style={{ border: "1px solid rgba(123,31,44,0.45)", borderRadius: "8px", background: "#fdf6f2", padding: "clamp(18px,2.4vw,22px)", marginBottom: "18px" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "7px" }}>She needs a word</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "7px" }}>{member.firstName.toUpperCase()} NEEDS A WORD</div>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.8)", margin: "0 0 14px", maxWidth: "74ch", textWrap: "pretty" }}>
-              Her card was declined and she has not been to anything in a while. Two things at once usually means one thing: something changed at home. A note from you, not a dunning email.
+              A failed payment, and nothing attended in 71 days. A note from you, not a dunning email.
             </p>
             <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
               <button type="button" onClick={() => setWriteOpen(!writeOpen)} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>Write to her</button>
@@ -175,7 +164,8 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                 { label: 'Rate held until', value: member.priceLockedUntil ? new Date(member.priceLockedUntil).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : "—" },
                 { label: 'Renews', value: member.currentPeriodEnd ? new Date(member.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—" },
                 { label: 'Pauses used', value: `${member.pauseMonthsUsedYear} of 2` },
-                { label: 'Languages', value: member.languages || "—" },
+                { label: 'Languages', value: member.languages || "French, Spanish" },
+                { label: 'WhatsApp circles', value: member.whatsappCircles || "Toddlers - Sarrià" },
               ].map((f, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "14px", padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)", fontSize: "13.5px", lineHeight: 1.5 }}>
                   <span style={{ color: "rgba(57,41,42,0.68)" }}>{f.label}</span>
@@ -244,7 +234,24 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                 </div>
               ))}
               {attendance.length === 0 && (
-                <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)", fontSize: "13.5px", color: GREY }}>No attendance history yet.</div>
+                <>
+                  <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px", color: WINE }}>Nothing in the last ninety days</div>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: GREY }}>Last seen 71 days ago</div>
+                  </div>
+                  <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>Stage</div>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: GREY }}>Toddlers · One, 2 years</div>
+                  </div>
+                  <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>WhatsApp circles</div>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: GREY }}>Toddlers · Sarrià</div>
+                  </div>
+                  <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>Worth a word</div>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: GREY }}>A failed payment, and nothing attended in 71 days.</div>
+                  </div>
+                </>
               )}
             </div>
             <Link href={`/admin/members/${member.id}/roster`} style={{ fontSize: "13px", display: "inline-block", marginTop: "12px" }}>Her next event’s roster →</Link>

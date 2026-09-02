@@ -70,21 +70,7 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
           .print-border { border: 1px solid #ccc !important; }
         }
       `}} />
-      <div className="no-print" style={{ borderBottom: "1px solid rgba(57,41,42,0.16)" }}>
-        <div style={{ maxWidth: "960px", margin: "0 auto", padding: "14px clamp(18px, 3vw, 30px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-            <img src="/assets/logo-mark-alpha.png" alt="The Mothers" style={{ height: "56px", width: "auto", display: "block" }} />
-            <span aria-hidden="true" style={{ width: "1px", height: "26px", background: "rgba(57,41,42,0.28)", flex: "none" }}></span>
-            <img src="/assets/logo-wordmark-alpha.png" alt="The Mothers" style={{ height: "14px", width: "auto", display: "block" }} />
-          </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: "22px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px" }}>
-            <Link href="/membership" style={{ color: "#39292a" }}>Membership</Link>
-            <Link href="/events" style={{ color: "#39292a" }}>Events</Link>
-            <Link href="/admin" style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "6px 14px" }}>Admin</Link>
-            <Link href="/" style={{ color: "rgba(57,41,42,0.55)" }}>Log out</Link>
-          </div>
-        </div>
-      </div>
+
 
       <div style={{ maxWidth: "960px", margin: "0 auto", padding: "clamp(24px, 3.4vw, 36px) clamp(18px, 3vw, 30px) 60px" }}>
         
