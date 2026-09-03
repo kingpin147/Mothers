@@ -6,6 +6,7 @@ import { useSession, signOut } from "next-auth/react";
 import { getAdminDashboardMetrics, runManualCron } from "@/app/actions/adminDashboard";
 import { confirmEventDecision, cancelEventDecision } from "@/app/actions/adminEvents";
 import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 
 export default function AdminDashboardPage() {
   const { data: session, status } = useSession();
@@ -43,12 +44,40 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     fetchMetrics();
 
-    // Background polling every 15 seconds
-    const intervalId = setInterval(() => {
-      fetchMetrics(true);
-    }, 15000);
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+    
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      const channel = supabase
+        .channel('admin-dashboard-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'event' }, (payload) => {
+          console.log('Live update on event:', payload);
+          fetchMetrics(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'application' }, (payload) => {
+          console.log('Live update on application:', payload);
+          fetchMetrics(true);
+        })
+        .subscribe();
 
-    return () => clearInterval(intervalId);
+      // Fallback polling every 60 seconds just in case of silent disconnects
+      const intervalId = setInterval(() => {
+        fetchMetrics(true);
+      }, 60000);
+
+      return () => {
+        supabase.removeChannel(channel);
+        clearInterval(intervalId);
+      };
+    } else {
+      // Fallback if env vars missing
+      const intervalId = setInterval(() => {
+        fetchMetrics(true);
+      }, 15000);
+      return () => clearInterval(intervalId);
+    }
   }, []);
 
   const handleTriggerCron = async (jobKey: "threshold-decisions" | "expire-credits") => {
