@@ -23,5 +23,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "FINAL VERSION _ Next JS _ Themothers.cc (3)", "vitest.config.ts", "**/*.test.ts", "**/*.spec.ts"]
+  "exclude": ["node_modules", "FINAL VERSION _ Next JS _ Themothers.cc (3)"]
 }
