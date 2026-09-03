@@ -424,36 +424,7 @@ export default function HomeClient({
           </ul>
         </div>
 
-        {/* ─── EVENT PASS BLOCK ─── */}
-        <div style={{ marginTop: "64px", padding: "32px", backgroundColor: "rgba(57, 41, 42, 0.03)", borderRadius: "8px", border: "1px solid rgba(57, 41, 42, 0.08)" }}>
-          <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
-            <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "clamp(22px, 3vw, 28px)", margin: "0 0 12px", color: "var(--color-heading)" }}>
-              {lang === "en" ? "Try us before you join: The Event Pass" : "Pruébanos antes de unirte: El Event Pass"}
-            </h3>
-            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "var(--color-text-muted)", margin: "0 0 24px" }}>
-              {lang === "en" 
-                ? "Not ready for membership? An Event Pass (€35) gets you into any public event up to 18 credits. You can use two passes before joining, and if you become a member within 30 days, your €35 is deducted from your joining fee." 
-                : "¿No estás lista para la membresía? Un Event Pass (35€) te da acceso a cualquier evento público de hasta 18 créditos. Puedes usar dos pases antes de unirte, y si te haces socia en 30 días, te descontamos los 35€ de la cuota de inscripción."}
-            </p>
-            <Link
-              href="/events"
-              style={{
-                display: "inline-block",
-                border: "1px solid #7b1f2c",
-                backgroundColor: "transparent",
-                color: "#7b1f2c",
-                padding: "10px 24px",
-                borderRadius: "4px",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                fontSize: "15px",
-                textDecoration: "none",
-              }}
-            >
-              {lang === "en" ? "Browse upcoming events" : "Ver próximos eventos"}
-            </Link>
-          </div>
-        </div>
+
       </section>
 
       {/* ─── PARTNERS UMBRELLAS ─── */}

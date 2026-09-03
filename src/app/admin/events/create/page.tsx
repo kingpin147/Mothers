@@ -388,8 +388,38 @@ export default function AdminCreateEventPage() {
           </div>
         </div>
 
+      </div>
 
+      <div style={{ maxWidth: "880px", margin: "24px auto 0", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "10px", overflow: "hidden", padding: "clamp(22px,3vw,32px)" }}>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "16px" }}>Where this goes when you publish</div>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 350px), 1fr))", gap: "24px 32px" }}>
+          
+          <div>
+            <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The public calendar</strong> — <span style={{ color: "#7b1f2c" }}>Events</span> shows it under its category, in its month, with its credit cost and the gathering line if it has a minimum.
+            </div>
+          </div>
 
+          <div>
+            <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The admin calendar</strong> — <span style={{ color: "#7b1f2c" }}>Admin Events</span> lists it with live booked-against-minimum counts as members book.
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The dashboard</strong> — it enters the T-10 and T-7 queues on <span style={{ color: "#7b1f2c" }}>the dashboard</span> by date, and This week when it is within seven days.
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The audit log</strong> — creating, confirming and cancelling are all written down with what changed.
+            </div>
+          </div>
+
+        </div>
       </div>
 
     </div>
