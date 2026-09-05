@@ -24,7 +24,7 @@ export const DICTIONARIES = {
       ctaWaitlist: "Join the waitlist",
       ctaSecondary: "See more details",
       windowNoteOpen:
-        "Applications open one week a month. This Window is open now — the first 50 members get €29/month, locked for a year.",
+        "Applications open one week a month. This Window is open now — and our first 50 members join with no joining fee.",
       windowNoteClosed:
         "Applications open one week a month, and this Window has closed. Join the waitlist and we will write to you the day the next one opens.",
     },
@@ -70,10 +70,10 @@ export const DICTIONARIES = {
     },
     membershipTeaser: {
       kicker: "Membership",
-      heading: "The Circle",
-      price: "From €29/month for Opening Circle members",
-      priceSub: "Opening Circle €29/month or €79 every 3 months - standard €39 or €99",
-      spotsLabel: (remaining: number) => `Only ${remaining} Opening Circle spots left`,
+      heading: "One membership",
+      price: "€39/month",
+      priceSub: "or €99 every 3 months · no joining fee for our first 50 members",
+      spotsLabel: (remaining: number) => `Only ${remaining} places left in this Window`,
       bullets: [
         "Private community & stage groups",
         "Included walks & park socials",
@@ -160,7 +160,7 @@ export const DICTIONARIES = {
       ctaWaitlist: "Unirme a la lista de espera",
       ctaSecondary: "Ver más detalles",
       windowNoteOpen:
-        "Las solicitudes se abren una semana al mes. Esta Ventana está abierta ahora — las primeras 50 socias pagan 29€/mes, fijo durante un año.",
+        "Las solicitudes se abren una semana al mes. Esta Ventana está abierta ahora — y nuestras primeras 50 socias entran sin cuota de inscripción.",
       windowNoteClosed:
         "Las solicitudes se abren una semana al mes, y esta Ventana ya se ha cerrado. Únete a la lista de espera y te escribimos el día que se abra la siguiente.",
     },
@@ -206,10 +206,10 @@ export const DICTIONARIES = {
     },
     membershipTeaser: {
       kicker: "Membresía",
-      heading: "The Circle",
-      price: "Desde 29€/mes para socias del Opening Circle",
-      priceSub: "Tarifa estándar 39€/mes, o 99€/trimestre",
-      spotsLabel: (remaining: number) => `Solo quedan ${remaining} plazas del Opening Circle`,
+      heading: "Una sola membresía",
+      price: "39€/mes",
+      priceSub: "o 99€ cada 3 meses · sin cuota de inscripción para nuestras primeras 50 socias",
+      spotsLabel: (remaining: number) => `Solo quedan ${remaining} plazas en esta Ventana`,
       bullets: [
         "Comunidad privada y grupos por etapa",
         "Paseos y encuentros en el parque incluidos",
@@ -244,7 +244,7 @@ export const DICTIONARIES = {
           body: "Descuentos en maternidad y artículos para bebé",
         },
       ],
-      note: "Los partners de lanzamiento se anuncian a medida que se incorporan: uno por especialidad, siempre exclusivo.",
+      note: "Los partners de lanzamiento se anuncian a medida que se incorporan.",
     },
     closing: { heading: "Tu círculo te espera.", cta: "Únete ahora" },
     godmother: {

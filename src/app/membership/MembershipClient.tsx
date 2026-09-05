@@ -72,14 +72,14 @@ export default function MembershipClient({
   );
 
   return (
-    <div style={{ backgroundColor: "var(--color-bg)", minHeight: "100vh" }}>
+    <div style={{ backgroundColor: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", minHeight: "100vh" }}>
 
       {/* ── HERO HEADER ── */}
       <section style={{ maxWidth: "800px", margin: "0 auto", padding: "clamp(56px,8vw,96px) clamp(24px,5vw,64px) clamp(24px,4vw,40px)", textAlign: "center" }}>
-        <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent)", marginBottom: "16px" }}>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "16px" }}>
           {isEn ? "Membership" : "Membresía"}
         </div>
-        <h1 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(36px,5vw,56px)", lineHeight: 1.1, margin: "0 0 20px" }}>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(36px,5vw,56px)", lineHeight: 1.1, margin: "0 0 20px" }}>
           {isEn ? "One membership. Everything you need to build your circle." : "Una sola membresía. Todo lo que necesitas para construir tu círculo."}
         </h1>
         <p style={{ fontSize: "17px", lineHeight: "1.65", color: "rgba(57,41,42,0.72)", margin: 0 }}>
@@ -98,11 +98,11 @@ export default function MembershipClient({
                   <path d="M8 11V8a4 4 0 0 1 8 0v3" />
                 </svg>
               </span>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", letterSpacing: "0.13em", textTransform: "uppercase", color: "#a4761f" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", letterSpacing: "0.13em", textTransform: "uppercase", color: "#a4761f" }}>
                 {isEn ? "Applications closed" : "Solicitudes cerradas"}
               </div>
             </div>
-            <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(24px,3.4vw,32px)", lineHeight: 1.2, margin: "0 0 14px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(24px,3.4vw,32px)", lineHeight: 1.2, margin: "0 0 14px" }}>
               {isEn ? "The Membership Window is closed for now." : "La Ventana de membresía está cerrada por ahora."}
             </h2>
             <p style={{ fontSize: "15.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.75)", margin: "0 0 10px", maxWidth: "60ch" }}>
@@ -120,7 +120,7 @@ export default function MembershipClient({
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
               <WaitlistForm lang={lang} />
-              <Link href="/events" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "13px 24px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", textDecoration: "none", display: "inline-block" }}>
+              <Link href="/events" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "13px 24px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", textDecoration: "none", display: "inline-block" }}>
                 {isEn ? "See what is on" : "Ver qué hay"}
               </Link>
             </div>
@@ -133,7 +133,7 @@ export default function MembershipClient({
         <div style={{ border: "2px solid #7b1f2c", borderRadius: "8px", padding: "clamp(32px,5vw,52px)", background: "#f8efe2", boxShadow: "0 12px 32px rgba(45,43,43,0.08)" }}>
           {/* Badge */}
           <div style={{ marginBottom: "16px" }}>
-            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#568b05", border: "1px solid rgba(86,139,5,0.5)", borderRadius: "12px", padding: "4px 12px", whiteSpace: "nowrap" }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#568b05", border: "1px solid rgba(86,139,5,0.5)", borderRadius: "12px", padding: "4px 12px", whiteSpace: "nowrap" }}>
               {isEn ? "No joining fee — first 50" : "Sin cuota de inscripción — primeras 50"}
             </span>
           </div>
@@ -142,7 +142,7 @@ export default function MembershipClient({
           <div style={{ display: "flex", flexWrap: "wrap", gap: "20px 40px", justifyContent: "space-between", alignItems: "flex-end", paddingBottom: "22px", borderBottom: "1px solid rgba(57,41,42,0.16)" }}>
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "clamp(44px,6vw,56px)", lineHeight: 1, color: "#7b1f2c", fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(44px,6vw,56px)", lineHeight: 1, color: "#7b1f2c", fontVariantNumeric: "tabular-nums" }}>
                   {isEn ? "€39" : "39€"}
                 </span>
                 <span style={{ fontSize: "17px", color: "rgba(57,41,42,0.6)" }}>
@@ -168,7 +168,7 @@ export default function MembershipClient({
                     color: "#f8efe2",
                     padding: "14px 30px",
                     borderRadius: "4px",
-                    fontFamily: "var(--font-heading)",
+                    fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 600,
                     fontSize: "16px",
                     whiteSpace: "nowrap",
@@ -182,7 +182,7 @@ export default function MembershipClient({
           </div>
 
           {/* Body headline */}
-          <p style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "23px", lineHeight: "1.35", color: "#39292a", margin: "26px 0 20px", maxWidth: "40ch" }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: "1.35", color: "#39292a", margin: "26px 0 20px", maxWidth: "40ch" }}>
             {isEn ? "One membership. Everything the club does, and 20 credits a month to spend on it." : "Una sola membresía. Todo lo que hace el club, y 20 créditos al mes para gastarlos."}
           </p>
 
@@ -191,14 +191,14 @@ export default function MembershipClient({
             {(isEn ? [
               "A private community of mothers",
               "Stage groups by trimester, age and neighbourhood",
-              `${monthlyGrant} credits a month, rolling over`,
+              "20 credits a month, rolling over",
               "Walks and park socials free, always",
               "Partner perks",
               "Priority booking on everything",
             ] : [
               "Una comunidad privada de madres",
               "Grupos por trimestre, edad y barrio",
-              `${monthlyGrant} créditos al mes, acumulables`,
+              "20 créditos al mes, acumulables",
               "Paseos y parque gratis, siempre",
               "Ventajas con partners",
               "Reserva prioritaria en todo",
@@ -228,7 +228,7 @@ export default function MembershipClient({
       {/* ── EVENT PASS BLOCK ── */}
       <section style={{ maxWidth: "960px", margin: "0 auto", padding: "0 clamp(24px,5vw,64px) clamp(56px,7vw,96px)" }}>
         <div style={{ textAlign: "center", marginBottom: "clamp(20px,3vw,28px)" }}>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(28px,3.6vw,40px)", lineHeight: 1.15, margin: "0 0 10px" }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(28px,3.6vw,40px)", lineHeight: 1.15, margin: "0 0 10px" }}>
             {isEn ? "Try us before you join." : "Pruébanos antes de unirte."}
           </h2>
           <p style={{ fontSize: "16px", lineHeight: "1.6", color: "rgba(57,41,42,0.7)", margin: "0 auto", maxWidth: "52ch" }}>
@@ -237,10 +237,10 @@ export default function MembershipClient({
         </div>
         <div style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", padding: "clamp(24px,4vw,32px) clamp(28px,4vw,40px)", background: "#f8efe2", display: "flex", flexWrap: "wrap", gap: "24px", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ flex: "1 1 320px" }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "8px" }}>
-              {isEn ? "Not ready to join?" : "¿Aún no estás lista?"}
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "8px" }}>
+              {isEn ? "NOT READY TO JOIN?" : "¿AÚN NO ESTÁS LISTA?"}
             </div>
-            <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "20px", margin: "0 0 6px" }}>
+            <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", margin: "0 0 6px" }}>
               {isEn ? "The Event Pass — €35" : "El Event Pass — 35€"}
             </h3>
             <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.7)", margin: "0 0 10px" }}>
@@ -252,9 +252,9 @@ export default function MembershipClient({
             </ul>
           </div>
           <div style={{ textAlign: "center", flex: "0 0 auto" }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "34px", color: "#39292a" }}>{isEn ? "€35" : "35€"}</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "34px", color: "#39292a" }}>{isEn ? "€35" : "35€"}</div>
             <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", marginBottom: "16px" }}>{isEn ? "per event" : "por evento"}</div>
-            <Link href="/events" style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", padding: "12px 26px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", whiteSpace: "nowrap", background: "transparent", display: "inline-block", textDecoration: "none" }}>
+            <Link href="/events" style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", padding: "12px 26px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", whiteSpace: "nowrap", background: "transparent", display: "inline-block", textDecoration: "none" }}>
               {isEn ? "Get an Event Pass" : "Conseguir un Event Pass"}
             </Link>
           </div>
@@ -264,10 +264,10 @@ export default function MembershipClient({
       {/* ── FIVE WAYS TO CONNECT ── */}
       <section style={{ maxWidth: "1160px", margin: "0 auto", padding: "clamp(48px,6vw,80px) clamp(24px,5vw,64px)", borderTop: "1px solid rgba(57,41,42,0.16)" }}>
         <div style={{ maxWidth: "640px", margin: "0 auto 44px", textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "14px" }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "14px" }}>
             {isEn ? "What's included" : "Qué incluye"}
           </div>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "clamp(28px,3.6vw,40px)", margin: "0 0 14px" }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "clamp(28px,3.6vw,40px)", margin: "0 0 14px" }}>
             {isEn ? "Five ways to connect." : "Cinco maneras de conectar."}
           </h2>
           <p style={{ fontSize: "16px", lineHeight: "1.6", color: "rgba(57,41,42,0.7)", margin: 0 }}>
@@ -280,7 +280,7 @@ export default function MembershipClient({
               { icon: "flame", en: ["Easy connection","Mostly included","Walks, park socials & hosted meetups. The walks and park socials are usually included in the plan but can cost few credit depending on the parters involved."], es: ["Conexión fácil","Casi siempre incluido","Paseos, encuentros en el parque y quedadas con anfitriona. Los paseos son gratis; los cafés con anfitriona cuestan 2 créditos."], green: true },
               { icon: "cluster", en: ["Play date","Credits","Yoga, massage, music — your child right beside you."], es: ["Play date","Créditos","Yoga, masaje, música — con tu hijo/a a tu lado."], green: false },
               { icon: "cup", en: ["MoM's date","Credits","Dinners, wellness, culture — a woman first."], es: ["MoM's date","Créditos","Cenas, bienestar, cultura — una mujer primero."], green: false },
-              { icon: "edu", en: ["Learn & Grow","Credits","Expert talks, works masterclasses."], es: ["Aprender y crecer","Créditos","Charlas de expertas, talleres y masterclasses."], green: false },
+              { icon: "edu", en: ["Learn & Grow","Credits","Expert talks, workshops, and masterclasses."], es: ["Aprender y crecer","Créditos","Charlas de expertas, talleres y masterclasses."], green: false },
               { icon: "star", en: ["Signature moments","Credits","Seasonal moments and 1:1 expert sessions."], es: ["Momentos únicos","Créditos","Momentos de temporada y sesiones 1:1 con expertas."], green: false },
             ] as const).map((f, i) => {
               const [title, badge, body] = isEn ? f.en : f.es;
@@ -296,7 +296,7 @@ export default function MembershipClient({
                     </span>
                     <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: f.green ? "#568b05" : "#7b1f2c", border: f.green ? "1px solid rgba(86,139,5,0.4)" : "1px solid rgba(123,31,44,0.35)", borderRadius: "10px", padding: "2px 9px", whiteSpace: "nowrap" }}>{badge}</span>
                   </div>
-                  <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "17px", margin: "0 0 6px" }}>{title}</h3>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", margin: "0 0 6px" }}>{title}</h3>
                   <p style={{ fontSize: "13.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.65)", margin: 0 }}>{body}</p>
                 </div>
               );
@@ -314,36 +314,27 @@ export default function MembershipClient({
         </div>
       </section>
 
-      {/* ── INNER CIRCLE — PHASE 2 (dormant, hidden by default) ── */}
-      {(false as boolean) && (
-        <section style={{ maxWidth: "960px", margin: "0 auto", padding: "clamp(24px,4vw,40px) clamp(24px,5vw,64px) clamp(56px,7vw,96px)", borderTop: "1px solid rgba(57,41,42,0.16)" }}>
-          <div style={{ border: "1px dashed rgba(57,41,42,0.3)", borderRadius: "8px", padding: "clamp(28px,4vw,44px)", opacity: 0.82 }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", alignItems: "center", justifyContent: "space-between", marginBottom: "18px" }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.7)" }}>THE INNER CIRCLE</div>
-              <span style={{ fontSize: "12px", letterSpacing: "0.02em", color: "#568b05", border: "1px solid rgba(86,139,5,0.4)", borderRadius: "10px", padding: "3px 11px" }}>
-                {isEn ? "Coming in Phase 2" : "Llega en la Fase 2"}
-              </span>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "24px", alignItems: "flex-end", justifyContent: "space-between" }}>
-              <p style={{ fontSize: "15px", lineHeight: "1.65", color: "rgba(57,41,42,0.62)", maxWidth: "560px", margin: 0 }}>
-                {isEn
-                  ? "A smaller, more concierge tier — smaller groups, retreats, 1:1 expert access, priority everything. We're opening this once our community is proven. Opening Circle members will be the first to know."
-                  : "Un nivel más reducido y de estilo conserjería — grupos más pequeños, retiros, acceso 1:1 a expertas y prioridad en todo. Lo abriremos una vez que nuestra comunidad esté probada."}
-              </p>
-              <span style={{ border: "1px solid rgba(57,41,42,0.25)", color: "rgba(57,41,42,0.45)", padding: "12px 26px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", whiteSpace: "nowrap", cursor: "not-allowed" }}>
-                {isEn ? "Not yet open" : "Aún no disponible"}
-              </span>
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ── WHEN YOU ARE READY ── */}
       <section style={{ maxWidth: "960px", margin: "0 auto", padding: "clamp(36px,5vw,56px) clamp(24px,5vw,64px) clamp(52px,7vw,80px)", borderTop: "1px solid rgba(57,41,42,0.16)", display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "baseline", justifyContent: "space-between" }}>
-        <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(22px,2.6vw,28px)", lineHeight: 1.3, margin: 0, color: "rgba(57,41,42,0.82)" }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(22px,2.6vw,28px)", lineHeight: 1.3, margin: 0, color: "rgba(57,41,42,0.82)" }}>
           {isEn ? "When you are ready, we are here." : "Cuando estés lista, aquí estamos."}
         </h2>
-        <button type="button" onClick={() => setApplyModalOpen(true)} style={{ border: "1px solid rgba(123,31,44,0.5)", color: "#7b1f2c", padding: "12px 26px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14.5px", whiteSpace: "nowrap", background: "transparent", cursor: "pointer" }}>
+        <button
+          type="button"
+          onClick={() => setApplyModalOpen(true)}
+          style={{
+            border: "1px solid #7b1f2c",
+            color: "#f8efe2",
+            padding: "12px 26px",
+            borderRadius: "4px",
+            fontFamily: "'Cormorant Garamond', serif",
+            fontWeight: 600,
+            fontSize: "14.5px",
+            whiteSpace: "nowrap",
+            background: "#7b1f2c",
+            cursor: "pointer",
+          }}
+        >
           {windowOpen ? (isEn ? "Apply" : "Solicitar plaza") : (isEn ? "Join the waitlist" : "Unirme a la lista de espera")}
         </button>
       </section>

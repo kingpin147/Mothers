@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { DICTIONARIES, Locale } from "@/lib/i18n";
-import { getPublicMembershipWindow, subscribeToLetter } from "@/app/actions/publicWindow";
+import { getPublicMembershipWindow } from "@/app/actions/publicWindow";
 
 export default function HomeClient({
   initialWindowOpen = true,
@@ -16,10 +16,6 @@ export default function HomeClient({
   const [windowOpen, setWindowOpen] = useState(initialWindowOpen);
   const [spotsRemaining, setSpotsRemaining] = useState(initialSpotsRemaining);
   const umbTrackRef = useRef<HTMLDivElement>(null);
-  const [letterEmail, setLetterEmail] = useState("");
-  const [letterLoading, setLetterLoading] = useState(false);
-  const [letterDone, setLetterDone] = useState(false);
-  const [letterError, setLetterError] = useState<string | null>(null);
 
   useEffect(() => {
     const updateLang = () => {
@@ -40,8 +36,8 @@ export default function HomeClient({
 
   const t = DICTIONARIES[lang];
 
-  // The label appears ONLY when we pass 35 members (i.e. remaining spots <= 15 and > 0)
-  const showSpotsUrgency = spotsRemaining <= 15 && spotsRemaining > 0;
+  // The label appears ONLY when spots are limited (<= 10 remaining)
+  const showSpotsUrgency = windowOpen && spotsRemaining <= 10 && spotsRemaining > 0;
 
   const scrollUmb = (dir: number) => {
     if (!umbTrackRef.current) return;
@@ -50,48 +46,29 @@ export default function HomeClient({
     umbTrackRef.current.scrollBy({ left: dir * step, behavior: "smooth" });
   };
 
-  const handleSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!letterEmail.includes("@")) return;
-    setLetterLoading(true);
-    setLetterError(null);
-    try {
-      const res = await subscribeToLetter(letterEmail);
-      if (res.success) {
-        setLetterDone(true);
-      } else {
-        setLetterError(res.error || "Subscription failed");
-      }
-    } catch {
-      setLetterError("An unexpected error occurred");
-    } finally {
-      setLetterLoading(false);
-    }
-  };
-
   return (
-    <div style={{ backgroundColor: "var(--color-bg)", minHeight: "100vh" }}>
+    <div style={{ backgroundColor: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", minHeight: "100vh" }}>
       {/* ─── HERO SECTION ─── */}
       <section
         style={{
           maxWidth: "1240px",
           margin: "0 auto",
-          padding: "clamp(48px, 7vw, 96px) clamp(24px, 5vw, 64px) clamp(40px, 6vw, 64px)",
+          padding: "clamp(56px, 8vw, 104px) clamp(24px, 5vw, 64px) clamp(40px, 6vw, 72px)",
           display: "flex",
           flexWrap: "wrap",
-          gap: "48px",
+          gap: "56px",
           alignItems: "center",
         }}
       >
         <div style={{ flex: "1 1 440px", minWidth: "300px" }}>
           <div
             style={{
-              fontFamily: "var(--font-heading)",
+              fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 600,
               fontSize: "13px",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              color: "var(--color-accent)",
+              color: "#7b1f2c",
               marginBottom: "18px",
             }}
           >
@@ -99,7 +76,7 @@ export default function HomeClient({
           </div>
           <h1
             style={{
-              fontFamily: "var(--font-heading)",
+              fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 400,
               fontSize: "clamp(44px, 6vw, 74px)",
               lineHeight: 1.04,
@@ -136,14 +113,15 @@ export default function HomeClient({
             href="/membership"
             style={{
               marginTop: "18px",
-              color: "var(--color-accent)",
-              fontFamily: "var(--font-heading)",
+              color: "#7b1f2c",
+              fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 600,
               fontSize: "16px",
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
               whiteSpace: "nowrap",
+              textDecoration: "none",
             }}
           >
             {t.hero.ctaSecondary}
@@ -158,7 +136,7 @@ export default function HomeClient({
               background: "#ecdcd0",
               padding: "8px",
               borderRadius: "6px",
-              boxShadow: "0 12px 32px rgba(45,43,43,0.14)",
+              boxShadow: "0 12px 32px rgba(45, 43, 43, 0.18)",
             }}
           >
             <div
@@ -185,7 +163,7 @@ export default function HomeClient({
         style={{
           maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(36px, 5vw, 64px) clamp(24px, 5vw, 64px)",
+          padding: "clamp(30px, 4vw, 52px) clamp(24px, 5vw, 64px)",
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
@@ -193,12 +171,12 @@ export default function HomeClient({
           <div style={{ flex: "1 1 380px", minWidth: "280px" }}>
             <div
               style={{
-                fontFamily: "var(--font-heading)",
+                fontFamily: "'Cormorant Garamond', serif",
                 fontWeight: 600,
                 fontSize: "13px",
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "var(--color-accent-2)",
+                color: "#568b05",
                 marginBottom: "16px",
               }}
             >
@@ -206,7 +184,7 @@ export default function HomeClient({
             </div>
             <h2
               style={{
-                fontFamily: "var(--font-heading)",
+                fontFamily: "'Cormorant Garamond', serif",
                 fontWeight: 600,
                 fontSize: "clamp(28px, 3.6vw, 40px)",
                 lineHeight: 1.15,
@@ -233,7 +211,7 @@ export default function HomeClient({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "var(--color-accent)",
+                    color: "#7b1f2c",
                   }}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
@@ -257,7 +235,7 @@ export default function HomeClient({
                   </svg>
                 </div>
                 <div>
-                  <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "19px", margin: "0 0 4px" }}>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", margin: "0 0 4px" }}>
                     {pillar.title}
                   </h3>
                   <p style={{ fontSize: "15px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.68)", margin: 0 }}>
@@ -275,25 +253,25 @@ export default function HomeClient({
         style={{
           maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(36px, 5vw, 64px) clamp(24px, 5vw, 64px)",
+          padding: "clamp(30px, 4vw, 52px) clamp(24px, 5vw, 64px)",
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
-        <div style={{ textAlign: "center", maxWidth: "640px", margin: "0 auto 36px" }}>
+        <div style={{ textAlign: "center", maxWidth: "640px", margin: "0 auto 28px" }}>
           <div
             style={{
-              fontFamily: "var(--font-heading)",
+              fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 600,
               fontSize: "13px",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              color: "var(--color-accent)",
+              color: "#7b1f2c",
               marginBottom: "10px",
             }}
           >
             {t.how.kicker}
           </div>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "clamp(28px, 3.6vw, 40px)", margin: 0 }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "clamp(28px, 3.6vw, 40px)", margin: 0 }}>
             {t.how.heading}
           </h2>
         </div>
@@ -303,7 +281,7 @@ export default function HomeClient({
             <div key={idx} style={{ flex: "1 1 260px", maxWidth: "320px", textAlign: "center", padding: "0 12px" }}>
               <div
                 style={{
-                  fontFamily: "var(--font-heading)",
+                  fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 400,
                   fontSize: "38px",
                   lineHeight: 1.1,
@@ -313,7 +291,7 @@ export default function HomeClient({
               >
                 {step.n}
               </div>
-              <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "21px", margin: "0 0 6px" }}>
+              <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "21px", margin: "0 0 6px" }}>
                 {step.title}
               </h3>
               <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.68)", margin: 0 }}>
@@ -329,7 +307,7 @@ export default function HomeClient({
         style={{
           maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(36px, 5vw, 64px) clamp(24px, 5vw, 64px)",
+          padding: "clamp(30px, 4vw, 52px) clamp(24px, 5vw, 64px)",
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
@@ -349,28 +327,28 @@ export default function HomeClient({
           <div style={{ flex: "1 1 380px", minWidth: "280px" }}>
             <div
               style={{
-                fontFamily: "var(--font-heading)",
+                fontFamily: "'Cormorant Garamond', serif",
                 fontWeight: 600,
                 fontSize: "13px",
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "var(--color-accent)",
+                color: "#7b1f2c",
                 marginBottom: "12px",
               }}
             >
               {t.membershipTeaser.kicker}
             </div>
-            <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "clamp(30px, 4vw, 40px)", margin: "0 0 10px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "clamp(30px, 4vw, 40px)", margin: "0 0 10px" }}>
               {t.membershipTeaser.heading}
             </h2>
-            <p style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "22px", color: "var(--color-accent)", margin: "0 0 4px" }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", color: "#7b1f2c", margin: "0 0 2px" }}>
               {t.membershipTeaser.price}
             </p>
-            <p style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.6)", margin: "0 0 14px" }}>
+            <p style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.6)", margin: "0 0 10px" }}>
               {t.membershipTeaser.priceSub}
             </p>
             {showSpotsUrgency && (
-              <div style={{ marginBottom: "20px" }}>
+              <div style={{ marginBottom: "18px" }}>
                 <span
                   style={{
                     display: "inline-block",
@@ -391,16 +369,17 @@ export default function HomeClient({
               <Link
                 href="/membership"
                 style={{
-                  border: "1px solid var(--color-accent)",
-                  color: "var(--color-accent)",
+                  border: "1px solid #7b1f2c",
+                  color: "#7b1f2c",
                   padding: "12px 26px",
                   borderRadius: "4px",
-                  fontFamily: "var(--font-heading)",
+                  fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 600,
                   fontSize: "15px",
                   display: "inline-flex",
                   alignItems: "center",
                   gap: "8px",
+                  whiteSpace: "nowrap",
                   textDecoration: "none",
                 }}
               >
@@ -410,7 +389,7 @@ export default function HomeClient({
             </div>
           </div>
 
-          <ul style={{ flex: "1 1 340px", minWidth: "260px", listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "14px" }}>
+          <ul style={{ flex: "1 1 340px", minWidth: "260px", listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "13px" }}>
             {t.membershipTeaser.bullets.map((b, idx) => (
               <li key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "15px", lineHeight: 1.5, color: "#39292a" }}>
                 <span style={{ flex: "none", color: "#568b05", marginTop: "3px" }}>
@@ -423,8 +402,6 @@ export default function HomeClient({
             ))}
           </ul>
         </div>
-
-
       </section>
 
       {/* ─── PARTNERS UMBRELLAS ─── */}
@@ -432,28 +409,28 @@ export default function HomeClient({
         style={{
           maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(36px, 5vw, 64px) clamp(24px, 5vw, 64px)",
+          padding: "clamp(30px, 4vw, 52px) clamp(24px, 5vw, 64px)",
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
-        <div style={{ maxWidth: "680px", margin: "0 auto 32px", textAlign: "center" }}>
+        <div style={{ maxWidth: "680px", margin: "0 auto 28px", textAlign: "center" }}>
           <div
             style={{
-              fontFamily: "var(--font-heading)",
+              fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 600,
               fontSize: "13px",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              color: "var(--color-accent-2)",
+              color: "#568b05",
               marginBottom: "14px",
             }}
           >
             {t.partners.kicker}
           </div>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "clamp(28px, 3.6vw, 40px)", margin: "0 0 16px" }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "clamp(28px, 3.6vw, 40px)", margin: "0 0 16px" }}>
             {t.partners.heading}
           </h2>
-          <p style={{ fontSize: "16px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
+          <p style={{ fontSize: "16px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.7)", margin: 0 }}>
             {t.partners.body}
           </p>
         </div>
@@ -464,11 +441,11 @@ export default function HomeClient({
             style={{
               display: "flex",
               alignItems: "stretch",
-              gap: "20px",
+              gap: "22px",
               overflowX: "auto",
               scrollSnapType: "x mandatory",
               scrollBehavior: "smooth",
-              padding: "4px 2px 16px",
+              padding: "2px 2px 14px",
               scrollbarWidth: "none",
             }}
           >
@@ -476,26 +453,25 @@ export default function HomeClient({
               <div
                 key={idx}
                 style={{
-                  flex: "0 0 clamp(240px, 26vw, 280px)",
+                  flex: "0 0 clamp(238px, 25vw, 276px)",
                   scrollSnapAlign: "start",
                   display: "flex",
                   flexDirection: "column",
                   border: "1px solid rgba(57, 41, 42, 0.16)",
                   borderRadius: "6px",
                   padding: "26px 22px",
-                  backgroundColor: "#fff",
                 }}
               >
-                <div style={{ color: "var(--color-accent)", marginBottom: "14px" }}>
+                <div style={{ color: "#7b1f2c", marginBottom: "14px" }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
                     {idx === 0 && <path d="M11 20A7 7 0 0 1 4 13c0-4 3-8 9-11 1 5 4 7 4 11a7 7 0 0 1-6 7ZM8 16c5-3 7-7 9-13" />}
                     {idx === 1 && <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />}
-                    {idx === 2 && <path d="M12 2c.6 3.2 1.6 5.7 3 7.1 1.4 1.4 3.9 2.4 7 3-3.1.6-5.6 1.6-7 3-1.4 1.4-2.4 3.9-3 7.1-.6-3.2-1.6-5.7-3-7.1-1.4-1.4-3.9-2.4-7-3 3.1-.6 5.6-1.6 7-3 1.4-1.4 2.4-3.9 3-7.1Z" />}
+                    {idx === 2 && <path d="M12 2c.6 3.2 1.6 5.7 3 7.1 1.4 1.4 3.9 2.4 7 3-3.1.6-5.6 1.6-7 3-1.4 1.4-2.4 3.9-3 7.1-.6-3.2-1.6-5.7-3-7.1-1.4-1.4-3.9-2.4-7-3 3.1-.6 5.6-1.6 7-3 1.4-1.4 2.4-3.9 3-7.1Z" fill="currentColor" stroke="none" />}
                     {idx === 3 && <path d="M17 8h1a4 4 0 1 1 0 8h-1M3 8h14v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4ZM6 2v2M10 2v2M14 2v2" />}
                     {idx === 4 && <path d="M6 8h12l1 12H5ZM9 8V6a3 3 0 0 1 6 0v2" />}
                   </svg>
                 </div>
-                <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "18px", margin: "0 0 6px" }}>
+                <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", margin: "0 0 6px" }}>
                   {u.title}
                 </h3>
                 <p style={{ fontSize: "14px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.65)", margin: 0 }}>
@@ -516,20 +492,11 @@ export default function HomeClient({
                 border: "1px solid rgba(57, 41, 42, 0.24)",
                 borderRadius: "50%",
                 background: "transparent",
-                color: "var(--color-accent)",
+                color: "#7b1f2c",
                 cursor: "pointer",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "var(--color-accent)";
-                e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.06)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
-                e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
@@ -546,24 +513,15 @@ export default function HomeClient({
                 border: "1px solid rgba(57, 41, 42, 0.24)",
                 borderRadius: "50%",
                 background: "transparent",
-                color: "var(--color-accent)",
+                color: "#7b1f2c",
                 cursor: "pointer",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "all 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "var(--color-accent)";
-                e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.06)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
-                e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
-                <path d="M5 12h14M13 6l6 6-6 6" />
+                <path d="M5 12h14M13 6l6 6-6 6"></path>
               </svg>
             </button>
           </div>
@@ -603,7 +561,7 @@ export default function HomeClient({
               </span>
               <span
                 style={{
-                  fontFamily: "var(--font-heading)",
+                  fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 600,
                   fontSize: "13px",
                   letterSpacing: "0.14em",
@@ -616,7 +574,7 @@ export default function HomeClient({
             </div>
             <h2
               style={{
-                fontFamily: "var(--font-heading)",
+                fontFamily: "'Cormorant Garamond', serif",
                 fontWeight: 600,
                 fontSize: "clamp(26px, 3.4vw, 38px)",
                 lineHeight: 1.15,
@@ -645,17 +603,11 @@ export default function HomeClient({
                 color: "#456f04",
                 padding: "12px 24px",
                 borderRadius: "4px",
-                fontFamily: "var(--font-heading)",
+                fontFamily: "'Cormorant Garamond', serif",
                 fontWeight: 600,
                 fontSize: "15px",
                 textDecoration: "none",
                 backgroundColor: "transparent",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "rgba(86,139,5,0.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
               {t.godmother.cta}
@@ -679,7 +631,7 @@ export default function HomeClient({
               >
                 <span
                   style={{
-                    fontFamily: "var(--font-heading)",
+                    fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 400,
                     fontSize: "26px",
                     lineHeight: 1,
@@ -691,7 +643,7 @@ export default function HomeClient({
                   {g.n}
                 </span>
                 <div>
-                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "17px", marginBottom: "4px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", marginBottom: "4px" }}>
                     {g.title}
                   </div>
                   <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
@@ -709,11 +661,13 @@ export default function HomeClient({
         style={{
           backgroundColor: "#39292a",
           color: "#f8efe2",
-          padding: "clamp(48px, 6vw, 72px) clamp(24px, 5vw, 64px)",
+          padding: "clamp(38px, 5vw, 58px) clamp(24px, 5vw, 64px)",
           textAlign: "center",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(32px, 5vw, 54px)", margin: "0 0 20px", color: "#f8efe2" }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(32px, 5vw, 54px)", margin: "0 0 20px", color: "#f8efe2" }}>
           {t.closing.heading}
         </h2>
         <Link
@@ -723,10 +677,11 @@ export default function HomeClient({
             color: "#f8efe2",
             padding: "15px 34px",
             borderRadius: "4px",
-            fontFamily: "var(--font-heading)",
+            fontFamily: "'Cormorant Garamond', serif",
             fontWeight: 600,
             fontSize: "16px",
             display: "inline-block",
+            whiteSpace: "nowrap",
             textDecoration: "none",
           }}
         >
