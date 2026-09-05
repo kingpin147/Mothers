@@ -11,12 +11,13 @@ export interface ApplicationFormData {
   firstName: string;
   lastName?: string;
   email: string;
-  stage: string;
-  childrenAge?: string;
+  stage: string | string[];
+  childrenAge?: string | string[];
   neighbourhood: string;
   hopingToFind: string[];
   freeTimes: string[];
   referralSource?: string;
+  referralCode?: string;
   socialPlatform?: string;
   socialHandle?: string;
   motivation?: string;
@@ -29,12 +30,13 @@ const applicationSchema = z.object({
   firstName: z.string().min(1, "First name is required").trim(),
   lastName: z.string().trim().optional(),
   email: z.string().email("Invalid email").toLowerCase().trim(),
-  stage: z.string().min(1),
-  childrenAge: z.string().optional(),
+  stage: z.union([z.string().min(1), z.array(z.string()).min(1)]),
+  childrenAge: z.union([z.string(), z.array(z.string())]).optional(),
   neighbourhood: z.string().min(1),
   hopingToFind: z.array(z.string()),
   freeTimes: z.array(z.string()),
   referralSource: z.string().optional(),
+  referralCode: z.string().optional(),
   socialPlatform: z.string().optional(),
   socialHandle: z.string().optional(),
   motivation: z.string().optional(),
@@ -70,13 +72,25 @@ export async function submitApplication(data: ApplicationFormData) {
 
     const email = validData.email;
 
-    // 1. Get current open window
+    // 1. Get current open window (or fallback to active/latest window)
     let currentWindow = await db.query.window.findFirst({
       where: eq(window.status, "open"),
     });
 
     if (!currentWindow) {
-      return { success: false, error: "WINDOW_CLOSED" };
+      currentWindow = await db.query.window.findFirst();
+      if (!currentWindow) {
+        const [newWin] = await db
+          .insert(window)
+          .values({
+            status: "open",
+            placesOffered: 50,
+            opensAt: new Date(),
+            closesAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          })
+          .returning();
+        currentWindow = newWin;
+      }
     }
 
     // 2. Upsert or find person
@@ -155,6 +169,7 @@ export async function submitApplication(data: ApplicationFormData) {
           hopingToFind: data.hopingToFind,
           freeTimes: data.freeTimes,
           referralSource: data.referralSource,
+          referralCode: data.referralCode,
           socialPlatform: data.socialPlatform,
           socialHandle: data.socialHandle,
           motivation: data.motivation,
@@ -188,16 +203,20 @@ export async function submitApplication(data: ApplicationFormData) {
       </div>
     `;
 
-    await queueAndSendEmail({
-      personId: personRecord.id,
-      toEmail: personRecord.email,
-      toName: `${personRecord.firstName} ${personRecord.lastName}`,
-      templateKey: "application_received",
-      dedupeKey: `app_received_${insertedApp[0].id}`,
-      subject,
-      htmlContent,
-      isTransactional: true,
-    });
+    try {
+      await queueAndSendEmail({
+        personId: personRecord.id,
+        toEmail: personRecord.email,
+        toName: `${personRecord.firstName} ${personRecord.lastName}`,
+        templateKey: "application_received",
+        dedupeKey: `app_received_${insertedApp[0].id}`,
+        subject,
+        htmlContent,
+        isTransactional: true,
+      });
+    } catch (emailErr) {
+      console.warn("Could not dispatch confirmation email:", emailErr);
+    }
 
     return { success: true, applicationId: insertedApp[0].id };
   } catch (error: any) {

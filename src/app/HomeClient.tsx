@@ -717,7 +717,7 @@ export default function HomeClient({
           {t.closing.heading}
         </h2>
         <Link
-          href={windowOpen ? "/membership/apply" : "/membership"}
+          href="/membership"
           style={{
             border: "1px solid #f8efe2",
             color: "#f8efe2",

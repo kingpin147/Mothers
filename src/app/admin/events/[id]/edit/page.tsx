@@ -29,6 +29,7 @@ export default function AdminEditEventPage() {
   const [description, setDescription] = useState("");
 
   // Toggles & Arrays
+  const [eventStatus, setEventStatus] = useState<string>("draft");
   const [langs, setLangs] = useState<string[]>(["English"]);
   const [stages, setStages] = useState<string[]>(["Babies"]);
   const [headStart, setHeadStart] = useState("No head start — opens to everyone at once");
@@ -65,6 +66,7 @@ export default function AdminEditEventPage() {
         setDescription(ev.description || "");
         setLangs(ev.languages || ["English"]);
         setPassCta(ev.showEventPassCta || false);
+        setEventStatus(ev.status || "draft");
         
         if (ev.creditCost === 0) {
           setFreeEvent(true);
@@ -123,7 +125,7 @@ export default function AdminEditEventPage() {
     : 'Still needed before publishing: title, venue, meeting point, dates, minimum, credit cost, description.';
 
 
-  const handleSave = async () => {
+  const handleSave = async (newStatus?: "draft" | "published_pending") => {
     if (!title || !venueName || !meetingPoint || !startsAt || !endsAt) {
       alert("Please fill in core details (title, venue, dates).");
       return;
@@ -131,6 +133,7 @@ export default function AdminEditEventPage() {
 
     setLoading(true);
     const start = new Date(startsAt);
+    const targetStatus = newStatus || (eventStatus as any);
     
     const res = await updateAdminEvent(eventId, {
       title,
@@ -151,11 +154,12 @@ export default function AdminEditEventPage() {
       description,
       languages: langs,
       showEventPassCta: passCta,
+      status: targetStatus,
     });
 
     setLoading(false);
     if (res.success) {
-      alert("Event updated successfully!");
+      alert(newStatus === "published_pending" ? "Event published to the calendar!" : "Event updated successfully!");
       router.push("/admin/events");
     } else {
       alert(res.error || "Failed to save event");
@@ -179,123 +183,114 @@ export default function AdminEditEventPage() {
         
         <div style={{ padding: "clamp(22px,3vw,30px) clamp(22px,3vw,32px) 18px", borderBottom: "1px solid rgba(57,41,42,0.14)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "18px" }}>
           <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "8px" }}>Edit event</div>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px,3.2vw,33px)", lineHeight: 1.15, margin: "0 0 7px" }}>Update calendar details</h1>
-            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: 0, maxWidth: "62ch", textWrap: "pretty" }}>Changes to time or venue will trigger an automatic email to any booked members.</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+              <span style={{ fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>EVENT BUILDER</span>
+              <span style={{ fontSize: "11px", color: eventStatus === "draft" ? "#8a6116" : "#456f04", background: eventStatus === "draft" ? "#fff3e4" : "#eef5ea", border: `1px solid ${eventStatus === "draft" ? "rgba(164,118,31,0.3)" : "rgba(86,139,5,0.3)"}`, borderRadius: "10px", padding: "1px 8px", textTransform: "capitalize" }}>
+                {eventStatus.replace("_", " ")}
+              </span>
+            </div>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(26px,3.5vw,36px)", lineHeight: 1.15, margin: 0 }}>Edit event</h1>
           </div>
-          <Link href="/admin/events" style={{ border: "1px solid rgba(57,41,42,0.25)", color: "#39292a", borderRadius: "4px", width: "34px", height: "34px", fontSize: "16px", lineHeight: 1, flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>✕</Link>
+          <Link href="/admin/events" style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", padding: "6px 0" }}>← Close</Link>
         </div>
 
-        <div style={{ padding: "clamp(20px,2.6vw,28px) clamp(22px,3vw,32px)", display: "flex", flexDirection: "column", gap: "26px" }}>
+        <div style={{ padding: "clamp(22px,3vw,32px)", display: "flex", flexDirection: "column", gap: "28px" }}>
           
-          {/* THE EVENT */}
+          {/* BASICS */}
           <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>The event</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>The basics</div>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Title <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Morning walk & coffee in Ciutadella" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Morning stroll & flat whites" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "14px" }}>
                 <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Category <span style={{ color: "#7b1f2c" }}>*</span></label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Category</label>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
                     <option value="Walks & park socials">Walks & park socials</option>
-                    <option value="Play dates">Play dates</option>
-                    <option value="MoM's dates">MoM's dates</option>
-                    <option value="Learn & grow">Learn & grow</option>
+                    <option value="Play date">Play date</option>
+                    <option value="MoM's date">MoM's date</option>
+                    <option value="Learn & Grow">Learn & Grow</option>
                     <option value="Signature moments">Signature moments</option>
                   </select>
-                  <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>A label for members and a filter for you. It carries no price.</div>
                 </div>
                 <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Neighbourhood <span style={{ color: "#7b1f2c" }}>*</span></label>
-                  <select value={neighbourhood} onChange={(e) => setNeighbourhood(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
-                    <option>Ciutat Vella</option>
-                    <option>Eixample</option>
-                    <option>Sants-Montjuïc</option>
-                    <option>Les Corts</option>
-                    <option>Sarrià-Sant Gervasi</option>
-                    <option>Gràcia</option>
-                    <option>Horta-Guinardó</option>
-                    <option>Nou Barris</option>
-                    <option>Sant Andreu</option>
-                    <option>Sant Martí</option>
-                    <option>Online</option>
-                    <option>Outside Barcelona</option>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Host or partner (optional)</label>
+                  <input type="text" value={host} onChange={(e) => setHost(e.target.value)} placeholder="Partner or member name" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
+
+          {/* WHERE AND WHEN */}
+          <div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>Where & when</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "14px" }}>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Neighbourhood</label>
+                  <select value={neighbourhood} onChange={(e) => setNeighbourhood(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
+                    {["Ciutat Vella", "Eixample", "Gràcia", "Les Corts", "Sarrià-Sant Gervasi", "Poblenou / Sant Martí", "Sants-Montjuïc", "Horta-Guinardó", "Outside Barcelona"].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Venue name <span style={{ color: "#7b1f2c" }}>*</span></label>
+                  <input type="text" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="e.g. Nomad Coffee Lab" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Meeting point <span style={{ color: "#7b1f2c" }}>*</span></label>
+                  <input type="text" value={meetingPoint} onChange={(e) => setMeetingPoint(e.target.value)} placeholder="e.g. Outside main entrance" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "14px" }}>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Starts at <span style={{ color: "#7b1f2c" }}>*</span></label>
+                  <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }} />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Ends at <span style={{ color: "#7b1f2c" }}>*</span></label>
+                  <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
+
+          {/* WHO IT SUITS */}
+          <div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>Who it suits</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Stage of life</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                  {["Pregnant", "Babies", "Toddlers", "Children", "Big kids"].map(s => (
+                    <button key={s} type="button" onClick={() => toggleStage(s)} style={{ border: `1px solid ${chip(stages.includes(s)).border}`, background: chip(stages.includes(s)).bg, color: chip(stages.includes(s)).color, borderRadius: "20px", padding: "7px 14px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", cursor: "pointer" }}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "14px" }}>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Languages spoken</label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    {["English", "Español", "Català"].map(l => (
+                      <button key={l} type="button" onClick={() => toggleLang(l)} style={{ border: `1px solid ${chip(langs.includes(l)).border}`, background: chip(langs.includes(l)).bg, color: chip(langs.includes(l)).color, borderRadius: "20px", padding: "7px 14px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", cursor: "pointer" }}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Head start</label>
+                  <select value={headStart} onChange={(e) => setHeadStart(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
+                    <option value="No head start — opens to everyone at once">No head start — opens to everyone at once</option>
+                    <option value="Inner Circle 48h head start">Inner Circle 48h head start</option>
                   </select>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
-                <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Venue, publicly <span style={{ color: "#7b1f2c" }}>*</span></label>
-                  <input type="text" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="e.g. Parc de la Ciutadella" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Exact meeting point <span style={{ color: "#7b1f2c" }}>*</span></label>
-                  <input type="text" value={meetingPoint} onChange={(e) => setMeetingPoint(e.target.value)} placeholder="e.g. Til·lers gate, by the fountain" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-                  <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Sent only to people who have booked.</div>
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
-                <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Host or partner</label>
-                  <input type="text" value={host} onChange={(e) => setHost(e.target.value)} placeholder="e.g. Luz Movement Studio" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Languages</label>
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", paddingTop: "3px" }}>
-                    {['English', 'Spanish', 'Catalan'].map((l) => {
-                      const c = chip(langs.includes(l));
-                      return <button key={l} type="button" onClick={() => toggleLang(l)} style={{ border: `1px solid ${c.border}`, background: c.bg, color: c.color, borderRadius: "16px", padding: "8px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>{l}</button>
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
-
-          {/* WHEN */}
-          <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>When</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "14px" }}>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Starts <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-              </div>
-              <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Ends <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-              </div>
-            </div>
-          </div>
-
-          <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
-
-          {/* WHO IT IS FOR */}
-          <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "6px" }}>Who it is for</div>
-            <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: "0 0 12px", maxWidth: "66ch", textWrap: "pretty" }}>Pick the groups this suits. It decides which threads it gets announced in, and which group may book it early.</p>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "14px" }}>
-              {['Pregnant', 'Babies', 'Toddlers', 'Children', 'Big kids'].map(s => {
-                const c = chip(stages.includes(s));
-                return <button key={s} type="button" onClick={() => toggleStage(s)} style={{ border: `1px solid ${c.border}`, background: c.bg, color: c.color, borderRadius: "16px", padding: "8px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>{s}</button>
-              })}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
-              <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Head start for one group</label>
-                <select value={headStart} onChange={(e) => setHeadStart(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
-                  <option>No head start — opens to everyone at once</option>
-                  <option>Babies, two days early</option>
-                  <option>Toddlers, two days early</option>
-                  <option>Pregnant, three days early</option>
-                </select>
-              </div>
-              <div style={{ display: "flex", alignItems: "flex-end" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer", paddingBottom: "11px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
                   <input type="checkbox" checked={membersOnly} onChange={onMembersOnly} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
                   <span>Members only — no guest places at all</span>
                 </label>
@@ -402,12 +397,100 @@ export default function AdminEditEventPage() {
         <div style={{ padding: "18px clamp(22px,3vw,32px) clamp(22px,3vw,28px)", borderTop: "1px solid rgba(57,41,42,0.14)", background: "rgba(57,41,42,0.02)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap" }}>
           <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.65)", maxWidth: "44ch", textWrap: "pretty" }}>{validationLine}</div>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button type="button" onClick={handleSave} disabled={loading} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
-              {loading ? "Saving..." : "Save changes"}
-            </button>
+            {eventStatus === "draft" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleSave("draft")}
+                  disabled={loading}
+                  style={{
+                    border: "1px solid rgba(57,41,42,0.3)",
+                    background: "transparent",
+                    color: "#39292a",
+                    borderRadius: "4px",
+                    padding: "11px 18px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "14px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {loading ? "Saving..." : "Save draft"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSave("published_pending")}
+                  disabled={loading}
+                  style={{
+                    border: "1px solid #7b1f2c",
+                    background: "transparent",
+                    color: "#7b1f2c",
+                    borderRadius: "4px",
+                    padding: "11px 20px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "14px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {loading ? "Publishing..." : "Publish to the calendar →"}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleSave()}
+                disabled={loading}
+                style={{
+                  border: "1px solid #7b1f2c",
+                  background: "transparent",
+                  color: "#7b1f2c",
+                  borderRadius: "4px",
+                  padding: "11px 20px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                {loading ? "Saving..." : "Save changes"}
+              </button>
+            )}
           </div>
         </div>
 
+      </div>
+
+      <div style={{ maxWidth: "880px", margin: "24px auto 0", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "10px", overflow: "hidden", padding: "clamp(22px,3vw,32px)" }}>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "16px" }}>Where this goes when you publish</div>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 350px), 1fr))", gap: "24px 32px" }}>
+          
+          <div>
+            <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The public calendar</strong> — <Link href="/events" style={{ color: "#7b1f2c" }}>Events</Link> shows it under its category, in its month, with its credit cost and the gathering line if it has a minimum.
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The admin calendar</strong> — <Link href="/admin/events" style={{ color: "#7b1f2c" }}>Admin Events</Link> lists it with live booked-against-minimum counts as members book.
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The dashboard</strong> — it enters the T-10 and T-7 queues on <Link href="/admin" style={{ color: "#7b1f2c" }}>the dashboard</Link> by date, and This week when it is within seven days.
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The audit log</strong> — creating, confirming and cancelling are all written down with what changed.
+            </div>
+          </div>
+
+        </div>
       </div>
 
     </div>

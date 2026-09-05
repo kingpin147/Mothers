@@ -162,6 +162,7 @@ export async function updateAdminEvent(eventId: string, data: {
   isSignature?: boolean;
   showEventPassCta?: boolean;
   languages?: string[];
+  status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
 }) {
   const session = await auth();
   const adminId = session?.user?.id;
@@ -214,6 +215,10 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.showEventPassCta !== undefined && { showEventPassCta: !!data.showEventPassCta }),
       ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
       ...(data.languages !== undefined && { languages: data.languages }),
+      ...(data.status !== undefined && {
+        status: data.status,
+        ...(data.status !== "draft" && !existing.publishedAt && { publishedAt: new Date() }),
+      }),
       updatedAt: new Date(),
     })
     .where(eq(event.id, eventId));

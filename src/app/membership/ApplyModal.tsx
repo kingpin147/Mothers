@@ -26,8 +26,8 @@ export function ApplyModal({
     firstName: "",
     lastName: "",
     email: "",
-    stage: "Pregnant",
-    childrenAge: "",
+    stage: ["Pregnant"],
+    childrenAge: [],
     neighbourhood: "Eixample",
     hopingToFind: ["Friendships nearby"],
     freeTimes: ["Weekday mornings"],
@@ -46,7 +46,13 @@ export function ApplyModal({
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        setAnswers((prev) => ({ ...prev, ...parsed, termsAccepted: false }));
+        setAnswers((prev) => ({
+          ...prev,
+          ...parsed,
+          stage: Array.isArray(parsed.stage) ? parsed.stage : (parsed.stage ? [parsed.stage] : ["Pregnant"]),
+          childrenAge: Array.isArray(parsed.childrenAge) ? parsed.childrenAge : (parsed.childrenAge ? [parsed.childrenAge] : []),
+          termsAccepted: false,
+        }));
         if (parsed._step && typeof parsed._step === "number") {
           setStep(parsed._step);
         }
@@ -84,15 +90,15 @@ export function ApplyModal({
     },
     {
       titleEn: "Which stage are you in right now?",
-      subEn: "It helps us plan events for the stage you are actually in.",
+      subEn: "Choose all that apply — it helps us plan events for the stage you are actually in.",
       titleEs: "¿En qué etapa estás ahora mismo?",
-      subEs: "Nos ayuda a programar encuentros para la etapa en la que estás.",
+      subEs: "Selecciona todas las que apliquen — nos ayuda a programar encuentros para la etapa en la que estás.",
     },
     {
       titleEn: "What are your children's ages?",
-      subEn: "So we can organize play dates by age group. If you're pregnant, just share your due date instead.",
+      subEn: "So we can organize play dates by age group. If you're pregnant, just select Pregnant.",
       titleEs: "¿Qué edades tienen tus hijos/as?",
-      subEs: "Así podemos organizar encuentros por grupo de edad. Si estás embarazada, comparte tu fecha prevista.",
+      subEs: "Así podemos organizar encuentros por grupo de edad. Si estás embarazada, selecciona Embarazada.",
     },
     {
       titleEn: "Which neighbourhood are you in?",
@@ -140,6 +146,8 @@ export function ApplyModal({
 
   const currentMeta = stepsMeta[step];
 
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
   const handleNext = async () => {
     setShowError(false);
     setExistingMemberEmail(false);
@@ -148,16 +156,24 @@ export function ApplyModal({
       return;
     }
     if (step === 1) {
-      if (!answers.email.trim() || !answers.email.includes("@")) {
+      const cleanEmail = answers.email.trim();
+      if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail)) {
         setShowError(true);
         return;
       }
       // Check if this email already has an account
       setLoading(true);
-      const emailCheck = await checkEmailExists(answers.email.trim());
+      const emailCheck = await checkEmailExists(cleanEmail);
       setLoading(false);
       if (emailCheck.exists) {
         setExistingMemberEmail(true);
+        return;
+      }
+    }
+    if (step === 2) {
+      const stages = Array.isArray(answers.stage) ? answers.stage : (answers.stage ? [answers.stage] : []);
+      if (stages.length === 0) {
+        setShowError(true);
         return;
       }
     }
@@ -184,9 +200,9 @@ export function ApplyModal({
     }
   };
 
-  const toggleChip = (field: "hopingToFind" | "freeTimes", val: string) => {
+  const toggleArrayField = (field: "stage" | "childrenAge" | "hopingToFind" | "freeTimes", val: string) => {
     setAnswers((prev) => {
-      const list = prev[field];
+      const list = (Array.isArray(prev[field]) ? prev[field] : (prev[field] ? [prev[field]] : [])) as string[];
       if (list.includes(val)) {
         return { ...prev, [field]: list.filter((item) => item !== val) };
       } else {
@@ -221,8 +237,8 @@ export function ApplyModal({
     } else {
       setSubmitError(
         lang === "en"
-          ? "We encountered a database connection issue. Please check your internet connection and try again."
-          : "Hemos detectado un problema de conexión con la base de datos. Por favor, comprueba tu conexión a internet e inténtalo de nuevo."
+          ? "We encountered an issue submitting your application. Please check your information and try again."
+          : "Hemos detectado un problema al enviar tu solicitud. Por favor, comprueba tus datos e inténtalo de nuevo."
       );
     }
   };
@@ -282,11 +298,11 @@ export function ApplyModal({
           <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "28px", margin: "0 0 12px", color: "#39292a" }}>
             {lang === "en" ? "Application received." : "Solicitud recibida."}
           </h2>
-            <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 auto", maxWidth: "480px" }}>
-              {lang === "en"
-                ? "We review every application individually, and you'll hear from us within 72 hours. You'll get an email letting you know whether you've been accepted — if you have, it'll include a payment link, and your membership is only confirmed once that payment is completed."
-                : "Revisamos cada solicitud individualmente y recibirás noticias nuestras en menos de 72 horas. Recibirás un email confirmando si has sido aceptada; en ese caso, incluirá un enlace de pago y tu membresía solo estará confirmada una vez completado dicho pago."}
-            </p>
+          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 auto", maxWidth: "480px" }}>
+            {lang === "en"
+              ? "We review every application individually, and you'll hear from us within 72 hours. You'll get an email letting you know whether you've been accepted — if you have, it'll include a payment link, and your membership is only confirmed once that payment is completed."
+              : "Revisamos cada solicitud individualmente y recibirás noticias nuestras en menos de 72 horas. Recibirás un email confirmando si has sido aceptada; en ese caso, incluirá un enlace de pago y tu membresía solo estará confirmada una vez completado dicho pago."}
+          </p>
           <button
             type="button"
             onClick={onClose}
@@ -393,7 +409,7 @@ export function ApplyModal({
               type="text"
               value={answers.lastName || ""}
               onChange={(e) => setAnswers({ ...answers, lastName: e.target.value })}
-              placeholder={lang === "en" ? "Last name (optional)" : "Apellido (opcional)"}
+              placeholder={lang === "en" ? "Last name" : "Apellido"}
               style={{ ...inputStyle, flex: "1 1 180px" }}
             />
           </div>
@@ -410,49 +426,128 @@ export function ApplyModal({
             <input
               type="email"
               value={answers.email}
-              onChange={(e) => setAnswers({ ...answers, email: e.target.value })}
+              onChange={(e) => {
+                setAnswers({ ...answers, email: e.target.value });
+                if (showError) setShowError(false);
+              }}
               placeholder="you@email.com"
-              style={inputStyle}
+              style={{
+                ...inputStyle,
+                border: showError && (!answers.email.trim() || !EMAIL_REGEX.test(answers.email.trim())) ? "1px solid #993842" : inputStyle.border,
+              }}
               autoFocus
             />
+            {showError && (!answers.email.trim() || !EMAIL_REGEX.test(answers.email.trim())) && (
+              <p style={{ fontSize: "13px", color: "#993842", margin: "6px 0 0" }}>
+                {lang === "en" ? "Please enter a valid email address." : "Por favor, introduce un correo electrónico válido."}
+              </p>
+            )}
           </div>
         )}
 
-        {/* Step 2: Stage */}
+        {/* Step 2: Stage (Multiple Choice Chips) */}
         {step === 2 && (
           <div style={{ marginBottom: "8px" }}>
-            <select
-              value={answers.stage}
-              onChange={(e) => setAnswers({ ...answers, stage: e.target.value })}
-              style={inputStyle}
-            >
-              <option value="Pregnant">{lang === "en" ? "Pregnant" : "Embarazo"}</option>
-              <option value="Babies (0–12 months)">{lang === "en" ? "Babies (0–12 months)" : "Bebés (0–12 meses)"}</option>
-              <option value="Toddlers (1–3 years)">{lang === "en" ? "Toddlers (1–3 years)" : "Peques (1–3 años)"}</option>
-              <option value="Children (3–10 years)">{lang === "en" ? "Children (3–10 years)" : "Niños/as (3–10 años)"}</option>
-              <option value="Big Kids (10+)">{lang === "en" ? "Big Kids (10+)" : "Mayores (10+)"}</option>
-              <option value="More than one stage at once">{lang === "en" ? "More than one stage at once" : "Más de una etapa a la vez"}</option>
-            </select>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+              {[
+                { en: "Pregnant", es: "Embarazo" },
+                { en: "Babies (0–12 months)", es: "Bebés (0–12 meses)" },
+                { en: "Toddlers (1–3 years)", es: "Peques (1–3 años)" },
+                { en: "Children (3–10 years)", es: "Niños/as (3–10 años)" },
+                { en: "Big Kids (10+)", es: "Mayores (10+)" },
+              ].map((opt) => {
+                const currentList = Array.isArray(answers.stage) ? answers.stage : (answers.stage ? [answers.stage] : []);
+                const isSelected = currentList.includes(opt.en);
+                return (
+                  <button
+                    key={opt.en}
+                    type="button"
+                    onClick={() => {
+                      toggleArrayField("stage", opt.en);
+                      if (showError) setShowError(false);
+                    }}
+                    style={{
+                      padding: "10px 16px",
+                      borderRadius: "20px",
+                      border: isSelected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.25)",
+                      backgroundColor: isSelected ? "#7b1f2c" : "rgba(57,41,42,0.04)",
+                      color: isSelected ? "#f8efe2" : "#39292a",
+                      fontFamily: "var(--font-body)",
+                      fontSize: "14px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    {isSelected && (
+                      <span style={{ color: "#f8efe2", display: "flex" }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      </span>
+                    )}
+                    {lang === "en" ? opt.en : opt.es}
+                  </button>
+                );
+              })}
+            </div>
+            {showError && (Array.isArray(answers.stage) ? answers.stage.length === 0 : !answers.stage) && (
+              <p style={{ fontSize: "13px", color: "#993842", margin: "8px 0 0" }}>
+                {lang === "en" ? "Please select at least one stage to continue." : "Por favor, selecciona al menos una opción para continuar."}
+              </p>
+            )}
           </div>
         )}
 
-        {/* Step 3: Children's Ages */}
+        {/* Step 3: Children's Ages (Multiple Choice Chips) */}
         {step === 3 && (
           <div style={{ marginBottom: "8px" }}>
-            <select
-              value={answers.childrenAge || ""}
-              onChange={(e) => setAnswers({ ...answers, childrenAge: e.target.value })}
-              style={inputStyle}
-            >
-              <option value="">{lang === "en" ? "Select one" : "Selecciona una opción"}</option>
-              <option value="Pregnant">{lang === "en" ? "Pregnant" : "Embarazada"}</option>
-              <option value="0–6 months">{lang === "en" ? "0–6 months" : "0–6 meses"}</option>
-              <option value="6–12 months">{lang === "en" ? "6–12 months" : "6–12 meses"}</option>
-              <option value="1–3 years">{lang === "en" ? "1–3 years" : "1–3 años"}</option>
-              <option value="3–6 years">{lang === "en" ? "3–6 years" : "3–6 años"}</option>
-              <option value="6–10 years">{lang === "en" ? "6–10 years" : "6–10 años"}</option>
-              <option value="More than one age range">{lang === "en" ? "More than one age range" : "Más de un rango de edad"}</option>
-            </select>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+              {[
+                { en: "Pregnant", es: "Embarazada" },
+                { en: "0–6 months", es: "0–6 meses" },
+                { en: "6–12 months", es: "6–12 meses" },
+                { en: "1–3 years", es: "1–3 años" },
+                { en: "3–6 years", es: "3–6 años" },
+                { en: "6–10 years", es: "6–10 años" },
+                { en: "10+ years", es: "Más de 10 años" },
+              ].map((opt) => {
+                const currentList = Array.isArray(answers.childrenAge) ? answers.childrenAge : (answers.childrenAge ? [answers.childrenAge] : []);
+                const isSelected = currentList.includes(opt.en);
+                return (
+                  <button
+                    key={opt.en}
+                    type="button"
+                    onClick={() => toggleArrayField("childrenAge", opt.en)}
+                    style={{
+                      padding: "10px 16px",
+                      borderRadius: "20px",
+                      border: isSelected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.25)",
+                      backgroundColor: isSelected ? "#7b1f2c" : "rgba(57,41,42,0.04)",
+                      color: isSelected ? "#f8efe2" : "#39292a",
+                      fontFamily: "var(--font-body)",
+                      fontSize: "14px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    {isSelected && (
+                      <span style={{ color: "#f8efe2", display: "flex" }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      </span>
+                    )}
+                    {lang === "en" ? opt.en : opt.es}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -488,7 +583,7 @@ export function ApplyModal({
                 <button
                   key={opt.en}
                   type="button"
-                  onClick={() => toggleChip("hopingToFind", opt.en)}
+                  onClick={() => toggleArrayField("hopingToFind", opt.en)}
                   style={{
                     padding: "10px 16px",
                     borderRadius: "20px",
@@ -499,8 +594,18 @@ export function ApplyModal({
                     fontSize: "14px",
                     cursor: "pointer",
                     transition: "all 0.15s ease",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
                   }}
                 >
+                  {isSelected && (
+                    <span style={{ color: "#f8efe2", display: "flex" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                  )}
                   {lang === "en" ? opt.en : opt.es}
                 </button>
               );
@@ -522,7 +627,10 @@ export function ApplyModal({
                 <button
                   key={opt.en}
                   type="button"
-                  onClick={() => toggleChip("freeTimes", opt.en)}
+                  onClick={() => {
+                    toggleArrayField("freeTimes", opt.en);
+                    if (showError) setShowError(false);
+                  }}
                   style={{
                     padding: "10px 16px",
                     borderRadius: "20px",
@@ -533,8 +641,18 @@ export function ApplyModal({
                     fontSize: "14px",
                     cursor: "pointer",
                     transition: "all 0.15s ease",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
                   }}
                 >
+                  {isSelected && (
+                    <span style={{ color: "#f8efe2", display: "flex" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                  )}
                   {lang === "en" ? opt.en : opt.es}
                 </button>
               );
