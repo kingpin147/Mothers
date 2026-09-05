@@ -620,13 +620,13 @@ export function ApplyModal({
             >
               <option value="monthly">
                 {lang === "en"
-                  ? "Monthly — €29/month, Opening Circle rate"
-                  : "Mensual — 29€/mes, tarifa Opening Circle"}
+                  ? "Monthly — €39/month"
+                  : "Mensual — 39€/mes"}
               </option>
               <option value="quarterly">
                 {lang === "en"
-                  ? "Every 3 months — €79 every 3 months, Opening Circle rate"
-                  : "Cada 3 meses — 79€ cada 3 meses, tarifa Opening Circle"}
+                  ? "Every 3 months — €99 every 3 months"
+                  : "Cada 3 meses — 99€ cada 3 meses"}
               </option>
             </select>
 

@@ -49,20 +49,6 @@ export default function MembershipClient({
 
   const isEn = lang === "en";
 
-  // Scarcity helpers
-  const spotsTaken = FOUNDING_CAP - spotsRemaining;
-  const spotsPct = Math.round((spotsTaken / FOUNDING_CAP) * 100);
-  const showSpotsProgress = spotsTaken >= SCARCITY_FROM;
-  const spotsFull = spotsRemaining <= 0;
-
-  // Circle tier helpers
-  const circleLocked = spotsRemaining > 0;
-  const circleOpen = windowOpen && spotsFull;
-  const circleCardBorder = spotsFull ? "2px solid #7b1f2c" : "1px solid rgba(57,41,42,0.2)";
-  const circleAccent = spotsFull ? "#7b1f2c" : "rgba(57,41,42,0.55)";
-  const circlePriceColor = spotsFull ? "#7b1f2c" : "rgba(57,41,42,0.72)";
-  const circleCardBg = spotsFull ? "#f8efe2" : "#faf4ea";
-
   // Dynamic next-window date line
   const nextWindowLine = (() => {
     if (!nextWindowDate) {
@@ -82,12 +68,6 @@ export default function MembershipClient({
   const CheckIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
       <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-  const LockIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-      <rect x="4" y="11" width="16" height="9" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </svg>
   );
 
@@ -148,185 +128,100 @@ export default function MembershipClient({
         </section>
       )}
 
-      {/* ── OPENING CIRCLE FOUNDING CARD ── */}
-      {windowOpen && spotsRemaining > 0 && (
-        <section style={{ maxWidth: "960px", margin: "0 auto", padding: "0 clamp(24px,5vw,64px) clamp(28px,4vw,40px)" }}>
-          <div style={{ border: "2px solid #7b1f2c", borderRadius: "8px", padding: "clamp(32px,5vw,52px)", background: "#f8efe2", boxShadow: "0 12px 32px rgba(45,43,43,0.08)" }}>
+      {/* ── MEMBERSHIP CARD ── */}
+      <section style={{ maxWidth: "960px", margin: "0 auto", padding: "0 clamp(24px,5vw,64px) clamp(28px,4vw,40px)" }}>
+        <div style={{ border: "2px solid #7b1f2c", borderRadius: "8px", padding: "clamp(32px,5vw,52px)", background: "#f8efe2", boxShadow: "0 12px 32px rgba(45,43,43,0.08)" }}>
+          {/* Badge */}
+          <div style={{ marginBottom: "16px" }}>
+            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#568b05", border: "1px solid rgba(86,139,5,0.5)", borderRadius: "12px", padding: "4px 12px", whiteSpace: "nowrap" }}>
+              {isEn ? "No joining fee — first 50" : "Sin cuota de inscripción — primeras 50"}
+            </span>
+          </div>
 
-            {/* Price + CTA row */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "32px", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "26px" }}>
-              <div>
-                {/* Badges */}
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
-                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c" }}>
-                    OPENING CIRCLE
-                  </div>
-                  <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#568b05", border: "1px solid rgba(86,139,5,0.5)", borderRadius: "12px", padding: "3px 10px", whiteSpace: "nowrap" }}>
-                    {isEn ? "Launch offer" : "Oferta de lanzamiento"}
-                  </span>
-                </div>
-                {/* Price */}
-                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "30px", color: "rgba(57,41,42,0.42)", textDecoration: "line-through" }}>{isEn ? "€39" : "39€"}</span>
-                  <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "clamp(44px,6vw,56px)", lineHeight: 1, color: "#7b1f2c" }}>{isEn ? "€29" : "29€"}</span>
-                  <span style={{ fontSize: "17px", color: "rgba(57,41,42,0.6)" }}>{isEn ? "/ month" : "/ mes"}</span>
-                </div>
-                <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.62)", margin: "10px 0 0" }}>{isEn ? "or €79 every 3 months" : "o 79€ cada 3 meses"}</p>
-                <p style={{ fontSize: "13px", lineHeight: "1.5", color: "rgba(57,41,42,0.62)", margin: "3px 0 0" }}>
-                  {isEn
-                    ? `Plus a one-time €${joiningFee} joining fee, charged with your first payment — €${29 + joiningFee} in all. No joining fee at all if you have taken an Event Pass in the last 30 days.`
-                    : `Más una cuota única de inscripción de ${joiningFee}€, que se cobra con tu primer pago — ${29 + joiningFee}€ en total. Sin cuota de inscripción si has tomado un Event Pass en los últimos 30 días.`}
-                </p>
-                {/* Launch note */}
-                <p style={{ fontSize: "13px", lineHeight: "1.55", color: "#568b05", margin: "10px 0 0", maxWidth: "38ch" }}>
-                  {isEn
-                    ? "Enrolling now locks your rate for 12 months — once the 50 spots are gone, Circle price is €39."
-                    : "Inscribirte ahora fija tu tarifa durante 12 meses — cuando se agoten las 50 plazas, el precio del Circle es 39€."}
-                </p>
-              </div>
-              {/* CTA */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
-                <button type="button" onClick={() => setApplyModalOpen(true)} style={{ border: "1px solid #7b1f2c", background: "#7b1f2c", color: "#f8efe2", padding: "14px 30px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "16px", whiteSpace: "nowrap", cursor: "pointer" }}>
-                  {isEn ? "Apply as an Opening Circle member" : "Solicitar plaza del Opening Circle"}
-                </button>
-                <span style={{ fontSize: "12.5px", color: "#568b05" }}>
-                  {isEn ? "Offered once, and never again" : "Una sola vez, y nunca más"}
+          {/* Price + CTA row */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px 40px", justifyContent: "space-between", alignItems: "flex-end", paddingBottom: "22px", borderBottom: "1px solid rgba(57,41,42,0.16)" }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "clamp(44px,6vw,56px)", lineHeight: 1, color: "#7b1f2c", fontVariantNumeric: "tabular-nums" }}>
+                  {isEn ? "€39" : "39€"}
+                </span>
+                <span style={{ fontSize: "17px", color: "rgba(57,41,42,0.6)" }}>
+                  {isEn ? "/ month" : "/ mes"}
                 </span>
               </div>
-            </div>
-
-            {/* Body headline */}
-            <p style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "22px", lineHeight: "1.4", color: "#39292a", margin: "0 0 24px", maxWidth: "40ch" }}>
-              {isEn ? "The full membership, €10 a month less — for our first 50 mothers." : "La membresía completa, 10€ menos al mes — para nuestras primeras 50 madres."}
-            </p>
-
-            {/* Perks */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "13px 32px", marginBottom: "28px" }}>
-              {(isEn ? [
-                "Private member community",
-                "Stage groups — by trimester, child's age and neighbourhood",
-                `${monthlyGrant} experience credits every month, rolling over with no ceiling`,
-                "Walks and park socials included, no credits needed",
-                "Partner perks across five categories",
-                "Priority booking and concierge support",
-              ] : [
-                "Comunidad privada de socias",
-                "Grupos por etapa — por trimestre, edad de tu hijo y barrio",
-                `${monthlyGrant} créditos de experiencia cada mes, acumulables sin techo`,
-                "Paseos y quedadas en el parque incluidos, sin gastar créditos",
-                "Ventajas con partners en cinco categorías",
-                "Reserva prioritaria y atención personal",
-              ]).map((perk, i) => (
-                <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "15px", lineHeight: "1.5" }}>
-                  <span style={{ flexShrink: 0, color: "#568b05", marginTop: "3px" }}><CheckIcon /></span>
-                  <span>{perk}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Fine print block */}
-            <div style={{ borderTop: "1px solid rgba(57,41,42,0.16)", paddingTop: "20px" }}>
-              {/* Scarcity progress bar */}
-              {showSpotsProgress && (
-                <>
-                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "16px", marginBottom: "8px" }}>
-                    <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", color: "#7b1f2c" }}>
-                      {isEn ? "Opening Circle rate, first 50 members" : "Tarifa de Opening Circle, primeras 50 socias"}
-                    </div>
-                    <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)", whiteSpace: "nowrap" }}>
-                      {isEn
-                        ? `${spotsRemaining} of ${FOUNDING_CAP} Opening Circle spots remaining`
-                        : `${spotsRemaining} de ${FOUNDING_CAP} plazas del Opening Circle disponibles`}
-                    </span>
-                  </div>
-                  <div style={{ height: "6px", borderRadius: "3px", background: "rgba(57,41,42,0.12)", overflow: "hidden", marginBottom: "16px" }}>
-                    <div style={{ height: "100%", background: "#7b1f2c", borderRadius: "3px", width: `${spotsPct}%`, transition: "width 0.4s ease" }} />
-                  </div>
-                </>
-              )}
-              {/* Good to know label */}
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "11px", letterSpacing: "0.13em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "8px" }}>
-                {isEn ? "Good to know" : "Conviene saber"}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "7px 32px" }}>
-                {(isEn ? [
-                  "Once the 50 places are taken, membership opens at €39. Your €28 is held for a full twelve months.",
-                  "Applications open one week a month. When the Window is shut, join the waitlist.",
-                  "Pause for up to two months a year at no cost — your credits freeze with you.",
-                  "Credits roll over with no ceiling and expire six months after they are granted. No cancellation fees, ever.",
-                ] : [
-                  "Cuando se ocupen las 50 plazas, la membresía se abre a 39€. Tus 29€ se mantienen doce meses completos.",
-                  "Las solicitudes se abren una semana al mes. Si la Ventana está cerrada, únete a la lista de espera.",
-                  "Puedes pausar exactamente dos meses por año natural sin coste — tus créditos se congelan contigo.",
-                  "Los créditos se acumulan sin techo y caducan a los seis meses. Cancela hasta 24h antes del evento para recuperar tus créditos; las cancelaciones tardías solo se devuelven si se ocupa tu plaza.",
-                ]).map((line, i) => (
-                  <p key={i} style={{ fontSize: "12.5px", lineHeight: "1.5", color: "rgba(57,41,42,0.6)", margin: 0 }}>{line}</p>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── THE CIRCLE CARD ── */}
-      <section style={{ maxWidth: "960px", margin: "0 auto", padding: "0 clamp(24px,5vw,64px) clamp(28px,4vw,40px)" }}>
-        <div style={{ border: circleCardBorder, borderRadius: "8px", padding: "clamp(32px,5vw,52px)", background: circleCardBg, boxShadow: spotsFull ? "0 12px 32px rgba(45,43,43,0.08)" : "none" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "32px", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "28px" }}>
-            <div>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: circleAccent, marginBottom: "10px" }}>THE CIRCLE</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "52px", color: circlePriceColor }}>{isEn ? "€39" : "39€"}</span>
-                <span style={{ fontSize: "16px", color: "rgba(57,41,42,0.55)" }}>{isEn ? "/ month" : "/ mes"}</span>
-              </div>
-              <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.55)", margin: "4px 0 0" }}>
-                {isEn ? "or €99 every 3 months — save around 15%" : "o 99€ cada 3 meses — ahorra alrededor de un 15%"}
+              <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.62)", margin: "10px 0 0" }}>
+                {isEn ? "or €99 every 3 months" : "o 99€ cada 3 meses"}
+              </p>
+              <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.62)", margin: "4px 0 0" }}>
+                {isEn ? `€${joiningFee} joining fee, once — free for our first 50 members` : `${joiningFee}€ de inscripción, una vez — gratis para nuestras primeras 50 socias`}
               </p>
             </div>
-            <div>
-              {circleLocked && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", border: "1px solid rgba(57,41,42,0.25)", color: "rgba(57,41,42,0.5)", padding: "13px 24px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", whiteSpace: "nowrap", background: "rgba(57,41,42,0.04)", cursor: "not-allowed" }}>
-                  <LockIcon />{isEn ? "Opens after the first Membership Window" : "Disponible tras la primera Ventana de membresía"}
-                </span>
-              )}
-              {circleOpen && (
-                <button type="button" onClick={() => setApplyModalOpen(true)} style={{ border: "1px solid #7b1f2c", background: "#7b1f2c", color: "#f8efe2", padding: "13px 28px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", whiteSpace: "nowrap", cursor: "pointer" }}>
-                  {isEn ? "Join now" : "Únete ahora"}
+
+            {windowOpen && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start" }}>
+                <button
+                  type="button"
+                  onClick={() => setApplyModalOpen(true)}
+                  style={{
+                    border: "1px solid #7b1f2c",
+                    background: "#7b1f2c",
+                    color: "#f8efe2",
+                    padding: "14px 30px",
+                    borderRadius: "4px",
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 600,
+                    fontSize: "16px",
+                    whiteSpace: "nowrap",
+                    cursor: "pointer",
+                  }}
+                >
+                  {isEn ? "Apply for membership" : "Solicitar la membresía"}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-          {circleLocked && (
-            <p style={{ fontSize: "14px", lineHeight: "1.55", color: "rgba(57,41,42,0.65)", margin: "0 0 26px", maxWidth: "60ch" }}>
-              {isEn ? "The Circle opens to everyone once the first 50 Opening Circle spots are filled." : "The Circle se abre a todas cuando se completen las primeras 50 plazas del Opening Circle."}
-            </p>
-          )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px 24px", marginBottom: "26px" }}>
+
+          {/* Body headline */}
+          <p style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "23px", lineHeight: "1.35", color: "#39292a", margin: "26px 0 20px", maxWidth: "40ch" }}>
+            {isEn ? "One membership. Everything the club does, and 20 credits a month to spend on it." : "Una sola membresía. Todo lo que hace el club, y 20 créditos al mes para gastarlos."}
+          </p>
+
+          {/* Perks list */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "13px 32px", marginBottom: "28px" }}>
             {(isEn ? [
-              "Private member community",
-              "Stage groups — by trimester, child's age, and neighbourhood",
-              "Included walks & park socials, no credits needed",
-              "20 experience credits every month, rolling over with no ceiling — they expire six months after they land",
-              "Partner discounts across five categories",
-              "Priority booking on every experience",
-              "Priority RSVP & concierge support",
+              "A private community of mothers",
+              "Stage groups by trimester, age and neighbourhood",
+              `${monthlyGrant} credits a month, rolling over`,
+              "Walks and park socials free, always",
+              "Partner perks",
+              "Priority booking on everything",
             ] : [
-              "Comunidad privada de socias",
-              "Grupos por etapa — por trimestre de embarazo, edad del hijo/a y barrio",
-              "Paseos y encuentros en el parque incluidos, sin créditos",
-              "20 créditos de experiencias cada mes, acumulables sin límite — caducan seis meses después de otorgarse",
-              "Descuentos de partners en cinco categorías",
-              "Reserva prioritaria en cada experiencia",
-              "RSVP prioritario y soporte de conserjería",
-            ]).map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "15px", lineHeight: "1.5", color: "rgba(57,41,42,0.8)" }}>
-                <span style={{ flexShrink: 0, color: "rgba(86,139,5,0.65)", marginTop: "3px" }}><CheckIcon /></span>
-                <span>{item}</span>
+              "Una comunidad privada de madres",
+              "Grupos por trimestre, edad y barrio",
+              `${monthlyGrant} créditos al mes, acumulables`,
+              "Paseos y parque gratis, siempre",
+              "Ventajas con partners",
+              "Reserva prioritaria en todo",
+            ]).map((perk, i) => (
+              <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "15px", lineHeight: "1.5" }}>
+                <span style={{ flex: "none", color: "#568b05", marginTop: "3px" }}><CheckIcon /></span>
+                <span>{perk}</span>
               </div>
             ))}
           </div>
-          <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.55)", borderTop: "1px solid rgba(57,41,42,0.16)", paddingTop: "16px", margin: 0 }}>
-            {isEn ? "Pause for up to two months a year at no cost. No cancellation fees, ever." : "Pausa exactamente dos meses por año natural sin coste. Cancela tu membresía en cualquier momento sin penalizaciones."}
-          </p>
+
+          {/* Fine print */}
+          <div style={{ borderTop: "1px solid rgba(57,41,42,0.16)", paddingTop: "18px", display: "flex", flexDirection: "column", gap: "6px" }}>
+            {(isEn ? [
+              "Applications open one week a month. When the Window is shut, join the waitlist.",
+              "Pause for up to two months a year at no cost. Cancel any time, with no fee.",
+            ] : [
+              "Las solicitudes se abren una semana al mes. Si la Ventana está cerrada, únete a la lista de espera.",
+              "Puedes pausar hasta dos meses al año sin coste. Cancela cuando quieras, sin penalización.",
+            ]).map((line, i) => (
+              <p key={i} style={{ fontSize: "13.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.65)", margin: 0 }}>{line}</p>
+            ))}
+          </div>
         </div>
       </section>
 
