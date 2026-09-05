@@ -21,6 +21,7 @@ export const getLanguageLabel = (code: string, currentLang: "en" | "es") => {
 
 export interface PublicEvent {
   id: string;
+  slug?: string | null;
   title: string;
   description?: string | null;
   startsAt: string | Date;
@@ -87,6 +88,101 @@ function getStageLabel(raw: string | null | undefined, lang: Lang): string {
   if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-")) return lang === "en" ? "Children" : "Niños";
   if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10")) return lang === "en" ? "Big Kids" : "Mayores";
   return raw; // fallback: show as-is
+}
+
+const EVENT_I18N: Record<string, { esTitle: string; esDesc: string }> = {
+  "summer supper in the courtyard": {
+    esTitle: "Momento especial — Cena de verano en el patio",
+    esDesc: "Una mesa larga bajo la higuera, un solo menú, sin móviles. Nuestra primera cena del verano.",
+  },
+  "morning walk — ciutadella park": {
+    esTitle: "Paseo matutino — Parque de la Ciutadella",
+    esDesc: "Un paseo tranquilo con carrito por el parque, seguido de un café cerca.",
+  },
+  "park social — turó park lawn": {
+    esTitle: "Encuentro en el parque — Césped del Turó Park",
+    esDesc: "Mantas en la hierba, algo para compartir y ningún horario — ven diez minutos o quédate hasta que se vaya la luz.",
+  },
+  "play date — postnatal yoga": {
+    esTitle: "Play date — Yoga posparto",
+    esDesc: "Yoga posparto suave con tu bebé a tu lado, guiado por una instructora certificada.",
+  },
+  "dinner at can culleretes": {
+    esTitle: "MoM's date — Cena en Can Culleretes",
+    esDesc: "Una cena relajada solo para madres — sin obligación de hablar de peques.",
+  },
+  "vermut on bonavista": {
+    esTitle: "MoM's date — Vermut en Bonavista",
+    esDesc: "Una tarde temprana con vermut y aceitunas. Mesa pequeña, sin agenda, en casa a las diez.",
+  },
+  "sleep q&a with an expert": {
+    esTitle: "Aprender y crecer — Preguntas sobre el sueño con una experta",
+    esDesc: "Una consultora de sueño infantil responde tus preguntas más difíciles sobre las noches.",
+  },
+  "autumn rooftop brunch": {
+    esTitle: "Momento único — Brunch de otoño en la azotea",
+    esDesc: "Un brunch de temporada en una azotea con música en vivo, para socias y sus peques.",
+  },
+  "park güell area": {
+    esTitle: "Paseo con carrito — Zona del Park Güell",
+    esDesc: "Un paseo tranquilo cerca del parque, con parada para merendar a mitad de camino.",
+  },
+  "baby massage class": {
+    esTitle: "Play date — Clase de masaje infantil",
+    esDesc: "Aprende técnicas sencillas de masaje para calmar a tu bebé y fortalecer el vínculo.",
+  },
+  "returning to work panel": {
+    esTitle: "Aprender y crecer — Panel sobre la vuelta al trabajo",
+    esDesc: "Un panel de madres trabajadoras comparte consejos honestos sobre la vuelta al trabajo.",
+  },
+  "hosted coffee — gràcia": {
+    esTitle: "Café con anfitriona — Gràcia",
+    esDesc: "Una mesa reservada, una anfitriona que presenta a todas y un café esperándote. Ocho madres, sin tener que romper el hielo tú sola.",
+  },
+  "hosted brunch — eixample": {
+    esTitle: "Brunch con anfitriona — Eixample",
+    esDesc: "El mismo formato fácil en versión brunch: mesa reservada para nosotras, una anfitriona en el centro y una bebida incluida.",
+  },
+  "asking for what you need at home": {
+    esTitle: "Aprender y crecer — Pedir lo que necesitas en casa",
+    esDesc: "Dos horas sobre la conversación que nadie ensaya: nombrar lo que necesitas de tu pareja o de tu familia, y pedirlo con claridad.",
+  },
+  "tasting menu, private room": {
+    esTitle: "MoM's date — Menú degustación en sala privada",
+    esDesc: "Seis pases en una sola mesa larga, una sala para nosotras y una noche que acaba cuando lo decidimos.",
+  },
+  "one-to-one with a perinatal osteopath": {
+    esTitle: "Signature moment — Sesión 1:1 con osteópata perinatal",
+    esDesc: "Una hora privada completa con una osteópata perinatal, en una sala tranquila, para el cuerpo que sostuvo y sigue sosteniendo.",
+  },
+  "newborn feeding circle": {
+    esTitle: "Play date — Círculo de lactancia",
+    esDesc: "Un pequeño círculo de apoyo para dudas de lactancia en los primeros meses, con una consultora certificada.",
+  },
+};
+
+function getEventDisplayTitle(ev: PublicEvent, lang: Lang): string {
+  if (lang === "es") {
+    const raw = (ev.title || "").toLowerCase();
+    for (const [key, val] of Object.entries(EVENT_I18N)) {
+      if (raw.includes(key) || (ev.slug && ev.slug.toLowerCase().includes(key.replace(/[^a-z0-9]+/g, "-")))) {
+        return val.esTitle;
+      }
+    }
+  }
+  return ev.title;
+}
+
+function getEventDisplayDesc(ev: PublicEvent, lang: Lang): string | null | undefined {
+  if (lang === "es") {
+    const raw = (ev.title || "").toLowerCase();
+    for (const [key, val] of Object.entries(EVENT_I18N)) {
+      if (raw.includes(key) || (ev.slug && ev.slug.toLowerCase().includes(key.replace(/[^a-z0-9]+/g, "-")))) {
+        return val.esDesc;
+      }
+    }
+  }
+  return ev.description;
 }
 
 function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
@@ -321,7 +417,7 @@ function FreeWalkRsvpModal({
               {lang === "en" ? "FREE WALK — OPEN TO EVERYONE" : "PASEO GRATIS — ABIERTO A TODAS"}
             </div>
             <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "26px", lineHeight: 1.2, margin: "0 0 10px", color: "#39292a" }}>
-              {ev.title}
+              {getEventDisplayTitle(ev, lang)}
             </h2>
             <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.68)", margin: "0 0 20px" }}>
               {isUnlimited
@@ -503,7 +599,7 @@ function GuestPassModal({
           {lang === "en" ? "EVENT PASS" : "EVENT PASS"}
         </div>
         <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "26px", lineHeight: 1.2, margin: "0 0 10px", color: "#39292a" }}>
-          {ev.title}
+          {getEventDisplayTitle(ev, lang)}
         </h2>
         <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.68)", margin: "0 0 20px" }}>
           {lang === "en"
@@ -924,7 +1020,7 @@ function EventCard({
 
       {/* Title */}
       <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "19px", margin: 0, lineHeight: 1.3, color: "#39292a" }}>
-        {ev.title}
+        {getEventDisplayTitle(ev, lang)}
       </h3>
 
       {/* Hosted by line */}
@@ -981,9 +1077,9 @@ function EventCard({
       </div>
 
       {/* Description */}
-      {ev.description && (
+      {getEventDisplayDesc(ev, lang) && (
         <p style={{ fontSize: "14px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0, flex: 1 }}>
-          {ev.description}
+          {getEventDisplayDesc(ev, lang)}
         </p>
       )}
 
