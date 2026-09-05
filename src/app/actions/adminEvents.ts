@@ -5,6 +5,71 @@ import { event, booking, person, creditEntry, auditLog, eventCategory, eventStag
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
+export async function publishAdminEvent(eventId: string) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  const existing = await db.select().from(event).where(eq(event.id, eventId));
+  if (existing.length === 0) {
+    return { success: false, error: "EVENT_NOT_FOUND" };
+  }
+  const ev = existing[0];
+
+  // Validation Criteria per Backend & Admin Briefs:
+  if (!ev.title || !ev.venueName || !ev.meetingPoint || !ev.startsAt || !ev.endsAt) {
+    return { success: false, error: "Missing required fields (title, venue, meeting point, dates)." };
+  }
+
+  if (new Date(ev.startsAt).getTime() <= Date.now()) {
+    return { success: false, error: "Cannot publish an event with a date in the past." };
+  }
+
+  if (ev.capacityMember <= 0) {
+    return { success: false, error: "Member capacity must be at least 1." };
+  }
+
+  if (ev.minToConfirm > ev.capacityMember) {
+    return { success: false, error: "Minimum to confirm cannot exceed member capacity." };
+  }
+
+  // If minToConfirm is 0, skips pending and goes directly to confirmed (§4.3)
+  const targetStatus = (ev.minToConfirm || 0) === 0 ? "confirmed" : "published_pending";
+  const now = new Date();
+
+  // Compute T-schedule defaults if not already present
+  const starts = new Date(ev.startsAt);
+  const guestOpenAt = ev.guestOpenAt || new Date(starts.getTime() - 14 * 86400000);
+  const decisionAt = ev.decisionAt || new Date(starts.getTime() - 7 * 86400000);
+  const guestCloseAt = ev.guestCloseAt || new Date(starts.getTime() - 2 * 86400000);
+
+  await db.update(event).set({
+    status: targetStatus,
+    publishedAt: now,
+    confirmedAt: targetStatus === "confirmed" ? now : ev.confirmedAt,
+    guestOpenAt,
+    decisionAt,
+    guestCloseAt,
+    updatedAt: now,
+  }).where(eq(event.id, eventId));
+
+  await db.insert(auditLog).values({
+    actorId: adminId || "admin",
+    actorType: "admin",
+    action: "event.publish",
+    entity: "event",
+    entityId: eventId,
+    before: { status: ev.status },
+    after: { status: targetStatus, publishedAt: now },
+  });
+
+  return { success: true, status: targetStatus };
+}
+
 export async function getAdminEvents() {
   const session = await auth();
   const role = (session?.user as any)?.role;

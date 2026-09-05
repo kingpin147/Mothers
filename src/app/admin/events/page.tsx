@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { MoreHorizontal, Trash2, Archive, Calendar, Users, CheckCircle, Ticket, Edit2, Copy, Printer, X } from "lucide-react";
-import { getAdminEvents, createAdminEvent, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, updateAdminEvent } from "@/app/actions/adminEvents";
+import { getAdminEvents, createAdminEvent, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, updateAdminEvent, publishAdminEvent } from "@/app/actions/adminEvents";
 import { getEventCategories, createEventCategory, deleteEventCategory, deleteEvent } from "@/app/actions/events";
 import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
@@ -238,6 +238,19 @@ export default function AdminEventsPage() {
     }
   };
 
+  const handlePublish = async (id: string) => {
+    if (!confirm("Publish this draft event to the calendar?")) return;
+    setActionLoading(id);
+    const res = await publishAdminEvent(id);
+    setActionLoading(null);
+    if (res.success) {
+      alert(`Event published successfully as ${res.status === "confirmed" ? "Confirmed" : "Published-Gathering"}!`);
+      loadData();
+    } else {
+      alert(res.error || "Failed to publish event");
+    }
+  };
+
   const handleConfirm = async (id: string) => {
     if (!confirm("Confirm this event? All held member bookings will be marked confirmed.")) return;
     setActionLoading(id);
@@ -466,7 +479,7 @@ export default function AdminEventsPage() {
           }
 
           return (
-            <div className="card" style={{ padding: 0, overflowX: "auto", backgroundColor: "#fff", border: "1px solid var(--color-divider)", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div className="card" style={{ padding: 0, overflowX: "auto", minHeight: "360px", paddingBottom: "120px", backgroundColor: "#fff", border: "1px solid var(--color-divider)", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
               <table style={{ width: "100%", minWidth: "1000px", borderCollapse: "collapse", fontSize: "13.5px" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#fbf8f3", borderBottom: "1px solid var(--color-divider)", textAlign: "left" }}>
@@ -563,14 +576,25 @@ export default function AdminEventsPage() {
                           )}
                         </td>
                         <td style={{ padding: "16px 18px", textAlign: "right", verticalAlign: "top" }}>
-                          <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                          <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", alignItems: "center" }}>
+                            {ev.status === "draft" && (
+                              <button
+                                type="button"
+                                onClick={() => handlePublish(ev.id)}
+                                disabled={actionLoading === ev.id}
+                                className="btn btn-outline"
+                                style={{ padding: "6px 12px", fontSize: "12px", borderColor: "#7b1f2c", color: "#7b1f2c", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}
+                              >
+                                <CheckCircle size={13} /> Publish
+                              </button>
+                            )}
                             {isPending && (
                               <button
                                 type="button"
                                 onClick={() => handleConfirm(ev.id)}
                                 disabled={actionLoading === ev.id}
                                 className="btn btn-outline"
-                                style={{ padding: "6px 12px", fontSize: "12px", borderColor: "#1e6833", color: "#1e6833" }}
+                                style={{ padding: "6px 12px", fontSize: "12px", borderColor: "#1e6833", color: "#1e6833", fontWeight: 600 }}
                               >
                                 Confirm
                               </button>
@@ -602,13 +626,18 @@ export default function AdminEventsPage() {
                                   backgroundColor: "#fff",
                                   border: "1px solid var(--color-divider)",
                                   borderRadius: "6px",
-                                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                                  zIndex: 50,
-                                  minWidth: "160px",
+                                  boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                                  zIndex: 999,
+                                  minWidth: "170px",
                                   display: "flex",
                                   flexDirection: "column",
                                   overflow: "hidden"
                                 }}>
+                                  {ev.status === "draft" && (
+                                    <button onClick={() => { handlePublish(ev.id); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "#7b1f2c", fontWeight: 600, borderBottom: "1px solid var(--color-divider)" }}>
+                                      <CheckCircle size={14} /> Publish Event
+                                    </button>
+                                  )}
                                   <button onClick={() => { openRosterModal(ev); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
                                     <Users size={14} /> Ticketing Desk
                                   </button>
@@ -640,8 +669,8 @@ export default function AdminEventsPage() {
                     );
                   })}
                 </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
           );
         })()}
 
