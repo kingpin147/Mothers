@@ -1,13 +1,11 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
 import { event, eventPass, person } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 /**
  * POST /api/stripe/guest-pass

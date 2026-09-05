@@ -4,9 +4,6 @@ import { db } from "@/db";
 import { member, person, creditEntry, booking, event, eventCategory, eventPass, partner } from "@/db/schema";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2025-01-27.acacia" as any });
 
 export async function getAccountData() {
   const session = await auth();
@@ -218,6 +215,7 @@ export async function cancelMembership() {
 
     // If Stripe subscription exists, set cancel_at_period_end via Stripe
     if (memberRecord.stripeSubscriptionId) {
+      const { stripe } = await import("@/lib/stripe");
       await stripe.subscriptions.update(memberRecord.stripeSubscriptionId, {
         cancel_at_period_end: true,
       });
@@ -253,6 +251,7 @@ export async function getStripePortalUrl() {
       return { success: false, error: "STRIPE_CUSTOMER_NOT_FOUND" };
     }
 
+    const { stripe } = await import("@/lib/stripe");
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: memberRecord.stripeCustomerId,
       return_url: `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/account`,
