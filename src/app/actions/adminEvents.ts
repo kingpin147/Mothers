@@ -34,6 +34,9 @@ export async function getAdminEvents() {
 export async function createAdminEvent(data: {
   title: string;
   categoryId?: string;
+  category?: string;
+  partnerId?: string;
+  host?: string;
   description?: string;
   neighbourhood: string;
   venueName: string;
@@ -63,6 +66,17 @@ export async function createAdminEvent(data: {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 
+  // Resolve categoryId if category name/string is supplied
+  let resolvedCategoryId = data.categoryId || null;
+  if (!resolvedCategoryId && data.category) {
+    const allCats = await db.select().from(eventCategory);
+    const catLower = data.category.toLowerCase();
+    const found = allCats.find(c => c.name.toLowerCase().includes(catLower) || c.slug.toLowerCase().includes(catLower));
+    if (found) {
+      resolvedCategoryId = found.id;
+    }
+  }
+
   const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-${Date.now().toString().slice(-4)}`;
 
   const inserted = await db
@@ -70,7 +84,7 @@ export async function createAdminEvent(data: {
     .values({
       title: data.title,
       slug,
-      categoryId: data.categoryId || null,
+      categoryId: resolvedCategoryId,
       description: data.description || "A curated club gathering for mothers in Barcelona.",
       neighbourhood: data.neighbourhood || "Barcelona",
       venueName: data.venueName,
@@ -82,9 +96,10 @@ export async function createAdminEvent(data: {
       capacityGuest: data.capacityGuest,
       capacityGuestGathering: data.capacityGuestGathering,
       minToConfirm: data.minToConfirm || 4,
-      isSignature: !!data.isSignature,
+      isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
       isFreeWalk: data.creditCost === 0,
       showEventPassCta: !!data.showEventPassCta,
+      partnerId: data.partnerId || data.host || null,
       status: data.status || "published_pending",
       languages: data.languages || [],
       guestOpenAt: data.guestOpenAt,
@@ -130,6 +145,9 @@ export async function createAdminEvent(data: {
 export async function updateAdminEvent(eventId: string, data: {
   title?: string;
   categoryId?: string;
+  category?: string;
+  partnerId?: string;
+  host?: string;
   description?: string;
   neighbourhood?: string;
   venueName?: string;
@@ -161,11 +179,26 @@ export async function updateAdminEvent(eventId: string, data: {
   const timeChanged = data.startsAt && new Date(data.startsAt).getTime() !== new Date(existing.startsAt).getTime();
   const venueChanged = (data.venueName && data.venueName !== existing.venueName) || (data.meetingPoint && data.meetingPoint !== existing.meetingPoint);
 
+  // Resolve categoryId if category name/string is supplied
+  let resolvedCategoryId = data.categoryId;
+  if (resolvedCategoryId === undefined && data.category) {
+    const allCats = await db.select().from(eventCategory);
+    const catLower = data.category.toLowerCase();
+    const found = allCats.find(c => c.name.toLowerCase().includes(catLower) || c.slug.toLowerCase().includes(catLower));
+    if (found) {
+      resolvedCategoryId = found.id;
+    }
+  }
+
+  const isSig = data.isSignature !== undefined
+    ? data.isSignature
+    : (data.category?.toLowerCase().includes("signature") ?? existing.isSignature);
+
   await db
     .update(event)
     .set({
       ...(data.title !== undefined && { title: data.title }),
-      ...(data.categoryId !== undefined && { categoryId: data.categoryId || null }),
+      ...(resolvedCategoryId !== undefined && { categoryId: resolvedCategoryId || null }),
       ...(data.description !== undefined && { description: data.description }),
       ...(data.neighbourhood !== undefined && { neighbourhood: data.neighbourhood }),
       ...(data.venueName !== undefined && { venueName: data.venueName }),
@@ -177,8 +210,9 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.capacityGuest !== undefined && { capacityGuest: data.capacityGuest }),
       ...(data.capacityGuestGathering !== undefined && { capacityGuestGathering: data.capacityGuestGathering }),
       ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
-      ...(data.isSignature !== undefined && { isSignature: !!data.isSignature }),
+      ...(isSig !== undefined && { isSignature: isSig }),
       ...(data.showEventPassCta !== undefined && { showEventPassCta: !!data.showEventPassCta }),
+      ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
       ...(data.languages !== undefined && { languages: data.languages }),
       updatedAt: new Date(),
     })

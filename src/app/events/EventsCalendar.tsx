@@ -93,7 +93,12 @@ function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
   if (isMember) return false;
   if (ev.creditCost === 0 || ev.isFreeWalk) return false;
   if (ev.isSignature || ev.creditCost > 18) return false;
-  if (ev.status !== "confirmed" && !ev.showEventPassCta) return false;
+  if (ev.status === "cancelled" || ev.status === "completed") return false;
+
+  // If explicitly activated by admin in the backend:
+  if (ev.showEventPassCta) return true;
+
+  if (ev.status !== "confirmed") return false;
 
   const starts = new Date(ev.startsAt);
   const now = new Date();
@@ -107,6 +112,47 @@ function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
   }
 
   return true;
+}
+
+function getCategoryInfo(ev: PublicEvent, lang: Lang): { key: string; label: string } {
+  if (ev.isSignature) {
+    return {
+      key: "signature",
+      label: lang === "en" ? "Signature moments" : "Momentos únicos",
+    };
+  }
+
+  const raw = `${ev.categorySlug || ""} ${ev.categoryName || ""} ${ev.title || ""}`.toLowerCase();
+
+  if (raw.includes("walk") || raw.includes("social") || raw.includes("easy") || raw.includes("conexi") || ev.isFreeWalk || ev.creditCost === 0) {
+    return {
+      key: "easy",
+      label: lang === "en" ? "Easy connection" : "Conexión fácil",
+    };
+  }
+  if (raw.includes("play") || raw.includes("baby") || raw.includes("bebé") || raw.includes("infan")) {
+    return {
+      key: "baby",
+      label: lang === "en" ? "Play date" : "Play date",
+    };
+  }
+  if (raw.includes("evening") || raw.includes("dinner") || raw.includes("date") || raw.includes("vermut") || raw.includes("cena") || raw.includes("cocktail") || raw.includes("wine") || raw.includes("picnic") || raw.includes("mom")) {
+    return {
+      key: "evenings",
+      label: lang === "en" ? "MoM's date" : "MoM's date",
+    };
+  }
+  if (raw.includes("learn") || raw.includes("grow") || raw.includes("work") || raw.includes("tall") || raw.includes("apren") || raw.includes("class") || raw.includes("tennis") || raw.includes("fit") || raw.includes("yoga")) {
+    return {
+      key: "learn",
+      label: lang === "en" ? "Learn & Grow" : "Aprender y crecer",
+    };
+  }
+
+  return {
+    key: "easy",
+    label: lang === "en" ? "Easy connection" : "Conexión fácil",
+  };
 }
 
 function getCardBg(ev: PublicEvent, isPast?: boolean): string {
@@ -816,12 +862,14 @@ function EventCard({
     }
   };
 
+  const catInfo = getCategoryInfo(ev, lang);
+
   return (
     <article
       style={{
         border: `1px solid ${getCardBorder(ev, isPast)}`,
         borderRadius: "8px",
-        padding: "22px 24px",
+        padding: "24px 22px",
         backgroundColor: getCardBg(ev, isPast),
         display: "flex",
         flexDirection: "column",
@@ -838,12 +886,12 @@ function EventCard({
                 {lang === "en" ? "Cancelled" : "Cancelado"}
               </span>
             )}
-            <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "var(--color-accent)", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap", background: "rgba(255,255,255,0.6)" }}>
-              {ev.categoryName || ev.categorySlug || "General"}
+            <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap", background: "rgba(255,255,255,0.6)" }}>
+              {catInfo.label}
             </span>
           </div>
           {/* Credit cost */}
-          <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.7)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 500 }}>
+          <span style={{ fontSize: "11.5px", color: "rgba(57,41,42,0.7)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 500, paddingTop: "3px" }}>
             {ev.creditCost === 0 || ev.isFreeWalk
               ? (lang === "en" ? "Included" : "Incluido")
               : `${ev.creditCost} ${lang === "en" ? "credits" : "créditos"}`}
@@ -853,7 +901,7 @@ function EventCard({
         {/* Row 2: Stage & Online */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
           <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
-            {ev.stage ? getStageLabel(ev.stage, lang) : (lang === "en" ? "Open to every stage" : "Abierto a todas las etapas")}
+            {ev.stage && ev.stage !== "All Stages" ? getStageLabel(ev.stage, lang) : (lang === "en" ? "Open to every stage" : "Abierto a todas las etapas")}
           </span>
           {ev.isOnline && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.6)", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "10px", padding: "3px 9px", whiteSpace: "nowrap", background: "rgba(255,255,255,0.6)" }}>
@@ -883,9 +931,13 @@ function EventCard({
       {ev.partnerName && (
         <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.55)" }}>
           {lang === "en" ? "Hosted by " : "Organizado por "}
-          <Link href={ev.partnerSlug ? `/partners#${ev.partnerSlug}` : "/partners"} style={{ color: "rgba(57,41,42,0.55)", textDecoration: "underline" }}>
-            {ev.partnerName}
-          </Link>
+          {ev.partnerSlug ? (
+            <Link href={`/partners#${ev.partnerSlug}`} style={{ color: "rgba(57,41,42,0.55)", textDecoration: "underline" }}>
+              {ev.partnerName}
+            </Link>
+          ) : (
+            <span style={{ color: "rgba(57,41,42,0.65)" }}>{ev.partnerName}</span>
+          )}
         </div>
       )}
 
@@ -913,10 +965,17 @@ function EventCard({
         )}
         {ev.audienceType && (
           <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
-            {ev.audienceType === "moms_only"
-              ? (lang === "en" ? "Moms only" : "Solo madres")
-              : (lang === "en" ? "Moms + Child" : "Madres con peques")}
+            {ev.audienceType === "moms_only" ? (
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
+                <span>{lang === "en" ? "Moms only" : "Solo madres"}</span>
+              </>
+            ) : (
+              <>
+                <svg viewBox="0 0 30 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="14" style={{ flexShrink: 0 }}><circle cx="10" cy="8" r="4" /><path d="M2 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /><circle cx="24" cy="11" r="2.6" /><path d="M18.5 21c0-2.9 2.5-5.2 5.5-5.2s5.5 2.3 5.5 5.2" /></svg>
+                <span>{lang === "en" ? "Moms + Child" : "Madres con peques"}</span>
+              </>
+            )}
           </span>
         )}
       </div>
@@ -966,25 +1025,6 @@ function EventCard({
             {ev.capacityTotal ? (
               <span style={{ color: (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 3) ? "#8a6516" : "rgba(57,41,42,0.7)" }}>
                 {lang === "en" ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}` : `Plazas disponibles: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`}
-                {(() => {
-                  const now = new Date();
-                  const starts = new Date(ev.startsAt);
-                  // Guest window closed — only show if the guest sub-cap is actually exhausted
-                  // (i.e. bookedGuest >= capacityGuest). Never show if nobody has booked yet.
-                  const guestCapFull = ev.capacityGuest != null && ev.capacityGuest > 0 &&
-                    (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined) &&
-                    (ev.capacityTotal != null) &&
-                    ((ev.capacityTotal - (ev.capacityRemaining ?? ev.capacityTotal)) >= ev.capacityGuest);
-                  const windowExpired = !isMember && ev.status === "confirmed" && !ev.isSignature && ev.creditCost > 0 && ev.creditCost <= 18 && (
-                    ev.guestCloseAt ? now > new Date(ev.guestCloseAt) : (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24) < 2
-                  );
-                  if (windowExpired && guestCapFull) return (lang === "en" ? " · guest places have closed" : " · las plazas de invitada se han cerrado");
-                  if (isMember && isFull && !ev.userStatus?.isWaitlisted) return (lang === "en" ? " · no credits taken to wait" : " · no se cobran créditos por esperar");
-                  if (isMember && !isFull && !ev.userStatus?.isBooked && ev.creditCost > 0 && ev.creditCost <= 18) {
-                    return (lang === "en" ? ` · you have ${creditBalance} credits` : ` · tienes ${creditBalance} créditos`);
-                  }
-                  return "";
-                })()}
               </span>
             ) : (
               <span>{lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"}</span>
@@ -1256,15 +1296,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const filtered = events.filter((ev) => {
     // 1. Category match
     if (activeCategory !== "all") {
-      const cat = (ev.categorySlug || ev.categoryName || "").toLowerCase();
-      let mappedCat = "general";
-      if (cat.includes("walk") || cat.includes("easy") || cat.includes("social") || cat.includes("fácil")) mappedCat = "easy";
-      else if (cat.includes("play") || cat.includes("baby") || cat.includes("date")) mappedCat = "baby";
-      else if (cat.includes("mom") || cat.includes("evening") || cat.includes("dinner") || cat.includes("cena")) mappedCat = "evenings";
-      else if (cat.includes("learn") || cat.includes("aprender") || cat.includes("grow") || cat.includes("workshop") || cat.includes("taller")) mappedCat = "learn";
-      else if (cat.includes("signature") || ev.isSignature) mappedCat = "signature";
-      
-      if (activeCategory !== mappedCat) return false;
+      const catInfo = getCategoryInfo(ev, "en");
+      if (activeCategory !== catInfo.key) return false;
     }
 
     // 2. Date match
@@ -1304,90 +1337,118 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       if (derivedStatus !== "confirmed") return false;
     } else if (activeStatus === "pending") {
       if (derivedStatus !== "pending") return false;
-    } else {
-      // "all" filter: "Past events live behind the Past filter, never under 'Upcoming'."
-      // Hide past and cancelled events from the default "All" view.
-      if (isPastEvent || isCancelled) return false;
     }
 
     return true;
   });
 
+  // Sort: Active and upcoming events first (ascending by date), cancelled and past events below
+  const sortedEvents = [...filtered].sort((a, b) => {
+    const isPastA = a.status === "past" || a.status === "completed" ||
+      (a.endsAt ? new Date(a.endsAt) < now : new Date(a.startsAt) < now);
+    const isCancelledA = a.status === "cancelled";
+    const isInactiveA = isPastA || isCancelledA;
+
+    const isPastB = b.status === "past" || b.status === "completed" ||
+      (b.endsAt ? new Date(b.endsAt) < now : new Date(b.startsAt) < now);
+    const isCancelledB = b.status === "cancelled";
+    const isInactiveB = isPastB || isCancelledB;
+
+    // Active & upcoming events come before inactive (past/cancelled) events
+    if (!isInactiveA && isInactiveB) return -1;
+    if (isInactiveA && !isInactiveB) return 1;
+
+    // Both active & upcoming: sort ascending (soonest first)
+    if (!isInactiveA && !isInactiveB) {
+      return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+    }
+
+    // Both inactive (past/cancelled): sort descending (most recent first)
+    return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
+  });
+
   return (
-    <div style={{ backgroundColor: "#f8efe2", minHeight: "100vh", padding: "clamp(48px, 6vw, 88px) clamp(24px, 5vw, 64px)" }}>
+    <div style={{ backgroundColor: "#FEFDF9", minHeight: "100vh", padding: "clamp(48px, 6vw, 88px) clamp(24px, 5vw, 64px)" }}>
       <div style={{ maxWidth: "1160px", margin: "0 auto" }}>
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "36px" }}>
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent)", marginBottom: "12px" }}>
             {lang === "en" ? "CALENDAR" : "CALENDARIO"}
           </div>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(34px, 5vw, 54px)", fontWeight: 400, lineHeight: 1.1, margin: "0 0 28px 0" }}>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(34px, 5vw, 54px)", fontWeight: 400, lineHeight: 1.1, margin: "0 0 16px 0" }}>
             {lang === "en" ? "Upcoming events." : "Próximos eventos."}
           </h1>
-
+          <p style={{ fontSize: "16.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.72)", margin: "0 auto", maxWidth: "600px" }}>
+            {lang === "en"
+              ? "Walks, workshops, dinners, and seasonal moments \u2014 browse what's coming up and book your place."
+              : "Paseos, talleres, cenas y momentos de temporada \u2014 mira lo que se viene y reserva tu lugar."}
+          </p>
         </div>
 
         {/* ─── 3 FILTER ROWS MATCHING EXACT MODEL ─── */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "36px" }}>
-          {/* Row 1: Categories */}
-          <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "10px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
-            {categoryChips.map((chip) => {
-              const selected = activeCategory === chip.id;
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  onClick={() => setActiveCategory(chip.id)}
-                  style={{
-                    border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.22)",
-                    backgroundColor: "transparent",
-                    color: selected ? "#7b1f2c" : "#39292a",
-                    fontWeight: selected ? 600 : 400,
-                    padding: "9px 18px",
-                    borderRadius: "20px",
-                    fontSize: "13.5px",
-                    fontFamily: "var(--font-body)",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {lang === "en" ? chip.labelEn : chip.labelEs}
-                </button>
-              );
-            })}
+        <div style={{ marginBottom: "36px" }}>
+          {/* Categories & Dates Group */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px" }}>
+            {/* Row 1: Categories */}
+            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "10px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
+              {categoryChips.map((chip) => {
+                const selected = activeCategory === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setActiveCategory(chip.id)}
+                    style={{
+                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.22)",
+                      backgroundColor: "transparent",
+                      color: selected ? "#7b1f2c" : "#39292a",
+                      fontWeight: selected ? 600 : 400,
+                      padding: "9px 18px",
+                      borderRadius: "20px",
+                      fontSize: "13.5px",
+                      fontFamily: "var(--font-body)",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {lang === "en" ? chip.labelEn : chip.labelEs}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Row 2: Dates */}
+            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
+              {dateChips.map((chip) => {
+                const selected = activeDateFilter === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setActiveDateFilter(chip.id)}
+                    style={{
+                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.2)",
+                      backgroundColor: "transparent",
+                      color: selected ? "#7b1f2c" : "rgba(57,41,42,0.7)",
+                      fontWeight: selected ? 600 : 400,
+                      padding: "7px 15px",
+                      borderRadius: "20px",
+                      fontSize: "12.5px",
+                      fontFamily: "var(--font-body)",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {lang === "en" ? chip.labelEn : chip.labelEs}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Row 2: Dates */}
-          <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
-            {dateChips.map((chip) => {
-              const selected = activeDateFilter === chip.id;
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  onClick={() => setActiveDateFilter(chip.id)}
-                  style={{
-                    border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.2)",
-                    backgroundColor: "transparent",
-                    color: selected ? "#7b1f2c" : "rgba(57,41,42,0.7)",
-                    fontWeight: selected ? 600 : 400,
-                    padding: "7px 15px",
-                    borderRadius: "20px",
-                    fontSize: "12.5px",
-                    fontFamily: "var(--font-body)",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {lang === "en" ? chip.labelEn : chip.labelEs}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Row 3: Status / State with Authentic Swatches */}
+          {/* Row 3: Status / State with Authentic Swatches (Separated from Categories & Dates) */}
           <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", alignItems: "center", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
             {statusChips.map((chip) => {
               const selected = activeStatus === chip.id;
@@ -1431,7 +1492,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         </div>
 
         {/* ─── EVENTS GRID ─── */}
-        {filtered.length === 0 ? (
+        {sortedEvents.length === 0 ? (
           <div style={{ textAlign: "center", padding: "64px 24px", color: "var(--color-text-muted)" }}>
             <p style={{ fontFamily: "var(--font-heading)", fontSize: "20px", margin: "0 0 8px" }}>
               {lang === "en" ? "No events match these filters." : "Ningún evento coincide con estos filtros."}
@@ -1442,7 +1503,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>
-            {filtered.map((ev) => (
+            {sortedEvents.map((ev) => (
               <EventCard
                 key={ev.id}
                 ev={ev}

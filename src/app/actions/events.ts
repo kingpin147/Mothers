@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, eventCategory, booking, auditLog, eventWaitlist, member } from "@/db/schema";
+import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner } from "@/db/schema";
 import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
@@ -19,7 +19,7 @@ export async function getPublicEvents() {
       .from(eventCategory)
       .orderBy(asc(eventCategory.sortOrder));
 
-    // 2. Fetch active events with category
+    // 2. Fetch active events with category & partner
     const events = await db
       .select({
         id: event.id,
@@ -32,6 +32,9 @@ export async function getPublicEvents() {
         description: event.description,
         neighbourhood: event.neighbourhood,
         venueName: event.venueName,
+        partnerId: event.partnerId,
+        partnerName: partner.name,
+        partnerSlug: partner.id,
         startsAt: event.startsAt,
         endsAt: event.endsAt,
         creditCost: event.creditCost,
@@ -51,6 +54,7 @@ export async function getPublicEvents() {
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+      .leftJoin(partner, eq(event.partnerId, partner.id))
       .where(
         and(
           sql`${event.status} IN ('published_pending', 'confirmed', 'completed', 'cancelled')`,
@@ -173,7 +177,9 @@ export async function getPublicEvents() {
 
       return {
         ...ev,
-        category: ev.categoryName || "General",
+        partnerName: ev.partnerName || ev.partnerId || null,
+        partnerSlug: ev.partnerSlug || (ev.partnerId && ev.partnerId.length < 50 ? ev.partnerId.toLowerCase().replace(/[^a-z0-9]+/g, "-") : null),
+        category: ev.categoryName || "Easy connection",
         stage: ev.stage || "All Stages",
         dateStr,
         timeStr: ends ? `${startTimeStr} – ${endTimeStr}` : startTimeStr,

@@ -110,7 +110,10 @@ export default function AdminCreateEventPage() {
     
     const res = await createAdminEvent({
       title,
-      categoryId: undefined, // category is just a string here matching UI, might need mapping to ID in real app
+      category,
+      partnerId: host.trim() || undefined,
+      host: host.trim() || undefined,
+      isSignature: category === "Signature moments",
       neighbourhood,
       venueName,
       meetingPoint,

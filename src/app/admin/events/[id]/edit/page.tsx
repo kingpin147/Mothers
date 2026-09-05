@@ -51,6 +51,7 @@ export default function AdminEditEventPage() {
         const ev = res.event;
         setTitle(ev.title || "");
         if (ev.categoryId) setCategory(ev.categoryId);
+        if (ev.partnerId) setHost(ev.partnerId);
         setNeighbourhood(ev.neighbourhood || "Ciutat Vella");
         setVenueName(ev.venueName || "");
         setMeetingPoint(ev.meetingPoint || "");
@@ -133,7 +134,10 @@ export default function AdminEditEventPage() {
     
     const res = await updateAdminEvent(eventId, {
       title,
-      categoryId: undefined, // category is just a string here matching UI, might need mapping to ID in real app
+      category,
+      partnerId: host.trim() || undefined,
+      host: host.trim() || undefined,
+      isSignature: category === "Signature moments",
       neighbourhood,
       venueName,
       meetingPoint,
