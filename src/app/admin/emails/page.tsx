@@ -135,6 +135,74 @@ const TEMPLATES = [
     `),
   },
   {
+    key: "password_reset",
+    tone: "Secure, clear and functional",
+    subject: "Reset your password — The Mothers",
+    trigger: "Sent when member requests password reset",
+    html: BASE_WRAPPER(`
+      <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; font-weight: 400; margin: 0 0 16px;">Reset your password</h2>
+      <p style="font-size: 15px;">We received a request to reset your password for The Mothers. Click below to set a new password:</p>
+      ${CTA_BUTTON("https://themothers.cc/account/reset-password?token=TOKEN", "Set New Password")}
+      <p style="font-size: 13px; color: rgba(57,41,42,0.6);">This link works once and expires in 1 hour. If you did not ask for this, you can safely ignore this email.</p>
+    `),
+  },
+  {
+    key: "guest_place_booked",
+    tone: "Welcoming and precise for non-members",
+    subject: "Your guest pass — Morning Yoga at Nàutic · Thu 12 Sep",
+    trigger: "Sent immediately upon purchasing an Event Pass",
+    html: BASE_WRAPPER(`
+      <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; font-weight: 400; margin: 0 0 16px;">Your guest pass is confirmed, Sofia.</h2>
+      <div style="background: #fff; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px; padding: 20px 24px; margin: 20px 0;">
+        <div style="font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 19px; margin-bottom: 6px;">Morning Yoga at Nàutic</div>
+        <div style="font-size: 14px; color: rgba(57,41,42,0.7); line-height: 1.8;">
+          Thursday 12 September · 10:00<br/>
+          Nàutic Barcelona, Moll d'Espanya · €35 Pass<br/>
+          Meeting Point: Look for the group by the pergola on the north terrace.
+        </div>
+      </div>
+      <p style="font-size: 14px; color: rgba(57,41,42,0.7);">If you join The Mothers within 30 days, your €19 joining fee is waived entirely.</p>
+    `),
+  },
+  {
+    key: "window_is_open",
+    tone: "Announcing guest pass availability",
+    subject: "Guest places are now open for Morning Yoga at Nàutic",
+    trigger: "Sent at T-14 when guest bookings open for an event",
+    html: BASE_WRAPPER(`
+      <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; font-weight: 400; margin: 0 0 16px;">Guest places are now open.</h2>
+      <p style="font-size: 15px;">Guest passes for <strong>Morning Yoga at Nàutic</strong> are on sale from today until two days before the gathering (T-2).</p>
+      ${CTA_BUTTON("https://themothers.cc/events/morning-yoga", "Book a Guest Pass (€35)")}
+    `),
+  },
+  {
+    key: "event_cancelled_guest",
+    tone: "Empathetic, clear refund notice for guests",
+    subject: "Morning Yoga at Nàutic has been cancelled — refund issued",
+    trigger: "Sent to guest pass purchasers when an event is cancelled",
+    html: BASE_WRAPPER(`
+      <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; font-weight: 400; margin: 0 0 16px;">Morning Yoga has been cancelled.</h2>
+      <p style="font-size: 15px;">We are sorry to let you know that we've had to cancel Thursday's gathering.</p>
+      <p style="font-size: 15px;">A full refund of <strong>€35</strong> has been automatically processed to your original payment card and will appear within 3–5 business days. Your pass allowance has also been restored.</p>
+    `),
+  },
+  {
+    key: "event_details_updated",
+    tone: "Direct, courteous update on venue or time changes",
+    subject: "Important update regarding Morning Yoga at Nàutic",
+    trigger: "Sent when an admin updates the date, time, venue, or meeting point of a booked event",
+    html: BASE_WRAPPER(`
+      <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; font-weight: 400; margin: 0 0 16px;">Update for Morning Yoga at Nàutic</h2>
+      <p style="font-size: 15px;">We have updated the schedule or location details for this gathering:</p>
+      <div style="background: #ffffff; padding: 16px; border-radius: 4px; border-left: 3px solid #7b1f2c; margin: 16px 0;">
+        <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>New Date & Time:</strong> Thursday 12 September · 10:30</p>
+        <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Venue:</strong> Nàutic Barcelona, Moll d'Espanya</p>
+        <p style="margin: 0; font-size: 14px;"><strong>Meeting Point:</strong> Main Lobby Entrance</p>
+      </div>
+      <p style="font-size: 14px; line-height: 1.5; color: rgba(57,41,42,0.8);">If the new schedule no longer works for you, you can release your place anytime from your account without penalty, and all credits will be returned to your balance.</p>
+    `),
+  },
+  {
     key: "after_your_event",
     tone: "Warm, brief — invites feedback without demanding it",
     subject: "How was Morning Yoga yesterday?",

@@ -313,12 +313,15 @@ export async function savePartner(data: {
   name: string;
   umbrella: string;
   specialty: string;
-  description: string;
+  description?: string;
   offerForMembers: string;
   discountCode?: string;
+  exclusive?: boolean;
+  status?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     await verifyAdminRole();
+    const isExclusive = data.exclusive ?? false;
     if (data.id) {
       await db
         .update(partner)
@@ -326,9 +329,12 @@ export async function savePartner(data: {
           name: data.name,
           umbrella: data.umbrella,
           specialty: data.specialty,
-          description: data.description,
+          description: data.description || "Curated club partner",
           offerForMembers: data.offerForMembers,
           discountCode: data.discountCode || null,
+          status: data.status || "active",
+          exclusiveFrom: isExclusive ? new Date() : null,
+          exclusiveUntil: isExclusive ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
           updatedAt: new Date(),
         })
         .where(eq(partner.id, data.id));
@@ -337,9 +343,12 @@ export async function savePartner(data: {
         name: data.name,
         umbrella: data.umbrella,
         specialty: data.specialty,
-        description: data.description,
+        description: data.description || "Curated club partner",
         offerForMembers: data.offerForMembers,
         discountCode: data.discountCode || null,
+        status: data.status || "active",
+        exclusiveFrom: isExclusive ? new Date() : null,
+        exclusiveUntil: isExclusive ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
       });
     }
 

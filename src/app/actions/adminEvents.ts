@@ -162,6 +162,7 @@ export async function updateAdminEvent(eventId: string, data: {
   isSignature?: boolean;
   showEventPassCta?: boolean;
   languages?: string[];
+  changeNote?: string;
   status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
 }) {
   const session = await auth();
@@ -230,7 +231,7 @@ export async function updateAdminEvent(eventId: string, data: {
     entity: "event",
     entityId: eventId,
     before: { startsAt: existing.startsAt, venueName: existing.venueName, meetingPoint: existing.meetingPoint },
-    after: data,
+    after: { ...data, changeNote: data.changeNote },
   });
 
   // If date/time/venue changed on an active event with bookings, notify all booked attendees (Dev Brief §3.5b)
@@ -272,6 +273,7 @@ export async function updateAdminEvent(eventId: string, data: {
               <h2 style="font-size: 22px; color: #7b1f2c; margin-top: 0;">Important update for ${eventTitle}</h2>
               <p style="font-size: 15px; line-height: 1.6;">Dear ${b.firstName || "Member"},</p>
               <p style="font-size: 15px; line-height: 1.6;">We have updated the schedule or location details for this gathering:</p>
+              ${data.changeNote ? `<p style="font-size: 14.5px; line-height: 1.5; font-style: italic; background: rgba(123,31,44,0.06); padding: 10px 14px; border-left: 2px solid #7b1f2c;">"${data.changeNote}"</p>` : ''}
               <div style="background: #ffffff; padding: 16px; border-radius: 4px; border-left: 3px solid #7b1f2c; margin: 16px 0;">
                 <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>New Date & Time:</strong> ${dateFormatted}</p>
                 <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Venue:</strong> ${data.venueName || existing.venueName}</p>

@@ -42,6 +42,8 @@ export default function AdminEditEventPage() {
   const [schGuestsOpen, setSchGuestsOpen] = useState("T-14");
   const [schDecision, setSchDecision] = useState("T-7");
   const [schGuestsClose, setSchGuestsClose] = useState("T-2");
+  const [bookingCount, setBookingCount] = useState(0);
+  const [changeNote, setChangeNote] = useState("");
 
   useEffect(() => {
     async function loadEvent() {
@@ -50,6 +52,7 @@ export default function AdminEditEventPage() {
       const res = await getEventRoster(eventId);
       if (res.success && res.event) {
         const ev = res.event;
+        setBookingCount(res.bookings?.length || 0);
         setTitle(ev.title || "");
         if (ev.categoryId) setCategory(ev.categoryId);
         if (ev.partnerId) setHost(ev.partnerId);
@@ -154,6 +157,7 @@ export default function AdminEditEventPage() {
       description,
       languages: langs,
       showEventPassCta: passCta,
+      changeNote: changeNote.trim() || undefined,
       status: targetStatus,
     });
 
@@ -193,6 +197,26 @@ export default function AdminEditEventPage() {
           </div>
           <Link href="/admin/events" style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", padding: "6px 0" }}>← Close</Link>
         </div>
+
+        {bookingCount > 0 && (
+          <div style={{ margin: "20px clamp(22px,3vw,32px) 0", padding: "14px 18px", background: "#fffdf6", border: "1px solid rgba(182,130,53,0.5)", borderRadius: "6px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "4px" }}>
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#a4761f" }}>
+                Active bookings ({bookingCount} {bookingCount === 1 ? 'mother' : 'mothers'} booked)
+              </span>
+            </div>
+            <p style={{ fontSize: "13px", lineHeight: 1.55, color: "rgba(57,41,42,0.78)", margin: "0 0 10px" }}>
+              If you change the date, start/end time, venue, or meeting point, an update email will automatically be sent to all booked attendees. Provide a brief 1-sentence explanation note below:
+            </p>
+            <input 
+              type="text" 
+              value={changeNote} 
+              onChange={(e) => setChangeNote(e.target.value)} 
+              placeholder="e.g. Moved indoors to Salon 2 due to expected weather."
+              style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "9px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", background: "#fff" }}
+            />
+          </div>
+        )}
 
         <div style={{ padding: "clamp(22px,3vw,32px)", display: "flex", flexDirection: "column", gap: "28px" }}>
           

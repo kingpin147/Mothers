@@ -24,6 +24,9 @@ export default function AdminDashboardPage() {
   const [cronRunning, setCronRunning] = useState<string | null>(null);
   const [actionRunning, setActionRunning] = useState<string | null>(null);
 
+  const [activeDraftWarning, setActiveDraftWarning] = useState<any | null>(null);
+  const [copiedDraft, setCopiedDraft] = useState(false);
+
   const fetchMetrics = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
@@ -222,12 +225,74 @@ export default function AdminDashboardPage() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
                   <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", color: "#39292a", border: "1px solid rgba(182,130,53,0.65)", borderRadius: "4px", padding: "5px 11px", whiteSpace: "nowrap" }}>{w.group}</span>
-                  <Link href={`/admin/events/${w.id}`} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "8px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap", textDecoration: "none" }}>Draft the message →</Link>
+                  <button 
+                    type="button" 
+                    onClick={() => { setActiveDraftWarning(w); setCopiedDraft(false); }}
+                    style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "8px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap" }}
+                  >
+                    Draft the message →
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        {/* DRAFT MESSAGE MODAL */}
+        {activeDraftWarning && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(57,41,42,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+            <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "8px", maxWidth: "560px", width: "100%", padding: "28px", boxShadow: "0 20px 40px rgba(0,0,0,0.15)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
+                <div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "4px" }}>
+                    Stage thread broadcast · {activeDraftWarning.group}
+                  </div>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", margin: 0, color: "#39292a" }}>
+                    {activeDraftWarning.title}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => setActiveDraftWarning(null)} 
+                  style={{ background: "transparent", border: "none", fontSize: "20px", cursor: "pointer", color: "rgba(57,41,42,0.6)" }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", marginBottom: "14px" }}>
+                This event is currently at T-10 with {activeDraftWarning.meta}. Send this nudge specifically to the <strong>{activeDraftWarning.group}</strong> WhatsApp thread:
+              </p>
+
+              <textarea 
+                readOnly 
+                value={activeDraftWarning.draftMessage || `Hi mothers! Quick heads-up: our upcoming "${activeDraftWarning.title}" is coming up in 10 days. We still have a few seats available before threshold decision point. If you'd like to join us, reserve your spot on the platform! ✨`}
+                style={{ width: "100%", height: "120px", padding: "12px", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "6px", fontFamily: "'Lora', serif", fontSize: "13.5px", lineHeight: 1.5, background: "#f8efe2", color: "#39292a", marginBottom: "18px", resize: "none" }}
+              />
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button 
+                  type="button" 
+                  onClick={() => setActiveDraftWarning(null)}
+                  style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}
+                >
+                  Close
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    const text = activeDraftWarning.draftMessage || `Hi mothers! Quick heads-up: our upcoming "${activeDraftWarning.title}" is coming up in 10 days.`;
+                    navigator.clipboard.writeText(text);
+                    setCopiedDraft(true);
+                    setTimeout(() => setCopiedDraft(false), 3000);
+                  }}
+                  style={{ border: "1px solid #7b1f2c", background: "#7b1f2c", color: "#fff", borderRadius: "4px", padding: "9px 18px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}
+                >
+                  {copiedDraft ? "✓ Copied to clipboard" : "Copy message for WhatsApp"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 2-COLUMN GRID (Applications / Money) */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: "18px", marginBottom: "18px" }}>

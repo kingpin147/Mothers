@@ -17,10 +17,6 @@ export function Navigation() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  if (pathname.startsWith("/admin") || pathname.startsWith("/super-admin")) {
-    return null;
-  }
-
   const switchLang = (newLang: "en" | "es") => {
     setLanguage(newLang);
   };

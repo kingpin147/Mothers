@@ -18,10 +18,9 @@ export function Footer() {
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
 
-  // Early return must come AFTER all hooks
-  if (pathname.startsWith("/admin") || pathname.startsWith("/super-admin")) {
-    return null;
-  }
+  // Early return removed to restore global footer on admin pages
+
+  const isAdminRoute = pathname.startsWith("/admin") || pathname.startsWith("/super-admin");
 
   return (
     <footer
@@ -104,12 +103,11 @@ export function Footer() {
                 {lang === "en" ? "Journal" : "Diario"}
               </Link>
               <Link href="/partners" style={{ color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Partners" : "Partners"}
+                {lang === "en" ? "For Partners" : "Para Partners"}
               </Link>
               <Link href="/faq" style={{ color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "FAQ" : "Preguntas"}
               </Link>
-
             </div>
           </div>
 
