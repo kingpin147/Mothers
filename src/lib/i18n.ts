@@ -31,7 +31,7 @@ export const DICTIONARIES = {
     why: {
       kicker: "Why The Mothers",
       heading: "Being a mom is a part of it, not all of it.",
-      body: "Modern motherhood can be isolating — especially if you've just moved to the city, had your first baby, or don't have family nearby. Free Facebook groups are noisy and unmoderated. Private coaches and doulas are excellent, but expensive and one-to-one. The Mothers sits in between: curated, safe, and social.",
+      body: "Modern motherhood can be isolating — especially if you've just moved to the city, had your first baby, or don't have family nearby. The Mothers offers a space for mothers to connect and build long-lasting friendships. It sits in between: curated, safe, and social.",
       pillars: [
         {
           title: "By your stage",
@@ -125,7 +125,7 @@ export const DICTIONARIES = {
     },
     footer: {
       blurb:
-        "A private membership club for mothers, from pregnancy through the school years.",
+        "A way of life for the modern Mother.",
       explore: "Explore",
       contact: "Get in touch",
       legal: "Legal",
@@ -167,7 +167,7 @@ export const DICTIONARIES = {
     why: {
       kicker: "Por qué The Mothers",
       heading: "Ser madre es una parte, no todo lo que eres.",
-      body: "La maternidad moderna puede ser aislante, sobre todo si acabas de mudarte a la ciudad, acabas de ser madre o no tienes familia cerca. Los grupos gratuitos de Facebook son ruidosos y sin moderación. Las doulas y asesoras privadas son excelentes, pero caras e individuales. The Mothers está en el medio: cuidado, seguro y social, con un precio pensado para una etapa en la que los ingresos suelen reducirse.",
+      body: "La maternidad moderna puede ser aislante, sobre todo si acabas de mudarte a la ciudad, acabas de ser madre o no tienes familia cerca. The Mothers ofrece un espacio para que las madres conecten y construyan amistades duraderas. Está en el punto medio: cuidado, seguro y social.",
       pillars: [
         {
           title: "Por tu etapa",
@@ -261,7 +261,7 @@ export const DICTIONARIES = {
     },
     footer: {
       blurb:
-        "Un club privado de membresía para madres, desde el embarazo hasta la etapa escolar.",
+        "Un estilo de vida para la madre moderna.",
       explore: "Explorar",
       contact: "Contacto",
       legal: "Legal",

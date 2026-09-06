@@ -70,8 +70,8 @@ export function Footer() {
           </Link>
           <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57, 41, 42, 0.65)", margin: 0 }}>
             {lang === "en"
-              ? "A private membership club for mothers, from pregnancy through the school years."
-              : "Un club privado de membresía para madres, desde el embarazo hasta la etapa escolar."}
+              ? "A way of life for the modern Mother."
+              : "Un estilo de vida para la madre moderna."}
           </p>
         </div>
 
