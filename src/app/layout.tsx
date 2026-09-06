@@ -25,7 +25,10 @@ import { LanguageProvider } from "@/components/LanguageProvider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://themothers.cc"),
-  title: "The Mothers — Private Members Club for Mothers in Barcelona",
+  title: {
+    default: "The Mothers — A private membership club for mothers · Barcelona",
+    template: "%s — The Mothers",
+  },
   description: "A private club for mothers in Barcelona: curated events, genuine community, credit-based booking, and trusted partner care.",
 };
 

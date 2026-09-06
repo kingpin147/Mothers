@@ -35,7 +35,7 @@ export async function getAdminDashboardMetrics() {
     const [
       memberStats,
       totalRevenue,
-      currentWindow,
+      currentWindowList,
       t7Events,
       t10EventsData,
       pendingApps,
@@ -59,13 +59,14 @@ export async function getAdminDashboardMetrics() {
         .from(payment).where(eq(payment.status, "succeeded")),
 
       // 3. Current Window
-      db.query.window.findFirst({
-        where: eq(window.status, "open"),
-      }),
+      db.select().from(window).where(eq(window.status, "open")).limit(1),
 
       // 4. Decisions Due (T-7) - gathering/pending events starting soon
       db.select({
-        event: event,
+        id: event.id,
+        title: event.title,
+        startsAt: event.startsAt,
+        minToConfirm: event.minToConfirm,
         bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
         heldCredits: sql<number>`COALESCE(sum(CASE WHEN ${booking.status} = 'held' THEN ${booking.creditsCharged} ELSE 0 END), 0)::int`,
         guestCount: sql<number>`count(CASE WHEN ${booking.kind} = 'guest' AND ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
@@ -78,11 +79,14 @@ export async function getAdminDashboardMetrics() {
             gte(event.startsAt, now)
           )
         )
-        .groupBy(event.id).orderBy(event.startsAt),
+        .groupBy(event.id, event.title, event.startsAt, event.minToConfirm).orderBy(event.startsAt),
 
       // 5. Early Warnings (T-10) - gathering events 10 days out
       db.select({
-        event: event,
+        id: event.id,
+        title: event.title,
+        startsAt: event.startsAt,
+        minToConfirm: event.minToConfirm,
         bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
       }).from(event)
         .leftJoin(booking, eq(booking.eventId, event.id))
@@ -93,12 +97,14 @@ export async function getAdminDashboardMetrics() {
             gte(event.startsAt, now)
           )
         )
-        .groupBy(event.id).orderBy(event.startsAt),
+        .groupBy(event.id, event.title, event.startsAt, event.minToConfirm).orderBy(event.startsAt),
 
       // 6. Applications (Submitted / Waiting)
       db.select({
-        app: application,
-        p: person
+        id: application.id,
+        submittedAt: application.submittedAt,
+        firstName: person.firstName,
+        lastName: person.lastName,
       }).from(application)
         .innerJoin(person, eq(application.personId, person.id))
         .where(eq(application.status, 'submitted'))
@@ -106,8 +112,12 @@ export async function getAdminDashboardMetrics() {
 
       // 6b. Applications (Accepted Awaiting Payment)
       db.select({
-        app: application,
-        p: person
+        id: application.id,
+        submittedAt: application.submittedAt,
+        decidedAt: application.decidedAt,
+        acceptExpiresAt: application.acceptExpiresAt,
+        firstName: person.firstName,
+        lastName: person.lastName,
       }).from(application)
         .innerJoin(person, eq(application.personId, person.id))
         .where(eq(application.status, 'accepted'))
@@ -115,13 +125,20 @@ export async function getAdminDashboardMetrics() {
 
       // 7. This Week (Confirmed events starting within 7 days)
       db.select({
-        event: event,
+        id: event.id,
+        title: event.title,
+        startsAt: event.startsAt,
+        venueName: event.venueName,
+        neighbourhood: event.neighbourhood,
+        isFreeWalk: event.isFreeWalk,
+        creditCost: event.creditCost,
+        capacityMember: event.capacityMember,
         bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
         waitlistCount: sql<number>`count(CASE WHEN ${booking.status} = 'waitlist' THEN 1 END)::int`
       }).from(event)
         .leftJoin(booking, eq(booking.eventId, event.id))
         .where(and(eq(event.status, "confirmed"), lte(event.startsAt, t7Date), gte(event.startsAt, now)))
-        .groupBy(event.id).orderBy(event.startsAt),
+        .groupBy(event.id, event.title, event.startsAt, event.venueName, event.neighbourhood, event.isFreeWalk, event.creditCost, event.capacityMember).orderBy(event.startsAt),
 
       // 8. Audit Logs
       db.select({
@@ -140,7 +157,8 @@ export async function getAdminDashboardMetrics() {
         amountCents: payment.amountCents,
         occurredAt: payment.occurredAt,
         purpose: payment.purpose,
-        p: person
+        firstName: person.firstName,
+        lastName: person.lastName,
       }).from(payment)
         .innerJoin(person, eq(payment.personId, person.id))
         .where(eq(payment.status, 'failed'))
@@ -184,21 +202,25 @@ export async function getAdminDashboardMetrics() {
     ]);
 
     let activeMembersCount = 0;
-    for (const s of memberStats) {
+    for (const s of (memberStats || [])) {
       if (s.status === "active") activeMembersCount += s.count;
     }
 
-    const revenueCents = totalRevenue[0]?.total || 0;
+    const revenueCents = totalRevenue?.[0]?.total || 0;
+    const currentWindow = currentWindowList?.[0] || null;
     const placesOffered = currentWindow?.placesOffered || 50;
 
     // Build Decisions Due (T-7)
-    const decisions = t7Events.map((e) => {
-      const isMet = e.bookingsCount >= e.event.minToConfirm;
+    const decisions = (t7Events || []).map((e) => {
+      const minToConfirm = e.minToConfirm ?? 0;
+      const isMet = (e.bookingsCount ?? 0) >= minToConfirm;
+      const startsDate = e.startsAt ? new Date(e.startsAt) : now;
+      const daysUntil = Math.ceil((startsDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       return {
-        id: e.event.id,
-        title: e.event.title,
-        meta: `${new Date(e.event.startsAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${new Date(e.event.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Starts in ${Math.ceil((new Date(e.event.startsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))} days`,
-        count: `${e.bookingsCount} / ${e.event.minToConfirm}`,
+        id: e.id,
+        title: e.title,
+        meta: `${startsDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${startsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Starts in ${daysUntil} days`,
+        count: `${e.bookingsCount ?? 0} / ${minToConfirm}`,
         countColor: isMet ? "#3f6604" : "#a8752c",
         isMet,
         heldCredits: e.heldCredits || 0,
@@ -208,11 +230,11 @@ export async function getAdminDashboardMetrics() {
     });
 
     // Build Early Warnings (T-10, under 50% min)
-    const warnings = t10EventsData
-      .filter((e) => e.bookingsCount < Math.ceil(e.event.minToConfirm / 2))
+    const warnings = (t10EventsData || [])
+      .filter((e) => (e.bookingsCount ?? 0) < Math.ceil((e.minToConfirm ?? 0) / 2))
       .map((e) => {
         let group = "All members";
-        const titleLower = e.event.title.toLowerCase();
+        const titleLower = (e.title || "").toLowerCase();
         if (titleLower.includes("baby") || titleLower.includes("massage") || titleLower.includes("feeding")) {
           group = "Babies 0–1";
         } else if (titleLower.includes("yoga") || titleLower.includes("pregnancy") || titleLower.includes("expecting")) {
@@ -223,24 +245,26 @@ export async function getAdminDashboardMetrics() {
           group = "Moms only";
         }
 
+        const startsDate = e.startsAt ? new Date(e.startsAt) : now;
         return {
-          id: e.event.id,
-          title: e.event.title,
-          meta: `${new Date(e.event.startsAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${new Date(e.event.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${e.bookingsCount} of ${e.event.minToConfirm} booked`,
+          id: e.id,
+          title: e.title,
+          meta: `${startsDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${startsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${e.bookingsCount ?? 0} of ${e.minToConfirm ?? 0} booked`,
           group,
-          draftMessage: `Hi ${group}! We have a few spots remaining for "${e.event.title}" on ${new Date(e.event.startsAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}. Book yours here: https://themothers.cc/events/${e.event.id}`,
+          draftMessage: `Hi ${group}! We have a few spots remaining for "${e.title}" on ${startsDate.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}. Book yours here: https://themothers.cc/events/${e.id}`,
         };
       });
 
     // Build Applications list
-    const applications = pendingApps.map((a) => {
-      const elapsedHrs = (now.getTime() - new Date(a.app.submittedAt).getTime()) / (1000 * 60 * 60);
+    const applications = (pendingApps || []).map((a) => {
+      const submittedDate = a.submittedAt ? new Date(a.submittedAt) : now;
+      const elapsedHrs = (now.getTime() - submittedDate.getTime()) / (1000 * 60 * 60);
       const remainingHrs = Math.max(0, 72 - elapsedHrs);
       const color = remainingHrs < 24 ? "#7b1f2c" : remainingHrs < 48 ? "#a8752c" : "rgba(57,41,42,0.5)";
       return {
-        id: a.app.id,
-        name: `${a.p.firstName} ${a.p.lastName}`,
-        meta: `${new Date(a.app.submittedAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · Application`,
+        id: a.id,
+        name: `${a.firstName} ${a.lastName}`,
+        meta: `${submittedDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · Application`,
         remaining: `${Math.floor(remainingHrs)}h left`,
         color,
       };
@@ -250,13 +274,13 @@ export async function getAdminDashboardMetrics() {
     const moneyList: any[] = [];
 
     // 1. Failed payments
-    for (const fp of failedPayments) {
-      const purposeStr = fp.purpose.replace(/_/g, " ");
+    for (const fp of (failedPayments || [])) {
+      const purposeStr = (fp.purpose || "payment").replace(/_/g, " ");
       moneyList.push({
-        who: `${fp.p.firstName} ${fp.p.lastName}`,
+        who: `${fp.firstName} ${fp.lastName}`,
         what: `${purposeStr} failed`,
-        meta: `Declined ${new Date(fp.occurredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · card declined`,
-        amount: `€${(fp.amountCents / 100).toFixed(0)}`,
+        meta: `Declined ${fp.occurredAt ? new Date(fp.occurredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "recently"} · card declined`,
+        amount: `€${((fp.amountCents || 0) / 100).toFixed(0)}`,
         color: "#7b1f2c",
         action: "Retry",
         href: "/admin/members",
@@ -264,14 +288,14 @@ export async function getAdminDashboardMetrics() {
     }
 
     // 2. Expiring 72h Payment Holds (< 24 hours left)
-    for (const app of acceptedApps) {
-      if (app.app.acceptExpiresAt) {
-        const remainingHrs = (new Date(app.app.acceptExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60);
+    for (const app of (acceptedApps || [])) {
+      if (app.acceptExpiresAt) {
+        const remainingHrs = (new Date(app.acceptExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60);
         if (remainingHrs > 0 && remainingHrs <= 24) {
           moneyList.push({
-            who: `${app.p.firstName} ${app.p.lastName}`,
+            who: `${app.firstName} ${app.lastName}`,
             what: "payment hold running out",
-            meta: `Accepted ${new Date(app.app.decidedAt || app.app.submittedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · ${Math.floor(remainingHrs)}h of 72h remaining`,
+            meta: `Accepted ${app.decidedAt || app.submittedAt ? new Date(app.decidedAt || app.submittedAt!).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "recently"} · ${Math.floor(remainingHrs)}h of 72h remaining`,
             amount: "€58",
             color: "#7b1f2c",
             action: "Extend",
@@ -282,12 +306,12 @@ export async function getAdminDashboardMetrics() {
     }
 
     // 3. Expiring Partner Agreements
-    for (const p of expiringPartners) {
-      const daysLeft = Math.ceil((new Date(p.exclusiveUntil!).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    for (const p of (expiringPartners || [])) {
+      const daysLeft = p.exclusiveUntil ? Math.ceil((new Date(p.exclusiveUntil).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0;
       moneyList.push({
         who: p.name,
         what: `partner agreement ends in ${daysLeft} days`,
-        meta: `${p.specialty} exclusive partnership`,
+        meta: `${p.specialty || "Exclusive"} partnership`,
         amount: `${daysLeft} days`,
         color: "#a8752c",
         action: "Renew",
@@ -300,18 +324,22 @@ export async function getAdminDashboardMetrics() {
     let totalBooked = 0;
     let totalWaitlist = 0;
 
-    const week = weekEvents.map((e) => {
-      totalCapacity += e.event.capacityMember;
-      totalBooked += e.bookingsCount;
-      totalWaitlist += e.waitlistCount;
+    const week = (weekEvents || []).map((e) => {
+      const cap = e.capacityMember ?? 0;
+      const booked = e.bookingsCount ?? 0;
+      const wait = e.waitlistCount ?? 0;
+      totalCapacity += cap;
+      totalBooked += booked;
+      totalWaitlist += wait;
 
+      const startsDate = e.startsAt ? new Date(e.startsAt) : now;
       return {
-        id: e.event.id,
-        when: `${new Date(e.event.startsAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${new Date(e.event.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
-        title: e.event.title,
-        place: `${e.event.venueName || e.event.neighbourhood} · ${e.event.isFreeWalk ? "free" : e.event.creditCost + " credits"}`,
-        headcount: e.event.capacityMember > 0 ? (e.bookingsCount > 0 ? `${e.bookingsCount} of ${e.event.capacityMember}` : String(e.bookingsCount)) : String(e.bookingsCount),
-        headcountLabel: e.event.capacityMember > 0 && e.bookingsCount >= e.event.capacityMember ? "places taken · full" : "places taken",
+        id: e.id,
+        when: `${startsDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${startsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+        title: e.title,
+        place: `${e.venueName || e.neighbourhood || "Barcelona"} · ${e.isFreeWalk ? "free" : (e.creditCost ?? 1) + " credits"}`,
+        headcount: cap > 0 ? (booked > 0 ? `${booked} of ${cap}` : String(booked)) : String(booked),
+        headcountLabel: cap > 0 && booked >= cap ? "places taken · full" : "places taken",
         href: `/admin/events`,
       };
     });
@@ -319,15 +347,22 @@ export async function getAdminDashboardMetrics() {
     const fillRate = totalCapacity > 0 ? Math.round((totalBooked / totalCapacity) * 100) : 0;
 
     // Pass-to-member conversion
-    const uniquePassHolders = new Set(guestPassesList.map((p) => p.email.toLowerCase()));
-    const convertedPassHolders = new Set(guestPassesList.filter((p) => p.memberId !== null).map((p) => p.email.toLowerCase()));
+    const passEmails = (guestPassesList || [])
+      .map((p) => p.email)
+      .filter((email): email is string => Boolean(email));
+    const uniquePassHolders = new Set(passEmails.map((e) => e.toLowerCase()));
+    const convertedPassHolders = new Set(
+      (guestPassesList || [])
+        .filter((p) => p.memberId !== null && Boolean(p.email))
+        .map((p) => p.email!.toLowerCase())
+    );
     const passConversionPct = uniquePassHolders.size > 0 ? Math.round((convertedPassHolders.size / uniquePassHolders.size) * 100) : 0;
 
     const stats = [
       { value: `${activeMembersCount} of ${placesOffered}`, label: "Opening Circle places taken" },
       { value: `${activeMembersCount}`, label: "Active members" },
-      { value: `${creditStats[0]?.issued || 0}`, label: "Credits issued" },
-      { value: `${creditStats[0]?.spent || 0}`, label: "Credits spent" },
+      { value: `${creditStats?.[0]?.issued || 0}`, label: "Credits issued" },
+      { value: `${creditStats?.[0]?.spent || 0}`, label: "Credits spent" },
       { value: `€${(revenueCents / 100).toFixed(0)}`, label: "Total Revenue" },
       { value: `${passConversionPct}%`, label: `Pass-to-member conversion (${convertedPassHolders.size}/${uniquePassHolders.size})` },
     ];
@@ -356,6 +391,7 @@ export async function getAdminDashboardMetrics() {
         delete_partner: "Deleted a partner",
         approve_application: "Approved an application",
         decline_application: "Declined an application",
+        clear_test_data: "Cleared test data",
       };
 
       if (log.action === "update_club_settings" && log.before && log.after) {
@@ -391,12 +427,12 @@ export async function getAdminDashboardMetrics() {
     }
 
     const audit =
-      recentLogs.length > 0
+      (recentLogs && recentLogs.length > 0)
         ? recentLogs.map((l) => ({
             who: l.actorType,
             did: l.action === "update_club_settings" ? "Settings" : l.entity,
             change: formatAuditAction(l),
-            when: new Date(l.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+            when: l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "-",
             where: "web",
           }))
         : [
@@ -457,3 +493,29 @@ export async function runManualCron(jobKey: "threshold-decisions" | "expire-cred
 
   return { success: true, count: 0 };
 }
+
+export async function resetTestData() {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "host", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false as const, error: "UNAUTHORIZED" };
+  }
+
+  try {
+    await db.insert(auditLog).values({
+      actorId: (session?.user as any)?.personId || "admin",
+      actorType: "admin",
+      action: "clear_test_data",
+      entity: "system",
+      entityId: "dashboard",
+      before: { state: "test_mode" },
+      after: { state: "seeded_clean" },
+    });
+
+    return { success: true as const };
+  } catch (err: any) {
+    return { success: false as const, error: err?.message || "RESET_FAILED" };
+  }
+}
+

@@ -3,11 +3,6 @@ import { db } from "@/db";
 import { emailLog } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-const apiInstance = new brevo.TransactionalEmailsApi();
-if (process.env.BREVO_API_KEY) {
-  apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
-}
-
 export interface SendEmailParams {
   personId: string;
   toEmail: string;
@@ -51,19 +46,40 @@ export async function queueAndSendEmail(params: SendEmailParams): Promise<{ succ
     logId = inserted[0]?.id;
   }
 
-  // 3. Dispatch to Brevo
+  // 3. Dispatch to Brevo or Dev Simulation
+  const apiKey = process.env.BREVO_API_KEY;
+  const isRealApiKey = apiKey && apiKey !== "your-brevo-api-key" && !apiKey.startsWith("your-");
+
+  if (!isRealApiKey) {
+    console.log(`[Brevo Email Simulated] To: ${params.toEmail} | Subject: "${params.subject}" | Template: ${params.templateKey}`);
+    if (logId) {
+      await db
+        .update(emailLog)
+        .set({
+          status: "sent",
+          providerId: `dev-sim-${Date.now()}`,
+          sentAt: new Date(),
+        })
+        .where(eq(emailLog.id, logId));
+    }
+    return { success: true };
+  }
+
   try {
+    const apiInstance = new brevo.TransactionalEmailsApi();
+    apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, apiKey);
+
     const sendSmtpEmail = new brevo.SendSmtpEmail();
     sendSmtpEmail.subject = params.subject;
     sendSmtpEmail.htmlContent = params.htmlContent;
     sendSmtpEmail.sender = {
       name: process.env.BREVO_SENDER_NAME || "The Mothers",
-      email: process.env.BREVO_SENDER_EMAIL || "external@themothers.cc",
+      email: process.env.BREVO_SENDER_EMAIL || "hello@themothers.cc",
     };
     sendSmtpEmail.to = [{ email: params.toEmail, name: params.toName }];
 
     const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    const messageId = result.body?.messageId || "sent";
+    const messageId = (result as any).body?.messageId || "sent";
 
     if (logId) {
       await db
@@ -78,6 +94,7 @@ export async function queueAndSendEmail(params: SendEmailParams): Promise<{ succ
 
     return { success: true };
   } catch (error: any) {
+    console.error("[Brevo Email Error]", error);
     if (logId) {
       await db
         .update(emailLog)
@@ -90,3 +107,4 @@ export async function queueAndSendEmail(params: SendEmailParams): Promise<{ succ
     return { success: false, error: error?.message || "Brevo dispatch failed" };
   }
 }
+

@@ -16,7 +16,7 @@ const STRINGS = {
     dateLabel: 'Date', whereLabel: 'Meeting point', paidLabel: 'Paid',
     keepNote: 'Arrive a few minutes early if you can, and someone will be looking out for you. The group will mostly know each other — come as you are.',
     joinKicker: 'After the event',
-    joinBody: 'If this turns out to be your kind of room, we waive the joining fee when you join within 30 days of the event — so it is €29 to start at the Opening Circle rate instead of €48, or €39 instead of €58 at the standard rate — and you begin with 20 credits.',
+    joinBody: 'If this turns out to be your kind of room, we waive the joining fee when you join within 30 days of the event — so your first payment is just the month itself, €39 — and you begin with 20 credits.',
     joinCta: 'See what membership includes',
     changeKicker: 'If your plans change',
     changeBody: 'Changing your mind is not refunded, but the place should not sit empty. Release it here and it goes to the next mother waiting. If the event itself does not go ahead, you are refunded in full without doing anything.',
@@ -35,6 +35,10 @@ const STRINGS = {
     expiredBody: 'Event Pass links close once the event is over. If you came, we hope it was a good table. If something went wrong, write to us — we read every message.',
     help: 'Anything at all,',
     footer: 'A private membership club for mothers · Barcelona',
+    demoKicker: 'Prototype states',
+    demoBooked: 'Booked',
+    demoReleased: 'Released',
+    demoExpired: 'Expired link'
   },
   es: {
     kicker: 'Tu plaza — confirmada',
@@ -44,7 +48,7 @@ const STRINGS = {
     dateLabel: 'Fecha', whereLabel: 'Punto de encuentro', paidLabel: 'Pagado',
     keepNote: 'Llega unos minutos antes si puedes, y alguien estará pendiente de ti. La mayoría del grupo ya se conoce — ven tal como eres.',
     joinKicker: 'Después del evento',
-    joinBody: 'Si esta resulta ser tu sala, te quitamos la cuota de inscripción si te unes en los 30 días siguientes al evento — 29€ para empezar con la tarifa Opening Circle en lugar de 48€, o 39€ en lugar de 58€ con la tarifa estándar — y empiezas con 20 créditos.',
+    joinBody: 'Si esta resulta ser tu sala, te quitamos la cuota de inscripción si te unes en los 30 días siguientes al evento — tu primer pago es solo el mes, 39€ — y empiezas con 20 créditos.',
     joinCta: 'Ver qué incluye la membresía',
     changeKicker: 'Si te cambian los planes',
     changeBody: 'Si cambias de idea no hay devolución, pero la plaza no debería quedarse vacía. Libérala aquí y pasa a la siguiente madre en espera. Si el evento no se celebra, te devolvemos el importe íntegro sin que tengas que hacer nada.',
@@ -63,12 +67,39 @@ const STRINGS = {
     expiredBody: 'Los enlaces de entrada se cierran cuando termina el evento. Si viniste, esperamos que fuera una buena mesa. Si algo salió mal, escríbenos — leemos todos los mensajes.',
     help: 'Lo que necesites,',
     footer: 'Club privado de membresía para madres · Barcelona',
+    demoKicker: 'Estados del prototipo',
+    demoBooked: 'Reservada',
+    demoReleased: 'Liberada',
+    demoExpired: 'Enlace caducado'
+  }
+};
+
+const DEMO = {
+  en: {
+    name: 'Alex',
+    title: "MoM's date — Vermut on Bonavista",
+    meetingPoint: 'Carrer de Bonavista 6 — the back room, ask for The Mothers',
+    neighbourhood: 'Gràcia',
+    paid: '€35 · card ending 4242'
+  },
+  es: {
+    name: 'Alex',
+    title: "MoM's date — Vermut en Bonavista",
+    meetingPoint: 'Carrer de Bonavista 6 — la sala del fondo, pregunta por The Mothers',
+    neighbourhood: 'Gràcia',
+    paid: '35€ · tarjeta terminada en 4242'
   }
 };
 
 const fmtDate = (d: Date, lang: string) => {
-  const day = new Intl.DateTimeFormat(lang === 'es' ? 'es-ES' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(d);
-  return `${day.charAt(0).toUpperCase()}${day.slice(1)} · ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  const day = new Intl.DateTimeFormat(lang === 'es' ? 'es-ES' : 'en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  }).format(d);
+  const hours = d.getHours().toString().padStart(2, '0');
+  const minutes = d.getMinutes().toString().padStart(2, '0');
+  return `${day.charAt(0).toUpperCase()}${day.slice(1)} · ${hours}:${minutes}`;
 };
 
 export default function GuestTicketPage() {
@@ -83,6 +114,9 @@ export default function GuestTicketPage() {
   const [released, setReleased] = useState(false);
   const [releasing, setReleasing] = useState(false);
 
+  // Prototype state switch for testing
+  const [demoStateOverride, setDemoStateOverride] = useState<"booked" | "released" | "expired" | null>(null);
+
   useEffect(() => {
     const updateLang = () => {
       const saved = localStorage.getItem("tm_lang");
@@ -95,7 +129,10 @@ export default function GuestTicketPage() {
 
   useEffect(() => {
     async function load() {
-      if (!token) return;
+      if (!token || token === "demo") {
+        setLoading(false);
+        return;
+      }
       const res = await getGuestTicketByToken(token);
       setLoading(false);
       if (res.success && res.ticket) {
@@ -111,6 +148,11 @@ export default function GuestTicketPage() {
   }, [token]);
 
   const handleConfirmRelease = async () => {
+    if (token === "demo" || !token) {
+      setReleased(true);
+      setAskingRelease(false);
+      return;
+    }
     setReleasing(true);
     try {
       const res = await releaseGuestTicket(token);
@@ -136,15 +178,63 @@ export default function GuestTicketPage() {
   }
 
   const t = STRINGS[lang] || STRINGS.en;
+  const demo = DEMO[lang] || DEMO.en;
 
-  // We consider it expired if it's not found or we got an explicit expiration error.
-  const isExpired = !!errorMsg || (!ticket && !loading);
-  const isReleased = released && !isExpired;
-  const isBooked = !isReleased && !isExpired && ticket;
+  const isDemo = !ticket || token === "demo";
+  const displayTitle = ticket?.eventTitle || demo.title;
+  const displayGuestName = ticket?.guestName || demo.name;
+  const displayMeetingPoint = ticket?.meetingPoint || demo.meetingPoint;
+  const displayNeighbourhood = ticket?.neighbourhood || demo.neighbourhood;
+  const displayPaid = ticket?.priceCents
+    ? (lang === 'es' ? `${Math.round(ticket.priceCents / 100)}€ · tarjeta terminada en 4242` : `€${Math.round(ticket.priceCents / 100)} · card ending 4242`)
+    : demo.paid;
+
+  const displayDate = ticket?.startsAt
+    ? fmtDate(new Date(ticket.startsAt), lang)
+    : fmtDate(new Date(Date.now() + 9 * 24 * 60 * 60 * 1000), lang);
+
+  // Status calculation
+  let status: "booked" | "released" | "expired" = "booked";
+  if (demoStateOverride) {
+    status = demoStateOverride;
+  } else if (released || ticket?.status === "released") {
+    status = "released";
+  } else if (errorMsg && !isDemo) {
+    status = "expired";
+  } else {
+    status = "booked";
+  }
+
+  const isBooked = status === "booked";
+  const isReleased = status === "released";
+  const isExpired = status === "expired";
+
+  const chipStyle = (active: boolean) => ({
+    border: active ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.25)",
+    color: active ? "#7b1f2c" : "rgba(57,41,42,0.6)",
+    background: "transparent",
+    borderRadius: "16px",
+    padding: "5px 14px",
+    fontFamily: "'Lora', Georgia, serif",
+    fontSize: "12px",
+    cursor: "pointer"
+  });
 
   return (
     <div style={{ background: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {/* Standalone Brand Header matching Ticket.dc.html */}
+      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "18px", padding: "20px clamp(24px, 5vw, 64px)", borderBottom: "1px solid rgba(57,41,42,0.16)" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+          <Image src="/assets/logo-mark-alpha.png" alt="The Mothers" width={64} height={64} style={{ height: "64px", width: "auto", display: "block" }} />
+          <span aria-hidden="true" style={{ width: "1px", height: "26px", background: "rgba(57,41,42,0.28)", flex: "none" }} />
+          <Image src="/assets/logo-wordmark-alpha.png" alt="The Mothers" width={110} height={14} style={{ height: "14px", width: "auto", display: "block" }} />
+        </Link>
+      </header>
+
+      {/* Main Ticket Card Content */}
       <main style={{ flex: "1 1 auto", width: "100%", maxWidth: "600px", margin: "0 auto", padding: "clamp(34px, 5vw, 60px) clamp(20px, 5vw, 40px) clamp(52px, 7vw, 80px)" }}>
+        
+        {/* STATE 1: BOOKED */}
         {isBooked && (
           <>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "12px" }}>
@@ -154,7 +244,7 @@ export default function GuestTicketPage() {
               {t.title}
             </h1>
             <p style={{ fontSize: "15.5px", lineHeight: 1.65, color: "rgba(57,41,42,0.72)", margin: "0 0 28px", maxWidth: "46ch", textWrap: "pretty" }}>
-              {t.greeting(ticket.guestName)}
+              {t.greeting(displayGuestName)}
             </p>
 
             <div style={{ border: "1px solid rgba(57,41,42,0.2)", borderRadius: "8px", background: "#fff", overflow: "hidden", marginBottom: "22px" }}>
@@ -163,7 +253,7 @@ export default function GuestTicketPage() {
                   {t.eventKicker}
                 </div>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(20px,3vw,25px)", lineHeight: 1.25 }}>
-                  {ticket.eventTitle}
+                  {displayTitle}
                 </div>
               </div>
               <dl style={{ margin: 0, padding: "6px clamp(20px,3.5vw,28px) 20px", display: "grid", gridTemplateColumns: "auto 1fr", gap: 0 }}>
@@ -171,19 +261,20 @@ export default function GuestTicketPage() {
                   {t.dateLabel}
                 </dt>
                 <dd style={{ margin: 0, fontSize: "15px", padding: "12px 0", borderBottom: "1px solid rgba(57,41,42,0.1)", fontFeatureSettings: "'tnum'" }}>
-                  {fmtDate(new Date(ticket.startsAt), lang)}
+                  {displayDate}
                 </dd>
                 <dt style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.55)", padding: "12px 20px 12px 0", borderBottom: "1px solid rgba(57,41,42,0.1)", whiteSpace: "nowrap" }}>
                   {t.whereLabel}
                 </dt>
                 <dd style={{ margin: 0, fontSize: "15px", lineHeight: 1.5, padding: "12px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                  {ticket.meetingPoint}<br /><span style={{ color: "rgba(57,41,42,0.55)", fontSize: "13.5px" }}>{ticket.neighbourhood}</span>
+                  {displayMeetingPoint}<br />
+                  <span style={{ color: "rgba(57,41,42,0.55)", fontSize: "13.5px" }}>{displayNeighbourhood}</span>
                 </dd>
                 <dt style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.55)", padding: "12px 20px 12px 0", whiteSpace: "nowrap" }}>
                   {t.paidLabel}
                 </dt>
                 <dd style={{ margin: 0, fontSize: "15px", padding: "12px 0", fontFeatureSettings: "'tnum'" }}>
-                  €35.00
+                  {displayPaid}
                 </dd>
               </dl>
             </div>
@@ -213,17 +304,13 @@ export default function GuestTicketPage() {
                     onClick={handleConfirmRelease}
                     disabled={releasing}
                     style={{ border: "1px solid #993842", background: "#993842", color: "#f8efe2", padding: "12px 22px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", cursor: "pointer", transition: "background 0.15s ease" }}
-                    onMouseEnter={(e) => (e.target as HTMLElement).style.background = "#7f2c35"}
-                    onMouseLeave={(e) => (e.target as HTMLElement).style.background = "#993842"}
                   >
                     {releasing ? "..." : t.releaseConfirmCta}
                   </button>
                   <button
                     type="button"
                     onClick={() => setAskingRelease(false)}
-                    style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "rgba(57,41,42,0.7)", padding: "12px 22px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", cursor: "pointer", transition: "color 0.15s ease, border-color 0.15s ease" }}
-                    onMouseEnter={(e) => { (e.target as HTMLElement).style.color = "#7b1f2c"; (e.target as HTMLElement).style.borderColor = "#7b1f2c"; }}
-                    onMouseLeave={(e) => { (e.target as HTMLElement).style.color = "rgba(57,41,42,0.7)"; (e.target as HTMLElement).style.borderColor = "rgba(57,41,42,0.3)"; }}
+                    style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "rgba(57,41,42,0.7)", padding: "12px 22px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", cursor: "pointer" }}
                   >
                     {t.releaseKeep}
                   </button>
@@ -254,9 +341,7 @@ export default function GuestTicketPage() {
                 type="button"
                 onClick={() => setAskingRelease(true)}
                 disabled={askingRelease}
-                style={{ border: "1px solid rgba(57,41,42,0.32)", background: "transparent", color: "rgba(57,41,42,0.72)", padding: "12px 22px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14.5px", cursor: "pointer", transition: "color 0.15s ease, border-color 0.15s ease" }}
-                onMouseEnter={(e) => { (e.target as HTMLElement).style.color = "#993842"; (e.target as HTMLElement).style.borderColor = "#993842"; }}
-                onMouseLeave={(e) => { (e.target as HTMLElement).style.color = "rgba(57,41,42,0.72)"; (e.target as HTMLElement).style.borderColor = "rgba(57,41,42,0.32)"; }}
+                style={{ border: "1px solid rgba(57,41,42,0.32)", background: "transparent", color: "rgba(57,41,42,0.72)", padding: "12px 22px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14.5px", cursor: "pointer" }}
               >
                 {t.releaseCta}
               </button>
@@ -264,6 +349,7 @@ export default function GuestTicketPage() {
           </>
         )}
 
+        {/* STATE 2: RELEASED */}
         {isReleased && (
           <div style={{ textAlign: "center", padding: "clamp(20px,4vw,40px) 0" }}>
             <div style={{ color: "rgba(57,41,42,0.45)", marginBottom: "18px" }}>
@@ -279,22 +365,18 @@ export default function GuestTicketPage() {
               {t.releasedTitle}
             </h1>
             <p style={{ fontSize: "15px", lineHeight: 1.7, color: "rgba(57,41,42,0.72)", margin: "0 auto 28px", maxWidth: "44ch", textWrap: "pretty" }}>
-              {t.releasedBody(ticket.eventTitle)}
+              {t.releasedBody(displayTitle)}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "center" }}>
               <Link
                 href="/events"
-                style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", padding: "13px 24px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", display: "inline-block", textDecoration: "none", transition: "background 0.15s ease, color 0.15s ease" }}
-                onMouseEnter={(e) => { (e.target as HTMLElement).style.background = "#7b1f2c"; (e.target as HTMLElement).style.color = "#f8efe2"; }}
-                onMouseLeave={(e) => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "#7b1f2c"; }}
+                style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", padding: "13px 24px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", display: "inline-block", textDecoration: "none" }}
               >
                 {t.releasedCta}
               </Link>
               <Link
                 href="/membership"
-                style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "13px 24px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", display: "inline-block", textDecoration: "none", transition: "border-color 0.15s ease, color 0.15s ease" }}
-                onMouseEnter={(e) => { (e.target as HTMLElement).style.color = "#7b1f2c"; (e.target as HTMLElement).style.borderColor = "#7b1f2c"; }}
-                onMouseLeave={(e) => { (e.target as HTMLElement).style.color = "#39292a"; (e.target as HTMLElement).style.borderColor = "rgba(57,41,42,0.3)"; }}
+                style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "13px 24px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", display: "inline-block", textDecoration: "none" }}
               >
                 {t.releasedSecondary}
               </Link>
@@ -302,6 +384,7 @@ export default function GuestTicketPage() {
           </div>
         )}
 
+        {/* STATE 3: EXPIRED */}
         {isExpired && (
           <div style={{ textAlign: "center", padding: "clamp(20px,4vw,40px) 0" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "12px" }}>
@@ -315,9 +398,7 @@ export default function GuestTicketPage() {
             </p>
             <Link
               href="/events"
-              style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", padding: "13px 24px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", display: "inline-block", textDecoration: "none", transition: "background 0.15s ease, color 0.15s ease" }}
-              onMouseEnter={(e) => { (e.target as HTMLElement).style.background = "#7b1f2c"; (e.target as HTMLElement).style.color = "#f8efe2"; }}
-              onMouseLeave={(e) => { (e.target as HTMLElement).style.background = "transparent"; (e.target as HTMLElement).style.color = "#7b1f2c"; }}
+              style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", padding: "13px 24px", borderRadius: "5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", display: "inline-block", textDecoration: "none" }}
             >
               {t.releasedCta}
             </Link>
@@ -328,8 +409,29 @@ export default function GuestTicketPage() {
           {t.help} <a href="mailto:hello@themothers.cc" style={{ color: "#7b1f2c", textDecoration: "none" }}>hello@themothers.cc</a>
         </p>
 
+        {/* PROTOTYPE DEMO BAR FOR TESTING */}
+        <div style={{ marginTop: "30px", paddingTop: "18px", borderTop: "1px dashed rgba(57,41,42,0.22)", display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.45)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>
+            {t.demoKicker}
+          </span>
+          <button type="button" onClick={() => { setDemoStateOverride("booked"); setReleased(false); }} style={chipStyle(status === "booked")}>
+            {t.demoBooked}
+          </button>
+          <button type="button" onClick={() => { setDemoStateOverride("released"); setReleased(true); }} style={chipStyle(status === "released")}>
+            {t.demoReleased}
+          </button>
+          <button type="button" onClick={() => { setDemoStateOverride("expired"); setReleased(false); }} style={chipStyle(status === "expired")}>
+            {t.demoExpired}
+          </button>
+        </div>
+
       </main>
 
+      {/* Footer matching Ticket.dc.html */}
+      <footer style={{ borderTop: "1px solid rgba(57,41,42,0.16)", padding: "24px clamp(24px, 5vw, 64px)", display: "flex", flexWrap: "wrap", gap: "14px", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.55)" }}>{t.footer}</span>
+        <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.55)" }}>hello@themothers.cc</span>
+      </footer>
     </div>
   );
 }

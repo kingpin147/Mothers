@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { buyGuestPass } from "@/app/actions/booking";
+import { buyGuestPass, buyExtraCredits } from "@/app/actions/booking";
 import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 import { useLanguage } from "@/components/LanguageProvider";
 
@@ -807,8 +807,6 @@ function CeilingModal({
 
 // ─── TopUpModal ───────────────────────────────────────────────────────────────
 
-import { buyExtraCredits } from "@/app/actions/booking";
-
 function TopUpModal({
   event: ev,
   lang,
@@ -1344,6 +1342,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeDateFilter, setActiveDateFilter] = useState<string>("all");
   const [activeStatus, setActiveStatus] = useState<string>("all");
+  const [activeStage, setActiveStage] = useState<string>("all");
+  const [activeAudience, setActiveAudience] = useState<string>("all");
 
   const [guestPassEvent, setGuestPassEvent] = useState<PublicEvent | null>(null);
   const [freeRsvpEvent, setFreeRsvpEvent] = useState<PublicEvent | null>(null);
@@ -1358,6 +1358,20 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     { id: "evenings", labelEn: "MoM's date", labelEs: "MoM's date" },
     { id: "learn", labelEn: "Learn & Grow", labelEs: "Aprender y crecer" },
     { id: "signature", labelEn: "Signature moments", labelEs: "Momentos únicos" },
+  ];
+
+  const stageChips = [
+    { id: "all", labelEn: "All stages", labelEs: "Todas las etapas" },
+    { id: "pregnant", labelEn: "Pregnant", labelEs: "Embarazada" },
+    { id: "babies", labelEn: "Babies (0–12m)", labelEs: "Bebés (0–12m)" },
+    { id: "toddlers", labelEn: "Toddlers (1–3y)", labelEs: "Peques (1–3a)" },
+    { id: "children", labelEn: "Children (3y+)", labelEs: "Niños (3a+)" },
+  ];
+
+  const audienceChips = [
+    { id: "all", labelEn: "All groups", labelEs: "Todos los grupos" },
+    { id: "kids", labelEn: "Kids welcome", labelEs: "Con peques" },
+    { id: "moms", labelEn: "Mothers only", labelEs: "Solo madres" },
   ];
 
   // Calculate current month & next month names dynamically
@@ -1375,12 +1389,22 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   ];
 
   const statusChips = [
-    { id: "all", labelEn: "All", labelEs: "Todos", dotBg: "transparent", dotBorder: "rgba(57,41,42,0.3)" },
+    { id: "all", labelEn: "All states", labelEs: "Todos los estados", dotBg: "transparent", dotBorder: "rgba(57,41,42,0.3)" },
     { id: "confirmed", labelEn: "Confirmed", labelEs: "Confirmados", dotBg: "#e8f1e9", dotBorder: "rgba(74,122,80,0.45)" },
-    { id: "pending", labelEn: "To be confirmed", labelEs: "Por confirmar", dotBg: "#fff3e4", dotBorder: "rgba(164,118,31,0.4)" },
+    { id: "pending", labelEn: "Gathering", labelEs: "Por confirmar", dotBg: "#fff3e4", dotBorder: "rgba(164,118,31,0.4)" },
     { id: "cancelled", labelEn: "Cancelled", labelEs: "Cancelados", dotBg: "#fbf1f1", dotBorder: "rgba(153,56,66,0.28)" },
     { id: "past", labelEn: "Past", labelEs: "Pasados", dotBg: "#dde3e6", dotBorder: "rgba(96,110,118,0.45)" },
   ];
+
+  const hasActiveFilters = activeCategory !== "all" || activeDateFilter !== "all" || activeStatus !== "all" || activeStage !== "all" || activeAudience !== "all";
+
+  const clearAllFilters = () => {
+    setActiveCategory("all");
+    setActiveDateFilter("all");
+    setActiveStatus("all");
+    setActiveStage("all");
+    setActiveAudience("all");
+  };
 
   // Filtering
   const filtered = events.filter((ev) => {
@@ -1390,7 +1414,22 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       if (activeCategory !== catInfo.key) return false;
     }
 
-    // 2. Date match
+    // 2. Stage match
+    if (activeStage !== "all") {
+      const rawStage = (ev.stage || "").toLowerCase();
+      if (!rawStage.includes(activeStage) && rawStage !== "all stages") return false;
+    }
+
+    // 3. Audience / Kids match
+    if (activeAudience === "kids") {
+      const isMomsOnly = ev.audienceType === "mothers_only" || ev.categorySlug === "evenings" || (ev.title && ev.title.toLowerCase().includes("date"));
+      if (isMomsOnly) return false;
+    } else if (activeAudience === "moms") {
+      const isKids = ev.audienceType === "kids_welcome" || ev.categorySlug === "baby" || ev.isFreeWalk;
+      if (isKids && ev.audienceType !== "mothers_only") return false;
+    }
+
+    // 4. Date match
     if (activeDateFilter === "this_month") {
       const evDate = new Date(ev.startsAt);
       if (evDate.getMonth() !== now.getMonth() || evDate.getFullYear() !== now.getFullYear()) return false;
@@ -1399,12 +1438,11 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       if (evDate.getMonth() !== nextMonthDate.getMonth() || evDate.getFullYear() !== nextMonthDate.getFullYear()) return false;
     }
 
-    // 3. Status match
+    // 5. Status match
     const isCancelled = ev.status === "cancelled";
     const isPastEvent = ev.status === "past" || ev.status === "completed" ||
       (ev.endsAt ? new Date(ev.endsAt) < now : new Date(ev.startsAt) < now);
     
-    // Dynamic status derivation (gathering vs confirmed)
     let derivedStatus = "confirmed";
     if (isPastEvent) {
       derivedStatus = "past";
@@ -1536,48 +1574,127 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                 );
               })}
             </div>
+
+            {/* Row 3: Stages */}
+            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
+              {stageChips.map((chip) => {
+                const selected = activeStage === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setActiveStage(chip.id)}
+                    style={{
+                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
+                      backgroundColor: "transparent",
+                      color: selected ? "#7b1f2c" : "rgba(57,41,42,0.65)",
+                      fontWeight: selected ? 600 : 400,
+                      padding: "6px 13px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontFamily: "var(--font-body)",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {lang === "en" ? chip.labelEn : chip.labelEs}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Row 4: Audience / Kids */}
+            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
+              {audienceChips.map((chip) => {
+                const selected = activeAudience === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setActiveAudience(chip.id)}
+                    style={{
+                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
+                      backgroundColor: "transparent",
+                      color: selected ? "#7b1f2c" : "rgba(57,41,42,0.65)",
+                      fontWeight: selected ? 600 : 400,
+                      padding: "6px 13px",
+                      borderRadius: "20px",
+                      fontSize: "12px",
+                      fontFamily: "var(--font-body)",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {lang === "en" ? chip.labelEn : chip.labelEs}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Row 3: Status / State with Authentic Swatches (Separated from Categories & Dates) */}
-          <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", alignItems: "center", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
-            {statusChips.map((chip) => {
-              const selected = activeStatus === chip.id;
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  onClick={() => setActiveStatus(chip.id)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
-                    backgroundColor: "transparent",
-                    color: selected ? "#7b1f2c" : "rgba(57,41,42,0.72)",
-                    fontWeight: selected ? 600 : 400,
-                    padding: "6px 14px",
-                    borderRadius: "20px",
-                    fontSize: "12.5px",
-                    fontFamily: "var(--font-body)",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span
+          {/* Row 5: Status / State with Authentic Swatches */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", justifyContent: "space-between", paddingBottom: "4px" }}>
+            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", alignItems: "center", scrollbarWidth: "none" }} className="hide-scrollbar">
+              {statusChips.map((chip) => {
+                const selected = activeStatus === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setActiveStatus(chip.id)}
                     style={{
-                      width: "12px",
-                      height: "12px",
-                      borderRadius: "50%",
-                      backgroundColor: selected ? chip.dotBorder : "transparent",
-                      border: selected ? "2px solid #7b1f2c" : `1px solid ${chip.dotBorder}`,
-                      flexShrink: 0,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
+                      backgroundColor: "transparent",
+                      color: selected ? "#7b1f2c" : "rgba(57,41,42,0.72)",
+                      fontWeight: selected ? 600 : 400,
+                      padding: "6px 14px",
+                      borderRadius: "20px",
+                      fontSize: "12.5px",
+                      fontFamily: "var(--font-body)",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.15s ease",
                     }}
-                  />
-                  {lang === "en" ? chip.labelEn : chip.labelEs}
-                </button>
-              );
-            })}
+                  >
+                    <span
+                      style={{
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "50%",
+                        backgroundColor: selected ? chip.dotBorder : "transparent",
+                        border: selected ? "2px solid #7b1f2c" : `1px solid ${chip.dotBorder}`,
+                        flexShrink: 0,
+                      }}
+                    />
+                    {lang === "en" ? chip.labelEn : chip.labelEs}
+                  </button>
+                );
+              })}
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#7b1f2c",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  padding: "4px 8px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {lang === "en" ? "Clear all filters" : "Borrar todos los filtros"}
+              </button>
+            )}
           </div>
         </div>
 
@@ -1587,9 +1704,28 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
             <p style={{ fontFamily: "var(--font-heading)", fontSize: "20px", margin: "0 0 8px" }}>
               {lang === "en" ? "No events match these filters." : "Ningún evento coincide con estos filtros."}
             </p>
-            <p style={{ fontSize: "14px", margin: 0 }}>
+            <p style={{ fontSize: "14px", margin: "0 0 16px" }}>
               {lang === "en" ? "Try clearing some filters to see what is coming up." : "Prueba a quitar algunos filtros para ver los próximos eventos."}
             </p>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                style={{
+                  border: "1px solid #7b1f2c",
+                  color: "#7b1f2c",
+                  background: "transparent",
+                  padding: "8px 18px",
+                  borderRadius: "4px",
+                  fontSize: "13.5px",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                }}
+              >
+                {lang === "en" ? "Show all events" : "Ver todos los eventos"}
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>

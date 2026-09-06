@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { eventPass, event, person, auditLog } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eventPass, event, person, booking, auditLog } from "@/db/schema";
+import { eq, and, or } from "drizzle-orm";
 import crypto from "crypto";
 
 export async function getGuestTicketByToken(token: string) {
@@ -37,6 +37,7 @@ export async function getGuestTicketByToken(token: string) {
       ticket: {
         passId: passRecord.id,
         status: passRecord.status,
+        priceCents: passRecord.priceCents || 3500,
         purchasedAt: passRecord.purchasedAt,
         creditExpiresAt: passRecord.creditExpiresAt,
         eventTitle: ev.title,
@@ -45,7 +46,7 @@ export async function getGuestTicketByToken(token: string) {
         venueName: ev.venueName,
         meetingPoint: ev.meetingPoint, // Revealed to ticket holder
         neighbourhood: ev.neighbourhood,
-        guestName: personRecord.firstName,
+        guestName: personRecord.firstName || "Guest",
       },
     };
   } catch (error: any) {
@@ -65,19 +66,40 @@ export async function releaseGuestTicket(token: string) {
       return { success: false, error: "TICKET_CANNOT_BE_RELEASED" };
     }
 
+    const now = new Date();
+
+    // 1. Update event pass status
     await db
       .update(eventPass)
       .set({
         status: "released",
-        releasedAt: new Date(),
-        updatedAt: new Date(),
+        releasedAt: now,
+        updatedAt: now,
       })
       .where(eq(eventPass.id, passRecord.id));
 
-    // Audit log
+    // 2. Synchronize the booking record so capacity & roster update properly
+    await db
+      .update(booking)
+      .set({
+        status: "released",
+        releasedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        or(
+          eq(booking.passId, passRecord.id),
+          and(
+            eq(booking.eventId, passRecord.eventId),
+            eq(booking.personId, passRecord.personId)
+          )
+        )
+      );
+
+    // 3. Write audit log
     await db.insert(auditLog).values({
       actorId: passRecord.personId,
-      actorType: "system",
+      actorType: "guest",
       action: "release_guest_pass",
       entity: "event_pass",
       entityId: passRecord.id,
