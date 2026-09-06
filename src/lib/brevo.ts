@@ -3,6 +3,27 @@ import { db } from "@/db";
 import { emailLog } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+export const BREVO_TEMPLATES = {
+  WELCOME_CONFIRMATION: "welcome_confirmation",
+  APPLICATION_RECEIVED: "application_received",
+  APPLICATION_ACCEPTED: "application_accepted",
+  APPLICATION_DECLINED: "application_declined",
+  PAYMENT_RECEIPT: "payment_receipt",
+  PAYMENT_FAILED: "payment_failed",
+  PASSWORD_RESET: "password_reset",
+  GUEST_PASS_ISSUED: "guest_pass_issued",
+  TICKET_RELEASED: "ticket_released",
+  EVENT_BOOKING_CONFIRMED: "event_booking_confirmed",
+  EVENT_REMINDER_48H: "event_reminder_48h",
+  EVENT_CANCELLED_REFUND: "event_cancelled_refund",
+  WAITLIST_PROMOTED: "waitlist_promoted",
+  CREDITS_EXPIRING_30D: "credits_expiring_30d",
+  MEMBERSHIP_PAUSED: "membership_paused",
+  MEMBERSHIP_CANCELLED: "membership_cancelled",
+  TIER_UPGRADE: "tier_upgrade",
+  GODMOTHER_BONUS_EARNED: "godmother_bonus_earned",
+} as const;
+
 export interface SendEmailParams {
   personId: string;
   toEmail: string;

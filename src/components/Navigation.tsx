@@ -217,6 +217,8 @@ export function Navigation() {
             justifyContent: "space-between",
             padding: "32px 24px",
             borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
@@ -247,6 +249,26 @@ export function Navigation() {
               {lang === "en" ? "Events" : "Eventos"}
             </Link>
 
+            {/* Mobile Language Switcher */}
+            <div style={{ paddingTop: "8px" }}>
+              <button
+                type="button"
+                onClick={() => switchLang(lang === "en" ? "es" : "en")}
+                style={{
+                  border: "1px solid rgba(57, 41, 42, 0.2)",
+                  background: "transparent",
+                  color: "var(--color-text)",
+                  padding: "8px 14px",
+                  borderRadius: "4px",
+                  fontSize: "14px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {lang === "en" ? "Español (ES)" : "English (EN)"}
+              </button>
+            </div>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "16px", paddingTop: "24px", borderTop: "1px solid rgba(57, 41, 42, 0.14)" }}>
