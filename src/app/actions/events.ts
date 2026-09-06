@@ -149,7 +149,7 @@ export async function getPublicEvents() {
         minute: "2-digit",
       }) : "";
 
-      const capacityTotal = ev.capacityMember;
+      const capacityTotal = ev.capacityMember && ev.capacityMember > 0 ? ev.capacityMember : null;
       const capacityRemaining = capacityTotal !== null ? Math.max(0, capacityTotal - (countMap.get(ev.id) || 0)) : null;
 
       const audienceType = ev.childcare === "adults_only" ? "moms_only" : "moms_child";
@@ -329,7 +329,7 @@ export async function getPublicEventById(id: string) {
 
     const bookedMember = Number(memberCount[0]?.count || 0);
     const bookedGuest = Number(guestCount[0]?.count || 0);
-    const spotsRemaining = ev.capacityMember - bookedMember;
+    const spotsRemaining = ev.capacityMember > 0 ? Math.max(0, ev.capacityMember - bookedMember) : null;
 
     // Guest pass eligibility: confirmed, non-signature, ≤18 credits, inside guest window (custom or static T-14 to T-2)
     const now = new Date();

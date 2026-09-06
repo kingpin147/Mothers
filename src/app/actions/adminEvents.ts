@@ -29,11 +29,11 @@ export async function publishAdminEvent(eventId: string) {
     return { success: false, error: "Cannot publish an event with a date in the past." };
   }
 
-  if (ev.capacityMember <= 0) {
-    return { success: false, error: "Member capacity must be at least 1." };
+  if (ev.capacityMember < 0) {
+    return { success: false, error: "Member capacity cannot be negative." };
   }
 
-  if (ev.minToConfirm > ev.capacityMember) {
+  if (ev.capacityMember > 0 && ev.minToConfirm > ev.capacityMember) {
     return { success: false, error: "Minimum to confirm cannot exceed member capacity." };
   }
 

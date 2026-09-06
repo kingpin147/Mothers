@@ -310,8 +310,8 @@ export async function getAdminDashboardMetrics() {
         when: `${new Date(e.event.startsAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${new Date(e.event.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
         title: e.event.title,
         place: `${e.event.venueName || e.event.neighbourhood} · ${e.event.isFreeWalk ? "free" : e.event.creditCost + " credits"}`,
-        headcount: e.bookingsCount > 0 ? `${e.bookingsCount} of ${e.event.capacityMember}` : String(e.bookingsCount),
-        headcountLabel: e.bookingsCount === e.event.capacityMember ? "places taken · full" : "places taken",
+        headcount: e.event.capacityMember > 0 ? (e.bookingsCount > 0 ? `${e.bookingsCount} of ${e.event.capacityMember}` : String(e.bookingsCount)) : String(e.bookingsCount),
+        headcountLabel: e.event.capacityMember > 0 && e.bookingsCount >= e.event.capacityMember ? "places taken · full" : "places taken",
         href: `/admin/events`,
       };
     });

@@ -120,7 +120,7 @@ export default function AdminCreateEventPage() {
       startsAt: start,
       endsAt: new Date(endsAt),
       creditCost: freeEvent ? 0 : (parseInt(creditCost) || 0),
-      capacityMember: parseInt(memberPlaces) || 100, // fallback for walk
+      capacityMember: memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces),
       capacityGuest: membersOnly ? 0 : (parseInt(guestPlaces) || 0),
       capacityGuestGathering: membersOnly ? 0 : (parseInt(guestGathering) || undefined),
       minToConfirm: parseInt(minToConfirm) || 0,

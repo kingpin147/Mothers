@@ -937,10 +937,8 @@ function EventCard({
   // isPast: event date has passed (regardless of status label)
   const isPast = ev.status === "past" || ev.status === "completed" ||
     (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
-  // isCancelledAndPast: cancelled event whose date has also passed — card should be grey
-  const isCancelledAndPast = isCancelled && isPast;
   const isPending = ev.status === "published_pending" || ev.status === "pending";
-  const isFull = ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 0;
+  const isFull = Boolean(ev.capacityTotal && ev.capacityTotal > 0 && ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 0);
 
   const handleBookClick = () => {
     if (ev.isFreeWalk || ev.creditCost === 0) {
@@ -1116,17 +1114,13 @@ function EventCard({
         )}
 
         {/* Capacity / Scarcity notice */}
-        {!isCancelled && !isPast && (
+        {!isCancelled && !isPast && ev.capacityTotal && ev.capacityTotal > 0 ? (
           <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>
-            {ev.capacityTotal ? (
-              <span style={{ color: (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 3) ? "#8a6516" : "rgba(57,41,42,0.7)" }}>
-                {lang === "en" ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}` : `Plazas disponibles: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`}
-              </span>
-            ) : (
-              <span>{lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"}</span>
-            )}
+            <span style={{ color: (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 3) ? "#8a6516" : "rgba(57,41,42,0.7)" }}>
+              {lang === "en" ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}` : `Plazas disponibles: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`}
+            </span>
           </div>
-        )}
+        ) : null}
         {isCancelled && (
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ fontSize: "13.5px", color: "#39292a", fontWeight: 500 }}>
