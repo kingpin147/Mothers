@@ -17,6 +17,15 @@ import {
 import { eq, desc, and, sql, gte, lte, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (e: any) {
+    console.warn("Dashboard safeQuery fallback:", e?.message || e);
+    return fallback;
+  }
+}
+
 export async function getAdminDashboardMetrics() {
   const session = await auth();
   const role = (session?.user as any)?.role;
@@ -31,175 +40,227 @@ export async function getAdminDashboardMetrics() {
     const t10Date = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
     const thirtyDaysAhead = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    // Start queries concurrently
+    // 1. Fetch lightweight datasets concurrently
     const [
       memberStats,
       totalRevenue,
       currentWindowList,
-      t7Events,
-      t10EventsData,
+      t7RawEvents,
+      t10RawEvents,
       pendingApps,
       acceptedApps,
-      weekEvents,
+      weekRawEvents,
       recentLogs,
       failedPayments,
       creditStats,
       expiringPartners,
       guestPassesList,
-      totalWaitlistCount
     ] = await Promise.all([
       // 1. Member stats
-      db.select({
-        status: member.status,
-        count: sql<number>`count(*)::int`,
-      }).from(member).groupBy(member.status),
+      safeQuery(
+        () => db.select({
+          status: member.status,
+          count: sql<number>`count(*)::int`,
+        }).from(member).groupBy(member.status),
+        []
+      ),
 
       // 2. Revenue
-      db.select({ total: sql<number>`COALESCE(sum(${payment.amountCents}), 0)::int` })
-        .from(payment).where(eq(payment.status, "succeeded")),
+      safeQuery(
+        () => db.select({ total: sql<number>`COALESCE(sum(${payment.amountCents}), 0)::int` })
+          .from(payment).where(eq(payment.status, "succeeded")),
+        [{ total: 0 }]
+      ),
 
       // 3. Current Window
-      db.select().from(window).where(eq(window.status, "open")).limit(1),
+      safeQuery(
+        () => db.select().from(window).where(eq(window.status, "open")).limit(1),
+        []
+      ),
 
-      // 4. Decisions Due (T-7) - gathering/pending events starting soon
-      db.select({
-        id: event.id,
-        title: event.title,
-        startsAt: event.startsAt,
-        minToConfirm: event.minToConfirm,
-        bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
-        heldCredits: sql<number>`COALESCE(sum(CASE WHEN ${booking.status} = 'held' THEN ${booking.creditsCharged} ELSE 0 END), 0)::int`,
-        guestCount: sql<number>`count(CASE WHEN ${booking.kind} = 'guest' AND ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
-      }).from(event)
-        .leftJoin(booking, eq(booking.eventId, event.id))
-        .where(
-          and(
-            eq(event.status, "published_pending"),
-            lte(event.startsAt, t7Date),
-            gte(event.startsAt, now)
-          )
-        )
-        .groupBy(event.id, event.title, event.startsAt, event.minToConfirm).orderBy(event.startsAt),
+      // 4. Decisions Due (T-7) events
+      safeQuery(
+        () => db.select({
+          id: event.id,
+          title: event.title,
+          startsAt: event.startsAt,
+          minToConfirm: event.minToConfirm,
+        }).from(event)
+          .where(and(eq(event.status, "published_pending"), lte(event.startsAt, t7Date), gte(event.startsAt, now)))
+          .orderBy(event.startsAt),
+        []
+      ),
 
-      // 5. Early Warnings (T-10) - gathering events 10 days out
-      db.select({
-        id: event.id,
-        title: event.title,
-        startsAt: event.startsAt,
-        minToConfirm: event.minToConfirm,
-        bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
-      }).from(event)
-        .leftJoin(booking, eq(booking.eventId, event.id))
-        .where(
-          and(
-            eq(event.status, "published_pending"),
-            lte(event.startsAt, t10Date),
-            gte(event.startsAt, now)
-          )
-        )
-        .groupBy(event.id, event.title, event.startsAt, event.minToConfirm).orderBy(event.startsAt),
+      // 5. Early Warnings (T-10) events
+      safeQuery(
+        () => db.select({
+          id: event.id,
+          title: event.title,
+          startsAt: event.startsAt,
+          minToConfirm: event.minToConfirm,
+        }).from(event)
+          .where(and(eq(event.status, "published_pending"), lte(event.startsAt, t10Date), gte(event.startsAt, now)))
+          .orderBy(event.startsAt),
+        []
+      ),
 
       // 6. Applications (Submitted / Waiting)
-      db.select({
-        id: application.id,
-        submittedAt: application.submittedAt,
-        firstName: person.firstName,
-        lastName: person.lastName,
-      }).from(application)
-        .innerJoin(person, eq(application.personId, person.id))
-        .where(eq(application.status, 'submitted'))
-        .orderBy(application.submittedAt),
+      safeQuery(
+        () => db.select({
+          id: application.id,
+          submittedAt: application.submittedAt,
+          firstName: person.firstName,
+          lastName: person.lastName,
+        }).from(application)
+          .innerJoin(person, eq(application.personId, person.id))
+          .where(eq(application.status, 'submitted'))
+          .orderBy(application.submittedAt)
+          .limit(15),
+        []
+      ),
 
       // 6b. Applications (Accepted Awaiting Payment)
-      db.select({
-        id: application.id,
-        submittedAt: application.submittedAt,
-        decidedAt: application.decidedAt,
-        acceptExpiresAt: application.acceptExpiresAt,
-        firstName: person.firstName,
-        lastName: person.lastName,
-      }).from(application)
-        .innerJoin(person, eq(application.personId, person.id))
-        .where(eq(application.status, 'accepted'))
-        .orderBy(application.decidedAt),
+      safeQuery(
+        () => db.select({
+          id: application.id,
+          submittedAt: application.submittedAt,
+          decidedAt: application.decidedAt,
+          acceptExpiresAt: application.acceptExpiresAt,
+          firstName: person.firstName,
+          lastName: person.lastName,
+        }).from(application)
+          .innerJoin(person, eq(application.personId, person.id))
+          .where(eq(application.status, 'accepted'))
+          .orderBy(application.decidedAt)
+          .limit(15),
+        []
+      ),
 
       // 7. This Week (Confirmed events starting within 7 days)
-      db.select({
-        id: event.id,
-        title: event.title,
-        startsAt: event.startsAt,
-        venueName: event.venueName,
-        neighbourhood: event.neighbourhood,
-        isFreeWalk: event.isFreeWalk,
-        creditCost: event.creditCost,
-        capacityMember: event.capacityMember,
-        bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
-        waitlistCount: sql<number>`count(CASE WHEN ${booking.status} = 'waitlist' THEN 1 END)::int`
-      }).from(event)
-        .leftJoin(booking, eq(booking.eventId, event.id))
-        .where(and(eq(event.status, "confirmed"), lte(event.startsAt, t7Date), gte(event.startsAt, now)))
-        .groupBy(event.id, event.title, event.startsAt, event.venueName, event.neighbourhood, event.isFreeWalk, event.creditCost, event.capacityMember).orderBy(event.startsAt),
+      safeQuery(
+        () => db.select({
+          id: event.id,
+          title: event.title,
+          startsAt: event.startsAt,
+          venueName: event.venueName,
+          neighbourhood: event.neighbourhood,
+          isFreeWalk: event.isFreeWalk,
+          creditCost: event.creditCost,
+          capacityMember: event.capacityMember,
+        }).from(event)
+          .where(and(eq(event.status, "confirmed"), lte(event.startsAt, t7Date), gte(event.startsAt, now)))
+          .orderBy(event.startsAt)
+          .limit(20),
+        []
+      ),
 
       // 8. Audit Logs
-      db.select({
-        id: auditLog.id,
-        action: auditLog.action,
-        entity: auditLog.entity,
-        actorType: auditLog.actorType,
-        createdAt: auditLog.at,
-        before: auditLog.before,
-        after: auditLog.after,
-      }).from(auditLog).orderBy(desc(auditLog.at)).limit(6),
+      safeQuery(
+        () => db.select({
+          id: auditLog.id,
+          action: auditLog.action,
+          entity: auditLog.entity,
+          actorType: auditLog.actorType,
+          createdAt: auditLog.at,
+          before: auditLog.before,
+          after: auditLog.after,
+        }).from(auditLog).orderBy(desc(auditLog.at)).limit(6),
+        []
+      ),
 
       // 9. Failed Payments
-      db.select({
-        id: payment.id,
-        amountCents: payment.amountCents,
-        occurredAt: payment.occurredAt,
-        purpose: payment.purpose,
-        firstName: person.firstName,
-        lastName: person.lastName,
-      }).from(payment)
-        .innerJoin(person, eq(payment.personId, person.id))
-        .where(eq(payment.status, 'failed'))
-        .orderBy(desc(payment.occurredAt)).limit(5),
+      safeQuery(
+        () => db.select({
+          id: payment.id,
+          amountCents: payment.amountCents,
+          occurredAt: payment.occurredAt,
+          purpose: payment.purpose,
+          firstName: person.firstName,
+          lastName: person.lastName,
+        }).from(payment)
+          .innerJoin(person, eq(payment.personId, person.id))
+          .where(eq(payment.status, 'failed'))
+          .orderBy(desc(payment.occurredAt))
+          .limit(5),
+        []
+      ),
 
       // 10. Credit Stats
-      db.select({
-        issued: sql<number>`COALESCE(SUM(CASE WHEN ${creditEntry.amount} > 0 THEN ${creditEntry.amount} ELSE 0 END), 0)::int`,
-        spent: sql<number>`COALESCE(SUM(CASE WHEN ${creditEntry.amount} < 0 THEN ABS(${creditEntry.amount}) ELSE 0 END), 0)::int`,
-        outstanding: sql<number>`COALESCE(SUM(${creditEntry.amount}), 0)::int`,
-      }).from(creditEntry),
+      safeQuery(
+        () => db.select({
+          issued: sql<number>`COALESCE(SUM(CASE WHEN ${creditEntry.amount} > 0 THEN ${creditEntry.amount} ELSE 0 END), 0)::int`,
+          spent: sql<number>`COALESCE(SUM(CASE WHEN ${creditEntry.amount} < 0 THEN ABS(${creditEntry.amount}) ELSE 0 END), 0)::int`,
+          outstanding: sql<number>`COALESCE(SUM(${creditEntry.amount}), 0)::int`,
+        }).from(creditEntry),
+        [{ issued: 0, spent: 0, outstanding: 0 }]
+      ),
 
       // 11. Expiring Partner Agreements (within 30 days)
-      db.select({
-        id: partner.id,
-        name: partner.name,
-        specialty: partner.specialty,
-        exclusiveUntil: partner.exclusiveUntil,
-      }).from(partner)
-        .where(
-          and(
-            eq(partner.status, "active"),
-            lte(partner.exclusiveUntil, thirtyDaysAhead),
-            gte(partner.exclusiveUntil, now)
+      safeQuery(
+        () => db.select({
+          id: partner.id,
+          name: partner.name,
+          specialty: partner.specialty,
+          exclusiveUntil: partner.exclusiveUntil,
+        }).from(partner)
+          .where(
+            and(
+              eq(partner.status, "active"),
+              lte(partner.exclusiveUntil, thirtyDaysAhead),
+              gte(partner.exclusiveUntil, now)
+            )
           )
-        ),
+          .limit(5),
+        []
+      ),
 
       // 12. Guest Pass conversion data
-      db.select({
-        passId: eventPass.id,
-        personId: eventPass.personId,
-        purchasedAt: eventPass.purchasedAt,
-        email: person.email,
-        memberId: member.id,
-      }).from(eventPass)
-        .innerJoin(person, eq(eventPass.personId, person.id))
-        .leftJoin(member, eq(member.personId, person.id)),
-
-      // 13. Waitlist count
-      db.select({ count: sql<number>`count(*)::int` }).from(booking).where(eq(booking.status, 'waitlist')),
+      safeQuery(
+        () => db.select({
+          passId: eventPass.id,
+          email: person.email,
+          memberId: member.id,
+        }).from(eventPass)
+          .innerJoin(person, eq(eventPass.personId, person.id))
+          .leftJoin(member, eq(member.personId, person.id))
+          .limit(100),
+        []
+      ),
     ]);
+
+    // 2. Fetch booking aggregates only for relevant event IDs (if any)
+    const allRelevantEventIds = [
+      ...t7RawEvents.map((e) => e.id),
+      ...t10RawEvents.map((e) => e.id),
+      ...weekRawEvents.map((e) => e.id),
+    ];
+    const uniqueEventIds = Array.from(new Set(allRelevantEventIds));
+
+    const bookingStatsMap: Record<string, { bookingsCount: number; heldCredits: number; guestCount: number; waitlistCount: number }> = {};
+
+    if (uniqueEventIds.length > 0) {
+      const bSummary = await safeQuery(
+        () => db.select({
+          eventId: booking.eventId,
+          bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
+          heldCredits: sql<number>`COALESCE(sum(CASE WHEN ${booking.status} = 'held' THEN ${booking.creditsCharged} ELSE 0 END), 0)::int`,
+          guestCount: sql<number>`count(CASE WHEN ${booking.kind} = 'guest' AND ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
+          waitlistCount: sql<number>`count(CASE WHEN ${booking.status} = 'waitlist' THEN 1 END)::int`,
+        }).from(booking)
+          .where(inArray(booking.eventId, uniqueEventIds))
+          .groupBy(booking.eventId),
+        []
+      );
+
+      for (const row of bSummary) {
+        bookingStatsMap[row.eventId] = {
+          bookingsCount: row.bookingsCount || 0,
+          heldCredits: row.heldCredits || 0,
+          guestCount: row.guestCount || 0,
+          waitlistCount: row.waitlistCount || 0,
+        };
+      }
+    }
 
     let activeMembersCount = 0;
     for (const s of (memberStats || [])) {
@@ -211,28 +272,33 @@ export async function getAdminDashboardMetrics() {
     const placesOffered = currentWindow?.placesOffered || 50;
 
     // Build Decisions Due (T-7)
-    const decisions = (t7Events || []).map((e) => {
+    const decisions = (t7RawEvents || []).map((e) => {
+      const stats = bookingStatsMap[e.id] || { bookingsCount: 0, heldCredits: 0, guestCount: 0, waitlistCount: 0 };
       const minToConfirm = e.minToConfirm ?? 0;
-      const isMet = (e.bookingsCount ?? 0) >= minToConfirm;
+      const isMet = stats.bookingsCount >= minToConfirm;
       const startsDate = e.startsAt ? new Date(e.startsAt) : now;
       const daysUntil = Math.ceil((startsDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       return {
         id: e.id,
         title: e.title,
         meta: `${startsDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${startsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Starts in ${daysUntil} days`,
-        count: `${e.bookingsCount ?? 0} / ${minToConfirm}`,
+        count: `${stats.bookingsCount} / ${minToConfirm}`,
         countColor: isMet ? "#3f6604" : "#a8752c",
         isMet,
-        heldCredits: e.heldCredits || 0,
-        guestCount: e.guestCount || 0,
-        guestRefundCash: (e.guestCount || 0) * 35,
+        heldCredits: stats.heldCredits,
+        guestCount: stats.guestCount,
+        guestRefundCash: stats.guestCount * 35,
       };
     });
 
     // Build Early Warnings (T-10, under 50% min)
-    const warnings = (t10EventsData || [])
-      .filter((e) => (e.bookingsCount ?? 0) < Math.ceil((e.minToConfirm ?? 0) / 2))
+    const warnings = (t10RawEvents || [])
+      .filter((e) => {
+        const stats = bookingStatsMap[e.id] || { bookingsCount: 0 };
+        return stats.bookingsCount < Math.ceil((e.minToConfirm ?? 0) / 2);
+      })
       .map((e) => {
+        const stats = bookingStatsMap[e.id] || { bookingsCount: 0 };
         let group = "All members";
         const titleLower = (e.title || "").toLowerCase();
         if (titleLower.includes("baby") || titleLower.includes("massage") || titleLower.includes("feeding")) {
@@ -249,7 +315,7 @@ export async function getAdminDashboardMetrics() {
         return {
           id: e.id,
           title: e.title,
-          meta: `${startsDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${startsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${e.bookingsCount ?? 0} of ${e.minToConfirm ?? 0} booked`,
+          meta: `${startsDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${startsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${stats.bookingsCount} of ${e.minToConfirm ?? 0} booked`,
           group,
           draftMessage: `Hi ${group}! We have a few spots remaining for "${e.title}" on ${startsDate.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}. Book yours here: https://themothers.cc/events/${e.id}`,
         };
@@ -322,15 +388,13 @@ export async function getAdminDashboardMetrics() {
     // Build Week's events
     let totalCapacity = 0;
     let totalBooked = 0;
-    let totalWaitlist = 0;
 
-    const week = (weekEvents || []).map((e) => {
+    const week = (weekRawEvents || []).map((e) => {
+      const stats = bookingStatsMap[e.id] || { bookingsCount: 0, waitlistCount: 0 };
       const cap = e.capacityMember ?? 0;
-      const booked = e.bookingsCount ?? 0;
-      const wait = e.waitlistCount ?? 0;
+      const booked = stats.bookingsCount;
       totalCapacity += cap;
       totalBooked += booked;
-      totalWaitlist += wait;
 
       const startsDate = e.startsAt ? new Date(e.startsAt) : now;
       return {
@@ -343,8 +407,6 @@ export async function getAdminDashboardMetrics() {
         href: `/admin/events`,
       };
     });
-
-    const fillRate = totalCapacity > 0 ? Math.round((totalBooked / totalCapacity) * 100) : 0;
 
     // Pass-to-member conversion
     const passEmails = (guestPassesList || [])

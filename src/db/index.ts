@@ -4,9 +4,12 @@ import * as schema from "./schema";
 
 const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres";
 
-// For serverless / edge queries: disable prefetch
+// For serverless / edge queries: disable prefetch and configure pool
 export const client = postgres(connectionString, {
   prepare: false,
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 15,
 });
 
 export const db = drizzle(client, { schema });
