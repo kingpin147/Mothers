@@ -157,21 +157,37 @@ export async function pauseMembership() {
   try {
     const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
     if (!memberRecord) return { success: false, error: "MEMBER_NOT_FOUND" };
-    if (memberRecord.pausedUntil && new Date(memberRecord.pausedUntil) > new Date()) {
+    if (memberRecord.status === "paused" || (memberRecord.pausedUntil && new Date(memberRecord.pausedUntil) > new Date())) {
       return { success: false, error: "ALREADY_PAUSED" };
     }
-    if (memberRecord.pauseMonthsUsedYear >= 2) {
+    const usedMonths = memberRecord.pauseMonthsUsedYear ?? 0;
+    if (usedMonths >= 2) {
       return { success: false, error: "PAUSE_LIMIT_REACHED" };
     }
     
-    // Pause for exactly 2 months
+    // Pause for up to 2 months
     const pausedUntil = new Date();
     pausedUntil.setMonth(pausedUntil.getMonth() + 2);
+
+    if (memberRecord.stripeSubscriptionId) {
+      try {
+        const { stripe } = await import("@/lib/stripe");
+        await stripe.subscriptions.update(memberRecord.stripeSubscriptionId, {
+          pause_collection: {
+            behavior: "void",
+            resumes_at: Math.floor(pausedUntil.getTime() / 1000),
+          },
+        });
+      } catch (stripeErr) {
+        console.warn("Stripe pause_collection warning:", stripeErr);
+      }
+    }
     
     await db.update(member)
       .set({ 
+        status: "paused",
         pausedUntil, 
-        pauseMonthsUsedYear: memberRecord.pauseMonthsUsedYear + 2,
+        pauseMonthsUsedYear: usedMonths + 2,
         updatedAt: new Date() 
       })
       .where(eq(member.id, memberId));
@@ -179,6 +195,41 @@ export async function pauseMembership() {
     return { success: true, pausedUntil };
   } catch (e: any) {
     return { success: false, error: e?.message || "PAUSE_FAILED" };
+  }
+}
+
+export async function resumeMembership() {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+  const memberId = (session.user as any).memberId;
+  if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+
+  try {
+    const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
+    if (!memberRecord) return { success: false, error: "MEMBER_NOT_FOUND" };
+
+    if (memberRecord.stripeSubscriptionId) {
+      try {
+        const { stripe } = await import("@/lib/stripe");
+        await stripe.subscriptions.update(memberRecord.stripeSubscriptionId, {
+          pause_collection: "",
+        });
+      } catch (stripeErr) {
+        console.warn("Stripe unpause warning:", stripeErr);
+      }
+    }
+
+    await db.update(member)
+      .set({
+        status: "active",
+        pausedUntil: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(member.id, memberId));
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "RESUME_FAILED" };
   }
 }
 

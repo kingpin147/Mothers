@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "One membership. Everything you need to build your circle. Monthly credits, curated gatherings, and vetted community.",
   openGraph: {
     title: "Membership — The Mothers Barcelona",
-    description: "Opening Circle and The Circle tiers for mothers in Barcelona, from pregnancy through the school years.",
+    description: "One membership. Everything you need to build your circle: monthly credits, curated gatherings, and vetted community in Barcelona.",
     url: "https://themothers.cc/membership",
     siteName: "The Mothers",
     images: [

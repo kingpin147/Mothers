@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "The Mothers — Private Membership Club for Mothers in Barcelona",
     description:
-      "Find your people. Build your circle. Opening Circle now open for the first 50 mothers.",
+      "Find your people. Build your circle. Private membership club for mothers in Barcelona.",
     url: "https://themothers.cc",
     siteName: "The Mothers",
     images: [

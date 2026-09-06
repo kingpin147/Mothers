@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Locale } from "@/lib/i18n";
-import { getAccountData, pauseMembership, updatePersonDetails, cancelMembership, getStripePortalUrl } from "@/app/actions/memberAccount";
+import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, getStripePortalUrl } from "@/app/actions/memberAccount";
 import { buyExtraCredits } from "@/app/actions/booking";
 
 type AccountTab = "overview" | "credits" | "perks" | "membership";
@@ -156,6 +156,7 @@ export default function AccountPage() {
 
   // Membership pause state
   const [pauseLoading, setPauseLoading] = useState(false);
+  const [resumeLoading, setResumeLoading] = useState(false);
   const [pauseResult, setPauseResult] = useState<{ success: boolean; error?: string } | null>(null);
   const [showPauseConfirm, setShowPauseConfirm] = useState(false);
 
@@ -328,7 +329,7 @@ export default function AccountPage() {
 
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             <span style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", padding: "6px 14px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px" }}>
-              {memberData?.monthlyPriceCents === 2900 ? "Opening Circle" : "The Circle"}
+              {lang === "en" ? "Member" : "Socia"}
             </span>
           </div>
         </div>
@@ -346,34 +347,34 @@ export default function AccountPage() {
           }}
         >
           <div style={{ padding: "18px 22px", borderRight: "1px solid rgba(57, 41, 42, 0.14)" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.5)", marginBottom: "7px" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.7)", marginBottom: "7px" }}>
               {lang === "en" ? "Credits Available" : "Créditos Disponibles"}
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: "7px" }}>
-              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "32px", color: "#39292a" }}>{availableCredits}</span>
-              <span style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.6)" }}>{lang === "en" ? "credits remaining" : "créditos restantes"}</span>
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "36px", color: "#39292a" }}>{availableCredits}</span>
+              <span style={{ fontSize: "14.5px", color: "rgba(57, 41, 42, 0.75)" }}>{lang === "en" ? "credits remaining" : "créditos restantes"}</span>
             </div>
           </div>
 
           <div style={{ padding: "18px 22px" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.5)", marginBottom: "7px" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.7)", marginBottom: "7px" }}>
               {lang === "en" ? "Your Godmother Code" : "Tu Código de Madrina"}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", letterSpacing: "0.03em", color: "#568b05" }}>
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", letterSpacing: "0.03em", color: "#456f04" }}>
                 {referralCode}
               </span>
               <button
                 type="button"
                 onClick={() => copyText(referralCode, "referral")}
                 style={{
-                  border: "1px solid rgba(86, 139, 5, 0.5)",
-                  color: "#568b05",
-                  padding: "4px 11px",
+                  border: "1px solid rgba(86, 139, 5, 0.6)",
+                  color: "#456f04",
+                  padding: "5px 13px",
                   borderRadius: "4px",
                   fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 600,
-                  fontSize: "12px",
+                  fontSize: "13px",
                   background: "transparent",
                   cursor: "pointer",
                 }}
@@ -385,7 +386,7 @@ export default function AccountPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div style={{ display: "flex", gap: "26px", borderBottom: "1px solid rgba(57, 41, 42, 0.2)", marginBottom: "28px", overflowX: "auto", scrollbarWidth: "none" }}>
+        <div style={{ display: "flex", gap: "28px", borderBottom: "1px solid rgba(57, 41, 42, 0.2)", marginBottom: "28px", overflowX: "auto", scrollbarWidth: "none" }}>
           {TABS.map((t) => {
             const isSelected = activeTab === t.id;
             return (
@@ -399,9 +400,9 @@ export default function AccountPage() {
                   padding: "0 0 11px 0",
                   fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 600,
-                  fontSize: "15px",
-                  letterSpacing: "0.03em",
-                  color: isSelected ? "#7b1f2c" : "rgba(57, 41, 42, 0.6)",
+                  fontSize: "17px",
+                  letterSpacing: "0.02em",
+                  color: isSelected ? "#7b1f2c" : "rgba(57, 41, 42, 0.75)",
                   borderBottom: isSelected ? "2px solid #7b1f2c" : "2px solid transparent",
                   cursor: "pointer",
                   whiteSpace: "nowrap",
@@ -583,13 +584,13 @@ export default function AccountPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             
             {/* Main Credits Card (Image 2 style) */}
-            <div style={{ border: "1px solid rgba(57, 41, 42, 0.16)", borderRadius: "8px", padding: "clamp(24px, 4vw, 36px)", backgroundColor: "#fffdfa" }}>
+            <div style={{ border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", padding: "clamp(24px, 4vw, 36px)", backgroundColor: "#fffdfa", boxShadow: "0 1px 4px rgba(57,41,42,0.04)" }}>
               {/* Header row */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "20px", borderBottom: "1px solid rgba(57,41,42,0.1)", paddingBottom: "14px" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "#7b1f2c" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "20px", borderBottom: "1px solid rgba(57,41,42,0.12)", paddingBottom: "14px" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c" }}>
                   {lang === "en" ? "MONTHLY CREDITS" : "CRÉDITOS MENSUALES"}
                 </div>
-                <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.5)" }}>
+                <div style={{ fontSize: "14px", color: "rgba(57,41,42,0.7)", fontWeight: 500 }}>
                   {(() => {
                     const renewalDate = memberData?.currentPeriodEnd ? new Date(memberData.currentPeriodEnd) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
                     const renewalDateStr = renewalDate.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short", day: "numeric", year: "numeric" });
@@ -599,60 +600,60 @@ export default function AccountPage() {
               </div>
 
               {/* Large balance display */}
-              <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "20px" }}>
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "56px", color: "#39292a", lineHeight: 1 }}>{availableCredits}</span>
-                <span style={{ fontSize: "16px", color: "rgba(57, 41, 42, 0.6)" }}>{lang === "en" ? "credits remaining" : "créditos restantes"}</span>
+                <span style={{ fontSize: "17px", color: "rgba(57, 41, 42, 0.78)", fontWeight: 500 }}>{lang === "en" ? "credits remaining" : "créditos restantes"}</span>
               </div>
 
               {/* Balance bar */}
               <div style={{ margin: "24px 0" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.5)", marginBottom: "8px" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.75)", marginBottom: "8px" }}>
                   {lang === "en" ? "YOUR BALANCE RIGHT NOW" : "TU SALDO AHORA MISMO"}
                 </div>
-                <div style={{ height: "8px", borderRadius: "4px", backgroundColor: "rgba(57,41,42,0.12)", overflow: "hidden", margin: "10px 0 14px" }}>
+                <div style={{ height: "10px", borderRadius: "5px", backgroundColor: "rgba(57,41,42,0.12)", overflow: "hidden", margin: "10px 0 14px" }}>
                   <div style={{ height: "100%", width: `${Math.min(100, (availableCredits / 20) * 100)}%`, backgroundColor: "#568b05" }} />
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13.5px", color: "#568b05", fontWeight: 600 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "16px", height: "16px", borderRadius: "3px", border: "2px solid #568b05", fontSize: "11px" }}>✓</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14.5px", color: "#456f04", fontWeight: 600 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "17px", height: "17px", borderRadius: "3px", border: "2px solid #568b05", fontSize: "11.5px", fontWeight: 700 }}>✓</span>
                   <span>{lang === "en" ? `${availableCredits} ready to spend` : `${availableCredits} listos para usar`}</span>
                 </div>
               </div>
 
               {/* Ledger breakdown (How you got here) */}
-              <div style={{ borderTop: "1px solid rgba(57,41,42,0.1)", paddingTop: "20px", marginTop: "20px" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.5)", marginBottom: "14px" }}>
+              <div style={{ borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "20px", marginTop: "20px" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.75)", marginBottom: "14px" }}>
                   {lang === "en" ? "HOW YOU GOT HERE" : "DE DÓNDE VIENEN"}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "14px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(57,41,42,0.06)", paddingBottom: "6px" }}>
-                    <span style={{ color: "rgba(57, 41, 42, 0.7)" }}>{lang === "en" ? "Rolled over" : "Acumulados"}</span>
-                    <strong>+{availableCredits > 20 ? availableCredits - 20 : 0}</strong>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "15px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "8px" }}>
+                    <span style={{ color: "rgba(57, 41, 42, 0.85)" }}>{lang === "en" ? "Rolled over" : "Acumulados"}</span>
+                    <strong style={{ color: "#39292a" }}>+{availableCredits > 20 ? availableCredits - 20 : 0}</strong>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(57,41,42,0.06)", paddingBottom: "6px" }}>
-                    <span style={{ color: "rgba(57, 41, 42, 0.7)" }}>{lang === "en" ? "This month" : "Este mes"}</span>
-                    <strong>+{availableCredits > 20 ? 20 : availableCredits}</strong>
+                  <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "8px" }}>
+                    <span style={{ color: "rgba(57, 41, 42, 0.85)" }}>{lang === "en" ? "This month" : "Este mes"}</span>
+                    <strong style={{ color: "#39292a" }}>+{availableCredits > 20 ? 20 : availableCredits}</strong>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, fontSize: "15px", paddingTop: "6px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, fontSize: "16px", paddingTop: "6px", color: "#39292a" }}>
                     <span>{lang === "en" ? "Credits remaining" : "Créditos disponibles"}</span>
                     <span>{availableCredits}</span>
                   </div>
                 </div>
-                <p style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.5)", margin: "10px 0 0 0", fontStyle: "italic" }}>
+                <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: "12px 0 0 0", fontStyle: "italic", lineHeight: 1.5 }}>
                   {lang === "en" ? "Rollover credits will be used first when booking an event." : "Los créditos acumulados se usan primero al reservar un encuentro."}
                 </p>
               </div>
 
               {/* Spent section */}
-              <div style={{ borderTop: "1px solid rgba(57,41,42,0.1)", paddingTop: "20px", marginTop: "24px" }}>
+              <div style={{ borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "20px", marginTop: "24px" }}>
                 {(() => {
                   const spent = accountData.bookings?.reduce((acc: number, b: any) => acc + (b.creditsCharged || 0), 0) || 0;
                   const monthName = new Date().toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "long" });
                   return (
                     <div>
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.5)", marginBottom: "10px" }}>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.75)", marginBottom: "10px" }}>
                         {lang === "en" ? `SPENT IN ${monthName.toUpperCase()}` : `USADOS EN ${monthName.toUpperCase()}`}
                       </div>
-                      <p style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.7)", margin: "0 0 16px 0" }}>
+                      <p style={{ fontSize: "15px", color: "rgba(57, 41, 42, 0.85)", margin: "0 0 16px 0" }}>
                         {lang === "en"
                           ? `${spent} credits already gone from your balance.`
                           : `${spent} créditos ya descontados de tu saldo.`}
@@ -662,7 +663,7 @@ export default function AccountPage() {
                 })()}
 
                 {/* Inline action buttons */}
-                <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", flexWrap: "wrap", marginTop: "16px" }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -673,11 +674,11 @@ export default function AccountPage() {
                       border: "1px solid #7b1f2c",
                       color: "#7b1f2c",
                       backgroundColor: "transparent",
-                      padding: "10px 20px",
+                      padding: "11px 22px",
                       borderRadius: "4px",
                       fontFamily: "'Cormorant Garamond', serif",
                       fontWeight: 600,
-                      fontSize: "14px",
+                      fontSize: "15px",
                       cursor: "pointer",
                     }}
                   >
@@ -689,11 +690,11 @@ export default function AccountPage() {
                       border: "1px solid #7b1f2c",
                       backgroundColor: "#7b1f2c",
                       color: "#f8efe2",
-                      padding: "10px 20px",
+                      padding: "11px 22px",
                       borderRadius: "4px",
                       fontFamily: "'Cormorant Garamond', serif",
                       fontWeight: 600,
-                      fontSize: "14px",
+                      fontSize: "15px",
                       textDecoration: "none",
                     }}
                   >
@@ -704,8 +705,8 @@ export default function AccountPage() {
             </div>
 
             {/* FIFO Breakdown Section */}
-            <div style={{ border: "1px solid rgba(57, 41, 42, 0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 30px)", backgroundColor: "#fffdfa" }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "16px" }}>
+            <div style={{ border: "1px solid rgba(57, 41, 42, 0.16)", borderRadius: "8px", padding: "clamp(22px, 3vw, 30px)", backgroundColor: "#fffdfa" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#456f04", marginBottom: "16px" }}>
                 {lang === "en" ? "WHERE YOUR BALANCE CAME FROM" : "DE DÓNDE VIENE TU SALDO"}
               </div>
 
@@ -713,27 +714,27 @@ export default function AccountPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "10px" }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: "14px" }}>
+                    <div style={{ fontWeight: 600, fontSize: "15px", color: "#39292a" }}>
                       {lang === "en" ? "This month's credits, still unspent" : "Créditos de este mes, sin usar"}
                     </div>
-                    <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.5)" }}>
+                    <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.65)", marginTop: "2px" }}>
                       {new Date().toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "long", year: "numeric" })}
                     </div>
                   </div>
-                  <strong style={{ color: "#568b05" }}>+{availableCredits > 20 ? 20 : availableCredits} credits</strong>
+                  <strong style={{ color: "#456f04", fontSize: "15.5px" }}>+{availableCredits > 20 ? 20 : availableCredits} credits</strong>
                 </div>
 
                 {availableCredits > 20 && (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "10px" }}>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: "14px" }}>
+                      <div style={{ fontWeight: 600, fontSize: "15px", color: "#39292a" }}>
                         {lang === "en" ? "Rolled over from previous month" : "Acumulados del mes anterior"}
                       </div>
-                      <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.5)" }}>
+                      <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.65)", marginTop: "2px" }}>
                         {new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "long", year: "numeric" })}
                       </div>
                     </div>
-                    <strong style={{ color: "#568b05" }}>+{availableCredits - 20} credits</strong>
+                    <strong style={{ color: "#456f04", fontSize: "15.5px" }}>+{availableCredits - 20} credits</strong>
                   </div>
                 )}
               </div>
@@ -746,13 +747,13 @@ export default function AccountPage() {
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
-                    border: "1px solid rgba(57,41,42,0.25)",
+                    border: "1px solid rgba(57,41,42,0.3)",
                     borderRadius: "4px",
-                    padding: "10px 22px",
+                    padding: "11px 24px",
                     color: "#39292a",
                     fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 600,
-                    fontSize: "14px",
+                    fontSize: "15px",
                     textDecoration: "none",
                     backgroundColor: "#fffdfa",
                   }}
@@ -762,7 +763,7 @@ export default function AccountPage() {
                   </svg>
                   {lang === "en" ? "Download full statement (PDF)" : "Descargar el extracto completo (PDF)"}
                 </Link>
-                <div style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.5)", marginTop: "8px" }}>
+                <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", marginTop: "8px" }}>
                   {lang === "en"
                     ? "Everything since you joined, month by month — yours to keep."
                     : "Todo desde que te uniste, mes a mes — para que lo guardes."}
@@ -878,19 +879,22 @@ export default function AccountPage() {
 
         {/* ─── TAB 3: PERKS (NEW TAB!) ─── */}
         {activeTab === "perks" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            <div style={{ border: "1px solid rgba(57, 41, 42, 0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 30px)", backgroundColor: "#fffdfa" }}>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", margin: "0 0 10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div>
+              <div style={{ display: "inline-block", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "10px", padding: "3px 10px", background: "rgba(123,31,44,0.06)", fontWeight: 600, width: "fit-content", marginBottom: "10px" }}>
+                {lang === "en" ? "MEMBERS ONLY" : "SOLO SOCIAS"}
+              </div>
+              <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(28px, 4vw, 36px)", margin: "0 0 10px", color: "#39292a" }}>
                 {lang === "en" ? "Partner perks" : "Ventajas con nuestros partners"}
               </h2>
-              <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 24px" }}>
+              <p style={{ fontSize: "15px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", margin: "0 0 28px", maxWidth: "680px" }}>
                 {lang === "en"
                   ? "What the club opens for you outside the calendar. Every offer below is held for members, arranged one partner at a time, and yours for as long as you are with us."
                   : "Lo que el club te abre fuera del calendario. Cada ventaja está reservada a las socias, acordada partner a partner, y es tuya mientras estés con nosotras."}
               </p>
 
               {/* Perks Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "22px" }}>
                 {(() => {
                   const dbPerksMapped: PerkItem[] = (accountData?.partners || []).map((p: any) => ({
                     id: `db-${p.id}`,
@@ -922,118 +926,123 @@ export default function AccountPage() {
                       <div
                         key={perk.id}
                         style={{
-                          border: "1px solid " + (perk.endingSoon ? "rgba(164,118,31,0.5)" : "rgba(57,41,42,0.18)"),
+                          border: "1px solid " + (perk.endingSoon ? "rgba(164,118,31,0.5)" : "rgba(57,41,42,0.14)"),
                           borderRadius: "8px",
-                          padding: "20px",
-                          backgroundColor: "#fffdfa",
+                          padding: "26px 24px",
+                          backgroundColor: "#ffffff",
                           display: "flex",
                           flexDirection: "column",
                           justifyContent: "space-between",
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.02)",
+                          gap: "18px",
                         }}
                       >
-                      <div>
-                        <div style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.45)", marginBottom: "4px" }}>
-                          {category}
-                        </div>
-                        <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", margin: "0 0 4px" }}>
-                          {perk.name}
-                        </h4>
-                        <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.5)", marginBottom: "12px" }}>
-                          {where}
-                        </div>
-                        <p style={{ fontSize: "14.5px", fontWeight: 600, margin: "0 0 6px" }}>
-                          {offer}
-                        </p>
-                        <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.65)", margin: "0 0 16px" }}>
-                          {detail}
-                        </p>
-                      </div>
-
-                      <div style={{ borderTop: "1px solid rgba(57,41,42,0.1)", paddingTop: "14px", marginTop: "14px" }}>
-                        {perk.kind === "door" && (
-                          <div style={{ fontSize: "13px", color: "#568b05", fontWeight: 500 }}>
-                            {lang === "en" ? perk.doorNoteEn : perk.doorNoteEs}
+                        <div>
+                          <div style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", fontWeight: 600, marginBottom: "8px" }}>
+                            {category}
                           </div>
-                        )}
+                          <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "21px", margin: "0 0 4px", color: "#39292a", lineHeight: 1.25 }}>
+                            {perk.name}
+                          </h3>
+                          <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.62)", marginBottom: "16px" }}>
+                            {where}
+                          </div>
+                          <p style={{ fontSize: "16px", fontWeight: 600, color: "#39292a", margin: "0 0 6px", lineHeight: 1.35 }}>
+                            {offer}
+                          </p>
+                          <p style={{ fontSize: "14px", lineHeight: "1.55", color: "rgba(57,41,42,0.8)", margin: 0 }}>
+                            {detail}
+                          </p>
+                        </div>
 
-                        {perk.kind === "link" && (
-                          <a
-                            href={perk.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              display: "inline-block",
-                              border: "1px solid #7b1f2c",
-                              color: "#7b1f2c",
-                              borderRadius: "4px",
-                              padding: "8px 16px",
-                              fontFamily: "'Cormorant Garamond', serif",
-                              fontWeight: 600,
-                              fontSize: "13px",
-                              textDecoration: "none",
-                            }}
-                          >
-                            {lang === "en" ? "Open private link" : "Abrir enlace privado"}
-                          </a>
-                        )}
-
-                        {(perk.kind === "code" || perk.kind === "personal") && (
-                          <div style={{ display: "flex", gap: "8px", alignItems: "center", justifyContent: "space-between" }}>
-                            <div>
-                              <div style={{ fontSize: "10px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.45)", textTransform: "uppercase" }}>
-                                {perk.kind === "personal" ? (lang === "en" ? "Your personal code" : "Tu código personal") : (lang === "en" ? "Discount code" : "Código de descuento")}
-                              </div>
-                              <div style={{ fontFamily: "monospace", fontSize: "14px", fontWeight: 600, letterSpacing: "0.06em", color: isRevealed ? "#39292a" : "rgba(57,41,42,0.4)" }}>
-                                {isRevealed ? perk.code : "••••••••"}
-                              </div>
+                        <div style={{ borderTop: "1px solid rgba(57,41,42,0.1)", paddingTop: "16px", marginTop: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
+                          {perk.kind === "door" && (
+                            <div style={{ fontSize: "13.5px", color: "#3e6308", fontWeight: 500, lineHeight: 1.4 }}>
+                              {lang === "en" ? perk.doorNoteEn : perk.doorNoteEs}
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!isRevealed) {
-                                  setRevealedPerks({ ...revealedPerks, [perk.id]: true });
-                                } else {
-                                  copyText(perk.code || "", `perk-${perk.id}`);
-                                }
-                              }}
+                          )}
+
+                          {perk.kind === "link" && (
+                            <a
+                              href={perk.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               style={{
+                                display: "inline-block",
+                                alignSelf: "flex-start",
                                 border: "1px solid #7b1f2c",
-                                backgroundColor: "transparent",
                                 color: "#7b1f2c",
-                                padding: "6px 12px",
+                                backgroundColor: "transparent",
                                 borderRadius: "4px",
-                                fontFamily: "'Cormorant Garamond', serif",
+                                padding: "7px 16px",
+                                fontFamily: "var(--font-heading)",
                                 fontWeight: 600,
-                                fontSize: "13px",
-                                cursor: "pointer",
+                                fontSize: "13.5px",
+                                textDecoration: "none",
                               }}
                             >
-                              {!isRevealed
-                                ? (lang === "en" ? "Reveal code" : "Ver código")
-                                : copiedCode === `perk-${perk.id}`
-                                ? (lang === "en" ? "Copied" : "Copiado")
-                                : (lang === "en" ? "Copy code" : "Copiar código")}
-                            </button>
-                          </div>
-                        )}
+                              {lang === "en" ? "Open private link" : "Abrir enlace privado"}
+                            </a>
+                          )}
 
-                        <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.5)", marginTop: "10px" }}>
-                          {validity}
+                          {(perk.kind === "code" || perk.kind === "personal") && (
+                            <div style={{ display: "flex", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
+                              <div>
+                                <div style={{ fontSize: "10.5px", letterSpacing: "0.06em", color: "rgba(57,41,42,0.52)", textTransform: "uppercase", fontWeight: 500, marginBottom: "2px" }}>
+                                  {perk.kind === "personal" ? (lang === "en" ? "YOUR PERSONAL CODE" : "TU CÓDIGO PERSONAL") : (lang === "en" ? "DISCOUNT CODE" : "CÓDIGO DE DESCUENTO")}
+                                </div>
+                                <div style={{ fontFamily: "monospace", fontSize: "15px", fontWeight: 600, letterSpacing: "0.08em", color: isRevealed ? "#39292a" : "rgba(57,41,42,0.4)" }}>
+                                  {isRevealed ? perk.code : "••••••••"}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!isRevealed) {
+                                    setRevealedPerks({ ...revealedPerks, [perk.id]: true });
+                                  } else {
+                                    copyText(perk.code || "", `perk-${perk.id}`);
+                                  }
+                                }}
+                                style={{
+                                  border: "1px solid #7b1f2c",
+                                  backgroundColor: "transparent",
+                                  color: "#7b1f2c",
+                                  padding: "6px 14px",
+                                  borderRadius: "4px",
+                                  fontFamily: "var(--font-heading)",
+                                  fontWeight: 600,
+                                  fontSize: "13px",
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {!isRevealed
+                                  ? (lang === "en" ? "Reveal code" : "Ver código")
+                                  : copiedCode === `perk-${perk.id}`
+                                  ? (lang === "en" ? "Copied" : "Copiado")
+                                  : (lang === "en" ? "Copy code" : "Copiar código")}
+                              </button>
+                            </div>
+                          )}
+
+                          <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.55)", fontStyle: "italic" }}>
+                            {validity}
+                          </div>
                         </div>
                       </div>
-                    </div>
                     );
                   });
                 })()}
               </div>
 
-              <div style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", backgroundColor: "#f8efe2", padding: "20px 24px", marginTop: "20px", display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "baseline", justifyContent: "space-between" }}>
-                <p style={{ margin: 0, fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", maxWidth: "40em" }}>
+              <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#f8efe2", padding: "20px 24px", marginTop: "24px", display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "baseline", justifyContent: "space-between" }}>
+                <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", maxWidth: "42em" }}>
                   {lang === "en"
                     ? "Perks are for you and your household, not transferable. If a partner ever turns one down, write to us and we will sort it — and tell them."
                     : "Las ventajas son para ti y tu casa, no transferibles. Si algún partner no la aplica, escríbenos y lo resolvemos — y hablamos con ellos."}
                 </p>
-                <Link href="/partners" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "underline", fontWeight: 600 }}>
+                <Link href="/partners" style={{ fontSize: "14px", color: "#7b1f2c", textDecoration: "underline", fontWeight: 600 }}>
                   {lang === "en" ? "See all partners" : "Ver todos los partners"}
                 </Link>
               </div>
@@ -1053,19 +1062,19 @@ export default function AccountPage() {
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "14px" }}>
                 <div style={{ backgroundColor: "#f4ece0", borderRadius: "6px", padding: "18px 20px" }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", marginBottom: "9px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)", marginBottom: "9px" }}>
                     {lang === "en" ? "Plan" : "Plan"}
                   </div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px" }}>
-                    {memberData?.monthlyPriceCents === 2900 ? "Opening Circle" : "The Circle"}
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", color: "#39292a" }}>
+                    {lang === "en" ? "Membership" : "Membresía"}
                   </div>
                 </div>
 
                 <div style={{ backgroundColor: "#f4ece0", borderRadius: "6px", padding: "18px 20px" }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", marginBottom: "9px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)", marginBottom: "9px" }}>
                     {lang === "en" ? "Monthly Rate" : "Cuota mensual"}
                   </div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", color: "#39292a" }}>
                     {lang === "en"
                       ? `€${((memberData?.monthlyPriceCents || 0) / 100).toFixed(0)}/mo`
                       : `${((memberData?.monthlyPriceCents || 0) / 100).toFixed(0)} €/mes`}
@@ -1073,17 +1082,17 @@ export default function AccountPage() {
                 </div>
 
                 <div style={{ backgroundColor: "#f4ece0", borderRadius: "6px", padding: "18px 20px" }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", marginBottom: "9px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)", marginBottom: "9px" }}>
                     {lang === "en" ? "Status" : "Estado"}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span style={{
-                      width: "7px",
-                      height: "7px",
+                      width: "8px",
+                      height: "8px",
                       borderRadius: "50%",
-                      backgroundColor: memberData?.status === "active" ? "#568b05" : memberData?.status === "paused" ? "#a4761f" : "#993842"
+                      backgroundColor: memberData?.status === "active" ? "#456f04" : memberData?.status === "paused" ? "#a4761f" : "#993842"
                     }} />
-                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px" }}>
+                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", color: "#39292a" }}>
                       {memberData?.status === "active"
                         ? (lang === "en" ? "Active" : "Activa")
                         : memberData?.status === "paused"
@@ -1094,16 +1103,16 @@ export default function AccountPage() {
                 </div>
 
                 <div style={{ backgroundColor: "#f4ece0", borderRadius: "6px", padding: "18px 20px" }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", marginBottom: "9px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)", marginBottom: "9px" }}>
                     {lang === "en" ? "Credits Renew" : "Créditos se renuevan"}
                   </div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a" }}>
                     {(() => {
                       const d = memberData?.currentPeriodEnd ? new Date(memberData.currentPeriodEnd) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
                       return d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" });
                     })()}
                   </div>
-                  <div style={{ fontSize: "11px", color: "rgba(57,41,42,0.5)", marginTop: "4px" }}>
+                  <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)", marginTop: "4px" }}>
                     {lang === "en" ? "+20 credits" : "+20 créditos"}
                   </div>
                 </div>
@@ -1283,7 +1292,7 @@ export default function AccountPage() {
                       color: "#f8efe2",
                       padding: "12px 24px",
                       borderRadius: "4px",
-                      fontFamily: "'Cormorant Garamond', serif",
+                      fontFamily: "var(--font-heading)",
                       fontWeight: 600,
                       fontSize: "14.5px",
                       cursor: detailsLoading ? "wait" : "pointer"
@@ -1299,49 +1308,69 @@ export default function AccountPage() {
 
             {/* Pause Membership */}
             <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#fffdfa" }}>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px" }}>
+              <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px", color: "#39292a" }}>
                 {lang === "en" ? "Pause allowance" : "Pausas disponibles"}
               </h2>
-              <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 18px" }}>
+              <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.78)", margin: "0 0 18px" }}>
                 {lang === "en"
                   ? "Pause for up to two whole months a calendar year, free of charge. While you are paused your credits are frozen — the six-month expiry clock stops with them — and nothing is billed."
                   : "Puedes pausar hasta dos meses completos por año natural, sin coste. Mientras estás en pausa tus créditos quedan congelados — el reloj de caducidad de seis meses se detiene con ellos — y no se cobra nada."}
               </p>
 
-              {pauseResult?.success ? (
-                <div style={{ padding: "14px 18px", backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "6px", fontSize: "13.5px", color: "rgba(57,41,42,0.85)", marginBottom: "12px" }}>
-                  <div style={{ fontWeight: 600, marginBottom: "4px" }}>✓ {lang === "en" ? "Your membership is paused." : "Tu membresía está pausada."}</div>
-                  <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.65)" }}>
+              {memberData?.status === "paused" || pauseResult?.success ? (
+                <div style={{ padding: "16px 20px", backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "6px", fontSize: "14px", color: "rgba(57,41,42,0.88)", marginBottom: "12px" }}>
+                  <div style={{ fontWeight: 600, marginBottom: "4px", color: "#3e6308" }}>✓ {lang === "en" ? "Your membership is paused." : "Tu membresía está pausada."}</div>
+                  <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)" }}>
                     {lang === "en" ? "Your credits are frozen and nothing will be billed while you're away." : "Tus créditos están congelados y no se cobrará nada mientras estés en pausa."}
                   </div>
                   <div style={{ display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap" }}>
-                    <button type="button" onClick={() => router.push("/account")} style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "9px 18px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
-                      {lang === "en" ? "Resume membership" : "Reanudar membresía"}
+                    <button
+                      type="button"
+                      disabled={resumeLoading}
+                      onClick={async () => {
+                        setResumeLoading(true);
+                        try {
+                          const res = await resumeMembership();
+                          if (res.success) {
+                            setPauseResult(null);
+                            const refreshed = await getAccountData();
+                            if (refreshed.success) setAccountData(refreshed);
+                          } else {
+                            alert(res.error || (lang === "en" ? "Failed to resume membership." : "Error al reanudar la membresía."));
+                          }
+                        } finally {
+                          setResumeLoading(false);
+                        }
+                      }}
+                      style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "9px 20px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: resumeLoading ? "wait" : "pointer" }}
+                    >
+                      {resumeLoading ? (lang === "en" ? "Resuming…" : "Reanudando…") : (lang === "en" ? "Resume membership" : "Reanudar membresía")}
                     </button>
                   </div>
                 </div>
               ) : pauseResult?.error ? (
-                <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "12px" }}>
+                <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "14px" }}>
                   {pauseResult.error}
                 </div>
               ) : null}
 
-              {!pauseResult?.success && (
+              {memberData?.status !== "paused" && !pauseResult?.success && (
                 !showPauseConfirm ? (
                   <button
                     type="button"
-                    disabled={pauseLoading || (memberData?.pausedUntil && new Date(memberData.pausedUntil) > new Date())}
+                    disabled={pauseLoading}
                     onClick={() => setShowPauseConfirm(true)}
                     style={{
                       border: "1px solid #7b1f2c",
                       color: "#7b1f2c",
                       backgroundColor: "transparent",
-                      padding: "12px 22px",
+                      padding: "10px 22px",
                       borderRadius: "4px",
-                      fontFamily: "'Cormorant Garamond', serif",
+                      fontFamily: "var(--font-heading)",
                       fontWeight: 600,
                       fontSize: "14.5px",
-                      cursor: "pointer"
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
                     }}
                   >
                     {lang === "en" ? "Request a pause" : "Solicitar una pausa"}
@@ -1371,14 +1400,14 @@ export default function AccountPage() {
                             setPauseLoading(false);
                           }
                         }}
-                        style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "10px 20px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}
+                        style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "10px 20px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: pauseLoading ? "wait" : "pointer" }}
                       >
                         {pauseLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, pause my membership" : "Sí, pausar mi membresía")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowPauseConfirm(false)}
-                        style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "10px 20px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", backgroundColor: "transparent", cursor: "pointer" }}
+                        style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "10px 20px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", backgroundColor: "transparent", cursor: "pointer" }}
                       >
                         {lang === "en" ? "Keep my membership active" : "Mantener mi membresía activa"}
                       </button>
@@ -1396,8 +1425,8 @@ export default function AccountPage() {
                 </h2>
                 <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 18px" }}>
                   {lang === "en"
-                    ? "Cancel any time; there is never a cancellation fee. You keep your place until the end of the period you have paid for. If you are an Opening Circle member, your locked €29 rate is released and cannot be reclaimed."
-                    : "Puedes cancelar cuando quieras; nunca hay cuota de cancelación. Conservas tu plaza hasta el final del periodo que ya has pagado. Si eres socia del Opening Circle, tu tarifa fija de 29 € se libera y no se puede recuperar."}
+                    ? "Cancel any time; there is never a cancellation fee. You keep your place until the end of the period you have paid for."
+                    : "Puedes cancelar cuando quieras; nunca hay cuota de cancelación. Conservas tu plaza hasta el final del periodo que ya has pagado."}
                 </p>
 
                 {cancelResult?.error && (
@@ -1428,8 +1457,8 @@ export default function AccountPage() {
                   <div style={{ border: "1px solid rgba(153,56,66,0.4)", borderRadius: "6px", padding: "18px 20px", backgroundColor: "#fdf2f2" }}>
                     <p style={{ fontSize: "14px", lineHeight: "1.55", color: "#39292a", margin: "0 0 14px" }}>
                       {lang === "en"
-                        ? "Cancelling ends your membership at the close of the current billing period. Your Opening Circle rate ends with it — if you rejoin later it will be at the standard rate. Pausing keeps your Opening Circle price; cancelling does not."
-                        : "Cancelar finaliza tu membresía al cierre del periodo de facturación actual. Tu tarifa de Opening Circle termina con ella: si vuelves más adelante, será a la tarifa estándar. Pausar mantiene tu precio de Opening Circle; cancelar no."}
+                        ? "Cancelling ends your membership at the close of the current billing period. Pausing allows you to step away for up to two months per year at no cost; cancelling ends your membership."
+                        : "Cancelar finaliza tu membresía al cierre del periodo de facturación actual. Pausar te permite ausentarte hasta dos meses al año sin coste; cancelar finaliza tu membresía."}
                     </p>
                     <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                       <button
@@ -1467,8 +1496,8 @@ export default function AccountPage() {
             ) : (
               <div style={{ padding: "16px 20px", backgroundColor: "#fff8f8", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "14px", color: "#993842" }}>
                 ✓ {lang === "en"
-                  ? `Your membership has been cancelled and will end at the close of your current billing period. Your Opening Circle rate ends with it — rejoining later would be at the standard rate.`
-                  : `Tu membresía ha sido cancelada y finalizará al cierre de tu periodo de facturación actual. Tu tarifa de Opening Circle termina con ella: volver más adelante sería a la tarifa estándar.`}
+                  ? `Your membership has been cancelled and will end at the close of your current billing period.`
+                  : `Tu membresía ha sido cancelada y finalizará al cierre de tu periodo de facturación actual.`}
               </div>
             )}
 

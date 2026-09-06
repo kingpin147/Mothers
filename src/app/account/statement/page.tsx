@@ -116,7 +116,7 @@ export default function ActivityStatementPage() {
               </h1>
               {memberSince && (
                 <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.55)" }}>
-                  {lang === "en" ? `Founding Circle member since ${memberSince}` : `Socia del Opening Circle desde ${memberSince}`}
+                  {lang === "en" ? `Member since ${memberSince}` : `Socia desde ${memberSince}`}
                 </div>
               )}
               <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.45)", marginTop: "4px" }}>

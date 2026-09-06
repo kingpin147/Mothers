@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { buyGuestPass, buyExtraCredits } from "@/app/actions/booking";
+import { buyGuestPass, buyExtraCredits, bookEvent } from "@/app/actions/booking";
 import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 import { useLanguage } from "@/components/LanguageProvider";
 
@@ -253,6 +253,7 @@ function getCategoryInfo(ev: PublicEvent, lang: Lang): { key: string; label: str
 
 function getCardBg(ev: PublicEvent, isPast?: boolean): string {
   if (isPast || ev.status === "cancelled") return "#f1eeea";
+  if (ev.userStatus?.isBooked) return "#eef4e9";
   if (ev.status === "confirmed") return "#eef4e9";
   if (ev.status === "published_pending" || ev.status === "pending") return "#fbf3e4";
   if (ev.isSignature) return "#f1eaea";
@@ -261,6 +262,7 @@ function getCardBg(ev: PublicEvent, isPast?: boolean): string {
 
 function getCardBorder(ev: PublicEvent, isPast?: boolean): string {
   if (isPast || ev.status === "cancelled") return "rgba(57, 41, 42, 0.18)";
+  if (ev.userStatus?.isBooked) return "rgba(86, 139, 5, 0.34)";
   if (ev.status === "confirmed") return "rgba(86, 139, 5, 0.34)";
   if (ev.status === "published_pending" || ev.status === "pending") return "rgba(164, 118, 31, 0.45)";
   if (ev.isSignature) return "rgba(123, 31, 44, 0.32)";
@@ -903,6 +905,182 @@ function TopUpModal({
   );
 }
 
+// ─── BookingSuccessModal ───────────────────────────────────────────────────────
+
+function BookingSuccessModal({
+  event: ev,
+  lang,
+  remainingCredits,
+  onClose,
+}: {
+  event: PublicEvent;
+  lang: Lang;
+  remainingCredits: number;
+  onClose: () => void;
+}) {
+  const displayTitle = getEventDisplayTitle(ev, lang);
+  const formattedDate = formatEventDate(ev.startsAt, lang);
+  const venueDisplay = ev.venueAddress || ev.venueName || (lang === "en" ? "Exact meeting point shared once you book" : "Punto de encuentro exacto compartido tras reservar");
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        backgroundColor: "rgba(57, 41, 42, 0.45)",
+        backdropFilter: "blur(3px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+        overflowY: "auto",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          maxWidth: "480px",
+          margin: "auto",
+          border: "1px solid rgba(57,41,42,0.14)",
+          borderRadius: "8px",
+          padding: "clamp(28px, 5vw, 36px)",
+          backgroundColor: "#FEFDF9",
+          boxShadow: "0 20px 50px rgba(45,43,43,0.16)",
+          textAlign: "center",
+        }}
+      >
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            color: "rgba(57,41,42,0.5)",
+            width: "30px",
+            height: "30px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Green Shield Icon */}
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "44px",
+            height: "44px",
+            borderRadius: "50%",
+            background: "#edf5e8",
+            color: "#456f04",
+            marginBottom: "16px",
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        </div>
+
+        {/* Title */}
+        <h2
+          style={{
+            fontFamily: "var(--font-heading)",
+            fontWeight: 600,
+            fontSize: "23px",
+            margin: "0 0 12px",
+            color: "#39292a",
+          }}
+        >
+          {lang === "en" ? "Your place is booked." : "Tu plaza está reservada."}
+        </h2>
+
+        {/* Body */}
+        <p
+          style={{
+            fontSize: "14.5px",
+            lineHeight: "1.6",
+            color: "rgba(57,41,42,0.74)",
+            margin: "0 0 20px",
+          }}
+        >
+          {lang === "en" ? (
+            <>
+              Your place at &ldquo;{displayTitle}&rdquo; on {formattedDate} is booked, using {ev.creditCost} credits. You have {remainingCredits} credits left this month.
+            </>
+          ) : (
+            <>
+              Tu plaza en &ldquo;{displayTitle}&rdquo; el {formattedDate} está reservada, usando {ev.creditCost} créditos. Te quedan {remainingCredits} créditos este mes.
+            </>
+          )}
+        </p>
+
+        {/* Green Detail Box */}
+        <div
+          style={{
+            background: "#f4f7ee",
+            border: "1px solid rgba(86,139,5,0.28)",
+            borderRadius: "6px",
+            padding: "16px 18px",
+            textAlign: "left",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            marginBottom: "24px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13.5px", fontWeight: 500, color: "#3e6308" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" style={{ flexShrink: 0, marginTop: "2px" }}>
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span>{venueDisplay}</span>
+          </div>
+          <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
+            {lang === "en"
+              ? "Change of plans? Cancel from your account more than 24 hours ahead and the credit comes straight back. Inside 24 hours they return only if someone on the waitlist takes your place."
+              : "¿Cambio de planes? Cancela desde tu cuenta con más de 24 horas de antelación y recuperas el crédito al momento. Dentro de las 24 horas solo se devuelve si alguien de la lista de espera ocupa tu lugar."}
+          </p>
+        </div>
+
+        {/* Action Button: Got it */}
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            border: "1px solid #7b1f2c",
+            backgroundColor: "transparent",
+            color: "#7b1f2c",
+            padding: "9px 30px",
+            borderRadius: "4px",
+            fontFamily: "var(--font-heading)",
+            fontWeight: 600,
+            fontSize: "14.5px",
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+          }}
+        >
+          {lang === "en" ? "Got it" : "Entendido"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface EventCardProps {
   ev: PublicEvent;
   lang: Lang;
@@ -910,6 +1088,8 @@ interface EventCardProps {
   onOpenFreeRsvp: (ev: PublicEvent) => void;
   onOpenCeiling: (ev: PublicEvent) => void;
   onOpenTopUp: (ev: PublicEvent) => void;
+  onMemberBook: (ev: PublicEvent) => void;
+  isBooking?: boolean;
   isMember: boolean;
   creditBalance?: number;
 }
@@ -921,6 +1101,8 @@ function EventCard({
   onOpenFreeRsvp,
   onOpenCeiling,
   onOpenTopUp,
+  onMemberBook,
+  isBooking = false,
   isMember,
   creditBalance = 0,
 }: EventCardProps) {
@@ -938,8 +1120,10 @@ function EventCard({
     } else if (isMember) {
       if (creditBalance < ev.creditCost && ev.creditCost <= 18) {
         onOpenTopUp(ev);
+      } else if (creditBalance < ev.creditCost && (ev.creditCost > 18 || ev.isSignature)) {
+        onOpenCeiling(ev);
       } else {
-        window.location.href = `/events/${ev.id}`;
+        onMemberBook(ev);
       }
     } else if (ev.creditCost > 18 || ev.isSignature) {
       onOpenCeiling(ev);
@@ -1165,23 +1349,28 @@ function EventCard({
           ) : !isCancelled ? (
             <>
               {ev.userStatus?.isBooked ? (
-                <Link
-                  href={`/events/${ev.id}`}
-                  style={{
-                    border: "1px solid #7b1f2c",
-                    backgroundColor: "transparent",
-                    color: "#7b1f2c",
-                    padding: "10px 22px",
-                    borderRadius: "4px",
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                    fontSize: "14.5px",
-                    textDecoration: "none",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {lang === "en" ? "See your ticket" : "Ver tu entrada"}
-                </Link>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: "10px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.72)", fontStyle: "italic" }}>
+                    {lang === "en" ? "You're already booked in." : "Ya tienes tu plaza."}
+                  </span>
+                  <Link
+                    href={`/events/${ev.id}`}
+                    style={{
+                      border: "1px solid rgba(57,41,42,0.22)",
+                      backgroundColor: "rgba(255,255,255,0.6)",
+                      color: "rgba(57,41,42,0.65)",
+                      padding: "8px 18px",
+                      borderRadius: "4px",
+                      fontFamily: "var(--font-heading)",
+                      fontWeight: 600,
+                      fontSize: "13.5px",
+                      textDecoration: "none",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {lang === "en" ? "Booked" : "Reservada"}
+                  </Link>
+                </div>
               ) : ev.userStatus?.isWaitlisted ? (
                 <Link
                   href={`/events/${ev.id}`}
@@ -1261,6 +1450,7 @@ function EventCard({
                   <button
                     type="button"
                     onClick={handleBookClick}
+                    disabled={isBooking}
                     style={{
                       border: "1px solid #7b1f2c",
                       backgroundColor: "#7b1f2c",
@@ -1270,18 +1460,21 @@ function EventCard({
                       fontFamily: "var(--font-heading)",
                       fontWeight: 600,
                       fontSize: "14.5px",
-                      cursor: "pointer",
+                      cursor: isBooking ? "wait" : "pointer",
                       whiteSpace: "nowrap",
                       boxShadow: "0 2px 6px rgba(123,31,44,0.2)",
+                      opacity: isBooking ? 0.75 : 1,
                     }}
                   >
-                    {ev.userStatus?.isWaitlisted 
-                      ? (lang === "en" ? "On waitlist" : "En lista de espera")
-                      : isFull
-                        ? (lang === "en" ? "Join waitlist" : "Unirme a la lista de espera")
-                        : ev.creditCost === 0 || ev.isFreeWalk
-                          ? (lang === "en" ? "Join the list" : "Unirme a la lista")
-                          : (lang === "en" ? "Book" : "Reservar")}
+                    {isBooking
+                      ? (lang === "en" ? "Booking..." : "Reservando...")
+                      : ev.userStatus?.isWaitlisted 
+                        ? (lang === "en" ? "On waitlist" : "En lista de espera")
+                        : isFull
+                          ? (lang === "en" ? "Join waitlist" : "Unirme a la lista de espera")
+                          : ev.creditCost === 0 || ev.isFreeWalk
+                            ? (lang === "en" ? "Join the list" : "Unirme a la lista")
+                            : (lang === "en" ? "Book" : "Reservar")}
                   </button>
                 </>
               )}
@@ -1300,6 +1493,19 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const isMember = !!session?.user;
 
   const { language: lang } = useLanguage();
+  const [eventsList, setEventsList] = useState<PublicEvent[]>(events);
+  const [currentCreditBalance, setCurrentCreditBalance] = useState<number>(creditBalance);
+  const [bookingLoadingId, setBookingLoadingId] = useState<string | null>(null);
+  const [bookingSuccessEvent, setBookingSuccessEvent] = useState<PublicEvent | null>(null);
+
+  useEffect(() => {
+    setEventsList(events);
+  }, [events]);
+
+  useEffect(() => {
+    setCurrentCreditBalance(creditBalance);
+  }, [creditBalance]);
+
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeDateFilter, setActiveDateFilter] = useState<string>("all");
   const [activeStatus, setActiveStatus] = useState<string>("all");
@@ -1310,6 +1516,49 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [freeRsvpEvent, setFreeRsvpEvent] = useState<PublicEvent | null>(null);
   const [ceilingEvent, setCeilingEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
+
+  const handleMemberBook = async (ev: PublicEvent) => {
+    setBookingLoadingId(ev.id);
+    try {
+      const res = await bookEvent(ev.id);
+      if (res.success) {
+        const newCredits = Math.max(0, currentCreditBalance - (ev.creditCost || 0));
+        setCurrentCreditBalance(newCredits);
+        setEventsList((prev) =>
+          prev.map((e) =>
+            e.id === ev.id
+              ? {
+                  ...e,
+                  status: e.status === "published_pending" || e.status === "pending" ? "confirmed" : e.status,
+                  userStatus: {
+                    ...e.userStatus,
+                    isBooked: true,
+                    bookedAt: new Date(),
+                    creditsCharged: e.creditCost,
+                  },
+                }
+              : e
+          )
+        );
+        setBookingSuccessEvent(ev);
+      } else {
+        if (res.error === "INSUFFICIENT_CREDITS") {
+          if (ev.creditCost <= 18) {
+            setTopUpEvent(ev);
+          } else {
+            setCeilingEvent(ev);
+          }
+        } else {
+          alert(res.error || (lang === "en" ? "Could not complete booking." : "No se pudo completar la reserva."));
+        }
+      }
+    } catch (err: any) {
+      console.error("Booking error:", err);
+      alert(err?.message || (lang === "en" ? "Booking failed." : "Error al reservar."));
+    } finally {
+      setBookingLoadingId(null);
+    }
+  };
 
   // Category items matching prototype exactly
   const categoryChips = [
@@ -1369,7 +1618,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   };
 
   // Filtering
-  const filtered = events.filter((ev) => {
+  const filtered = eventsList.filter((ev) => {
     // 1. Category match
     if (activeCategory !== "all") {
       const catInfo = getCategoryInfo(ev, "en");
@@ -1707,8 +1956,10 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                 onOpenFreeRsvp={setFreeRsvpEvent}
                 onOpenCeiling={(e) => setCeilingEvent(e)}
                 onOpenTopUp={(e) => setTopUpEvent(e)}
+                onMemberBook={handleMemberBook}
+                isBooking={bookingLoadingId === ev.id}
                 isMember={isMember}
-                creditBalance={creditBalance}
+                creditBalance={currentCreditBalance}
               />
             ))}
           </div>
@@ -1716,6 +1967,15 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       </div>
 
       {/* ─── MODALS ─── */}
+      {bookingSuccessEvent && (
+        <BookingSuccessModal
+          event={bookingSuccessEvent}
+          lang={lang}
+          remainingCredits={currentCreditBalance}
+          onClose={() => setBookingSuccessEvent(null)}
+        />
+      )}
+
       {guestPassEvent && (
         <GuestPassModal
           event={guestPassEvent}
@@ -1744,7 +2004,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         <TopUpModal
           event={topUpEvent}
           lang={lang}
-          creditBalance={creditBalance}
+          creditBalance={currentCreditBalance}
           onClose={() => setTopUpEvent(null)}
         />
       )}
