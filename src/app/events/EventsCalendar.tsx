@@ -1417,28 +1417,23 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     const isPastEvent = ev.status === "past" || ev.status === "completed" ||
       (ev.endsAt ? new Date(ev.endsAt) < now : new Date(ev.startsAt) < now);
     
-    let derivedStatus = "confirmed";
-    if (isPastEvent) {
-      derivedStatus = "past";
-    } else if (isCancelled) {
-      derivedStatus = "cancelled";
-    } else if ((ev.status === "published_pending" || ev.status === "pending") && ev.minToConfirm) {
+    let isPending = (ev.status === "published_pending" || ev.status === "pending");
+    if (isPending && ev.minToConfirm) {
       const booked = ev.bookedMember || 0;
-      if (booked < ev.minToConfirm) {
-        derivedStatus = "pending";
-      } else {
-        derivedStatus = "confirmed";
+      if (booked >= ev.minToConfirm) {
+        isPending = false;
       }
     }
+    const isConfirmed = (ev.status === "confirmed" || (!isPending && (ev.status === "published_pending" || ev.status === "pending"))) && !isCancelled;
 
-    if (activeStatus === "past") {
-      if (derivedStatus !== "past" || isCancelled) return false;
-    } else if (activeStatus === "cancelled") {
-      if (derivedStatus !== "cancelled") return false;
+    if (activeStatus === "cancelled") {
+      if (!isCancelled) return false;
+    } else if (activeStatus === "past") {
+      if (!isPastEvent) return false;
     } else if (activeStatus === "confirmed") {
-      if (derivedStatus !== "confirmed") return false;
+      if (!isConfirmed || isPastEvent || isCancelled) return false;
     } else if (activeStatus === "pending") {
-      if (derivedStatus !== "pending") return false;
+      if (!isPending || isPastEvent || isCancelled) return false;
     }
 
     return true;

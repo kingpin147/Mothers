@@ -74,21 +74,21 @@ const FAQ_LIST: FaqEntry[] = [
   },
   {
     qEn: "Can I come to an event without being a member?",
-    aEn: "Yes. An Event Pass is €35 and books you one place at any event worth up to 18 credits. Each event holds a small number of guest places — usually two. Most of the calendar sits under that; the event card tells you whether a pass can book it. Everyone gets two passes in total — enough to know whether this is your room — and after that it's membership. Only Signature moments, and anything above 18 credits, stay with members. If you join within thirty days of the event, your €35 comes off your membership — €13 to join instead of €48 at the Opening Circle rate, or €23 instead of €58 at the standard rate. It comes off your first payment only; after that you pay your normal monthly rate. Your receipt is your ticket — it carries the meeting point and a link to release your place if your plans change. The €35 is not refunded, but the seat goes to another mother. Walks and park socials are always free, no booking fee at all.",
+    aEn: "Yes. An Event Pass is €35 and books you one place at any event worth up to 18 credits. Each event holds a small number of guest places — usually two. Most of the calendar sits under that; the event card tells you whether a pass can book it. Everyone gets two passes in total — enough to know whether this is your room — and after that it's membership. Only Signature moments, and anything above 18 credits, stay with members. If you join within thirty days of the event, your €35 comes off your joining fee — €13 to join instead of €48. It comes off your first payment only; after that you pay your normal membership rate. Your receipt is your ticket — it carries the meeting point and a link to release your place if your plans change. The €35 is not refunded, but the seat goes to another mother. Walks and park socials are always free, no booking fee at all.",
     qEs: "¿Puedo asistir a un evento sin ser socia?",
-    aEs: "Sí. Un Event Pass cuesta 35€ y te reserva una plaza en cualquier evento de hasta 18 créditos, con un máximo de dos invitadas por evento. La mayor parte del calendario está por debajo; la tarjeta del evento indica si un pase puede reservarlo. Cada persona tiene dos pases en total, y después toca la membresía. Solo los Signature moments, y lo que supere los 18 créditos, quedan para socias. Si te unes dentro de los treinta días siguientes al evento, tus 35€ se descuentan de tu primer pago: 13€ en lugar de 48€ con la tarifa Opening Circle, o 23€ en lugar de 58€ con la tarifa estándar. Solo se aplica al primer pago; después pagas tu tarifa mensual habitual. Tu recibo es tu entrada: lleva el punto de encuentro y un enlace para liberar tu plaza si te cambian los planes. Los 35€ no se devuelven, pero la plaza pasa a otra madre. Los paseos y encuentros en el parque son siempre gratuitos.",
+    aEs: "Sí. Un Event Pass cuesta 35€ y te reserva una plaza en cualquier evento de hasta 18 créditos, con un máximo de dos invitadas por evento. La mayor parte del calendario está por debajo; la tarjeta del evento indica si un pase puede reservarlo. Cada persona tiene dos pases en total, y después toca la membresía. Solo los Signature moments, y lo que supere los 18 créditos, quedan para socias. Si te unes dentro de los treinta días siguientes al evento, tus 35€ se descuentan de tu cuota de inscripción — 13€ en lugar de 48€. Solo se aplica al primer pago; después pagas tu cuota habitual. Tu recibo es tu entrada: lleva el punto de encuentro y un enlace para liberar tu plaza si te cambian los planes. Los 35€ no se devuelven, pero la plaza pasa a otra madre. Los paseos y encuentros en el parque son siempre gratuitos.",
   },
   {
     qEn: "Can I pay every three months instead?",
-    aEn: "Yes, and it costs a little less. Opening Circle is €29 a month or €79 every three months; standard membership is €39 a month or €99 every three months. You choose when you apply, and you can switch at your next renewal. Your credits arrive the same way either way — 20 at the start of each month, not 60 in one go, so the calendar stays reachable all quarter rather than filling up in week one.",
+    aEn: "Yes, and it costs a little less. Membership is €39 a month or €99 every three months (equivalent to €33/month). You choose when you apply, and you can switch at your next renewal. Your credits arrive the same way either way — 20 at the start of each month, not 60 in one go, so the calendar stays reachable all quarter rather than filling up in week one.",
     qEs: "¿Puedo pagar cada tres meses?",
-    aEs: "Sí, y sale algo más económico. Opening Circle son 29€ al mes u 79€ cada tres meses; la membresía estándar son 39€ al mes o 99€ cada tres meses. Lo eliges al solicitar tu plaza y puedes cambiarlo en tu siguiente renovación. Tus créditos llegan igual en ambos casos: 20 al inicio de cada mes, no 60 de golpe, para que el calendario siga a tu alcance todo el trimestre en lugar de llenarse la primera semana.",
+    aEs: "Sí, y sale algo más económico. La membresía son 39€ al mes o 99€ cada tres meses (equivalente a 33€/mes). Lo eliges al solicitar tu plaza y puedes cambiarlo en tu siguiente renovación. Tus créditos llegan igual en ambos casos: 20 al inicio de cada mes, no 60 de golpe, para que el calendario siga a tu alcance todo el trimestre en lugar de llenarse la primera semana.",
   },
   {
     qEn: "Can I pause or cancel my membership?",
-    aEn: "Yes. Pause for up to two months a year at no cost, and cancel anytime — there is never a cancellation fee. Your credit expiry clock pauses too, so you never lose credits while stepped away. If you are an Opening Circle member, note the difference between the two: a pause keeps your €29 rate, cancelling releases it, and rejoining later is at the standard rate.",
+    aEn: "Yes. Pause for up to two months a year at no cost, and cancel anytime — there is never a cancellation fee. Your credit expiry clock pauses too, so you never lose credits while stepped away.",
     qEs: "¿Puedo pausar o cancelar mi membresía?",
-    aEs: "Sí. Puedes pausarla hasta dos meses al año sin coste, y cancelar en cualquier momento — nunca hay cuota de cancelación. El reloj de caducidad de tus créditos también se pausa, así que nunca pierdes créditos mientras estás fuera. Si eres socia del Opening Circle, la diferencia importa: pausar conserva tu tarifa de 29€, cancelar la libera, y volver más adelante sería a la tarifa estándar.",
+    aEs: "Sí. Puedes pausarla hasta dos meses al año sin coste, y cancelar en cualquier momento — nunca hay cuota de cancelación. El reloj de caducidad de tus créditos también se pausa, así que nunca pierdes créditos mientras estás fuera.",
   },
   {
     qEn: "Can I cancel an event I booked?",
@@ -97,10 +97,10 @@ const FAQ_LIST: FaqEntry[] = [
     aEs: "Sí, hasta 24 horas antes de que empiece — el crédito se devuelve automáticamente, sin necesidad de explicación. Con menos de 24 horas también te devolvemos el crédito si alguien de la lista de espera ocupa tu plaza; si queda vacía, el crédito se pierde. ¿Reservaste como invitada? Usa el enlace de cancelación de tu correo de confirmación, o escribe a hello@themothers.cc.",
   },
   {
-    qEn: "What happens when my Opening Circle rate ends?",
-    aEn: "Opening Circle members keep €29/month for a full 12 months. We'll remind you before it changes, and you'll never be surprised on your statement. The rate is tied to staying a member: pausing protects it, but cancelling ends it — rejoin later and you rejoin at the standard rate.",
-    qEs: "¿Qué pasa cuando termina mi tarifa de Opening Circle?",
-    aEs: "Las socias del Opening Circle mantienen 29€/mes durante 12 meses completos. Te avisaremos antes de que cambie, y nunca será una sorpresa en tu extracto. La tarifa va unida a seguir siendo socia: pausar la protege, pero cancelar la termina — si vuelves más adelante, entras a la tarifa estándar.",
+    qEn: "What does joining actually cost?",
+    aEn: "Membership is €39/month (or €99 every 3 months). There is a one-time joining fee of €48, which is free for our first 50 founding members. There are no hidden fees, and you can cancel anytime with no fee.",
+    qEs: "¿Cuánto cuesta realmente unirse?",
+    aEs: "La membresía cuesta 39€/mes (o 99€ cada 3 meses). Hay una cuota de inscripción única de 48€, que es gratuita para nuestras primeras 50 socias fundadoras. No hay costes ocultos y puedes cancelar en cualquier momento sin penalización.",
   },
   {
     qEn: "Can I join if my child is already in school?",
@@ -212,7 +212,7 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
         </div>
 
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {[...dynamicFaqs, ...FAQ_LIST].map((faq, idx) => {
+          {[...dynamicFaqs, ...processedList].map((faq, idx) => {
             const isOpen = openIdx === idx;
             return (
               <div
@@ -303,7 +303,7 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
               : "Prueba un Event Pass: vive la comunidad, sin necesidad de membresía."}
           </p>
           <Link
-            href="/membership"
+            href="/events"
             style={{
               display: "inline-block",
               border: "1px solid #f8efe2",
@@ -316,7 +316,7 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
               textDecoration: "none"
             }}
           >
-            {lang === "en" ? "Join now" : "Únete ahora"}
+            {lang === "en" ? "Get an Event Pass" : "Consigue un Event Pass"}
           </Link>
         </div>
       </div>

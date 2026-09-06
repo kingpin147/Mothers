@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "FAQ — The Mothers Barcelona",
   description:
-    "Frequently asked questions about The Mothers Barcelona: membership tiers, credits, event booking, cancellations, Godmother referrals, and more.",
+    "Frequently asked questions about The Mothers Barcelona: membership, credits, event booking, cancellations, Godmother referrals, and more.",
   openGraph: {
     title: "FAQ — The Mothers Barcelona",
     description:
