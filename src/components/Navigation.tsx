@@ -27,6 +27,8 @@ export function Navigation() {
     { href: "/events", labelEn: "Events", labelEs: "Eventos" },
   ];
 
+  const isEventsPage = pathname?.startsWith("/events");
+
   return (
     <>
       <header
@@ -34,26 +36,26 @@ export function Navigation() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "16px clamp(20px, 4vw, 64px)",
+          padding: "16px clamp(24px, 5vw, 64px)",
           borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
-          backgroundColor: "var(--color-bg)",
+          backgroundColor: isEventsPage ? "var(--color-bg-events, #fefdf9)" : "var(--color-bg)",
           position: "sticky",
           top: 0,
           zIndex: 90,
         }}
       >
         {/* Brand Lockup */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "12px", textDecoration: "none" }}>
           <img
             src="/assets/logo-mark-alpha.png"
             alt="The Mothers"
-            style={{ height: "72px", width: "auto", display: "block" }}
+            style={{ height: "52px", width: "auto", display: "block" }}
           />
           <span
             aria-hidden="true"
             style={{
               width: "1px",
-              height: "30px",
+              height: "32px",
               background: "rgba(57, 41, 42, 0.28)",
               display: "inline-block",
               flex: "none",
@@ -62,7 +64,7 @@ export function Navigation() {
           <img
             src="/assets/logo-wordmark-alpha.png"
             alt="The Mothers"
-            style={{ height: "16px", width: "auto", display: "block" }}
+            style={{ height: "22px", width: "auto", display: "block" }}
           />
         </Link>
 
@@ -72,7 +74,7 @@ export function Navigation() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "clamp(12px, 2vw, 28px)",
+            gap: "clamp(16px, 2.2vw, 32px)",
           }}
         >
           {navLinks.map((link) => {
@@ -83,7 +85,7 @@ export function Navigation() {
                 href={link.href}
                 style={{
                   color: isActive ? "var(--color-accent)" : "var(--color-text)",
-                  fontSize: "14px",
+                  fontSize: "15.5px",
                   fontWeight: isActive ? 600 : 400,
                   textDecoration: "none",
                 }}

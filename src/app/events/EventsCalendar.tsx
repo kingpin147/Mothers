@@ -84,9 +84,9 @@ function getStageLabel(raw: string | null | undefined, lang: Lang): string {
   const s = raw.toLowerCase();
   if (s.includes("pregnant") || s.includes("embaraz")) return lang === "en" ? "Pregnant" : "Embarazada";
   if (s.includes("postpartum") || s.includes("posparto") || s.includes("0") || s.includes("babies") || s.includes("baby") || s.includes("0–12") || s.includes("0-12")) return lang === "en" ? "Babies" : "Bebés";
-  if (s.includes("toddler") || s.includes("1–3") || s.includes("1-3") || s.includes("primera infancia")) return lang === "en" ? "Toddlers" : "Peques";
-  if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-")) return lang === "en" ? "Children" : "Niños";
-  if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10")) return lang === "en" ? "Big Kids" : "Mayores";
+  if (s.includes("toddler") || s.includes("peque") || s.includes("1–3") || s.includes("1-3") || s.includes("primera infancia")) return lang === "en" ? "Toddlers" : "Peques";
+  if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10") || s.includes("6+")) return lang === "en" ? "Big kids" : "Niños grandes";
+  if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-") || s.includes("niño")) return lang === "en" ? "Children" : "Niños";
   return raw; // fallback: show as-is
 }
 
@@ -253,24 +253,18 @@ function getCategoryInfo(ev: PublicEvent, lang: Lang): { key: string; label: str
 
 function getCardBg(ev: PublicEvent, isPast?: boolean): string {
   if (isPast || ev.status === "cancelled") return "#f1eeea";
+  if (ev.status === "confirmed") return "#eef4e9";
+  if (ev.status === "published_pending" || ev.status === "pending") return "#fbf3e4";
   if (ev.isSignature) return "#f1eaea";
-  switch (ev.status) {
-    case "confirmed":         return "#eef4e9";
-    case "published_pending": 
-    case "pending":           return "#fbf3e4";
-    default:                  return "#f3f0ea";
-  }
+  return "#f3f0ea";
 }
 
 function getCardBorder(ev: PublicEvent, isPast?: boolean): string {
   if (isPast || ev.status === "cancelled") return "rgba(57, 41, 42, 0.18)";
+  if (ev.status === "confirmed") return "rgba(86, 139, 5, 0.34)";
+  if (ev.status === "published_pending" || ev.status === "pending") return "rgba(164, 118, 31, 0.45)";
   if (ev.isSignature) return "rgba(123, 31, 44, 0.32)";
-  switch (ev.status) {
-    case "confirmed":         return "rgba(86, 139, 5, 0.34)";
-    case "published_pending": 
-    case "pending":           return "rgba(164, 118, 31, 0.45)";
-    default:                  return "rgba(57, 41, 42, 0.2)";
-  }
+  return "rgba(57, 41, 42, 0.2)";
 }
 
 function formatDecideByDate(startsAt: string | Date, lang: Lang): string {
@@ -1241,39 +1235,6 @@ function EventCard({
                     {lang === "en" ? "The waitlist is for members. See the membership →" : "La lista de espera es para socias. Ver la membresía →"}
                   </Link>
                 )
-              ) : ev.isSignature && !isMember ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", width: "100%", justifyContent: "space-between", flexWrap: "wrap" }}>
-                  <Link
-                    href="/membership"
-                    style={{
-                      fontSize: "13.5px",
-                      color: "#7b1f2c",
-                      textDecoration: "underline",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {lang === "en" ? "This one is for members. See the membership →" : "Este es para socias. Ver la membresía →"}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => onOpenCeiling(ev)}
-                    style={{
-                      border: "1px solid #7b1f2c",
-                      backgroundColor: "#7b1f2c",
-                      color: "#f8efe2",
-                      padding: "10px 22px",
-                      borderRadius: "4px",
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 600,
-                      fontSize: "14.5px",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      boxShadow: "0 2px 6px rgba(123,31,44,0.2)",
-                    }}
-                  >
-                    {lang === "en" ? "Book" : "Reservar"}
-                  </button>
-                </div>
               ) : (
                 <>
                   {eligible && (
@@ -1363,9 +1324,10 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const stageChips = [
     { id: "all", labelEn: "All stages", labelEs: "Todas las etapas" },
     { id: "pregnant", labelEn: "Pregnant", labelEs: "Embarazada" },
-    { id: "babies", labelEn: "Babies (0–12m)", labelEs: "Bebés (0–12m)" },
-    { id: "toddlers", labelEn: "Toddlers (1–3y)", labelEs: "Peques (1–3a)" },
-    { id: "children", labelEn: "Children (3y+)", labelEs: "Niños (3a+)" },
+    { id: "babies", labelEn: "Babies", labelEs: "Bebés" },
+    { id: "toddlers", labelEn: "Toddlers", labelEs: "Peques" },
+    { id: "children", labelEn: "Children", labelEs: "Niños" },
+    { id: "big_kids", labelEn: "Big kids", labelEs: "Niños grandes" },
   ];
 
   const audienceChips = [
@@ -1417,7 +1379,19 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     // 2. Stage match
     if (activeStage !== "all") {
       const rawStage = (ev.stage || "").toLowerCase();
-      if (!rawStage.includes(activeStage) && rawStage !== "all stages") return false;
+      if (activeStage === "big_kids" || activeStage === "big kids") {
+        if (!rawStage.includes("big") && !rawStage.includes("grande") && !rawStage.includes("10+") && !rawStage.includes("6–10") && !rawStage.includes("6-10") && !rawStage.includes("6+") && rawStage !== "all stages") return false;
+      } else if (activeStage === "babies") {
+        if (!rawStage.includes("bab") && !rawStage.includes("0–12") && !rawStage.includes("0-12") && !rawStage.includes("postpartum") && !rawStage.includes("posparto") && rawStage !== "all stages") return false;
+      } else if (activeStage === "toddlers") {
+        if (!rawStage.includes("toddler") && !rawStage.includes("peque") && !rawStage.includes("1–3") && !rawStage.includes("1-3") && rawStage !== "all stages") return false;
+      } else if (activeStage === "children") {
+        if (!rawStage.includes("child") && !rawStage.includes("niño") && !rawStage.includes("3–6") && !rawStage.includes("3-6") && !rawStage.includes("3y+") && rawStage !== "all stages") return false;
+      } else if (activeStage === "pregnant") {
+        if (!rawStage.includes("pregnant") && !rawStage.includes("embaraz") && rawStage !== "all stages") return false;
+      } else {
+        if (!rawStage.includes(activeStage) && rawStage !== "all stages") return false;
+      }
     }
 
     // 3. Audience / Kids match

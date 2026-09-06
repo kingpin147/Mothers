@@ -38,9 +38,9 @@ const FAQ_LIST: FaqEntry[] = [
   },
   {
     qEn: "Which stage group will I be in?",
-    aEn: "Five groups, by where you are right now: Pregnant (from your first trimester until birth), Babies (0–12 months), Toddlers (1–3 years), Children (3–6 years) and Big kids (6–10 years). Your group follows your child's age, so it changes as she grows.",
+    aEn: "Five groups, by where you are right now: Pregnant (from your first trimester until birth), Babies (0–12 months), Toddlers (1–3 years), Children (3–6 years) and Big kids (6+ years). Your group follows your child's age, so it changes as she grows.",
     qEs: "¿En qué grupo de etapa estaré?",
-    aEs: "Cinco grupos, según el momento en el que estás: Embarazo (desde el primer trimestre hasta el parto), Bebés (0–12 meses), Peques (1–3 años), Niños (3–6 años) y Niños grandes (6–10 años). Tu grupo va con la edad de tu hija, así que cambia a medida que crece.",
+    aEs: "Cinco grupos, según el momento en el que estás: Embarazo (desde el primer trimestre hasta el parto), Bebés (0–12 meses), Peques (1–3 años), Niños (3–6 años) y Niños grandes (más de 6 años). Tu grupo va con la edad de tu hija, así que cambia a medida que crece.",
   },
   {
     qEn: "What are credits, and how do they work?",

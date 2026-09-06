@@ -21,13 +21,14 @@ export function Footer() {
   // Early return removed to restore global footer on admin pages
 
   const isAdminRoute = pathname.startsWith("/admin") || pathname.startsWith("/super-admin");
+  const isEventsPage = pathname?.startsWith("/events");
 
   return (
     <footer
       style={{
         borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         padding: "56px clamp(24px, 5vw, 64px) 32px",
-        backgroundColor: "var(--color-bg)",
+        backgroundColor: isEventsPage ? "var(--color-bg-events, #fefdf9)" : "var(--color-bg)",
         color: "#39292a",
         fontFamily: "var(--font-body)",
         fontSize: "14px",
@@ -35,8 +36,6 @@ export function Footer() {
     >
       <div
         style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
           display: "flex",
           flexWrap: "wrap",
           gap: "44px",
@@ -45,18 +44,18 @@ export function Footer() {
         }}
       >
         {/* Brand Column */}
-        <div style={{ maxWidth: "300px" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "14px", textDecoration: "none" }}>
+        <div style={{ maxWidth: "320px" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", textDecoration: "none" }}>
             <img
               src="/assets/logo-mark-alpha.png"
               alt="The Mothers"
-              style={{ height: "72px", width: "auto", display: "block" }}
+              style={{ height: "48px", width: "auto", display: "block" }}
             />
             <span
               aria-hidden="true"
               style={{
                 width: "1px",
-                height: "30px",
+                height: "28px",
                 background: "rgba(57, 41, 42, 0.28)",
                 display: "inline-block",
                 flex: "none",
@@ -65,10 +64,10 @@ export function Footer() {
             <img
               src="/assets/logo-wordmark-alpha.png"
               alt="The Mothers"
-              style={{ height: "16px", width: "auto", display: "block" }}
+              style={{ height: "20px", width: "auto", display: "block" }}
             />
           </Link>
-          <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57, 41, 42, 0.65)", margin: 0 }}>
+          <p style={{ fontSize: "15px", lineHeight: "1.65", color: "rgba(57, 41, 42, 0.7)", margin: 0 }}>
             {lang === "en"
               ? "A way of life for the modern Mother."
               : "Un estilo de vida para la madre moderna."}
@@ -83,7 +82,7 @@ export function Footer() {
               style={{
                 fontFamily: "var(--font-heading)",
                 fontWeight: 600,
-                fontSize: "13px",
+                fontSize: "14px",
                 letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 marginBottom: "14px",
@@ -92,7 +91,7 @@ export function Footer() {
             >
               {lang === "en" ? "Explore" : "Explorar"}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "15px" }}>
               <Link href="/membership" style={{ color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "Membership" : "Membresía"}
               </Link>
@@ -175,8 +174,6 @@ export function Footer() {
       {/* Subfooter */}
       <div
         style={{
-          maxWidth: "1200px",
-          margin: "0 auto",
           borderTop: "1px solid rgba(57, 41, 42, 0.12)",
           paddingTop: "18px",
           display: "flex",

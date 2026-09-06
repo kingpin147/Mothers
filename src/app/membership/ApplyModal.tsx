@@ -51,10 +51,12 @@ export function ApplyModal({
           ...parsed,
           stage: Array.isArray(parsed.stage) ? parsed.stage : (parsed.stage ? [parsed.stage] : ["Pregnant"]),
           childrenAge: Array.isArray(parsed.childrenAge) ? parsed.childrenAge : (parsed.childrenAge ? [parsed.childrenAge] : []),
+          hopingToFind: Array.isArray(parsed.hopingToFind) ? parsed.hopingToFind : (parsed.hopingToFind ? [parsed.hopingToFind] : ["Friendships nearby"]),
+          freeTimes: Array.isArray(parsed.freeTimes) ? parsed.freeTimes : (parsed.freeTimes ? [parsed.freeTimes] : ["Weekday mornings"]),
           termsAccepted: false,
         }));
-        if (parsed._step && typeof parsed._step === "number") {
-          setStep(parsed._step);
+        if (typeof parsed._step === "number" && !isNaN(parsed._step)) {
+          setStep(Math.max(0, Math.min(10, parsed._step)));
         }
       }
     } catch {
@@ -73,7 +75,8 @@ export function ApplyModal({
   if (!isOpen) return null;
 
   const totalSteps = 11;
-  const progressPct = ((step + 1) / totalSteps) * 100;
+  const safeStep = Math.max(0, Math.min(totalSteps - 1, step));
+  const progressPct = ((safeStep + 1) / totalSteps) * 100;
 
   const stepsMeta = [
     {
@@ -144,7 +147,7 @@ export function ApplyModal({
     },
   ];
 
-  const currentMeta = stepsMeta[step];
+  const currentMeta = stepsMeta[safeStep] || stepsMeta[0];
 
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
 
@@ -177,13 +180,19 @@ export function ApplyModal({
         return;
       }
     }
-    if (step === 5 && answers.hopingToFind.length === 0) {
-      setShowError(true);
-      return;
+    if (step === 5) {
+      const hoping = Array.isArray(answers.hopingToFind) ? answers.hopingToFind : [];
+      if (hoping.length === 0) {
+        setShowError(true);
+        return;
+      }
     }
-    if (step === 6 && answers.freeTimes.length === 0) {
-      setShowError(true);
-      return;
+    if (step === 6) {
+      const free = Array.isArray(answers.freeTimes) ? answers.freeTimes : [];
+      if (free.length === 0) {
+        setShowError(true);
+        return;
+      }
     }
 
     if (step < totalSteps - 1) {
@@ -451,10 +460,10 @@ export function ApplyModal({
             <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
               {[
                 { en: "Pregnant", es: "Embarazo" },
-                { en: "Babies (0–12 months)", es: "Bebés (0–12 meses)" },
-                { en: "Toddlers (1–3 years)", es: "Peques (1–3 años)" },
-                { en: "Children (3–10 years)", es: "Niños/as (3–10 años)" },
-                { en: "Big Kids (10+)", es: "Mayores (10+)" },
+                { en: "Babies", es: "Bebés" },
+                { en: "Toddlers", es: "Peques" },
+                { en: "Children", es: "Niños" },
+                { en: "Big kids", es: "Niños grandes" },
               ].map((opt) => {
                 const currentList = Array.isArray(answers.stage) ? answers.stage : (answers.stage ? [answers.stage] : []);
                 const isSelected = currentList.includes(opt.en);
@@ -578,7 +587,8 @@ export function ApplyModal({
               { en: "Expert recommendations", es: "Recomendaciones de expertas" },
               { en: "Walks & socials", es: "Paseos y encuentros" },
             ].map((opt) => {
-              const isSelected = answers.hopingToFind.includes(opt.en);
+              const currentList = Array.isArray(answers.hopingToFind) ? answers.hopingToFind : [];
+              const isSelected = currentList.includes(opt.en);
               return (
                 <button
                   key={opt.en}
@@ -622,7 +632,8 @@ export function ApplyModal({
               { en: "Evenings", es: "Noches" },
               { en: "Weekends", es: "Fines de semana" },
             ].map((opt) => {
-              const isSelected = answers.freeTimes.includes(opt.en);
+              const currentList = Array.isArray(answers.freeTimes) ? answers.freeTimes : [];
+              const isSelected = currentList.includes(opt.en);
               return (
                 <button
                   key={opt.en}
