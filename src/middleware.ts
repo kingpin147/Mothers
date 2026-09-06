@@ -27,10 +27,24 @@ export async function middleware(request: NextRequest) {
     }
 
     const role = (token as any).role;
-    const allowedRoles = ["owner", "manager", "host", "super_admin"];
+    const allowedRoles = ["owner", "manager", "host", "super_admin", "read_only"];
     if (!allowedRoles.includes(role)) {
       return NextResponse.redirect(new URL("/account", request.url));
     }
+
+    // 1b. Enforce 12-hour admin session expiry (§3.3)
+    const tokenIat = (token as any).iat;
+    if (tokenIat && (Date.now() / 1000 - tokenIat) > 12 * 60 * 60) {
+      const loginUrl = new URL("/account/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      loginUrl.searchParams.set("session_expired", "1");
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // 1c. Exclude /admin from search engine indexing (§3.5)
+    const res = NextResponse.next();
+    res.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return res;
   }
 
   // 2. Strict Server-Side Protection for /account routes

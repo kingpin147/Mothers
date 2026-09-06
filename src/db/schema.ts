@@ -29,6 +29,7 @@ export const adminRoleEnum = pgEnum("admin_role", [
   "manager",
   "host",
   "super_admin",
+  "read_only",
 ]);
 
 export const windowStatusEnum = pgEnum("window_status", [
@@ -707,3 +708,142 @@ export const errorLog = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   }
 );
+
+// ─── 8. SUBSCRIBERS (THE LETTER & WAITLIST) ──────────────────────────────────
+
+export const subscriber = pgTable(
+  "subscriber",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name"),
+    email: text("email").notNull(),
+    list: text("list").default("letter").notNull(), // 'letter', 'waitlist'
+    source: text("source"),
+    marketingConsent: boolean("marketing_consent").default(true).notNull(),
+    marketingConsentAt: timestamp("marketing_consent_at", { withTimezone: true }).defaultNow().notNull(),
+    unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_subscriber_email_list").on(table.email, table.list),
+  ]
+);
+
+// ─── 9. PARTNER HIERARCHY, APPLICATIONS & PERKS ──────────────────────────────
+
+export const partnerUmbrella = pgTable(
+  "partner_umbrella",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull().unique(),
+    slug: text("slug").notNull().unique(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    active: boolean("active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+export const partnerSpecialty = pgTable(
+  "partner_specialty",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    umbrellaId: text("umbrella_id").notNull().references(() => partnerUmbrella.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    isSought: boolean("is_sought").default(false).notNull(),
+    notes: text("notes"),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    active: boolean("active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+export const partnerApplication = pgTable(
+  "partner_application",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    businessName: text("business_name").notNull(),
+    specialty: text("specialty").notNull(),
+    email: text("email").notNull(),
+    phoneE164: text("phone_e164"),
+    website: text("website"),
+    instagram: text("instagram"),
+    message: text("message").notNull(),
+    status: text("status").default("submitted").notNull(), // 'submitted', 'under_review', 'accepted', 'declined'
+    reviewedByAdminId: text("reviewed_by_admin_id").references(() => adminUser.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    notesInternal: text("notes_internal"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+export const partnerPerk = pgTable(
+  "partner_perk",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    partnerId: text("partner_id").notNull().references(() => partner.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    perkType: text("perk_type").default("shared_code").notNull(), // 'shared_code', 'code_pool', 'show_card', 'private_link'
+    terms: text("terms"),
+    discountCode: text("discount_code"),
+    linkUrl: text("link_url"),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    active: boolean("active").default(true).notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+export const perkCodePool = pgTable(
+  "perk_code_pool",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    perkId: text("perk_id").notNull().references(() => partnerPerk.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    claimedByMemberId: text("claimed_by_member_id").references(() => member.id),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    revealedAt: timestamp("revealed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_unique_perk_code").on(table.perkId, table.code),
+  ]
+);
+
+export const perkReveal = pgTable(
+  "perk_reveal",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    perkId: text("perk_id").notNull().references(() => partnerPerk.id, { onDelete: "cascade" }),
+    memberId: text("member_id").notNull().references(() => member.id),
+    revealedAt: timestamp("revealed_at", { withTimezone: true }).defaultNow().notNull(),
+    ip: text("ip"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+// ─── 10. INTERNAL NOTES ──────────────────────────────────────────────────────
+
+export const internalNote = pgTable(
+  "internal_note",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    entityType: text("entity_type").notNull(), // 'person', 'member', 'partner', 'application', 'event', 'partner_application'
+    entityId: text("entity_id").notNull(),
+    authorAdminId: text("author_admin_id").references(() => adminUser.id),
+    authorName: text("author_name"),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_internal_note_entity").on(table.entityType, table.entityId),
+  ]
+);
+

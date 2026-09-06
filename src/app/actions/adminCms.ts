@@ -7,6 +7,15 @@ import {
   payment,
   creditEntry,
   partner,
+  partnerPerk,
+  perkCodePool,
+  perkReveal,
+  partnerApplication,
+  partnerUmbrella,
+  partnerSpecialty,
+  internalNote,
+  subscriber,
+  adminUser,
   faqItem,
   journalPost,
   booking,
@@ -15,7 +24,7 @@ import {
   godmotherReferral,
   emailLog
 } from "@/db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, ne, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
 async function verifyAdminRole() {
@@ -212,14 +221,51 @@ export async function pauseMember(memberId: string, reason: string): Promise<{ s
   try {
     const { adminId } = await verifyAdminRole();
     await db.transaction(async (tx) => {
-      await tx.update(member).set({ status: 'paused', updatedAt: new Date() }).where(eq(member.id, memberId));
+      const existing = await tx.select().from(member).where(eq(member.id, memberId)).limit(1);
+      if (!existing.length) throw new Error("Member not found");
+      const current = existing[0];
+      const pausedUntil = new Date();
+      pausedUntil.setMonth(pausedUntil.getMonth() + 1);
+
+      await tx.update(member).set({ 
+        status: 'paused', 
+        pausedUntil,
+        pauseMonthsUsedYear: (current.pauseMonthsUsedYear || 0) + 1,
+        updatedAt: new Date() 
+      }).where(eq(member.id, memberId));
+
       await tx.insert(auditLog).values({
         actorId: adminId,
         actorType: "admin",
         action: "pause_member",
         entity: "member",
         entityId: memberId,
-        after: { reason }
+        after: { reason, pausedUntil, status: 'paused' }
+      });
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function resumeMember(memberId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { adminId } = await verifyAdminRole();
+    await db.transaction(async (tx) => {
+      await tx.update(member).set({ 
+        status: 'active', 
+        pausedUntil: null,
+        updatedAt: new Date() 
+      }).where(eq(member.id, memberId));
+
+      await tx.insert(auditLog).values({
+        actorId: adminId,
+        actorType: "admin",
+        action: "resume_member",
+        entity: "member",
+        entityId: memberId,
+        after: { reason: reason || "Manual resume by admin", status: 'active' }
       });
     });
     return { success: true };
@@ -232,14 +278,19 @@ export async function cancelMember(memberId: string, reason: string): Promise<{ 
   try {
     const { adminId } = await verifyAdminRole();
     await db.transaction(async (tx) => {
-      await tx.update(member).set({ status: 'cancelled_at_period_end', updatedAt: new Date() }).where(eq(member.id, memberId));
+      await tx.update(member).set({ 
+        status: 'cancelled_at_period_end', 
+        cancelAtPeriodEnd: true,
+        updatedAt: new Date() 
+      }).where(eq(member.id, memberId));
+
       await tx.insert(auditLog).values({
         actorId: adminId,
         actorType: "admin",
         action: "cancel_member",
         entity: "member",
         entityId: memberId,
-        after: { reason }
+        after: { reason, status: 'cancelled_at_period_end' }
       });
     });
     return { success: true };
@@ -247,6 +298,7 @@ export async function cancelMember(memberId: string, reason: string): Promise<{ 
     return { success: false, error: error.message };
   }
 }
+
 
 // ─── 2. FINANCE & PAYMENTS MANAGEMENT ───────────────────────────────────────
 
@@ -318,10 +370,34 @@ export async function savePartner(data: {
   discountCode?: string;
   exclusive?: boolean;
   status?: string;
-}): Promise<{ success: boolean; error?: string }> {
+  forceOverrideConflict?: boolean;
+}): Promise<{ success: boolean; error?: string; conflict?: boolean; incumbentName?: string; exclusiveUntil?: Date | null }> {
   try {
     await verifyAdminRole();
     const isExclusive = data.exclusive ?? false;
+
+    // Check exclusivity conflict (§12)
+    if (isExclusive && !data.forceOverrideConflict) {
+      const activeIncumbent = await db.query.partner.findFirst({
+        where: and(
+          eq(partner.specialty, data.specialty),
+          eq(partner.status, "active"),
+          sql`exclusive_until IS NOT NULL AND exclusive_until > NOW()`,
+          data.id ? ne(partner.id, data.id) : sql`1=1`
+        ),
+      });
+
+      if (activeIncumbent) {
+        return {
+          success: false,
+          conflict: true,
+          incumbentName: activeIncumbent.name,
+          exclusiveUntil: activeIncumbent.exclusiveUntil,
+          error: `Exclusivity conflict: "${activeIncumbent.name}" holds exclusivity for ${data.specialty} until ${new Date(activeIncumbent.exclusiveUntil!).toLocaleDateString("en-GB")}.`,
+        };
+      }
+    }
+
     if (data.id) {
       await db
         .update(partner)
@@ -365,6 +441,263 @@ export async function deletePartner(partnerId: string): Promise<{ success: boole
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "DELETE_PARTNER_FAILED" };
+  }
+}
+
+// ─── 3b. PARTNER PERKS & CODE POOL CMS (§12) ────────────────────────────────
+
+export async function getPartnerPerks(partnerId: string) {
+  await verifyAdminRole();
+  const perks = await db
+    .select({
+      perk: partnerPerk,
+      totalCodes: sql<number>`(SELECT count(*)::int FROM ${perkCodePool} WHERE perk_id = ${partnerPerk.id})`.as('total_codes'),
+      claimedCodes: sql<number>`(SELECT count(*)::int FROM ${perkCodePool} WHERE perk_id = ${partnerPerk.id} AND claimed_by_member_id IS NOT NULL)`.as('claimed_codes'),
+      revealCount: sql<number>`(SELECT count(*)::int FROM ${perkReveal} WHERE perk_id = ${partnerPerk.id})`.as('reveal_count'),
+    })
+    .from(partnerPerk)
+    .where(eq(partnerPerk.partnerId, partnerId))
+    .orderBy(asc(partnerPerk.sortOrder));
+
+  return { success: true, perks };
+}
+
+export async function savePartnerPerk(data: {
+  id?: string;
+  partnerId: string;
+  title: string;
+  description: string;
+  perkType: string;
+  terms?: string;
+  discountCode?: string;
+  linkUrl?: string;
+  validUntil?: Date;
+  active?: boolean;
+}) {
+  try {
+    await verifyAdminRole();
+    if (data.id) {
+      await db
+        .update(partnerPerk)
+        .set({
+          title: data.title,
+          description: data.description,
+          perkType: data.perkType,
+          terms: data.terms || null,
+          discountCode: data.discountCode || null,
+          linkUrl: data.linkUrl || null,
+          validUntil: data.validUntil || null,
+          active: data.active ?? true,
+          updatedAt: new Date(),
+        })
+        .where(eq(partnerPerk.id, data.id));
+    } else {
+      await db.insert(partnerPerk).values({
+        partnerId: data.partnerId,
+        title: data.title,
+        description: data.description,
+        perkType: data.perkType,
+        terms: data.terms || null,
+        discountCode: data.discountCode || null,
+        linkUrl: data.linkUrl || null,
+        validUntil: data.validUntil || null,
+        active: data.active ?? true,
+      });
+    }
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "SAVE_PERK_FAILED" };
+  }
+}
+
+export async function uploadPerkCodePool(perkId: string, codes: string[]) {
+  try {
+    await verifyAdminRole();
+    const cleanCodes = Array.from(new Set(codes.map(c => c.trim()).filter(Boolean)));
+    for (const code of cleanCodes) {
+      await db
+        .insert(perkCodePool)
+        .values({ perkId, code })
+        .onConflictDoNothing();
+    }
+    return { success: true, count: cleanCodes.length };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "UPLOAD_CODES_FAILED" };
+  }
+}
+
+// ─── 3c. PARTNER APPLICATIONS QUEUE (§12, §20) ──────────────────────────────
+
+export async function getPartnerApplications() {
+  await verifyAdminRole();
+  const applications = await db
+    .select()
+    .from(partnerApplication)
+    .orderBy(desc(partnerApplication.createdAt));
+
+  return { success: true, applications };
+}
+
+export async function reviewPartnerApplication(data: {
+  id: string;
+  status: "accepted" | "declined" | "under_review";
+  notesInternal?: string;
+}) {
+  try {
+    const { adminId } = await verifyAdminRole();
+    await db
+      .update(partnerApplication)
+      .set({
+        status: data.status,
+        reviewedByAdminId: adminId,
+        reviewedAt: new Date(),
+        notesInternal: data.notesInternal || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(partnerApplication.id, data.id));
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "REVIEW_FAILED" };
+  }
+}
+
+// ─── 3d. INTERNAL NOTES (§20) ────────────────────────────────────────────────
+
+export async function getInternalNotes(entityType: string, entityId: string) {
+  await verifyAdminRole();
+  const notes = await db
+    .select()
+    .from(internalNote)
+    .where(and(eq(internalNote.entityType, entityType), eq(internalNote.entityId, entityId)))
+    .orderBy(desc(internalNote.createdAt));
+
+  return { success: true, notes };
+}
+
+export async function saveInternalNote(data: {
+  entityType: string;
+  entityId: string;
+  body: string;
+}) {
+  try {
+    const { adminId } = await verifyAdminRole();
+    const author = adminId ? await db.query.adminUser.findFirst({ where: eq(adminUser.id, adminId) }) : null;
+    await db.insert(internalNote).values({
+      entityType: data.entityType,
+      entityId: data.entityId,
+      authorAdminId: adminId,
+      authorName: author?.email || "Admin",
+      body: data.body,
+    });
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "SAVE_NOTE_FAILED" };
+  }
+}
+
+// ─── 3e. THE LETTER (SUBSCRIBERS CMS §13) ───────────────────────────────────
+
+export async function getSubscribersList(listType: string = "letter") {
+  await verifyAdminRole();
+  const subscribers = await db
+    .select()
+    .from(subscriber)
+    .where(eq(subscriber.list, listType))
+    .orderBy(desc(subscriber.createdAt));
+
+  return { success: true, subscribers };
+}
+
+export async function createSubscriber(data: {
+  name?: string;
+  email: string;
+  list?: string;
+  source?: string;
+}) {
+  try {
+    const cleanEmail = data.email.toLowerCase().trim();
+    await db
+      .insert(subscriber)
+      .values({
+        name: data.name || null,
+        email: cleanEmail,
+        list: data.list || "letter",
+        source: data.source || "admin_manual",
+        marketingConsent: true,
+        marketingConsentAt: new Date(),
+      });
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "SUBSCRIBE_FAILED" };
+  }
+}
+
+// ─── 3f. GODMOTHER LEADERBOARD & REWARDS QUEUE (§13) ─────────────────────────
+
+export async function getGodmotherLeaderboard() {
+  await verifyAdminRole();
+  const referrals = await db
+    .select({
+      referralId: godmotherReferral.id,
+      referrerMemberId: godmotherReferral.referrerMemberId,
+      referrerName: sql<string>`concat(${person.firstName}, ' ', ${person.lastName})`,
+      referrerEmail: person.email,
+      code: godmotherReferral.code,
+      status: godmotherReferral.status,
+      qualifiedAt: godmotherReferral.qualifiedAt,
+      createdAt: godmotherReferral.createdAt,
+      referredPersonName: sql<string>`(SELECT concat(first_name, ' ', last_name) FROM person WHERE id = ${godmotherReferral.referredPersonId})`,
+    })
+    .from(godmotherReferral)
+    .innerJoin(member, eq(godmotherReferral.referrerMemberId, member.id))
+    .innerJoin(person, eq(member.personId, person.id))
+    .orderBy(desc(godmotherReferral.createdAt));
+
+  return { success: true, referrals };
+}
+
+export async function payoutGodmotherReward(referralId: string) {
+  try {
+    const { adminId } = await verifyAdminRole();
+    const result = await db.transaction(async (tx) => {
+      const ref = await tx.query.godmotherReferral.findFirst({
+        where: eq(godmotherReferral.id, referralId),
+      });
+      if (!ref || ref.status === "paid") {
+        throw new Error("ALREADY_PAID_OR_NOT_FOUND");
+      }
+
+      const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+      const insertedCredit = await tx
+        .insert(creditEntry)
+        .values({
+          memberId: ref.referrerMemberId,
+          amount: 5,
+          type: "godmother",
+          expiresAt,
+          sourceType: "godmother",
+          sourceId: ref.id,
+          actorAdminId: adminId,
+          reason: `Godmother referral reward for code ${ref.code}`,
+        })
+        .returning();
+
+      await tx
+        .update(godmotherReferral)
+        .set({
+          status: "paid",
+          payoutCreditEntryId: insertedCredit[0].id,
+          updatedAt: new Date(),
+        })
+        .where(eq(godmotherReferral.id, referralId));
+
+      return { creditEntryId: insertedCredit[0].id };
+    });
+
+    return { success: true, ...result };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "PAYOUT_FAILED" };
   }
 }
 

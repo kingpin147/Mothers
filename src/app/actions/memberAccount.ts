@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { member, person, creditEntry, booking, event, eventCategory, eventPass, partner } from "@/db/schema";
+import { member, person, creditEntry, booking, event, eventCategory, eventPass, partner, partnerPerk, perkCodePool, perkReveal } from "@/db/schema";
 import { eq, desc, and, sql, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
@@ -263,3 +263,78 @@ export async function getStripePortalUrl() {
     return { success: false, error: e?.message || "PORTAL_CREATION_FAILED" };
   }
 }
+
+// ─── 4. REVEAL PERK CODE (SERVER-SIDE TRACKED §12) ──────────────────────────
+
+export async function revealPerkCode(perkId: string) {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+
+  const memberId = (session.user as any).memberId;
+  if (!memberId) return { success: false, error: "MEMBER_REQUIRED" };
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      const perk = await tx.query.partnerPerk.findFirst({
+        where: and(eq(partnerPerk.id, perkId), eq(partnerPerk.active, true)),
+      });
+
+      if (!perk) throw new Error("PERK_NOT_FOUND");
+
+      // Record reveal interaction
+      await tx.insert(perkReveal).values({
+        perkId,
+        memberId,
+        revealedAt: new Date(),
+      });
+
+      if (perk.perkType === "shared_code") {
+        return { code: perk.discountCode || "", linkUrl: perk.linkUrl, type: perk.perkType };
+      }
+
+      if (perk.perkType === "code_pool") {
+        // Check if member already claimed a code from this pool
+        const existingClaim = await tx.query.perkCodePool.findFirst({
+          where: and(
+            eq(perkCodePool.perkId, perkId),
+            eq(perkCodePool.claimedByMemberId, memberId)
+          ),
+        });
+
+        if (existingClaim) {
+          return { code: existingClaim.code, linkUrl: perk.linkUrl, type: perk.perkType };
+        }
+
+        // Claim next available code
+        const availableCode = await tx.query.perkCodePool.findFirst({
+          where: and(
+            eq(perkCodePool.perkId, perkId),
+            sql`claimed_by_member_id IS NULL`
+          ),
+        });
+
+        if (!availableCode) {
+          throw new Error("OUT_OF_CODES");
+        }
+
+        await tx
+          .update(perkCodePool)
+          .set({
+            claimedByMemberId: memberId,
+            claimedAt: new Date(),
+            revealedAt: new Date(),
+          })
+          .where(eq(perkCodePool.id, availableCode.id));
+
+        return { code: availableCode.code, linkUrl: perk.linkUrl, type: perk.perkType };
+      }
+
+      return { code: "", linkUrl: perk.linkUrl, type: perk.perkType };
+    });
+
+    return { success: true, ...result };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "REVEAL_FAILED" };
+  }
+}
+

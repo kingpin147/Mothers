@@ -35,6 +35,22 @@
     {
       "path": "/api/cron/reconcile",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/quarterly-tranche",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/reset-pause-allowance",
+      "schedule": "0 0 1 1 *"
+    },
+    {
+      "path": "/api/cron/resume-pauses",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/retention",
+      "schedule": "0 3 1 * *"
     }
   ]
 }

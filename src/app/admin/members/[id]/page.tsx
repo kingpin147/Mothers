@@ -2,8 +2,12 @@
 
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
-import { getAdminMemberDetail, contactMember, pauseMember, cancelMember } from "@/app/actions/adminCms";
+import { getAdminMemberDetail, contactMember, pauseMember, resumeMember, cancelMember, adjustMemberCredits } from "@/app/actions/adminCms";
+
+const WINE = "#7b1f2c";
+const AMBER = "#a8752c";
+const GREEN = "#3f6604";
+const GREY = "rgba(57,41,42,0.55)";
 
 export default function MemberRecordPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -22,13 +26,25 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
   const [adjustReason, setAdjustReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const loadData = async () => {
+    const res = await getAdminMemberDetail(resolvedParams.id);
+    if (res.success && res.member) {
+      setData(res);
+      setDraftMessage(`${res.member.firstName} — no rush at all about the payment, it can wait. I noticed you have not been to anything since June and I wanted to check you are alright. If now is not the moment, we can pause your membership and everything waits for you. Belén`);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [resolvedParams.id]);
+
   const handleAdjust = async () => {
     if (!adjustReason.trim() || adjustAmount === "") {
       alert("A reason and amount are required.");
       return;
     }
     setIsSubmitting(true);
-    const { adjustMemberCredits } = await import("@/app/actions/adminCms");
     const res = await adjustMemberCredits({
       memberId: resolvedParams.id,
       amount: Number(adjustAmount),
@@ -44,19 +60,6 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
       alert(res.error || "Failed to adjust credits");
     }
   };
-
-  const loadData = async () => {
-    const res = await getAdminMemberDetail(resolvedParams.id);
-    if (res.success && res.member) {
-      setData(res);
-      setDraftMessage(`${res.member.firstName} — no rush at all about the payment, it can wait. I noticed you have not been to anything since June and I wanted to check you are alright. If now is not the moment, we can pause your membership and everything waits for you. Belén`);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [resolvedParams.id]);
 
   const handleContact = async () => {
     if (!draftMessage.trim()) return;
@@ -93,17 +96,38 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const handleResume = async () => {
+    if (!confirm(`Resume ${data?.member?.firstName}'s membership immediately?`)) return;
+    setIsSubmitting(true);
+    const res = await resumeMember(resolvedParams.id, "Admin resumed membership");
+    setIsSubmitting(false);
+    if (res.success) {
+      loadData();
+    } else {
+      alert(res.error || "Failed to resume membership.");
+    }
+  };
+
   if (loading) {
-    return <div style={{ minHeight: "100vh", background: "#f8efe2", padding: "40px", textAlign: "center" }}>Loading member record...</div>;
+    return <div style={{ minHeight: "100vh", background: "#f8efe2", padding: "40px", textAlign: "center", color: GREY }}>Loading member record...</div>;
   }
 
   if (!data || !data.member) {
-    return <div style={{ minHeight: "100vh", background: "#f8efe2", padding: "40px", textAlign: "center" }}>Member not found.</div>;
+    return <div style={{ minHeight: "100vh", background: "#f8efe2", padding: "40px", textAlign: "center", color: GREY }}>Member not found.</div>;
   }
 
   const { member, ledgerEntries, totalBalance, godmotherStats, attendance, contactHistory } = data;
 
-  const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
+  const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+    active: { label: "Active", color: GREEN },
+    paused: { label: "Paused", color: AMBER },
+    cancelled_at_period_end: { label: "Ending", color: WINE },
+    past_due: { label: "Past due", color: WINE },
+    lapsed: { label: "Lapsed", color: WINE },
+    banned: { label: "Banned", color: WINE },
+    applicant: { label: "Applicant", color: GREY },
+  };
+  const currentStatusConfig = STATUS_CONFIG[member.status] || { label: member.status, color: GREY };
 
   const formatCredits = (entries: any[]) => {
     return entries.map(e => ({
@@ -138,14 +162,14 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
 
   const statusTitle = statusOpen === 'pause' ? 'Pause her membership' : 'End her membership';
   const statusBody = statusOpen === 'pause'
-    ? 'Nothing expires while she is paused and nothing new arrives. Two months a year — she has used none. She is told, and she can lift it herself.'
+    ? 'Nothing expires while she is paused and nothing new arrives. Two months a year — she has used ' + (member.pauseMonthsUsedYear || 0) + ' of 2. She is told, and she can lift it herself.'
     : 'She stays a member to the end of the period already paid for and keeps every booking made. Credits do not carry past the end. This is reversible only by her rejoining in a window.';
   const statusConfirm = statusOpen === 'pause' ? 'Pause it' : 'End it';
 
   // Determine Godmother stats
-  const godmotherCode = godmotherStats.length > 0 ? godmotherStats[0].code : `${member.firstName.toUpperCase()}-${member.lastName.charAt(0).toUpperCase()}`;
-  const friendsJoined = godmotherStats.filter((g: any) => g.status === 'paid' || g.status === 'qualified').length;
-  const bonusEarned = godmotherStats.filter((g: any) => g.status === 'paid').length * 5;
+  const godmotherCode = godmotherStats && godmotherStats.length > 0 ? godmotherStats[0].code : `${member.firstName.toUpperCase()}-${member.lastName.charAt(0).toUpperCase()}`;
+  const friendsJoined = (godmotherStats || []).filter((g: any) => g.status === 'paid' || g.status === 'qualified').length;
+  const bonusEarned = (godmotherStats || []).filter((g: any) => g.status === 'paid').length * 5;
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", WebkitFontSmoothing: "antialiased" }}>
@@ -154,11 +178,10 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
         a:hover { color:#5d1620; text-decoration:underline; }
         button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:2px solid #7b1f2c; outline-offset:2px; }
       `}} />
-      
-
 
       <div style={{ maxWidth: "1120px", margin: "0 auto", padding: "clamp(24px,3.4vw,36px) clamp(18px,3vw,30px) 60px" }}>
         
+        {/* Top Header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "20px" }}>
           <div style={{ flex: "1 1 380px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
@@ -172,20 +195,19 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
             </p>
           </div>
           <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", alignItems: "center" }}>
-            {member.status === 'past_due' && (
-              <span style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "7px 13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-                Past due
-              </span>
-            )}
-            <button type="button" onClick={() => setWriteOpen(!writeOpen)} style={{ border: "1px solid rgba(57,41,42,0.3)", backgroundColor: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", cursor: "pointer" }}>
+            <span style={{ border: `1px solid ${currentStatusConfig.color}`, color: currentStatusConfig.color, borderRadius: "4px", padding: "7px 13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+              {currentStatusConfig.label}
+            </span>
+            <button type="button" onClick={() => setWriteOpen(!writeOpen)} style={{ border: "1px solid #7b1f2c", backgroundColor: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", cursor: "pointer" }}>
               Write to her
             </button>
-            <button type="button" style={{ border: "1px solid rgba(57,41,42,0.3)", backgroundColor: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", cursor: "pointer" }}>
+            <Link href={`/account/statement?m=${member.id}`} style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", textDecoration: "none" }}>
               Her statement
-            </button>
+            </Link>
           </div>
         </div>
 
+        {/* At-Risk Warning Box */}
         {!!member.atRiskSince && (
           <div style={{ border: "1px solid rgba(123,31,44,0.45)", borderRadius: "8px", background: "#fdf6f2", padding: "clamp(18px,2.4vw,22px)", marginBottom: "18px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "7px" }}>{member.firstName.toUpperCase()} NEEDS A WORD</div>
@@ -217,6 +239,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "16px", marginBottom: "18px", alignItems: "start" }}>
           
+          {/* Card: Her membership */}
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px 22px" }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 14px" }}>Her membership</h2>
             <div style={{ display: "flex", flexDirection: "column" }}>
@@ -226,7 +249,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                 { label: 'Plan', value: `€${(member.monthlyPriceCents/100).toFixed(0)} monthly` },
                 { label: 'Rate held until', value: member.priceLockedUntil ? new Date(member.priceLockedUntil).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : "—" },
                 { label: 'Renews', value: member.currentPeriodEnd ? new Date(member.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—" },
-                { label: 'Pauses used', value: `${member.pauseMonthsUsedYear} of 2` },
+                { label: 'Pauses used', value: `${member.pauseMonthsUsedYear || 0} of 2` },
                 { label: 'Languages', value: member.languages || "French, Spanish" },
                 { label: 'WhatsApp circles', value: member.whatsappCircles || "Toddlers - Sarrià" },
               ].map((f, i) => (
@@ -236,23 +259,68 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                 </div>
               ))}
             </div>
+
+            {/* Action Buttons: Pause / Resume & Cancel */}
             <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", marginTop: "16px" }}>
-              <button type="button" onClick={() => setStatusOpen("pause")} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>Pause her membership</button>
-              <button type="button" onClick={() => setStatusOpen("cancel")} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>End her membership</button>
+              {member.status === "paused" ? (
+                <button type="button" onClick={handleResume} disabled={isSubmitting} style={{ border: `1px solid ${GREEN}`, background: "transparent", color: GREEN, borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
+                  {isSubmitting ? "Resuming..." : "Resume her membership"}
+                </button>
+              ) : (
+                <button type="button" onClick={() => setStatusOpen("pause")} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
+                  Pause her membership
+                </button>
+              )}
+              {member.status !== "cancelled_at_period_end" && member.status !== "lapsed" && (
+                <button type="button" onClick={() => setStatusOpen("cancel")} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
+                  End her membership
+                </button>
+              )}
             </div>
+
+            {/* Status Modal Box */}
             {statusOpen && (
-              <div style={{ marginTop: "14px", border: "1px solid rgba(123,31,44,0.4)", borderRadius: "6px", background: "#fdf6f2", padding: "14px 16px" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", marginBottom: "6px" }}>{statusTitle}</div>
-                <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)", margin: "0 0 12px", textWrap: "pretty" }}>{statusBody}</p>
-                <input type="text" placeholder="Reason — required, and kept for our record" value={statusReason} onChange={e => setStatusReason(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", background: "#fff", marginBottom: "11px" }} />
+              <div style={{ marginTop: "14px", border: "1px solid rgba(123,31,44,0.4)", borderRadius: "6px", background: "#fdf6f2", padding: "16px 18px" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: "#7b1f2c", marginBottom: "8px" }}>
+                  {statusTitle} — {member.firstName} {member.lastName}
+                </div>
+                
+                {statusOpen === "cancel" ? (
+                  <div style={{ marginBottom: "14px", background: "#fff", border: "1px solid rgba(57,41,42,0.14)", borderRadius: "6px", padding: "12px 14px", fontSize: "13px", lineHeight: 1.6 }}>
+                    <div style={{ fontWeight: 600, marginBottom: "4px", color: "#39292a" }}>Financial &amp; Booking Consequences:</div>
+                    <ul style={{ margin: "0 0 10px 18px", padding: 0 }}>
+                      <li><strong>Period End:</strong> Active until {member.currentPeriodEnd ? new Date(member.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : "end of current billing cycle"}.</li>
+                      <li><strong>Remaining Credits:</strong> {totalBalance} credits remain available until period end, then lapse.</li>
+                      <li><strong>Upcoming Bookings:</strong> Bookings inside the period are retained; any bookings scheduled after period end will be cancelled and refunded.</li>
+                    </ul>
+                    <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)", fontStyle: "italic", borderTop: "1px solid rgba(57,41,42,0.08)", paddingTop: "8px" }}>
+                      &quot;Cancel {member.firstName}&apos;s membership at period end? Reversible only by re-applying in an open window.&quot;
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)", margin: "0 0 12px", textWrap: "pretty" }}>{statusBody}</p>
+                )}
+
+                <input 
+                  type="text" 
+                  placeholder="Reason — required, and recorded in audit log" 
+                  value={statusReason} 
+                  onChange={e => setStatusReason(e.target.value)} 
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", background: "#fff", marginBottom: "11px" }} 
+                />
                 <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
-                  <button type="button" onClick={handleStatusChange} disabled={isSubmitting} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>{isSubmitting ? '...' : statusConfirm}</button>
-                  <button type="button" onClick={() => setStatusOpen(null)} style={{ border: "1px solid rgba(57,41,42,0.28)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>Not now</button>
+                  <button type="button" onClick={handleStatusChange} disabled={isSubmitting} style={{ border: "1px solid #7b1f2c", background: "#7b1f2c", color: "#ffffff", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
+                    {isSubmitting ? 'Processing...' : statusConfirm}
+                  </button>
+                  <button type="button" onClick={() => setStatusOpen(null)} style={{ border: "1px solid rgba(57,41,42,0.28)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
+                    Not now
+                  </button>
                 </div>
               </div>
             )}
           </div>
 
+          {/* Card: Her credits */}
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px 22px" }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 6px" }}>Her credits</h2>
             <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "12px" }}>
@@ -285,76 +353,59 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
 
         </div>
 
+        {/* Where she has been & What we said */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "16px", marginBottom: "18px", alignItems: "start" }}>
-          
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px 22px" }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 12px" }}>Where she has been</h2>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {formatAttendance(attendance).slice(0, 5).map((a, i) => (
-                <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>{a.title}</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: a.color }}>{a.note}</div>
-                </div>
-              ))}
-              {attendance.length === 0 && (
-                <>
-                  <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px", color: WINE }}>Nothing in the last ninety days</div>
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: GREY }}>Last seen 71 days ago</div>
+              {formatAttendance(attendance).length === 0 ? (
+                <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", padding: "8px 0" }}>Nothing in the last ninety days</div>
+              ) : (
+                formatAttendance(attendance).map((a, i) => (
+                  <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>{a.title}</div>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: a.color }}>{a.note}</div>
                   </div>
-                  <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>Stage</div>
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: GREY }}>Toddlers · One, 2 years</div>
-                  </div>
-                  <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>WhatsApp circles</div>
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: GREY }}>Toddlers · Sarrià</div>
-                  </div>
-                  <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>Worth a word</div>
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: GREY }}>A failed payment, and nothing attended in 71 days.</div>
-                  </div>
-                </>
+                ))
               )}
             </div>
-            <Link href={`/admin/members/${member.id}/roster`} style={{ fontSize: "13px", display: "inline-block", marginTop: "12px" }}>Her next event’s roster →</Link>
           </div>
 
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px 22px" }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 12px" }}>What we have said to her</h2>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {contactHistory.slice(0, 5).map((c: any, i: number) => (
-                <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                  <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>{c.templateKey.replace(/_/g, " ")}</div>
-                  <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)" }}>Sent {new Date(c.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
-                </div>
-              ))}
-              {contactHistory.length === 0 && (
-                <div style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)", fontSize: "13.5px", color: GREY }}>No emails sent yet.</div>
+              {(contactHistory || []).length === 0 ? (
+                <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", padding: "8px 0" }}>No direct contact recorded yet</div>
+              ) : (
+                (contactHistory || []).map((c: any, i: number) => (
+                  <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                    <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>{c.what}</div>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)" }}>{c.when}</div>
+                  </div>
+                ))
               )}
             </div>
             <p style={{ fontSize: "12px", lineHeight: 1.6, color: "rgba(57,41,42,0.64)", margin: "12px 0 0", textWrap: "pretty" }}>Every email the system sent and every note you wrote, in one place — so nobody writes to her twice about the same thing.</p>
           </div>
-
         </div>
 
+        {/* Godmother Card */}
         <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px 22px" }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 6px" }}>Godmother</h2>
-          <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 12px", maxWidth: "70ch", textWrap: "pretty" }}>
-            Automatic, with a code derived from her name. Five credits when a friend joins, fifteen more at three months.
-          </p>
+          <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 12px", maxWidth: "70ch", textWrap: "pretty" }}>Automatic, with a code derived from her name. Five credits when a friend joins, fifteen more at three months.</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))", gap: "12px" }}>
-            {[
-              { value: godmotherCode, label: 'Her code' },
-              { value: friendsJoined.toString(), label: 'Friend joined' },
-              { value: bonusEarned.toString(), label: 'Bonus credits earned' },
-              { value: '0', label: 'Milestone pending' }
-            ].map((g, i) => (
-              <div key={i} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{g.value}</div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", marginTop: "5px", lineHeight: 1.4 }}>{g.label}</div>
-              </div>
-            ))}
+            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{godmotherCode}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", margin: "5px 0 0", lineHeight: 1.4 }}>Her code</div>
+            </div>
+            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{friendsJoined}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", margin: "5px 0 0", lineHeight: 1.4 }}>{friendsJoined === 1 ? "Friend joined" : "Friends joined"}</div>
+            </div>
+            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{bonusEarned}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", margin: "5px 0 0", lineHeight: 1.4 }}>Bonus credits earned</div>
+            </div>
           </div>
         </div>
 

@@ -3,7 +3,8 @@ import { journalPost, mediaAsset } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import JournalClient from "./JournalClient";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const TOPIC_CAT: Record<string, string> = {
   Pregnancy: "pregnancy",

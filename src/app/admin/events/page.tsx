@@ -2,28 +2,59 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { MoreHorizontal, Trash2, Archive, Calendar, Users, CheckCircle, Ticket, Edit2, Copy, Printer, X } from "lucide-react";
-import { getAdminEvents, createAdminEvent, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, updateAdminEvent, publishAdminEvent } from "@/app/actions/adminEvents";
-import { getEventCategories, createEventCategory, deleteEventCategory, deleteEvent } from "@/app/actions/events";
+import { MoreHorizontal, Users, CheckCircle, Edit2, Copy, Printer, X, Eye } from "lucide-react";
+import { getAdminEvents, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, publishAdminEvent } from "@/app/actions/adminEvents";
+import { deleteEvent } from "@/app/actions/events";
 import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
 
+const WINE = "#7b1f2c";
+const AMBER = "#a8752c";
+const GREEN = "#3f6604";
+const MUTED = "rgba(57,41,42,0.55)";
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: MUTED,
+  published_pending: AMBER,
+  gathering: AMBER,
+  confirmed: GREEN,
+  completed: MUTED,
+  past: MUTED,
+  cancelled: WINE,
+};
+
+const PREDEFINED_CATEGORIES = [
+  "Walks & park socials",
+  "Play dates",
+  "MoM's dates",
+  "Learn & grow",
+  "Signature moments",
+];
+
+const PREDEFINED_STAGES = [
+  "Pregnant",
+  "Babies",
+  "Toddlers",
+  "Children",
+  "Big kids",
+];
+
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // Filters & Sorting
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
-  const [sortOrder, setSortOrder] = useState("dateAsc");
+  const [sortOrder, setSortOrder] = useState("soonest");
 
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  // Inline Cancellation Dialog State
+  const [cancelEventId, setCancelEventId] = useState<string | null>(null);
+  const [cancelReasonText, setCancelReasonText] = useState("");
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
 
   // Attendees & Ticketing Modal State
@@ -42,122 +73,16 @@ export default function AdminEventsPage() {
   const [deductCredits, setDeductCredits] = useState(true);
   const [bookingMember, setBookingMember] = useState(false);
 
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatStage, setNewCatStage] = useState("All Stages");
-
-  const [editForm, setEditForm] = useState({
-    id: "",
-    title: "",
-    categoryId: "",
-    venueName: "",
-    meetingPoint: "",
-    neighbourhood: "Eixample",
-    startsAt: "",
-    endsAt: "",
-    creditCost: 18,
-    capacityMember: 10,
-    capacityGuest: 2,
-    capacityGuestGathering: 2,
-    minToConfirm: 4,
-    isSignature: false,
-    showEventPassCta: false,
-    languages: ["English", "Spanish"],
-    targetStages: [] as string[],
-    description: "",
-  });
-
-  const handleOpenEdit = (ev: any) => {
-    const formatLocalDatetime = (dStr: string) => {
-      if (!dStr) return "";
-      const d = new Date(dStr);
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    };
-
-    setEditForm({
-      id: ev.id,
-      title: ev.title,
-      categoryId: ev.categoryId || "",
-      venueName: ev.venueName,
-      meetingPoint: ev.meetingPoint,
-      neighbourhood: ev.neighbourhood,
-      startsAt: formatLocalDatetime(ev.startsAt),
-      endsAt: formatLocalDatetime(ev.endsAt),
-      creditCost: ev.creditCost,
-      capacityMember: ev.capacityMember,
-      capacityGuest: ev.capacityGuest,
-      capacityGuestGathering: ev.capacityGuestGathering || 2,
-      minToConfirm: ev.minToConfirm || 4,
-      isSignature: !!ev.isSignature,
-      showEventPassCta: !!ev.showEventPassCta,
-      languages: ev.languages || ["English", "Spanish"],
-      targetStages: [] as string[],
-      description: ev.description || "",
-    });
-    setShowEditModal(true);
-  };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editForm.title || !editForm.venueName || !editForm.meetingPoint || !editForm.startsAt || !editForm.endsAt) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-
-    setLoading(true);
-    const res = await updateAdminEvent(editForm.id, {
-      ...editForm,
-      startsAt: new Date(editForm.startsAt),
-      endsAt: new Date(editForm.endsAt),
-    });
-    setLoading(false);
-
-    if (res.success) {
-      alert("Event updated successfully!");
-      setShowEditModal(false);
-      loadData();
-    } else {
-      alert(res.error || "Failed to update event");
-    }
-  };
-
-  const [form, setForm] = useState({
-    title: "",
-    categoryId: "",
-    venueName: "",
-    meetingPoint: "",
-    neighbourhood: "Eixample",
-    startsAt: "",
-    endsAt: "",
-    creditCost: 18,
-    capacityMember: 10,
-    capacityGuest: 2,
-    capacityGuestGathering: 2,
-    minToConfirm: 4,
-    isSignature: false,
-    showEventPassCta: false,
-    languages: ["English", "Spanish"],
-    targetStages: [] as string[],
-    description: "",
-  });
-
   const loadData = async () => {
     setLoading(true);
-    const [eventsRes, catsRes, membersRes] = await Promise.all([
+    const [eventsRes, membersRes] = await Promise.all([
       getAdminEvents(),
-      getEventCategories(),
       getAdminMembers(),
     ]);
     setLoading(false);
 
     if (eventsRes.success && eventsRes.events) {
       setEvents(eventsRes.events);
-    }
-    if (catsRes.success && catsRes.categories) {
-      setCategories(catsRes.categories);
-      if (catsRes.categories.length > 0 && !form.categoryId) {
-        setForm((prev) => ({ ...prev, categoryId: catsRes.categories[0].id }));
-      }
     }
     if (membersRes.success && membersRes.members) {
       setAllMembers(membersRes.members);
@@ -233,6 +158,7 @@ export default function AdminEventsPage() {
       if (refreshed.success) {
         setMemberBookings(refreshed.memberBookings || []);
       }
+      loadData();
     } else {
       alert(res.error || "Failed to book member.");
     }
@@ -244,7 +170,7 @@ export default function AdminEventsPage() {
     const res = await publishAdminEvent(id);
     setActionLoading(null);
     if (res.success) {
-      alert(`Event published successfully as ${res.status === "confirmed" ? "Confirmed" : "Published-Gathering"}!`);
+      alert(`Event published successfully as ${res.status === "confirmed" ? "Confirmed" : "Gathering"}!`);
       loadData();
     } else {
       alert(res.error || "Failed to publish event");
@@ -264,12 +190,17 @@ export default function AdminEventsPage() {
     }
   };
 
-  const handleCancel = async (id: string) => {
-    const reason = prompt("Enter cancellation note (credits will be returned automatically):", "Weather conditions");
-    if (reason === null) return;
+  const handleOpenCancel = (ev: any) => {
+    setCancelEventId(ev.id);
+    setCancelReasonText("Too few of us this time — we will run it again soon.");
+  };
+
+  const handleExecuteCancel = async (id: string) => {
+    const reason = cancelReasonText.trim() || "Cancelled.";
     setActionLoading(id);
     const res = await cancelEventDecision(id, reason);
     setActionLoading(null);
+    setCancelEventId(null);
     if (res.success) {
       alert("Event cancelled and credits refunded.");
       loadData();
@@ -279,15 +210,15 @@ export default function AdminEventsPage() {
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to completely delete "${title}"?`)) return;
+    if (!confirm(`Are you sure you want to archive "${title}"?`)) return;
     setActionLoading(id);
     const res = await deleteEvent(id);
     setActionLoading(null);
     if (res.success) {
-      alert("Event deleted successfully.");
+      alert("Event archived successfully.");
       loadData();
     } else {
-      alert(res.error || "Failed to delete event.");
+      alert(res.error || "Failed to archive event.");
     }
   };
 
@@ -304,873 +235,971 @@ export default function AdminEventsPage() {
     }
   };
 
-  const handleDeleteCategory = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete the category "${name}"? Events in this category will become uncategorized.`)) return;
-    const res = await deleteEventCategory(id);
-    if (res.success) {
-      alert("Category deleted!");
-      loadData();
+  // Helper to compute T-schedule badge and status colors
+  const processEventRow = (ev: any) => {
+    const starts = new Date(ev.startsAt);
+    const now = new Date();
+    const daysUntil = Math.ceil((starts.getTime() - now.getTime()) / 86400000);
+    const min = ev.minToConfirm || 0;
+    const booked = ev.bookingsCount || 0;
+    const memberBooked = ev.memberBookingsCount || 0;
+    const guestBooked = ev.guestBookingsCount || 0;
+    const capGathering = ev.capacityGuestGathering;
+    const isGathering = ev.status === "published_pending" || ev.status === "gathering";
+    const capInForce = isGathering && capGathering ? capGathering : ev.capacityGuest;
+
+    let tMarker = "";
+    let tColor = MUTED;
+
+    if (ev.status === "draft") {
+      tMarker = "Not published";
+      tColor = MUTED;
+    } else if (ev.status === "cancelled") {
+      tMarker = daysUntil >= 7 ? "Cancelled at T-7" : "Cancelled";
+      tColor = MUTED;
+    } else if (ev.status === "completed" || daysUntil < 0) {
+      tMarker = "Past";
+      tColor = MUTED;
+    } else if (daysUntil === 0) {
+      tMarker = "Today";
+      tColor = GREEN;
+    } else if (daysUntil === 1) {
+      tMarker = "Tomorrow";
+      tColor = MUTED;
+    } else if (daysUntil <= 2) {
+      tMarker = `T-${daysUntil} · guests closed`;
+      tColor = MUTED;
+    } else if (daysUntil <= 7) {
+      tMarker = `T-7 · ${booked >= min ? "minimum met" : "decide today"}`;
+      tColor = booked >= min ? GREEN : WINE;
+    } else if (daysUntil <= 10) {
+      tMarker = `T-10 · ${booked * 2 < min ? "early warning" : "on track"}`;
+      tColor = booked * 2 < min ? AMBER : GREEN;
     } else {
-      alert(res.error || "Failed to delete category");
+      tMarker = `T-${daysUntil} · open`;
+      tColor = MUTED;
     }
+
+    const fillRatio = min > 0 ? booked / min : 1;
+    const fillColor = fillRatio >= 1 ? GREEN : fillRatio < 0.5 ? WINE : AMBER;
+
+    const passActive = ev.showEventPassCta && !ev.isSignature && daysUntil > 2 && ev.status !== "cancelled" && ev.status !== "completed";
+    const passLabel = ev.isSignature
+      ? "No pass — members only"
+      : passActive
+      ? "Pass button on"
+      : daysUntil <= 2 && ev.status === "confirmed"
+      ? "Pass button off — guests closed"
+      : ev.isFreeWalk
+      ? "No pass needed"
+      : "Pass button off";
+
+    const passColor = passActive ? GREEN : MUTED;
+
+    const displayCategory = ev.categoryName || ev.category || (ev.isSignature ? "Signature moments" : "Play dates");
+    const displayStage = ev.targetStages && ev.targetStages.length > 0 ? ev.targetStages.join(", ") : "All stages";
+
+    const displayState =
+      ev.status === "published_pending" ? "gathering" :
+      ev.status === "completed" ? "past" :
+      ev.status;
+
+    const displayStatusLabel =
+      ev.status === "published_pending" ? "Gathering" :
+      ev.status === "completed" ? "Past" :
+      ev.status.charAt(0).toUpperCase() + ev.status.slice(1);
+
+    let statusNote = "";
+    if (ev.status === "draft") {
+      statusNote = "Invisible publicly · publishing starts the schedule";
+    } else if (ev.status === "cancelled") {
+      statusNote = ev.cancelReason ? `“${ev.cancelReason}”` : "Cancelled · every credit returned";
+    } else if (ev.status === "confirmed") {
+      statusNote = booked >= (ev.capacityMember || 10) ? "Full · places taken" : "Confirmed · live on the public calendar";
+    } else if (isGathering) {
+      statusNote = booked >= min && min > 0 ? "Above minimum · confirm to open it up" : daysUntil <= 7 ? "Decision point today · escalated on the dashboard" : daysUntil <= 10 && booked * 2 < min ? "Under half · push in stage thread" : "Live on the public calendar · gathering";
+    } else {
+      statusNote = "Roster and attendance recorded";
+    }
+
+    return {
+      ...ev,
+      starts,
+      displayCategory,
+      displayStage,
+      displayState,
+      displayStatusLabel,
+      daysUntil,
+      tMarker,
+      tColor,
+      fillRatio,
+      fillColor,
+      passLabel,
+      passColor,
+      statusNote,
+      memberBooked,
+      guestBooked,
+      capInForce,
+      isGathering,
+      showDecision: isGathering,
+      statusColor: STATUS_COLORS[ev.status] || MUTED,
+    };
   };
 
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCatName.trim()) return;
+  const processedEvents = events.map(processEventRow);
 
-    const res = await createEventCategory({
-      name: newCatName.trim(),
-      stageAffinity: newCatStage,
-    });
-
-    if (res.success) {
-      alert("Category created!");
-      setShowCategoryModal(false);
-      setNewCatName("");
-      loadData();
-    } else {
-      alert(res.error || "Failed to create category");
-    }
+  // Status Counts
+  const counts = {
+    all: processedEvents.length,
+    draft: processedEvents.filter(e => e.displayState === "draft").length,
+    gathering: processedEvents.filter(e => e.displayState === "gathering").length,
+    confirmed: processedEvents.filter(e => e.displayState === "confirmed").length,
+    past: processedEvents.filter(e => e.displayState === "past").length,
+    cancelled: processedEvents.filter(e => e.displayState === "cancelled").length,
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title || !form.venueName || !form.meetingPoint || !form.startsAt || !form.endsAt) {
-      alert("Please fill in all required fields.");
-      return;
-    }
+  const statusFilterTabs = [
+    { id: "all", label: `All (${counts.all})` },
+    { id: "draft", label: `Draft (${counts.draft})` },
+    { id: "gathering", label: `Gathering (${counts.gathering})` },
+    { id: "confirmed", label: `Confirmed (${counts.confirmed})` },
+    { id: "past", label: `Past (${counts.past})` },
+    { id: "cancelled", label: `Cancelled (${counts.cancelled})` },
+  ];
 
-    setLoading(true);
-    const res = await createAdminEvent({
-      ...form,
-      startsAt: new Date(form.startsAt),
-      endsAt: new Date(form.endsAt),
-    });
-    setLoading(false);
-
-    if (res.success) {
-      alert("Event created successfully! It is now live on the events calendar.");
-      setShowCreateModal(false);
-      loadData();
-    } else {
-      alert(res.error || "Failed to create event");
-    }
-  };
+  // Filtering & Sorting
+  const filteredEvents = processedEvents.filter((e) => {
+    const matchesStatus = statusFilter === "all" || e.displayState === statusFilter;
+    const matchesCategory = categoryFilter === "all" || e.displayCategory.toLowerCase() === categoryFilter.toLowerCase();
+    const matchesStage = stageFilter === "all" || e.displayStage.toLowerCase().includes(stageFilter.toLowerCase()) || e.displayStage === "All stages";
+    const q = searchQuery.trim().toLowerCase();
+    const matchesQuery = !q || (e.title + " " + e.venueName + " " + (e.neighbourhood || "")).toLowerCase().includes(q);
+    return matchesStatus && matchesCategory && matchesStage && matchesQuery;
+  }).sort((a, b) => {
+    if (sortOrder === "soonest") return a.starts.getTime() - b.starts.getTime();
+    if (sortOrder === "emptiest") return a.fillRatio - b.fillRatio;
+    if (sortOrder === "decision") return (b.showDecision ? 1 : 0) - (a.showDecision ? 1 : 0);
+    return 0;
+  });
 
   return (
-    <div style={{ backgroundColor: "var(--color-bg)", minHeight: "100vh", padding: "40px clamp(24px, 5vw, 64px) 80px" }}>
-      <div style={{ maxWidth: "1250px", margin: "0 auto" }}>
-        {/* Top Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px", flexWrap: "wrap", gap: "16px" }}>
-          <div>
-            <div style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--color-accent)", fontWeight: 600 }}>
-              Back Office · Queue 02
+    <div style={{ minHeight: "100vh", backgroundColor: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
+      {/* Top Breadcrumbs & Page Header */}
+      <div style={{ maxWidth: "1320px", margin: "0 auto", padding: "clamp(24px, 3.4vw, 36px) clamp(18px, 3vw, 30px) 60px" }}>
+        
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
+          <div style={{ flex: "1 1 400px" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
+              <Link href="/admin" style={{ color: WINE, textDecoration: "none" }}>← Dashboard</Link> · Events · <Link href="/admin/members" style={{ color: WINE, textDecoration: "none" }}>Members</Link>
             </div>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "32px", margin: "4px 0 0" }}>
-              Events, Attendee Rosters & Ticketing
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(30px, 4vw, 42px)", lineHeight: 1.1, margin: "0 0 9px" }}>
+              The calendar
             </h1>
+            <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "70ch" }}>
+              Every event, where it sits in its schedule, and how full it is. Bookings against the minimum is the number that matters — everything else is context.
+            </p>
           </div>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <Link href="/admin" className="btn btn-secondary" style={{ fontSize: "13px" }}>
-              ← Admin Dashboard
-            </Link>
-            <button
-              onClick={() => setShowCategoryModal(true)}
-              className="btn btn-outline"
-              style={{ fontSize: "13px" }}
+          
+          <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
+            <Link
+              href="/admin/settings"
+              style={{
+                border: "1px solid rgba(57,41,42,0.3)",
+                color: "#39292a",
+                borderRadius: "4px",
+                padding: "9px 15px",
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 600,
+                fontSize: "13.5px",
+                whiteSpace: "nowrap",
+                textDecoration: "none",
+                display: "inline-block",
+                backgroundColor: "#fffdfa",
+              }}
             >
-              + Add Category
-            </button>
+              Policy &amp; categories
+            </Link>
             <Link
               href="/admin/events/create"
-              className="btn btn-primary"
-              style={{ fontSize: "13px", textDecoration: "none" }}
+              style={{
+                border: `1px solid ${WINE}`,
+                color: WINE,
+                borderRadius: "4px",
+                padding: "9px 15px",
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 600,
+                fontSize: "13.5px",
+                whiteSpace: "nowrap",
+                textDecoration: "none",
+                display: "inline-block",
+                backgroundColor: "#fffdfa",
+              }}
             >
-              + Create Event
+              Create an event
             </Link>
           </div>
         </div>
 
-
-
-        {/* Advanced Filters */}
-        <div className="card" style={{ backgroundColor: "#fff", padding: "18px 24px", marginBottom: "24px", display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center" }}>
+        {/* Filter Bar */}
+        <div style={{
+          border: "1px solid rgba(57,41,42,0.16)",
+          borderRadius: "8px",
+          backgroundColor: "#fffdfa",
+          padding: "16px 18px",
+          marginBottom: "16px",
+          display: "flex",
+          gap: "14px",
+          flexWrap: "wrap",
+          alignItems: "center"
+        }}>
           <input
-            type="text"
-            placeholder="Search events..."
+            type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ padding: "8px 12px", border: "1px solid var(--color-divider)", borderRadius: "4px", fontSize: "13.5px", minWidth: "200px" }}
+            placeholder="Search by title, venue or host"
+            style={{
+              flex: "1 1 260px",
+              border: "1px solid rgba(57,41,42,0.25)",
+              borderRadius: "4px",
+              padding: "10px 13px",
+              fontFamily: "'Lora', Georgia, serif",
+              fontSize: "14px",
+              color: "#39292a",
+              backgroundColor: "#fff",
+            }}
           />
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--color-divider)", borderRadius: "4px", fontSize: "13.5px" }}>
-            <option value="all">All Categories</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            style={{
+              border: "1px solid rgba(57,41,42,0.25)",
+              borderRadius: "4px",
+              padding: "10px 12px",
+              fontFamily: "'Lora', Georgia, serif",
+              fontSize: "14px",
+              color: "#39292a",
+              backgroundColor: "#fff",
+            }}
+          >
+            <option value="all">All categories</option>
+            {PREDEFINED_CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
           </select>
-          <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--color-divider)", borderRadius: "4px", fontSize: "13.5px" }}>
-            <option value="all">All Stages</option>
-            <option value="Pregnant">Pregnant</option>
-            <option value="Babies">Babies</option>
-            <option value="Toddlers">Toddlers</option>
-            <option value="Children">Children</option>
-            <option value="Big kids">Big kids</option>
+
+          <select
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+            style={{
+              border: "1px solid rgba(57,41,42,0.25)",
+              borderRadius: "4px",
+              padding: "10px 12px",
+              fontFamily: "'Lora', Georgia, serif",
+              fontSize: "14px",
+              color: "#39292a",
+              backgroundColor: "#fff",
+            }}
+          >
+            <option value="all">All stages</option>
+            {PREDEFINED_STAGES.map((stg) => (
+              <option key={stg} value={stg}>{stg}</option>
+            ))}
           </select>
-          <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--color-divider)", borderRadius: "4px", fontSize: "13.5px" }}>
-            <option value="dateAsc">Date: Earliest First</option>
-            <option value="dateDesc">Date: Latest First</option>
-            <option value="alpha">Alphabetical</option>
+
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            style={{
+              border: "1px solid rgba(57,41,42,0.25)",
+              borderRadius: "4px",
+              padding: "10px 12px",
+              fontFamily: "'Lora', Georgia, serif",
+              fontSize: "14px",
+              color: "#39292a",
+              backgroundColor: "#fff",
+            }}
+          >
+            <option value="soonest">Soonest first</option>
+            <option value="decision">Decision point first</option>
+            <option value="emptiest">Emptiest first</option>
           </select>
         </div>
 
-        {/* Status Filter Tabs */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "24px", flexWrap: "wrap" }}>
-          {["all", "draft", "published_pending", "confirmed", "completed", "cancelled"].map((status) => {
-            const isActive = statusFilter === status;
-            const label =
-              status === "all" ? "All" :
-              status === "published_pending" ? "Published-Gathering" :
-              status === "completed" ? "Past" :
-              status.charAt(0).toUpperCase() + status.slice(1);
+        {/* Status Filter Tabs (Pills) */}
+        <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", marginBottom: "18px" }}>
+          {statusFilterTabs.map((tab) => {
+            const isActive = statusFilter === tab.id;
             return (
               <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
+                key={tab.id}
+                type="button"
+                onClick={() => setStatusFilter(tab.id)}
                 style={{
-                  padding: "6px 14px",
+                  border: isActive ? `1px solid ${WINE}` : "1px solid rgba(57,41,42,0.25)",
+                  backgroundColor: isActive ? "rgba(123,31,44,0.08)" : "transparent",
+                  color: isActive ? WINE : "#39292a",
                   borderRadius: "20px",
-                  border: "1px solid " + (isActive ? "var(--color-accent)" : "var(--color-divider)"),
-                  backgroundColor: isActive ? "var(--color-accent)" : "#ffffff",
-                  color: isActive ? "#ffffff" : "var(--color-text-main)",
-                  fontSize: "12.5px",
+                  padding: "8px 16px",
+                  fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 600,
+                  fontSize: "13px",
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
                 }}
               >
-                {label} ({status === "all" ? events.length : events.filter(e => e.status === status).length})
+                {tab.label}
               </button>
             );
           })}
         </div>
 
-        {/* Events Table */}
-        {loading ? (
-          <div className="card" style={{ padding: "40px", textAlign: "center" }}>
-            <p>Loading events...</p>
-          </div>
-        ) : events.length === 0 ? (
-          <div style={{ padding: "12px 18px", fontSize: "14px", color: "var(--color-text-muted)" }}>There are no events yet.</div>
-        ) : (() => {
-          const filteredEvents = events.filter((ev) => {
-            const statusMatch = statusFilter === "all" || ev.status === statusFilter;
-            const categoryMatch = categoryFilter === "all" || ev.categoryId === categoryFilter;
-            const searchMatch = !searchQuery || ev.title.toLowerCase().includes(searchQuery.toLowerCase());
-            return statusMatch && categoryMatch && searchMatch;
-          }).sort((a, b) => {
-            if (sortOrder === "dateAsc") return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
-            if (sortOrder === "dateDesc") return new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime();
-            if (sortOrder === "alpha") return a.title.localeCompare(b.title);
-            return 0;
-          });
-
-          if (filteredEvents.length === 0) {
-            return (
-              <div style={{ padding: "12px 18px", fontSize: "14px", color: "var(--color-text-muted)" }}>No events found with status "{statusFilter === "published_pending" ? "Published-Gathering" : statusFilter === "completed" ? "Past" : statusFilter}".</div>
-            );
-          }
-
-          return (
-            <div className="card" style={{ padding: 0, overflowX: "auto", minHeight: "360px", paddingBottom: "120px", backgroundColor: "#fff", border: "1px solid var(--color-divider)", borderRadius: "8px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-              <table style={{ width: "100%", minWidth: "1000px", borderCollapse: "collapse", fontSize: "13.5px" }}>
-                <thead>
-                  <tr style={{ backgroundColor: "#fbf8f3", borderBottom: "1px solid var(--color-divider)", textAlign: "left" }}>
-                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Event Title</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Date & Time</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Neighbourhood</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Capacity</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Credits</th>
-                    <th style={{ padding: "14px 18px", fontWeight: 600, color: "var(--color-text-main)" }}>Status</th>
-                    <th style={{ padding: "14px 18px", textAlign: "right", fontWeight: 600, color: "var(--color-text-main)" }}>Actions & Roster</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEvents.map((ev) => {
-                    const starts = new Date(ev.startsAt);
-                    const isPending = ev.status === "published_pending";
-                    const isActionOpen = openActionMenuId === ev.id;
-                    const bookingsCount = ev.bookingsCount || 0;
-
-                    const now = new Date();
-                    const daysUntil = Math.round((starts.getTime() - now.getTime()) / 86400000);
-                    let tSchedule = "";
-                    if (daysUntil > 0 && ev.status !== "cancelled" && ev.status !== "completed") {
-                      if (daysUntil <= 2) tSchedule = "T-2";
-                      else if (daysUntil <= 7) tSchedule = "T-7";
-                      else if (daysUntil <= 10) tSchedule = "T-10";
-                      else if (daysUntil <= 14) tSchedule = "T-14";
-                      else if (daysUntil <= 28) tSchedule = "T-28";
-                    }
-
-                    return (
-                      <tr key={ev.id} style={{ borderBottom: "1px solid var(--color-divider)", position: "relative" }}>
-                        <td style={{ padding: "16px 18px", verticalAlign: "top" }}>
-                          <div style={{ fontWeight: 600, color: "var(--color-text-main)", fontSize: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-                            {ev.title}
-                            {tSchedule && (
-                              <span style={{ fontSize: "10px", padding: "2px 6px", backgroundColor: "#39292a", color: "#fff", borderRadius: "10px", fontWeight: 700 }}>
-                                {tSchedule}
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "2px" }}>{ev.venueName}</div>
-                          <div style={{ display: "flex", gap: "4px", marginTop: "6px", flexWrap: "wrap" }}>
-                            {ev.isSignature && <span style={{ fontSize: "10px", backgroundColor: "#f5eee4", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>Members Only</span>}
-                            {ev.showEventPassCta && <span style={{ fontSize: "10px", backgroundColor: "#eef8f0", color: "#1e6833", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>Pass Active</span>}
-                          </div>
-                        </td>
-                        <td style={{ padding: "16px 18px", color: "var(--color-text-main)", verticalAlign: "top" }}>
-                          <div style={{ fontWeight: 500 }}>{starts.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</div>
-                          <div style={{ fontSize: "12px", color: "var(--color-text-muted)" }}>{starts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-                        </td>
-                        <td style={{ padding: "16px 18px", color: "var(--color-text-muted)", verticalAlign: "top" }}>{ev.neighbourhood}</td>
-                        <td style={{ padding: "16px 18px", verticalAlign: "top" }}>
-                          <div style={{ fontWeight: 600, color: "var(--color-text-main)" }}>
-                            {bookingsCount} <span style={{ fontWeight: 400, color: "var(--color-text-muted)", fontSize: "12px" }}>/ {ev.minToConfirm} min</span>
-                          </div>
-                          <div style={{ fontSize: "12px", color: "var(--color-text-muted)", marginTop: "2px" }}>
-                            Cap: {ev.capacityMember}M {ev.capacityGuest > 0 && `+ ${ev.capacityGuest}G`}
-                          </div>
-                        </td>
-                        <td style={{ padding: "16px 18px", fontWeight: 600, color: "var(--color-accent)", verticalAlign: "top" }}>
-                          {ev.isFreeWalk ? (
-                            <span style={{ color: "#285430", backgroundColor: "#eef8f0", padding: "3px 8px", borderRadius: "4px", fontSize: "12px" }}>Free</span>
-                          ) : (
-                            `${ev.creditCost} credits`
-                          )}
-                        </td>
-                        <td style={{ padding: "16px 18px", verticalAlign: "top" }}>
-                          <span style={{
-                            padding: "4px 10px",
-                            borderRadius: "4px",
-                            fontSize: "11px",
-                            fontWeight: 700,
-                            letterSpacing: "0.04em",
-                            textTransform: "uppercase",
-                            backgroundColor:
-                              ev.status === "confirmed" ? "#eef8f0" :
-                              ev.status === "cancelled" ? "#fef2f2" :
-                              "#fff9eb",
-                            color:
-                              ev.status === "confirmed" ? "#1e6833" :
-                              ev.status === "cancelled" ? "#b91c1c" : "#b45309",
-                            border: `1px solid ${
-                              ev.status === "confirmed" ? "#bbf7d0" :
-                              ev.status === "cancelled" ? "#fecdd3" : "#fde68a"
-                            }`
-                          }}>
-                            {ev.status === "published_pending" ? "Published-Gathering" : ev.status === "completed" ? "Past" : ev.status}
-                          </span>
-                          {ev.status === "cancelled" && ev.cancelReason && (
-                            <div style={{ fontSize: "11px", color: "#b91c1c", marginTop: "4px", maxWidth: "150px" }}>
-                              {ev.cancelReason}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding: "16px 18px", textAlign: "right", verticalAlign: "top" }}>
-                          <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", alignItems: "center" }}>
-                            {ev.status === "draft" && (
-                              <button
-                                type="button"
-                                onClick={() => handlePublish(ev.id)}
-                                disabled={actionLoading === ev.id}
-                                className="btn btn-outline"
-                                style={{ padding: "6px 12px", fontSize: "12px", borderColor: "#7b1f2c", color: "#7b1f2c", fontWeight: 600, display: "flex", alignItems: "center", gap: "4px" }}
-                              >
-                                <CheckCircle size={13} /> Publish
-                              </button>
-                            )}
-                            {isPending && (
-                              <button
-                                type="button"
-                                onClick={() => handleConfirm(ev.id)}
-                                disabled={actionLoading === ev.id}
-                                className="btn btn-outline"
-                                style={{ padding: "6px 12px", fontSize: "12px", borderColor: "#1e6833", color: "#1e6833", fontWeight: 600 }}
-                              >
-                                Confirm
-                              </button>
-                            )}
-                            <div style={{ position: "relative" }}>
-                              <button
-                                onClick={() => setOpenActionMenuId(isActionOpen ? null : ev.id)}
-                                style={{
-                                  background: "none",
-                                  border: "1px solid var(--color-divider)",
-                                  borderRadius: "4px",
-                                  padding: "6px",
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: "var(--color-text-main)",
-                                }}
-                              >
-                                <MoreHorizontal size={16} />
-                              </button>
-                              
-                              {isActionOpen && (
-                                <div style={{
-                                  position: "absolute",
-                                  right: 0,
-                                  top: "100%",
-                                  marginTop: "4px",
-                                  backgroundColor: "#fff",
-                                  border: "1px solid var(--color-divider)",
-                                  borderRadius: "6px",
-                                  boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-                                  zIndex: 999,
-                                  minWidth: "170px",
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  overflow: "hidden"
-                                }}>
-                                  {ev.status === "draft" && (
-                                    <button onClick={() => { handlePublish(ev.id); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "#7b1f2c", fontWeight: 600, borderBottom: "1px solid var(--color-divider)" }}>
-                                      <CheckCircle size={14} /> Publish Event
-                                    </button>
-                                  )}
-                                  <button onClick={() => { openRosterModal(ev); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
-                                    <Users size={14} /> Ticketing Desk
-                                  </button>
-                                  <Link href={`/admin/events/${ev.id}/roster`} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", width: "100%", textDecoration: "none", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
-                                    <Printer size={14} /> Print Sheet
-                                  </Link>
-                                  <Link href={`/admin/events/${ev.id}/edit`} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", width: "100%", textDecoration: "none", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
-                                    <Edit2 size={14} /> Edit Event
-                                  </Link>
-                                  <button onClick={() => { handleDuplicate(ev.id, ev.title); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
-                                    <Copy size={14} /> Duplicate
-                                  </button>
-                                  {ev.status !== "cancelled" && ev.status !== "completed" && (
-                                    <button onClick={() => { handleCancel(ev.id); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "var(--color-text-main)", borderBottom: "1px solid var(--color-divider)" }}>
-                                      <X size={14} /> Cancel Event
-                                    </button>
-                                  )}
-                                  {bookingsCount === 0 && ev.status !== "completed" && (
-                                    <button onClick={() => { handleDelete(ev.id, ev.title); setOpenActionMenuId(null); }} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px", border: "none", background: "none", width: "100%", textAlign: "left", cursor: "pointer", fontSize: "13px", color: "#b91c1c" }}>
-                                      <Archive size={14} /> Archive
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        {/* Events Table Container */}
+        <div style={{
+          border: "1px solid rgba(57,41,42,0.16)",
+          borderRadius: "8px",
+          backgroundColor: "#fffdfa",
+          overflowX: "auto",
+          marginBottom: "18px",
+        }}>
+          <div style={{ minWidth: "1180px" }}>
+            {/* Table Header */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "2.3fr 1fr 0.9fr 1fr 0.7fr 1.1fr 1.5fr",
+              gap: "14px",
+              padding: "14px 18px",
+              borderBottom: "1px solid rgba(57,41,42,0.18)",
+              fontFamily: "'Cormorant Garamond', serif",
+              fontWeight: 600,
+              fontSize: "10.5px",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "rgba(57,41,42,0.55)",
+            }}>
+              <div>Event</div>
+              <div>When · schedule</div>
+              <div>Booked / min</div>
+              <div>Guests · pass</div>
+              <div>Credits</div>
+              <div>Status</div>
+              <div>Actions</div>
             </div>
-          );
-        })()}
 
-        {/* ─── MODAL: EVENT ATTENDEES & TICKETING ROSTER ─── */}
-        {activeEventRoster && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(57, 41, 42, 0.65)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            zIndex: 110,
-          }}>
-            <div className="card" style={{ maxWidth: "880px", width: "100%", maxHeight: "90vh", overflowY: "auto", backgroundColor: "#fff", padding: "32px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", borderBottom: "1px solid var(--color-divider)", paddingBottom: "16px" }}>
-                <div>
-                  <div style={{ fontSize: "12px", textTransform: "uppercase", color: "var(--color-accent)", fontWeight: 600 }}>
-                    Event Attendee Roster & Ticketing Desk
-                  </div>
-                  <h2 style={{ fontSize: "24px", margin: "4px 0 2px" }}>{activeEventRoster.title}</h2>
-                  <div style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>
-                    📍 Meeting Point: <strong>{activeEventRoster.meetingPoint}</strong>
-                  </div>
-                </div>
-                <button onClick={() => setActiveEventRoster(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}>✕</button>
+            {/* Loading / Empty / Rows */}
+            {loading ? (
+              <div style={{ padding: "40px 18px", textAlign: "center", color: MUTED, fontSize: "14px" }}>
+                Loading events from calendar...
               </div>
+            ) : filteredEvents.length === 0 ? (
+              <div style={{ padding: "32px 18px", fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>
+                Nothing here. Widen the filters, or create an event.
+              </div>
+            ) : (
+              filteredEvents.map((r) => {
+                const dateShort = r.starts.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+                const timeStr = r.starts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                const isCancelOpen = cancelEventId === r.id;
+                const isMenuOpen = openActionMenuId === r.id;
 
-              {rosterLoading ? (
-                <p style={{ textAlign: "center", padding: "32px" }}>Loading attendees...</p>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                  {/* 1. Confirmed Members List */}
-                  <div>
-                    <h3 style={{ fontSize: "16px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
-                      <span>Confirmed Members ({memberBookings.length})</span>
-                      <span style={{ fontSize: "13px", color: "var(--color-text-muted)", fontWeight: 400 }}>Capacity: {activeEventRoster.capacityMember}</span>
-                    </h3>
+                const rowBg =
+                  r.displayState === "cancelled" ? "rgba(123,31,44,0.03)" :
+                  r.displayState === "draft" ? "rgba(57,41,42,0.03)" :
+                  "transparent";
 
-                    {memberBookings.length === 0 ? (
-                      <p style={{ fontSize: "13px", color: "var(--color-text-muted)", padding: "12px", backgroundColor: "#faf7f2", borderRadius: "4px" }}>
-                        No members booked yet.
-                      </p>
-                    ) : (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                        <thead>
-                          <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
-                            <th style={{ padding: "8px 12px" }}>Member</th>
-                            <th style={{ padding: "8px 12px" }}>Credits</th>
-                            <th style={{ padding: "8px 12px" }}>Status</th>
-                            <th style={{ padding: "8px 12px", textAlign: "right" }}>Attendance</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {memberBookings.map((b) => (
-                            <tr key={b.id} style={{ borderBottom: "1px solid var(--color-divider)" }}>
-                              <td style={{ padding: "10px 12px" }}>
-                                <div style={{ fontWeight: 600 }}>{b.firstName} {b.lastName}</div>
-                                <div style={{ fontSize: "11.5px", color: "var(--color-text-muted)" }}>{b.email}</div>
-                              </td>
-                              <td style={{ padding: "10px 12px", fontWeight: 600 }}>{b.creditsCharged} cr</td>
-                              <td style={{ padding: "10px 12px" }}>
-                                <span style={{
-                                  padding: "2px 6px",
-                                  borderRadius: "3px",
-                                  fontSize: "10.5px",
-                                  fontWeight: 600,
-                                  textTransform: "uppercase",
-                                  backgroundColor: b.status === "attended" ? "#eef8f0" : b.status === "no_show" ? "#fef2f2" : "#f4ece2",
-                                  color: b.status === "attended" ? "#1e6833" : b.status === "no_show" ? "#b91c1c" : "var(--color-accent)"
-                                }}>
-                                  {b.status}
-                                </span>
-                              </td>
-                              <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                                <div style={{ display: "inline-flex", gap: "6px" }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleMarkAttendance("member", b.id, "attended")}
-                                    style={{ backgroundColor: "#eef8f0", color: "#1e6833", border: "1px solid #bbf7d0", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                                  >
-                                    ✓ Check-In
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleMarkAttendance("member", b.id, "no_show")}
-                                    style={{ backgroundColor: "#fef2f2", color: "#b91c1c", border: "1px solid #fecdd3", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                                  >
-                                    ✕ No-Show
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-
-                  {/* 2. Guest Passes List */}
-                  <div>
-                    <h3 style={{ fontSize: "16px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
-                      <span>Guest Passes ({guestPasses.length})</span>
-                      <span style={{ fontSize: "13px", color: "var(--color-text-muted)", fontWeight: 400 }}>Pass Capacity: {activeEventRoster.capacityGuest}</span>
-                    </h3>
-
-                    {guestPasses.length === 0 ? (
-                      <p style={{ fontSize: "13px", color: "var(--color-text-muted)", padding: "12px", backgroundColor: "#faf7f2", borderRadius: "4px" }}>
-                        No guest passes issued yet.
-                      </p>
-                    ) : (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                        <thead>
-                          <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
-                            <th style={{ padding: "8px 12px" }}>Guest</th>
-                            <th style={{ padding: "8px 12px" }}>Price</th>
-                            <th style={{ padding: "8px 12px" }}>Ticket Portal Link</th>
-                            <th style={{ padding: "8px 12px", textAlign: "right" }}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {guestPasses.map((gp) => (
-                            <tr key={gp.id} style={{ borderBottom: "1px solid var(--color-divider)" }}>
-                              <td style={{ padding: "10px 12px" }}>
-                                <div style={{ fontWeight: 600 }}>{gp.firstName} {gp.lastName}</div>
-                                <div style={{ fontSize: "11.5px", color: "var(--color-text-muted)" }}>{gp.email}</div>
-                              </td>
-                              <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
-                              <td style={{ padding: "10px 12px" }}>
-                                <a
-                                  href={`/ticket/${gp.ticketToken}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  style={{ color: "var(--color-accent)", fontSize: "12px", textDecoration: "underline" }}
-                                >
-                                  Open Guest Ticket →
-                                </a>
-                              </td>
-                              <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                                <span style={{ padding: "2px 6px", borderRadius: "3px", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", backgroundColor: "#eef8f0", color: "#1e6833" }}>
-                                  {gp.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-
-                  {/* 3. Operator Desk: Manual Booking & Direct Pass Issue */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginTop: "12px", borderTop: "1px solid var(--color-divider)", paddingTop: "20px" }}>
-                    {/* Manual Member Seat Booking */}
-                    <div style={{ backgroundColor: "#faf7f2", padding: "18px", borderRadius: "6px", border: "1px solid var(--color-divider)" }}>
-                      <h4 style={{ fontSize: "14px", margin: "0 0 10px", color: "var(--color-accent)" }}>+ Manually Book Member to Event</h4>
-                      <form onSubmit={handleManualMemberBook} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
-                        <select
-                          className="input"
-                          value={selectedMemberId}
-                          onChange={(e) => setSelectedMemberId(e.target.value)}
-                        >
-                          {allMembers.filter(m => !memberBookings.some(b => b.email === m.email)).map((m) => (
-                            <option key={m.id} value={m.id}>{m.firstName} {m.lastName} ({m.email})</option>
-                          ))}
-                        </select>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <input
-                            type="checkbox"
-                            id="deduct"
-                            checked={deductCredits}
-                            onChange={(e) => setDeductCredits(e.target.checked)}
-                          />
-                          <label htmlFor="deduct">Deduct {activeEventRoster.creditCost} credits (Uncheck for complimentary)</label>
-                        </div>
-                        <button type="submit" disabled={bookingMember} className="btn btn-primary" style={{ padding: "8px", fontSize: "12px" }}>
-                          {bookingMember ? "Booking..." : "Confirm Member Seat"}
-                        </button>
-                      </form>
+                return (
+                  <div
+                    key={r.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "2.3fr 1fr 0.9fr 1fr 0.7fr 1.1fr 1.5fr",
+                      gap: "14px",
+                      padding: "16px 18px",
+                      borderBottom: "1px solid rgba(57,41,42,0.1)",
+                      alignItems: "start",
+                      backgroundColor: rowBg,
+                    }}
+                  >
+                    {/* Column 1: Event Info */}
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", lineHeight: 1.3, marginBottom: "4px" }}>
+                        {r.title}
+                      </div>
+                      <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.68)" }}>
+                        {r.venueName} · {r.neighbourhood}
+                      </div>
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "7px" }}>
+                        <span style={{ border: "1px solid rgba(57,41,42,0.2)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", color: "rgba(57,41,42,0.7)" }}>
+                          {r.displayCategory}
+                        </span>
+                        <span style={{ border: "1px solid rgba(182,130,53,0.55)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", color: "#8a6220" }}>
+                          {r.displayStage}
+                        </span>
+                        {(r.isSignature || r.capacityGuest === 0) && (
+                          <span style={{ border: "1px solid rgba(123,31,44,0.45)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", color: WINE }}>
+                            Members only
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Direct Guest Pass Issue */}
-                    <div style={{ backgroundColor: "#faf7f2", padding: "18px", borderRadius: "6px", border: "1px solid var(--color-divider)" }}>
-                      <h4 style={{ fontSize: "14px", margin: "0 0 10px", color: "var(--color-accent)" }}>+ Issue €35 Guest Ticket Pass</h4>
-                      <p style={{ fontSize: "12px", color: "var(--color-text-muted)", margin: "0 0 12px" }}>Generates a unique payment link. The guest is only confirmed once they complete checkout.</p>
-                      <form onSubmit={handleIssueGuest} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                          <input
-                            type="text"
-                            className="input"
-                            placeholder="First Name"
-                            value={guestForm.firstName}
-                            onChange={(e) => setGuestForm({ ...guestForm, firstName: e.target.value })}
-                            required
-                          />
-                          <input
-                            type="text"
-                            className="input"
-                            placeholder="Last Name"
-                            value={guestForm.lastName}
-                            onChange={(e) => setGuestForm({ ...guestForm, lastName: e.target.value })}
-                          />
-                        </div>
-                        <input
-                          type="email"
-                          className="input"
-                          placeholder="guest@example.com"
-                          value={guestForm.email}
-                          onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
-                          required
-                        />
-                        <button type="submit" disabled={issuingPass} className="btn btn-secondary" style={{ padding: "8px", fontSize: "12px" }}>
-                          {issuingPass ? "Generating..." : "Generate Guest Ticket →"}
-                        </button>
-                      </form>
+                    {/* Column 2: When · Schedule */}
+                    <div>
+                      <div style={{ fontSize: "13.5px", lineHeight: 1.5, fontWeight: 600 }}>{dateShort}</div>
+                      <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.68)" }}>{timeStr}</div>
+                      <div style={{ marginTop: "6px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.06em", color: r.tColor }}>
+                        {r.tMarker}
+                      </div>
+                    </div>
 
-                      {generatedTicketUrl && (
-                        <div style={{ marginTop: "10px", padding: "8px 12px", backgroundColor: "#eef8f0", border: "1px solid #bbf7d0", borderRadius: "4px", fontSize: "12px" }}>
-                          ✓ Ticket Created! <a href={generatedTicketUrl} target="_blank" rel="noreferrer" style={{ fontWeight: 600, color: "#1e6833", textDecoration: "underline" }}>View Ticket Link</a>
+                    {/* Column 3: Booked / Min */}
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: r.fillColor }}>
+                        {r.displayState === "draft" ? "—" : r.minToConfirm > 0 ? `${r.bookingsCount} / ${r.minToConfirm}` : String(r.bookingsCount)}
+                      </div>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
+                        {r.displayState === "draft" ? "minimum not set" : r.minToConfirm > 0 ? (r.bookingsCount === 0 ? "nothing yet" : `${r.memberBooked} members, ${r.guestBooked} guest`) : "no minimum · RSVP list"}
+                      </div>
+                    </div>
+
+                    {/* Column 4: Guests · Pass */}
+                    <div>
+                      <div style={{ fontSize: "13px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>
+                        {r.isSignature || r.capacityGuest === 0 ? "None — members only" : `${r.guestBooked} of ${r.capInForce}`}
+                      </div>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.62)", marginTop: "3px" }}>
+                        {r.isSignature ? "closed to guests" : r.capInForce !== r.capacityGuest ? `gathering cap ${r.capInForce} in force` : "standing cap"}
+                      </div>
+                      <div style={{ marginTop: "6px", fontSize: "11.5px", lineHeight: 1.4, color: r.passColor }}>
+                        {r.passLabel}
+                      </div>
+                    </div>
+
+                    {/* Column 5: Credits */}
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", fontVariantNumeric: "tabular-nums", color: r.creditCost === 0 ? "#39292a" : "#39292a" }}>
+                        {r.isFreeWalk ? "Free" : r.creditCost > 0 ? String(r.creditCost) : "Not set"}
+                      </div>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
+                        {r.isFreeWalk ? "included" : r.status === "confirmed" ? "locked on confirm" : "set by hand"}
+                      </div>
+                    </div>
+
+                    {/* Column 6: Status */}
+                    <div>
+                      <span style={{
+                        display: "inline-block",
+                        border: `1px solid ${r.statusColor}`,
+                        color: r.statusColor,
+                        borderRadius: "3px",
+                        padding: "4px 9px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "11.5px",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {r.displayStatusLabel}
+                      </span>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.65)", marginTop: "7px" }}>
+                        {r.statusNote}
+                      </div>
+                    </div>
+
+                    {/* Column 7: Actions */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start", width: "100%" }}>
+                      {/* Confirm & Cancel action pair for Gathering events */}
+                      {r.showDecision && (
+                        <div style={{ display: "flex", gap: "7px", flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleConfirm(r.id)}
+                            disabled={actionLoading === r.id}
+                            style={{
+                              border: `1px solid ${GREEN}`,
+                              background: "transparent",
+                              color: GREEN,
+                              borderRadius: "4px",
+                              padding: "7px 13px",
+                              fontFamily: "'Cormorant Garamond', serif",
+                              fontWeight: 600,
+                              fontSize: "12.5px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCancel(r)}
+                            style={{
+                              border: "1px solid rgba(57,41,42,0.3)",
+                              background: "transparent",
+                              color: "#39292a",
+                              borderRadius: "4px",
+                              padding: "7px 13px",
+                              fontFamily: "'Cormorant Garamond', serif",
+                              fontWeight: 600,
+                              fontSize: "12.5px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Cancel &amp; refund
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Inline Cancel Reason Box */}
+                      {isCancelOpen && (
+                        <div style={{
+                          border: "1px solid rgba(123,31,44,0.4)",
+                          backgroundColor: "rgba(123,31,44,0.04)",
+                          borderRadius: "5px",
+                          padding: "11px 12px",
+                          width: "100%",
+                          boxSizing: "border-box",
+                        }}>
+                          <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginBottom: "7px" }}>
+                            {r.bookingsCount > 0
+                              ? `Cancelling returns every credit held by ${r.bookingsCount} booking${r.bookingsCount === 1 ? "" : "s"}, keeps their original expiry, and refunds any Event Pass. Members read the reason below.`
+                              : "Nobody has booked, so nothing is refunded. Members read the reason below."}
+                          </div>
+                          <input
+                            type="text"
+                            value={cancelReasonText}
+                            onChange={(e) => setCancelReasonText(e.target.value)}
+                            placeholder="What members will read"
+                            style={{
+                              width: "100%",
+                              boxSizing: "border-box",
+                              border: "1px solid rgba(57,41,42,0.25)",
+                              borderRadius: "4px",
+                              padding: "8px 10px",
+                              fontFamily: "'Lora', Georgia, serif",
+                              fontSize: "12.5px",
+                              color: "#39292a",
+                              backgroundColor: "#fff",
+                              marginBottom: "8px",
+                            }}
+                          />
+                          <div style={{ display: "flex", gap: "7px", flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              onClick={() => handleExecuteCancel(r.id)}
+                              disabled={actionLoading === r.id}
+                              style={{
+                                border: `1px solid ${WINE}`,
+                                backgroundColor: "transparent",
+                                color: WINE,
+                                borderRadius: "4px",
+                                padding: "7px 12px",
+                                fontFamily: "'Cormorant Garamond', serif",
+                                fontWeight: 600,
+                                fontSize: "12.5px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Cancel the event
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCancelEventId(null)}
+                              style={{
+                                border: "1px solid rgba(57,41,42,0.25)",
+                                backgroundColor: "transparent",
+                                color: "#39292a",
+                                borderRadius: "4px",
+                                padding: "7px 12px",
+                                fontFamily: "'Cormorant Garamond', serif",
+                                fontWeight: 600,
+                                fontSize: "12.5px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Keep it
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Row Action Links */}
+                      <div style={{ display: "flex", gap: "7px", flexWrap: "wrap", alignItems: "center" }}>
+                        <button
+                          type="button"
+                          onClick={() => openRosterModal(r)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            fontSize: "12.5px",
+                            color: WINE,
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                            fontFamily: "'Lora', Georgia, serif",
+                          }}
+                        >
+                          Roster ({r.bookingsCount})
+                        </button>
+                        <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
+                        <Link
+                          href={`/admin/events/${r.id}/edit`}
+                          style={{
+                            fontSize: "12.5px",
+                            color: "#39292a",
+                            textDecoration: "none",
+                          }}
+                        >
+                          Edit
+                        </Link>
+                        <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
+                        <button
+                          type="button"
+                          onClick={() => setOpenActionMenuId(isMenuOpen ? null : r.id)}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: WINE,
+                            fontFamily: "'Lora', Georgia, serif",
+                            fontSize: "12.5px",
+                            cursor: "pointer",
+                            padding: 0,
+                            textDecoration: "underline",
+                          }}
+                        >
+                          More
+                        </button>
+                      </div>
+
+                      {/* More Menu Dropdown */}
+                      {isMenuOpen && (
+                        <div style={{
+                          border: "1px solid rgba(57,41,42,0.2)",
+                          borderRadius: "5px",
+                          backgroundColor: "#fff",
+                          padding: "7px 0",
+                          minWidth: "180px",
+                          boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                          display: "flex",
+                          flexDirection: "column",
+                          zIndex: 10,
+                        }}>
+                          {r.displayState === "draft" && (
+                            <button
+                              onClick={() => { handlePublish(r.id); setOpenActionMenuId(null); }}
+                              style={{ padding: "6px 13px", fontSize: "12.5px", color: WINE, border: "none", background: "none", textAlign: "left", cursor: "pointer", fontWeight: 600 }}
+                            >
+                              Publish event
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { handleDuplicate(r.id, r.title); setOpenActionMenuId(null); }}
+                            style={{ padding: "6px 13px", fontSize: "12.5px", color: "#39292a", border: "none", background: "none", textAlign: "left", cursor: "pointer" }}
+                          >
+                            Duplicate
+                          </button>
+                          <Link
+                            href={`/admin/events/${r.id}/roster`}
+                            onClick={() => setOpenActionMenuId(null)}
+                            style={{ padding: "6px 13px", fontSize: "12.5px", color: "#39292a", textDecoration: "none" }}
+                          >
+                            Export / Print sheet
+                          </Link>
+                          {r.bookingsCount === 0 && r.displayState !== "completed" && (
+                            <button
+                              onClick={() => { handleDelete(r.id, r.title); setOpenActionMenuId(null); }}
+                              style={{ padding: "6px 13px", fontSize: "12.5px", color: "#39292a", border: "none", background: "none", textAlign: "left", cursor: "pointer" }}
+                            >
+                              Archive
+                            </button>
+                          )}
+                          {r.bookingsCount > 0 && r.displayState !== "past" && (
+                            <div style={{ padding: "6px 13px", fontSize: "12px", color: "rgba(57,41,42,0.45)" }}>
+                              Archive — unavailable, bookings exist
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Modal: Create Event */}
-        {showCreateModal && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(57, 41, 42, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            zIndex: 100,
-          }}>
-            <div className="card" style={{ maxWidth: "620px", width: "100%", maxHeight: "90vh", overflowY: "auto", backgroundColor: "#fff", padding: "32px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h2 style={{ fontSize: "22px", margin: 0 }}>Create New Calendar Event</h2>
-                <button onClick={() => setShowCreateModal(false)} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer" }}>✕</button>
+                  </div>
+                );
+              })
+            )}
+
+          </div>
+        </div>
+
+        {/* Explanatory Cards at Bottom */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "16px", marginTop: "24px" }}>
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "18px 20px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>
+              What the columns mean
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "9px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
+              <div>
+                <strong style={{ fontWeight: 600 }}>Booked / min</strong> — members plus guests already booked, against the minimum this event needs to run. Amber under half at T-10, wine at the decision point.
               </div>
-
-              <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "13.5px" }}>
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Event Title *</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
-                    placeholder="e.g. Sensory Play & Coffee Meetup"
-                    required
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Category</label>
-                    <select
-                      className="input"
-                      value={form.categoryId}
-                      onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-                    >
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Neighbourhood *</label>
-                    <select
-                      className="input"
-                      value={form.neighbourhood}
-                      onChange={(e) => setForm({ ...form, neighbourhood: e.target.value })}
-                    >
-                      <option value="Eixample">Eixample</option>
-                      <option value="Gràcia">Gràcia</option>
-                      <option value="Sarrià-Sant Gervasi">Sarrià-Sant Gervasi</option>
-                      <option value="Les Corts">Les Corts</option>
-                      <option value="Poblenou">Poblenou</option>
-                      <option value="Ciutat Vella">Ciutat Vella</option>
-                      <option value="Outside Barcelona">Outside Barcelona</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Venue Public Name *</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={form.venueName}
-                      onChange={(e) => setForm({ ...form, venueName: e.target.value })}
-                      placeholder="e.g. Jardins de la Tamarita"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Private Meeting Point *</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={form.meetingPoint}
-                      onChange={(e) => setForm({ ...form, meetingPoint: e.target.value })}
-                      placeholder="Released only to confirmed attendees"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Start Date & Time *</label>
-                    <input
-                      type="datetime-local"
-                      className="input"
-                      value={form.startsAt}
-                      onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>End Date & Time *</label>
-                    <input
-                      type="datetime-local"
-                      className="input"
-                      value={form.endsAt}
-                      onChange={(e) => setForm({ ...form, endsAt: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Credit Cost</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={form.creditCost}
-                      onChange={(e) => setForm({ ...form, creditCost: Number(e.target.value) })}
-                      min={0}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Member Seats</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={form.capacityMember}
-                      onChange={(e) => setForm({ ...form, capacityMember: Number(e.target.value) })}
-                      min={0}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest Passes</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={form.capacityGuest}
-                      onChange={(e) => setForm({ ...form, capacityGuest: Number(e.target.value) })}
-                      min={0}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Guest (Gathering)</label>
-                    <input
-                      type="number"
-                      className="input"
-                      value={form.capacityGuestGathering}
-                      onChange={(e) => setForm({ ...form, capacityGuestGathering: Number(e.target.value) })}
-                      min={0}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Target Stages (e.g. 0-1yr)</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={form.targetStages.join(", ")}
-                      onChange={(e) => setForm({ ...form, targetStages: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
-                      placeholder="Comma separated"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Languages</label>
-                    <input
-                      type="text"
-                      className="input"
-                      value={form.languages.join(", ")}
-                      onChange={(e) => setForm({ ...form, languages: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
-                      placeholder="English, Spanish"
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", margin: "4px 0" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <input
-                      type="checkbox"
-                      id="isSignature"
-                      checked={form.isSignature}
-                      onChange={(e) => setForm({ ...form, isSignature: e.target.checked })}
-                    />
-                    <label htmlFor="isSignature" style={{ fontWeight: 600, cursor: "pointer" }}>🔒 Members only / Signature event</label>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <input
-                      type="checkbox"
-                      id="showEventPassCta"
-                      checked={form.showEventPassCta}
-                      onChange={(e) => setForm({ ...form, showEventPassCta: e.target.checked })}
-                    />
-                    <label htmlFor="showEventPassCta" style={{ fontWeight: 600, cursor: "pointer" }}>🎟️ Enable €35 Event Pass CTA</label>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Description</label>
-                  <textarea
-                    className="input"
-                    rows={3}
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder="Short description of the event flow and atmosphere..."
-                  />
-                </div>
-
-                <button type="submit" className="btn btn-primary" style={{ marginTop: "8px", padding: "12px" }}>
-                  Publish Event to Calendar →
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Modal: Add Category */}
-        {showCategoryModal && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(57, 41, 42, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            zIndex: 100,
-          }}>
-            <div className="card" style={{ maxWidth: "440px", width: "100%", backgroundColor: "#fff", padding: "32px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h2 style={{ fontSize: "20px", margin: 0 }}>Add Event Category</h2>
-                <button onClick={() => setShowCategoryModal(false)} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer" }}>✕</button>
+              <div>
+                <strong style={{ fontWeight: 600 }}>Guests · pass</strong> — guest places taken against whichever cap is in force: the standing figure, or the higher gathering figure while the event is short. Below it, whether the €35 Event Pass button is shown.
               </div>
-
-              <form onSubmit={handleAddCategory} style={{ display: "flex", flexDirection: "column", gap: "14px", fontSize: "13.5px" }}>
-                <div>
-                  <label style={{ display: "block", fontWeight: 600, marginBottom: "4px" }}>Category Name *</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={newCatName}
-                    onChange={(e) => setNewCatName(e.target.value)}
-                    placeholder="e.g. Masterclasses & Talks"
-                    required
-                  />
-                </div>
-
-                {/* Stage Affinity removed */}
-
-                <button type="submit" className="btn btn-primary" style={{ marginTop: "8px", padding: "10px" }}>
-                  Create Category
-                </button>
-              </form>
+              <div>
+                <strong style={{ fontWeight: 600 }}>When · schedule</strong> — the date, and where the event sits in its own T-schedule. Set per event, not hard-coded.
+              </div>
             </div>
           </div>
-        )}
 
+          <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "18px 20px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px" }}>
+              Rules this page holds
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "9px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
+              <div>
+                Credit cost is typed by hand per event. No category price, no inheritance on duplicate, and changing it after anyone has booked asks what happens to the difference.
+              </div>
+              <div>
+                Cancelled events stay on the calendar with their reason. <strong style={{ fontWeight: 600 }}>There is no delete</strong> — archive only, and never once a booking exists.
+              </div>
+              <div>
+                Two Event Passes per person is global, set in settings. It never appears in the event editor.
+              </div>
+              <div>
+                A past event offers a roster and a duplicate. It cannot be cancelled.
+              </div>
+            </div>
+          </div>
+        </div>
 
       </div>
+
+      {/* ─── MODAL: EVENT ATTENDEES & TICKETING ROSTER ─── */}
+      {activeEventRoster && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(57, 41, 42, 0.65)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px",
+          zIndex: 110,
+        }}>
+          <div style={{ maxWidth: "880px", width: "100%", maxHeight: "90vh", overflowY: "auto", backgroundColor: "#fffdfa", borderRadius: "8px", border: "1px solid rgba(57,41,42,0.2)", padding: "32px", boxShadow: "0 10px 30px rgba(0,0,0,0.2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", borderBottom: "1px solid rgba(57,41,42,0.15)", paddingBottom: "16px" }}>
+              <div>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "12px", textTransform: "uppercase", color: WINE, fontWeight: 600, letterSpacing: "0.1em" }}>
+                  Event Attendee Roster &amp; Ticketing Desk
+                </div>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", margin: "4px 0 2px" }}>{activeEventRoster.title}</h2>
+                <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.7)" }}>
+                  📍 Meeting Point: <strong>{activeEventRoster.meetingPoint}</strong>
+                </div>
+              </div>
+              <button onClick={() => setActiveEventRoster(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#39292a" }}>✕</button>
+            </div>
+
+            {rosterLoading ? (
+              <p style={{ textAlign: "center", padding: "32px", color: MUTED }}>Loading attendees...</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* 1. Confirmed Members List */}
+                <div>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
+                    <span>Confirmed Members ({memberBookings.length})</span>
+                    <span style={{ fontSize: "13px", color: MUTED, fontWeight: 400 }}>Capacity: {activeEventRoster.capacityMember}</span>
+                  </h3>
+
+                  {memberBookings.length === 0 ? (
+                    <p style={{ fontSize: "13px", color: MUTED, padding: "12px", backgroundColor: "#fbf8f3", borderRadius: "4px" }}>
+                      No members booked yet.
+                    </p>
+                  ) : (
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                      <thead>
+                        <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
+                          <th style={{ padding: "8px 12px" }}>Member</th>
+                          <th style={{ padding: "8px 12px" }}>Credits</th>
+                          <th style={{ padding: "8px 12px" }}>Status</th>
+                          <th style={{ padding: "8px 12px", textAlign: "right" }}>Attendance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {memberBookings.map((b) => (
+                          <tr key={b.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                            <td style={{ padding: "10px 12px" }}>
+                              <div style={{ fontWeight: 600 }}>{b.firstName} {b.lastName}</div>
+                              <div style={{ fontSize: "11.5px", color: MUTED }}>{b.email}</div>
+                            </td>
+                            <td style={{ padding: "10px 12px", fontWeight: 600 }}>{b.creditsCharged} cr</td>
+                            <td style={{ padding: "10px 12px" }}>
+                              <span style={{
+                                padding: "2px 6px",
+                                borderRadius: "3px",
+                                fontSize: "10.5px",
+                                fontWeight: 600,
+                                textTransform: "uppercase",
+                                backgroundColor: b.status === "attended" ? "#eef8f0" : b.status === "no_show" ? "#fef2f2" : "#f4ece2",
+                                color: b.status === "attended" ? "#1e6833" : b.status === "no_show" ? "#b91c1c" : WINE
+                              }}>
+                                {b.status}
+                              </span>
+                            </td>
+                            <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                              <div style={{ display: "inline-flex", gap: "6px" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkAttendance("member", b.id, "attended")}
+                                  style={{ backgroundColor: "#eef8f0", color: "#1e6833", border: "1px solid #bbf7d0", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                >
+                                  ✓ Check-In
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkAttendance("member", b.id, "no_show")}
+                                  style={{ backgroundColor: "#fef2f2", color: "#b91c1c", border: "1px solid #fecdd3", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                >
+                                  ✕ No-Show
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                {/* 2. Guest Passes List */}
+                <div>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
+                    <span>Guest Passes ({guestPasses.length})</span>
+                    <span style={{ fontSize: "13px", color: MUTED, fontWeight: 400 }}>Pass Capacity: {activeEventRoster.capacityGuest}</span>
+                  </h3>
+
+                  {guestPasses.length === 0 ? (
+                    <p style={{ fontSize: "13px", color: MUTED, padding: "12px", backgroundColor: "#fbf8f3", borderRadius: "4px" }}>
+                      No guest passes issued yet.
+                    </p>
+                  ) : (
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                      <thead>
+                        <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
+                          <th style={{ padding: "8px 12px" }}>Guest</th>
+                          <th style={{ padding: "8px 12px" }}>Price</th>
+                          <th style={{ padding: "8px 12px" }}>Ticket Portal Link</th>
+                          <th style={{ padding: "8px 12px", textAlign: "right" }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {guestPasses.map((gp) => (
+                          <tr key={gp.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                            <td style={{ padding: "10px 12px" }}>
+                              <div style={{ fontWeight: 600 }}>{gp.firstName} {gp.lastName}</div>
+                              <div style={{ fontSize: "11.5px", color: MUTED }}>{gp.email}</div>
+                            </td>
+                            <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
+                            <td style={{ padding: "10px 12px" }}>
+                              <a
+                                href={`/ticket/${gp.ticketToken}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ color: WINE, fontSize: "12px", textDecoration: "underline" }}
+                              >
+                                Open Guest Ticket →
+                              </a>
+                            </td>
+                            <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                              <span style={{ padding: "2px 6px", borderRadius: "3px", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", backgroundColor: "#eef8f0", color: "#1e6833" }}>
+                                {gp.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                {/* 3. Operator Desk: Manual Booking & Direct Pass Issue */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginTop: "12px", borderTop: "1px solid rgba(57,41,42,0.15)", paddingTop: "20px" }}>
+                  {/* Manual Member Seat Booking */}
+                  <div style={{ backgroundColor: "#fbf8f3", padding: "18px", borderRadius: "6px", border: "1px solid rgba(57,41,42,0.15)" }}>
+                    <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Manually Book Member to Event</h4>
+                    <form onSubmit={handleManualMemberBook} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
+                      <select
+                        style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
+                        value={selectedMemberId}
+                        onChange={(e) => setSelectedMemberId(e.target.value)}
+                      >
+                        {allMembers.filter(m => !memberBookings.some(b => b.email === m.email)).map((m) => (
+                          <option key={m.id} value={m.id}>{m.firstName} {m.lastName} ({m.email})</option>
+                        ))}
+                      </select>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <input
+                          type="checkbox"
+                          id="deduct"
+                          checked={deductCredits}
+                          onChange={(e) => setDeductCredits(e.target.checked)}
+                        />
+                        <label htmlFor="deduct">Deduct {activeEventRoster.creditCost} credits (Uncheck for complimentary)</label>
+                      </div>
+                      <button type="submit" disabled={bookingMember} style={{ backgroundColor: WINE, color: "#fff", border: "none", borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                        {bookingMember ? "Booking..." : "Confirm Member Seat"}
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Direct Guest Pass Issue */}
+                  <div style={{ backgroundColor: "#fbf8f3", padding: "18px", borderRadius: "6px", border: "1px solid rgba(57,41,42,0.15)" }}>
+                    <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Issue €35 Guest Ticket Pass</h4>
+                    <p style={{ fontSize: "12px", color: MUTED, margin: "0 0 12px" }}>Generates a unique payment link. The guest is only confirmed once they complete checkout.</p>
+                    <form onSubmit={handleIssueGuest} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                        <input
+                          type="text"
+                          placeholder="First Name"
+                          value={guestForm.firstName}
+                          onChange={(e) => setGuestForm({ ...guestForm, firstName: e.target.value })}
+                          required
+                          style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Last Name"
+                          value={guestForm.lastName}
+                          onChange={(e) => setGuestForm({ ...guestForm, lastName: e.target.value })}
+                          style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
+                        />
+                      </div>
+                      <input
+                        type="email"
+                        placeholder="guest@example.com"
+                        value={guestForm.email}
+                        onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
+                        required
+                        style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
+                      />
+                      <button type="submit" disabled={issuingPass} style={{ backgroundColor: "#fff", color: WINE, border: `1px solid ${WINE}`, borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                        {issuingPass ? "Generating..." : "Generate Guest Ticket →"}
+                      </button>
+                    </form>
+
+                    {generatedTicketUrl && (
+                      <div style={{ marginTop: "10px", padding: "8px 12px", backgroundColor: "#eef8f0", border: "1px solid #bbf7d0", borderRadius: "4px", fontSize: "12px" }}>
+                        ✓ Ticket Created! <a href={generatedTicketUrl} target="_blank" rel="noreferrer" style={{ fontWeight: 600, color: "#1e6833", textDecoration: "underline" }}>View Ticket Link</a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

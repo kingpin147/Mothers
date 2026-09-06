@@ -3,6 +3,8 @@ import MembershipClient from "./MembershipClient";
 import { getPublicMembershipWindow, getPublicSettings } from "@/app/actions/publicWindow";
 import { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Membership — The Mothers Barcelona",
   description: "One membership. Everything you need to build your circle. Monthly credits, curated gatherings, and vetted community.",

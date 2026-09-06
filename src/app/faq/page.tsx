@@ -4,7 +4,8 @@ import { eq } from "drizzle-orm";
 import FaqClient from "./FaqClient";
 import { getPublicSettings } from "@/app/actions/publicWindow";
 
-export const revalidate = 60; // optionally revalidate every minute or let layout handle it
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function FaqPage() {
   const publishedFaqs = await db

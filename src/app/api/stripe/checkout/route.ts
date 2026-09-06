@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
-import { event, member, window, application } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { event, member, window, application, eventPass } from "@/db/schema";
+import { eq, sql, and } from "drizzle-orm";
 import { auth } from "@/lib/auth"; 
 
 export async function POST(req: Request) {
@@ -83,26 +83,50 @@ export async function POST(req: Request) {
         where: eq(window.id, appRecord.windowId),
       });
 
-      if (!windowRecord) return NextResponse.json({ error: "Application window not found" }, { status: 404 });
+      if (!windowRecord) {
+        return NextResponse.json({ error: "Window not found" }, { status: 404 });
+      }
+
+      // Check joining fee waiver (§6.1):
+      // Waived if: (1) First 50 accepted members, OR (2) Purchased Event Pass in last 30 days
+      const [totalMembers, recentPass] = await Promise.all([
+        db.select({ count: sql<number>`count(*)` }).from(member).where(sql`status IN ('active', 'accepted_awaiting_payment')`),
+        db.query.eventPass.findFirst({
+          where: and(
+            eq(eventPass.personId, memberRecord.personId),
+            sql`purchased_at >= NOW() - INTERVAL '30 days'`
+          ),
+        }),
+      ]);
+
+      const isFirst50 = Number(totalMembers[0]?.count || 0) <= 50;
+      const hasRecentPass = !!recentPass;
+      const isFeeWaived = isFirst50 || hasRecentPass;
+
+      const isQuarterly = memberRecord.billingFrequency === "quarterly";
+      const unitAmount = isQuarterly
+        ? (windowRecord.tierPrices?.standardQuarterly || 9900)
+        : windowRecord.monthlyPriceCents;
 
       const lineItems: any[] = [
         {
           price_data: {
             currency: "eur",
             product_data: {
-              name: "The Mothers - Monthly Membership",
+              name: isQuarterly ? "The Mothers - Quarterly Membership" : "The Mothers - Monthly Membership",
             },
-            unit_amount: windowRecord.monthlyPriceCents,
+            unit_amount: unitAmount,
             recurring: {
               interval: "month",
+              interval_count: isQuarterly ? 3 : 1,
             },
           },
           quantity: 1,
         }
       ];
 
-      // Add joining fee if present
-      if (windowRecord.joiningFeeCents > 0) {
+      // Add joining fee if not waived and present
+      if (!isFeeWaived && windowRecord.joiningFeeCents > 0) {
         lineItems.push({
           price_data: {
             currency: "eur",
@@ -124,12 +148,15 @@ export async function POST(req: Request) {
         subscription_data: {
           metadata: {
             memberId,
+            isQuarterly: String(isQuarterly),
           }
         },
         metadata: {
           type: "membership",
           memberId,
           personId: session.user.id as string,
+          isQuarterly: String(isQuarterly),
+          feeWaived: String(isFeeWaived),
         },
         success_url: `${origin}/account?membership_success=true`,
         cancel_url: `${origin}/account?membership_canceled=true`,

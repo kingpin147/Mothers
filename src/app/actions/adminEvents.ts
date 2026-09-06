@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member } from "@/db/schema";
+import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member, eventPass } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
@@ -73,7 +73,7 @@ export async function publishAdminEvent(eventId: string) {
 export async function getAdminEvents() {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "host", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin", "read_only"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED" };
   }
@@ -81,16 +81,23 @@ export async function getAdminEvents() {
   const eventsData = await db
     .select({
       event: event,
-      bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`
+      categoryName: eventCategory.name,
+      bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
+      memberBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'member' THEN 1 END)::int`,
+      guestBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'guest' THEN 1 END)::int`,
     })
     .from(event)
+    .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
     .leftJoin(booking, eq(booking.eventId, event.id))
-    .groupBy(event.id)
+    .groupBy(event.id, eventCategory.name)
     .orderBy(desc(event.startsAt));
 
   const events = eventsData.map(e => ({
     ...e.event,
-    bookingsCount: e.bookingsCount
+    categoryName: e.categoryName,
+    bookingsCount: e.bookingsCount,
+    memberBookingsCount: e.memberBookingsCount,
+    guestBookingsCount: e.guestBookingsCount,
   }));
 
   return { success: true, events };
@@ -432,7 +439,7 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
       })
       .where(eq(event.id, eventId));
 
-    // Fetch all active bookings to refund credits
+    // 1. Fetch all active bookings to refund credits
     const activeBookingsWithPerson = await tx
       .select({
         booking: booking,
@@ -460,10 +467,12 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
         .where(eq(booking.id, b.id));
 
       if (b.memberId && b.creditsCharged > 0) {
+        const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
         await tx.insert(creditEntry).values({
           memberId: b.memberId,
           amount: b.creditsCharged,
           type: "return_cancellation",
+          expiresAt,
           sourceType: "event",
           sourceId: eventId,
           reason: `Auto refund: ${ev.title} cancelled by club`,
@@ -516,13 +525,63 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
       }
     }
 
+    // 2. Resolve any bookings on this event awaiting replacement (§5 & §7.3)
+    const pendingReturns = await tx.query.booking.findMany({
+      where: and(
+        eq(booking.eventId, eventId),
+        eq(booking.pendingReturnState, "awaiting_replacement")
+      ),
+    });
+
+    for (const pb of pendingReturns) {
+      await tx
+        .update(booking)
+        .set({
+          pendingReturnState: "settled_returned",
+          updatedAt: new Date(),
+        })
+        .where(eq(booking.id, pb.id));
+
+      if (pb.memberId && pb.pendingReturnCredits > 0) {
+        const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+        await tx.insert(creditEntry).values({
+          memberId: pb.memberId,
+          amount: pb.pendingReturnCredits,
+          type: "return_cancellation",
+          expiresAt,
+          sourceType: "event",
+          sourceId: eventId,
+          reason: `Return on event cancellation for released seat in ${ev.title}`,
+        });
+      }
+    }
+
+    // 3. Mark paid guest passes as refunded (§8)
+    const paidGuestPasses = await tx.query.eventPass.findMany({
+      where: and(
+        eq(eventPass.eventId, eventId),
+        eq(eventPass.status, "paid")
+      ),
+    });
+
+    for (const gp of paidGuestPasses) {
+      await tx
+        .update(eventPass)
+        .set({
+          status: "refunded",
+          refundedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(eventPass.id, gp.id));
+    }
+
     await tx.insert(auditLog).values({
       actorId: adminId,
       actorType: "admin",
       action: "cancel_event",
       entity: "event",
       entityId: eventId,
-      after: { reason: cancelReason },
+      after: { reason: cancelReason, refundedBookingsCount: activeBookingsWithPerson.length, refundedPassesCount: paidGuestPasses.length },
     });
   });
 

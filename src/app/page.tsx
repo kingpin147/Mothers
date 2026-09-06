@@ -3,6 +3,8 @@ import HomeClient from "./HomeClient";
 import { getPublicMembershipWindow } from "@/app/actions/publicWindow";
 import { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "The Mothers — Private Membership Club for Mothers in Barcelona",
   description:

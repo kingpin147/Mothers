@@ -137,6 +137,34 @@ export async function bookEvent(eventId: string) {
 
       const newBookingId = bookingInsert[0].id;
 
+      // 7b. Settle oldest pending return awaiting replacement on this event (§5 & §7.3)
+      const oldestPendingReturn = await tx.query.booking.findFirst({
+        where: and(
+          eq(booking.eventId, eventId),
+          eq(booking.pendingReturnState, "awaiting_replacement")
+        ),
+        orderBy: asc(booking.releasedAt),
+      });
+
+      if (oldestPendingReturn && oldestPendingReturn.memberId && oldestPendingReturn.pendingReturnCredits > 0) {
+        await tx
+          .update(booking)
+          .set({
+            pendingReturnState: "settled_returned",
+            updatedAt: new Date(),
+          })
+          .where(eq(booking.id, oldestPendingReturn.id));
+
+        await tx.insert(creditEntry).values({
+          memberId: oldestPendingReturn.memberId,
+          amount: oldestPendingReturn.pendingReturnCredits,
+          type: "return_release",
+          sourceType: "booking",
+          sourceId: oldestPendingReturn.id,
+          reason: `Released seat filled by replacement member for ${ev.title}`,
+        });
+      }
+
       // 8. Write audit log
       await tx.insert(auditLog).values({
         actorId: personId,
@@ -405,6 +433,7 @@ const buyGuestPassSchema = z.object({
   firstName: z.string().min(1).trim(),
   lastName: z.string().trim().default(""),
   email: z.string().email().toLowerCase().trim(),
+  phoneE164: z.string().optional(),
 });
 
 export async function buyGuestPass(params: {
@@ -412,11 +441,12 @@ export async function buyGuestPass(params: {
   firstName: string;
   lastName: string;
   email: string;
+  phoneE164?: string;
 }) {
   try {
     const parsed = buyGuestPassSchema.safeParse(params);
     if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
-    const { eventId, firstName, lastName, email } = parsed.data;
+    const { eventId, firstName, lastName, email, phoneE164 } = parsed.data;
 
     const result = await db.transaction(async (tx) => {
       // 1. SELECT ... FOR UPDATE on the event row
@@ -429,7 +459,7 @@ export async function buyGuestPass(params: {
       if (eventRows.length === 0) throw new Error("EVENT_NOT_FOUND");
       const ev = eventRows[0];
 
-      // 2. Find or create person
+      // 2. Find or create person by email
       let personRecord = await tx.query.person.findFirst({
         where: eq(person.email, email),
       });
@@ -441,20 +471,57 @@ export async function buyGuestPass(params: {
             firstName,
             lastName,
             email,
+            phoneE164: phoneE164 || null,
             isMother: true,
             marketingOptIn: false,
           })
           .returning();
         personRecord = inserted[0];
+      } else if (phoneE164 && !personRecord.phoneE164) {
+        await tx
+          .update(person)
+          .set({ phoneE164 })
+          .where(eq(person.id, personRecord.id));
       }
 
-      // 3. Check lifetime pass count (max 2 §3.4, §20.4)
-      const pastPasses = await tx
+      // 3. Lifetime pass check across email AND phone (§8, §20.4)
+      let lifetimePassCount = 0;
+      const emailPasses = await tx
         .select({ count: sql<number>`count(*)` })
         .from(eventPass)
         .where(eq(eventPass.personId, personRecord.id));
+      lifetimePassCount += Number(emailPasses[0]?.count || 0);
 
-      const lifetimePassCount = Number(pastPasses[0]?.count || 0);
+      if (phoneE164) {
+        const phoneMatchPersons = await tx.query.person.findMany({
+          where: eq(person.phoneE164, phoneE164),
+        });
+
+        for (const otherP of phoneMatchPersons) {
+          if (otherP.id !== personRecord.id) {
+            // Collision flagged for review
+            const otherPasses = await tx
+              .select({ count: sql<number>`count(*)` })
+              .from(eventPass)
+              .where(eq(eventPass.personId, otherP.id));
+            lifetimePassCount += Number(otherPasses[0]?.count || 0);
+
+            // Record collision audit log
+            await tx.insert(auditLog).values({
+              actorId: personRecord.id,
+              actorType: "system",
+              action: "phone_email_collision_flagged",
+              entity: "person",
+              entityId: personRecord.id,
+              after: {
+                primaryEmail: email,
+                matchedEmail: otherP.email,
+                phone: phoneE164,
+              },
+            });
+          }
+        }
+      }
 
       const guestBookingsCount = await tx
         .select({ count: sql<number>`count(*)` })
@@ -487,7 +554,6 @@ export async function buyGuestPass(params: {
       if (!passCheck.allowed) {
         throw new Error(passCheck.reasonCode || "GUEST_PASS_NOT_ALLOWED");
       }
-
 
       return {
         personId: personRecord.id,
@@ -643,3 +709,98 @@ export async function joinEventWaitlist(eventId: string) {
     return { success: false, error: error?.message || "WAITLIST_JOIN_FAILED" };
   }
 }
+
+// ─── 6. CLAIM WAITLIST OFFER (§7.4) ──────────────────────────────────────────
+
+export async function claimWaitlistOffer(waitlistId: string) {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+
+  const personId = (session.user as any).personId || session.user.id;
+  const memberId = (session.user as any).memberId;
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      // 1. Fetch waitlist offer with lock
+      const waitlistRow = await tx.query.eventWaitlist.findFirst({
+        where: and(
+          eq(eventWaitlist.id, waitlistId),
+          eq(eventWaitlist.personId, personId)
+        ),
+      });
+
+      if (!waitlistRow || !waitlistRow.offeredAt) {
+        throw new Error("NO_ACTIVE_OFFER");
+      }
+
+      if (waitlistRow.offerExpiresAt && new Date() > new Date(waitlistRow.offerExpiresAt)) {
+        throw new Error("OFFER_EXPIRED");
+      }
+
+      const ev = await tx.query.event.findFirst({
+        where: eq(event.id, waitlistRow.eventId),
+      });
+
+      if (!ev) throw new Error("EVENT_NOT_FOUND");
+
+      // Deduct credits if member
+      if (memberId && ev.creditCost > 0) {
+        await spendCredits(memberId, ev.creditCost, "booking", ev.id, `Claimed waitlist offer for ${ev.title}`, tx);
+      }
+
+      // Mark waitlist accepted
+      await tx
+        .update(eventWaitlist)
+        .set({ acceptedAt: new Date() })
+        .where(eq(eventWaitlist.id, waitlistId));
+
+      // Create booking
+      const newBooking = await tx
+        .insert(booking)
+        .values({
+          eventId: ev.id,
+          personId,
+          memberId: memberId || null,
+          kind: memberId ? "member" : "guest",
+          status: ev.status === "confirmed" ? "confirmed" : "held",
+          creditsCharged: memberId ? ev.creditCost : 0,
+        })
+        .returning();
+
+      // Settle oldest pending return if any (§5 & §7.3)
+      const oldestPendingReturn = await tx.query.booking.findFirst({
+        where: and(
+          eq(booking.eventId, ev.id),
+          eq(booking.pendingReturnState, "awaiting_replacement")
+        ),
+        orderBy: asc(booking.releasedAt),
+      });
+
+      if (oldestPendingReturn && oldestPendingReturn.memberId && oldestPendingReturn.pendingReturnCredits > 0) {
+        await tx
+          .update(booking)
+          .set({
+            pendingReturnState: "settled_returned",
+            updatedAt: new Date(),
+          })
+          .where(eq(booking.id, oldestPendingReturn.id));
+
+        await tx.insert(creditEntry).values({
+          memberId: oldestPendingReturn.memberId,
+          amount: oldestPendingReturn.pendingReturnCredits,
+          type: "return_release",
+          sourceType: "booking",
+          sourceId: oldestPendingReturn.id,
+          reason: `Released seat claimed by waitlist member for ${ev.title}`,
+        });
+      }
+
+      return { bookingId: newBooking[0].id };
+    });
+
+    return { success: true, bookingId: result.bookingId };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "CLAIM_FAILED" };
+  }
+}
+

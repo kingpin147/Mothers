@@ -42,6 +42,20 @@ export async function GET(req: NextRequest) {
         })
         .where(eq(event.id, ev.id));
 
+      // Settle any remaining unfilled returns for this finished event (§5 & §7.3)
+      await db
+        .update(booking)
+        .set({
+          pendingReturnState: "settled_unfilled",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(booking.eventId, ev.id),
+            eq(booking.pendingReturnState, "awaiting_replacement")
+          )
+        );
+
       await db.insert(auditLog).values({
         actorType: "system",
         action: "complete_event",

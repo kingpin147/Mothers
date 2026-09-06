@@ -86,15 +86,28 @@ export async function POST(req: NextRequest) {
                  mainPaymentId = fallbackPayment?.id;
               }
 
-              // 2. Grant Monthly Credits with 40-cap rollover protection (§5)
-              if (mainPaymentId) {
+              // 2. Grant Credits with 40-cap rollover protection (§5, §6)
+              const isQuarterly = memberRecord.billingFrequency === "quarterly";
+              if (isQuarterly) {
+                // Quarterly Tranche 1: grant 20 credits immediately with invoice idempotency
+                const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+                await tx.insert(creditEntry).values({
+                  memberId: memberRecord.id,
+                  amount: 20,
+                  type: "grant",
+                  expiresAt,
+                  sourceType: "subscription_tranche_1",
+                  sourceId: invoice.id,
+                  reason: `Quarterly membership: Month 1 tranche (+20 credits)`,
+                });
+              } else if (mainPaymentId) {
                 await grantMonthlySubscriptionCredits(memberRecord.id, mainPaymentId, tx);
               }
 
               // 3. Advance billing period end
               const nextPeriodEnd = invoice.lines.data[0]?.period?.end
                 ? new Date(invoice.lines.data[0].period.end * 1000)
-                : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                : new Date(Date.now() + (isQuarterly ? 90 : 30) * 24 * 60 * 60 * 1000);
 
               await tx
                 .update(member)
