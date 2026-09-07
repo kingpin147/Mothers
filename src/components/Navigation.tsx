@@ -28,6 +28,7 @@ export function Navigation() {
   ];
 
   const isEventsPage = pathname?.startsWith("/events");
+  const isAdminRoute = pathname?.startsWith("/admin");
 
   return (
     <>
@@ -45,17 +46,17 @@ export function Navigation() {
         }}
       >
         {/* Brand Lockup */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "14px", textDecoration: "none" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
           <img
             src="/assets/logo-mark-alpha.png"
             alt="The Mothers"
-            style={{ height: "64px", width: "auto", display: "block" }}
+            style={{ height: isAdminRoute ? "56px" : "72px", width: "auto", display: "block" }}
           />
           <span
             aria-hidden="true"
             style={{
               width: "1px",
-              height: "40px",
+              height: isAdminRoute ? "26px" : "30px",
               background: "rgba(57, 41, 42, 0.28)",
               display: "inline-block",
               flex: "none",
@@ -64,7 +65,7 @@ export function Navigation() {
           <img
             src="/assets/logo-wordmark-alpha.png"
             alt="The Mothers"
-            style={{ height: "15px", width: "auto", display: "block" }}
+            style={{ height: isAdminRoute ? "14px" : "16px", width: "auto", display: "block" }}
           />
         </Link>
 

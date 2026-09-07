@@ -491,14 +491,650 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
             templateKey: "event_cancelled",
             dedupeKey: `event_cancel_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
             subject: `Update regarding ${ev.title}`,
-            htmlContent: `
-              <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #f8efe2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
-                <h2 style="font-size: 22px; color: #7b1f2c; margin-top: 0;">Important update for ${ev.title}</h2>
-                <p style="font-size: 15px; line-height: 1.6;">Dear ${p.firstName || "Member"},</p>
-                <p style="font-size: 15px; line-height: 1.6;">We're sorry to let you know that we've had to cancel <strong>${ev.title}</strong>.</p>
-                <p style="font-size: 15px; line-height: 1.6;">Your ${b.creditsCharged} credits have been returned in full to your account and are ready to use for future gatherings.</p>
-                <p style="font-size: 14px; margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+            htmlContent: `\n<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>An event will not go ahead — The Mothers</title>
+<!--[if mso]>
+<style>body,table,td,p,a{font-family:Georgia,'Times New Roman',serif !important;}</style>
+<![endif]-->
+<style>
+@media only screen and (max-width:620px){
+  .px{padding-left:24px !important;padding-right:24px !important;}
+  .h1{font-size:30px !important;line-height:36px !important;}
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#efeae1;">
+<span style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">This one will not run — your credits are already back in your account, and nothing is owed.</span>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
+<tr>
+<td align="center" style="padding:32px 12px;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#faf7f1;border:1px solid #ddd4c6;">
+
+<tr>
+<td class="px" align="center" style="padding:34px 48px 26px;border-bottom:1px solid #ddd4c6;">
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:20px;mso-line-height-rule:exactly;letter-spacing:3px;text-transform:uppercase;color:#7b1f2c;">The Mothers</div>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:1.5px;text-transform:uppercase;color:#8a807a;padding-top:7px;">Barcelona</div>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:38px 48px 0;">
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Event cancelled</div>
+<h1 class="h1" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:42px;mso-line-height-rule:exactly;font-weight:normal;color:#2A1E20;">This one will not go ahead.</h1>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
+<p style="margin:0 0 16px;">Hello <span style="color:#7b1f2c;">${p.firstName || 'Member'}</span>,</p>
+<p style="margin:0 0 16px;">We're sorry — <strong style="font-weight:normal;color:#7b1f2c;">[Event title]</strong> on [day, date] will not run. [Reason in one plain sentence — not enough of us could make this one / our host had to step back / the venue fell through].</p>
+<p style="margin:0;">You do not need to do anything. It is already put right, and we have told you a week ahead so you can undo whatever you had arranged at home.</p>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:30px 48px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #ddd4c6;background-color:#f3efe6;">
+<tr>
+<td style="padding:22px 24px 14px;font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;">Where you stand</td>
+</tr>
+<tr>
+<td style="padding:0 24px 22px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Event</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Event title]</td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Was</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Day, date] · [time]</td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Returned</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;"><strong style="font-weight:normal;color:#7b1f2c;">[N] credits</strong> — back in your account now</td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Balance</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[N] credits, valid until [date]</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:28px 48px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td bgcolor="#7b1f2c" style="border-radius:4px;">
+<a href="Events.dc.html" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">See what else is on</a>
+</td>
+</tr>
+</table>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">Your credits carry to any event on the calendar.</div>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:32px 48px 0;">
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Honestly</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
+<tr>
+<td width="26" valign="top" style="width:26px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">01</td>
+<td valign="top" style="">Small rooms are the point, and a small room sometimes does not fill. We would rather cancel than seat you at a table of three that was meant to hold ten.</td>
+</tr>
+<tr>
+<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">02</td>
+<td valign="top" style="padding-top:10px;">Nothing is lost. Credits returned this way keep their original expiry, so you are not being quietly charged for our cancellation.</td>
+</tr>
+<tr>
+<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">03</td>
+<td valign="top" style="padding-top:10px;">If this was the event you had been waiting for, reply and tell us — we schedule what people actually ask for.</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:28px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#5c534e;">
+<p style="margin:0;">If this has left you out of pocket in some other way — a sitter already booked, a train — reply and tell us. We will make it right.</p>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:26px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
+<p style="margin:0;">With our apologies,<br>The Mothers Team</p>
+</td>
+</tr>
+
+<tr>
+<td class="px" align="center" style="padding:32px 48px 34px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+<tr><td style="border-top:1px solid #ddd4c6;font-size:0;line-height:0;">&nbsp;</td></tr>
+</table>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:20px;">
+The Mothers · Carrer de Girona, 08009 Barcelona, Spain<br>
+<a href="mailto:hello@themothers.cc" style="color:#7b1f2c;text-decoration:underline;">hello@themothers.cc</a> &nbsp;·&nbsp;
+<a href="https://themothers.cc" style="color:#7b1f2c;text-decoration:underline;">themothers.cc</a>
+</div>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:18px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">
+You're receiving this because you had a place at this event.<br>
+This is a service message about a booking, not a marketing email.
+</div>
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+</body>
+</html>
+\n"use server";
+
+import { db } from "@/db";
+import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member, eventPass } from "@/db/schema";
+import { eq, desc, and, sql } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+
+export async function publishAdminEvent(eventId: string) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  const existing = await db.select().from(event).where(eq(event.id, eventId));
+  if (existing.length === 0) {
+    return { success: false, error: "EVENT_NOT_FOUND" };
+  }
+  const ev = existing[0];
+
+  // Validation Criteria per Backend & Admin Briefs:
+  if (!ev.title || !ev.venueName || !ev.meetingPoint || !ev.startsAt || !ev.endsAt) {
+    return { success: false, error: "Missing required fields (title, venue, meeting point, dates)." };
+  }
+
+  if (new Date(ev.startsAt).getTime() <= Date.now()) {
+    return { success: false, error: "Cannot publish an event with a date in the past." };
+  }
+
+  if (ev.capacityMember < 0) {
+    return { success: false, error: "Member capacity cannot be negative." };
+  }
+
+  if (ev.capacityMember > 0 && ev.minToConfirm > ev.capacityMember) {
+    return { success: false, error: "Minimum to confirm cannot exceed member capacity." };
+  }
+
+  // If minToConfirm is 0, skips pending and goes directly to confirmed (§4.3)
+  const targetStatus = (ev.minToConfirm || 0) === 0 ? "confirmed" : "published_pending";
+  const now = new Date();
+
+  // Compute T-schedule defaults if not already present
+  const starts = new Date(ev.startsAt);
+  const guestOpenAt = ev.guestOpenAt || new Date(starts.getTime() - 14 * 86400000);
+  const decisionAt = ev.decisionAt || new Date(starts.getTime() - 7 * 86400000);
+  const guestCloseAt = ev.guestCloseAt || new Date(starts.getTime() - 2 * 86400000);
+
+  await db.update(event).set({
+    status: targetStatus,
+    publishedAt: now,
+    confirmedAt: targetStatus === "confirmed" ? now : ev.confirmedAt,
+    guestOpenAt,
+    decisionAt,
+    guestCloseAt,
+    updatedAt: now,
+  }).where(eq(event.id, eventId));
+
+  await db.insert(auditLog).values({
+    actorId: adminId || "admin",
+    actorType: "admin",
+    action: "event.publish",
+    entity: "event",
+    entityId: eventId,
+    before: { status: ev.status },
+    after: { status: targetStatus, publishedAt: now },
+  });
+
+  return { success: true, status: targetStatus };
+}
+
+export async function getAdminEvents() {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "host", "super_admin", "read_only"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED" };
+  }
+
+  const eventsData = await db
+    .select({
+      event: event,
+      categoryName: eventCategory.name,
+      bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
+      memberBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'member' THEN 1 END)::int`,
+      guestBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'guest' THEN 1 END)::int`,
+    })
+    .from(event)
+    .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+    .leftJoin(booking, eq(booking.eventId, event.id))
+    .groupBy(event.id, eventCategory.name)
+    .orderBy(desc(event.startsAt));
+
+  const events = eventsData.map(e => ({
+    ...e.event,
+    categoryName: e.categoryName,
+    bookingsCount: e.bookingsCount,
+    memberBookingsCount: e.memberBookingsCount,
+    guestBookingsCount: e.guestBookingsCount,
+  }));
+
+  return { success: true, events };
+}
+
+export async function createAdminEvent(data: {
+  title: string;
+  categoryId?: string;
+  category?: string;
+  partnerId?: string;
+  host?: string;
+  description?: string;
+  neighbourhood: string;
+  venueName: string;
+  meetingPoint: string;
+  startsAt: Date;
+  endsAt: Date;
+  creditCost: number;
+  capacityMember: number;
+  capacityGuest: number;
+  capacityGuestGathering?: number;
+  minToConfirm?: number;
+  isSignature?: boolean;
+  status?: "draft" | "published_pending";
+  languages?: string[];
+  showEventPassCta?: boolean;
+  guestOpenAt?: Date;
+  guestCloseAt?: Date;
+  decisionAt?: Date;
+  publishedAt?: Date;
+  targetStages?: string[];
+}) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  // Resolve categoryId if category name/string is supplied
+  let resolvedCategoryId = data.categoryId || null;
+  if (!resolvedCategoryId && data.category) {
+    const allCats = await db.select().from(eventCategory);
+    const catLower = data.category.toLowerCase();
+    const found = allCats.find(c => c.name.toLowerCase().includes(catLower) || c.slug.toLowerCase().includes(catLower));
+    if (found) {
+      resolvedCategoryId = found.id;
+    }
+  }
+
+  const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-${Date.now().toString().slice(-4)}`;
+
+  const inserted = await db
+    .insert(event)
+    .values({
+      title: data.title,
+      slug,
+      categoryId: resolvedCategoryId,
+      description: data.description || "A curated club gathering for mothers in Barcelona.",
+      neighbourhood: data.neighbourhood || "Barcelona",
+      venueName: data.venueName,
+      meetingPoint: data.meetingPoint,
+      startsAt: data.startsAt,
+      endsAt: data.endsAt,
+      creditCost: data.creditCost,
+      capacityMember: data.capacityMember,
+      capacityGuest: data.capacityGuest,
+      capacityGuestGathering: data.capacityGuestGathering,
+      minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 4,
+      isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
+      isFreeWalk: data.creditCost === 0,
+      showEventPassCta: !!data.showEventPassCta,
+      partnerId: data.partnerId || data.host || null,
+      status: data.status || "published_pending",
+      languages: data.languages || [],
+      guestOpenAt: data.guestOpenAt,
+      guestCloseAt: data.guestCloseAt,
+      decisionAt: data.decisionAt,
+      publishedAt: data.status === "published_pending" ? new Date() : undefined,
+      hostAdminId: adminId,
+    })
+    .returning();
+
+  const newEventId = inserted[0].id;
+
+  if (data.targetStages && data.targetStages.length > 0) {
+    const allStages = await db.select().from(stage);
+    const stagesToInsert = [];
+    for (const sName of data.targetStages) {
+      const found = allStages.find(st => st.labelEn.toLowerCase().includes(sName.toLowerCase()) || st.key.toLowerCase().includes(sName.toLowerCase()));
+      if (found) {
+        stagesToInsert.push({ eventId: newEventId, stageId: found.id });
+      }
+    }
+    if (stagesToInsert.length > 0) {
+      await db.insert(eventStage).values(stagesToInsert);
+    }
+  }
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "create_event",
+    entity: "event",
+    entityId: newEventId,
+    after: { title: data.title, creditCost: data.creditCost, status: data.status },
+  });
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+
+  return { success: true, eventId: newEventId };
+}
+
+export async function updateAdminEvent(eventId: string, data: {
+  title?: string;
+  categoryId?: string;
+  category?: string;
+  partnerId?: string;
+  host?: string;
+  description?: string;
+  neighbourhood?: string;
+  venueName?: string;
+  meetingPoint?: string;
+  startsAt?: Date;
+  endsAt?: Date;
+  creditCost?: number;
+  capacityMember?: number;
+  capacityGuest?: number;
+  capacityGuestGathering?: number;
+  minToConfirm?: number;
+  isSignature?: boolean;
+  showEventPassCta?: boolean;
+  languages?: string[];
+  changeNote?: string;
+  status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
+}) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  const existing = await db.query.event.findFirst({
+    where: eq(event.id, eventId),
+  });
+  if (!existing) return { success: false, error: "EVENT_NOT_FOUND" };
+
+  const timeChanged = data.startsAt && new Date(data.startsAt).getTime() !== new Date(existing.startsAt).getTime();
+  const venueChanged = (data.venueName && data.venueName !== existing.venueName) || (data.meetingPoint && data.meetingPoint !== existing.meetingPoint);
+
+  // Resolve categoryId if category name/string is supplied
+  let resolvedCategoryId = data.categoryId;
+  if (resolvedCategoryId === undefined && data.category) {
+    const allCats = await db.select().from(eventCategory);
+    const catLower = data.category.toLowerCase();
+    const found = allCats.find(c => c.name.toLowerCase().includes(catLower) || c.slug.toLowerCase().includes(catLower));
+    if (found) {
+      resolvedCategoryId = found.id;
+    }
+  }
+
+  const isSig = data.isSignature !== undefined
+    ? data.isSignature
+    : (data.category?.toLowerCase().includes("signature") ?? existing.isSignature);
+
+  await db
+    .update(event)
+    .set({
+      ...(data.title !== undefined && { title: data.title }),
+      ...(resolvedCategoryId !== undefined && { categoryId: resolvedCategoryId || null }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.neighbourhood !== undefined && { neighbourhood: data.neighbourhood }),
+      ...(data.venueName !== undefined && { venueName: data.venueName }),
+      ...(data.meetingPoint !== undefined && { meetingPoint: data.meetingPoint }),
+      ...(data.startsAt !== undefined && { startsAt: data.startsAt }),
+      ...(data.endsAt !== undefined && { endsAt: data.endsAt }),
+      ...(data.creditCost !== undefined && { creditCost: data.creditCost, isFreeWalk: data.creditCost === 0 }),
+      ...(data.capacityMember !== undefined && { capacityMember: data.capacityMember }),
+      ...(data.capacityGuest !== undefined && { capacityGuest: data.capacityGuest }),
+      ...(data.capacityGuestGathering !== undefined && { capacityGuestGathering: data.capacityGuestGathering }),
+      ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
+      ...(isSig !== undefined && { isSignature: isSig }),
+      ...(data.showEventPassCta !== undefined && { showEventPassCta: !!data.showEventPassCta }),
+      ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
+      ...(data.languages !== undefined && { languages: data.languages }),
+      ...(data.status !== undefined && {
+        status: data.status,
+        ...(data.status !== "draft" && !existing.publishedAt && { publishedAt: new Date() }),
+      }),
+      updatedAt: new Date(),
+    })
+    .where(eq(event.id, eventId));
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "update_event",
+    entity: "event",
+    entityId: eventId,
+    before: { startsAt: existing.startsAt, venueName: existing.venueName, meetingPoint: existing.meetingPoint },
+    after: { ...data, changeNote: data.changeNote },
+  });
+
+  // If date/time/venue changed on an active event with bookings, notify all booked attendees (Dev Brief §3.5b)
+  if (timeChanged || venueChanged) {
+    try {
+      const activeBookings = await db
+        .select({
+          bookingId: booking.id,
+          personId: booking.personId,
+          email: person.email,
+          firstName: person.firstName,
+          lastName: person.lastName,
+        })
+        .from(booking)
+        .leftJoin(person, eq(booking.personId, person.id))
+        .where(
+          and(
+            eq(booking.eventId, eventId),
+            sql`${booking.status} IN ('held', 'confirmed')`
+          )
+        );
+
+      const { queueAndSendEmail } = await import("@/lib/brevo");
+      const eventTitle = data.title || existing.title;
+      const newStartsAt = data.startsAt ? new Date(data.startsAt) : new Date(existing.startsAt);
+      const dateFormatted = newStartsAt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+      for (const b of activeBookings) {
+        if (!b.email || !b.personId) continue;
+        await queueAndSendEmail({
+          personId: b.personId,
+          toEmail: b.email,
+          toName: `${b.firstName || "Member"} ${b.lastName || ""}`.trim(),
+          templateKey: "event_details_updated",
+          dedupeKey: `event_update_${eventId}_${b.bookingId}_${Date.now().toString().slice(0, 8)}`,
+          subject: `Update regarding ${eventTitle}`,
+          htmlContent: `
+            <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #f8efe2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
+              <h2 style="font-size: 22px; color: #7b1f2c; margin-top: 0;">Important update for ${eventTitle}</h2>
+              <p style="font-size: 15px; line-height: 1.6;">Dear ${b.firstName || "Member"},</p>
+              <p style="font-size: 15px; line-height: 1.6;">We have updated the schedule or location details for this gathering:</p>
+              ${data.changeNote ? `<p style="font-size: 14.5px; line-height: 1.5; font-style: italic; background: rgba(123,31,44,0.06); padding: 10px 14px; border-left: 2px solid #7b1f2c;">"${data.changeNote}"</p>` : ''}
+              <div style="background: #ffffff; padding: 16px; border-radius: 4px; border-left: 3px solid #7b1f2c; margin: 16px 0;">
+                <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>New Date & Time:</strong> ${dateFormatted}</p>
+                <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Venue:</strong> ${data.venueName || existing.venueName}</p>
+                <p style="margin: 0; font-size: 14px;"><strong>Meeting Point:</strong> ${data.meetingPoint || existing.meetingPoint}</p>
               </div>
+              <p style="font-size: 14px; line-height: 1.5; color: rgba(57,41,42,0.8);">If the new schedule no longer works for you, you can release your place anytime from your account without penalty, and all credits will be returned to your balance.</p>
+              <p style="font-size: 14px; margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+            </div>
+          `,
+          isTransactional: true,
+        });
+      }
+    } catch (notifyErr) {
+      console.error("Failed to dispatch event update notifications:", notifyErr);
+    }
+  }
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+
+  return { success: true };
+}
+
+export async function confirmEventDecision(eventId: string) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(event)
+      .set({
+        status: "confirmed",
+        confirmedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(event.id, eventId));
+
+    // Update all held bookings for this event to confirmed
+    await tx
+      .update(booking)
+      .set({
+        status: "confirmed",
+        updatedAt: new Date(),
+      })
+      .where(and(eq(booking.eventId, eventId), eq(booking.status, "held")));
+
+    await tx.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "confirm_event",
+      entity: "event",
+      entityId: eventId,
+    });
+  });
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+
+  return { success: true };
+}
+
+export async function cancelEventDecision(eventId: string, cancelReason?: string) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  await db.transaction(async (tx) => {
+    const ev = await tx.query.event.findFirst({
+      where: eq(event.id, eventId),
+    });
+    if (!ev) throw new Error("EVENT_NOT_FOUND");
+
+    await tx
+      .update(event)
+      .set({
+        status: "cancelled",
+        cancelledAt: new Date(),
+        cancelReason: cancelReason || "Cancelled by club",
+        updatedAt: new Date(),
+      })
+      .where(eq(event.id, eventId));
+
+    // 1. Fetch all active bookings to refund credits
+    const activeBookingsWithPerson = await tx
+      .select({
+        booking: booking,
+        person: person,
+      })
+      .from(booking)
+      .leftJoin(person, eq(booking.personId, person.id))
+      .where(
+        and(
+          eq(booking.eventId, eventId),
+          sql`${booking.status} IN ('held', 'confirmed')`
+        )
+      );
+
+    for (const row of activeBookingsWithPerson) {
+      const b = row.booking;
+      const p = row.person;
+      
+      await tx
+        .update(booking)
+        .set({
+          status: "cancelled_event",
+          updatedAt: new Date(),
+        })
+        .where(eq(booking.id, b.id));
+
+      if (b.memberId && b.creditsCharged > 0) {
+        const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+        await tx.insert(creditEntry).values({
+          memberId: b.memberId,
+          amount: b.creditsCharged,
+          type: "return_cancellation",
+          expiresAt,
+          sourceType: "event",
+          sourceId: eventId,
+          reason: `Auto refund: ${ev.title} cancelled by club`,
+        });
+      }
+
+      if (p && p.email) {
+        const { queueAndSendEmail } = await import("@/lib/brevo");
+        
+        // Members get the member template, guests get the guest template
+        if (b.memberId) {
+          await queueAndSendEmail({
+            personId: p.id,
+            toEmail: p.email,
+            toName: p.firstName || "Member",
+            templateKey: "event_cancelled",
+            dedupeKey: `event_cancel_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
+            subject: `Update regarding ${ev.title}`,
             `,
             isTransactional: true,
           });
@@ -510,14 +1146,666 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
             templateKey: "event_cancelled_guest",
             dedupeKey: `event_cancel_guest_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
             subject: `Update regarding ${ev.title}`,
-            htmlContent: `
-              <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #f8efe2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
-                <h2 style="font-size: 22px; color: #7b1f2c; margin-top: 0;">Important update for ${ev.title}</h2>
-                <p style="font-size: 15px; line-height: 1.6;">Dear ${p.firstName || "Guest"},</p>
-                <p style="font-size: 15px; line-height: 1.6;">We're sorry to let you know that we've had to cancel <strong>${ev.title}</strong>.</p>
-                <p style="font-size: 15px; line-height: 1.6;">Our team has initiated a full refund for your guest pass. Please allow 3–5 days for the funds to appear on your statement.</p>
-                <p style="font-size: 14px; margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+            htmlContent: `\n<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>An event will not go ahead — The Mothers</title>
+<!--[if mso]>
+<style>body,table,td,p,a{font-family:Georgia,'Times New Roman',serif !important;}</style>
+<![endif]-->
+<style>
+@media only screen and (max-width:620px){
+  .px{padding-left:24px !important;padding-right:24px !important;}
+  .h1{font-size:30px !important;line-height:36px !important;}
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#efeae1;">
+<span style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">This one will not run — your €35 is on its way back to your card in full.</span>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
+<tr>
+<td align="center" style="padding:32px 12px;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#faf7f1;border:1px solid #ddd4c6;">
+
+<tr>
+<td class="px" align="center" style="padding:34px 48px 26px;border-bottom:1px solid #ddd4c6;">
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:20px;mso-line-height-rule:exactly;letter-spacing:3px;text-transform:uppercase;color:#7b1f2c;">The Mothers</div>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:1.5px;text-transform:uppercase;color:#8a807a;padding-top:7px;">Barcelona</div>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:38px 48px 0;">
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Event cancelled · refunded</div>
+<h1 class="h1" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:42px;mso-line-height-rule:exactly;font-weight:normal;color:#2A1E20;">This one will not go ahead.</h1>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
+<p style="margin:0 0 16px;">Hello <span style="color:#7b1f2c;">${p.firstName || 'Guest'}</span>,</p>
+<p style="margin:0 0 16px;">We're sorry — <strong style="font-weight:normal;color:#7b1f2c;">[Event title]</strong> on [day, date] will not run. [Reason in one plain sentence].</p>
+<p style="margin:0 0 16px;">Your <strong style="font-weight:normal;color:#7b1f2c;">€35 is refunded in full</strong>, to the card you paid with. There is nothing to claim and no form to fill in.</p>
+<p style="margin:0;">This was your first time with us and it is not the introduction we wanted. Your pass is not counted as used — you still have both.</p>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:30px 48px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #ddd4c6;background-color:#f3efe6;">
+<tr>
+<td style="padding:22px 24px 14px;font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;">Your refund</td>
+</tr>
+<tr>
+<td style="padding:0 24px 22px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Event</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Event title]</td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Was</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Day, date] · [time]</td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Refunded</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;"><strong style="font-weight:normal;color:#7b1f2c;">€35</strong> — to [card ending 0000]</td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Arrives</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">within [5–10] working days</td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Passes left</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">Both of yours are intact</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:28px 48px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td bgcolor="#7b1f2c" style="border-radius:4px;">
+<a href="Events.dc.html" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">Find another event</a>
+</td>
+</tr>
+</table>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">Or come to a walk this weekend — those are free, and they always run.</div>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:32px 48px 0;">
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Worth knowing</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
+<tr>
+<td width="26" valign="top" style="width:26px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">01</td>
+<td valign="top" style="">Our walks and park socials are free, open to any mother, and never cancelled for numbers.</td>
+</tr>
+<tr>
+<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">02</td>
+<td valign="top" style="padding-top:10px;">Paid events need a minimum to be worth holding. We decide a week ahead precisely so this email is an inconvenience and not a wasted evening.</td>
+</tr>
+<tr>
+<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">03</td>
+<td valign="top" style="padding-top:10px;">Nothing you paid is retained. If the amount does not appear by [date], reply and we will chase it.</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:28px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#5c534e;">
+<p style="margin:0;">Reply to this email if anything is unclear — it reaches us directly.</p>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:26px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
+<p style="margin:0;">With our apologies,<br>The Mothers Team</p>
+</td>
+</tr>
+
+<tr>
+<td class="px" align="center" style="padding:32px 48px 34px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+<tr><td style="border-top:1px solid #ddd4c6;font-size:0;line-height:0;">&nbsp;</td></tr>
+</table>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:20px;">
+The Mothers · Carrer de Girona, 08009 Barcelona, Spain<br>
+<a href="mailto:hello@themothers.cc" style="color:#7b1f2c;text-decoration:underline;">hello@themothers.cc</a> &nbsp;·&nbsp;
+<a href="https://themothers.cc" style="color:#7b1f2c;text-decoration:underline;">themothers.cc</a>
+</div>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:18px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">
+You're receiving this because you booked a place at this event.<br>
+This is a service message about a booking, not a marketing email.
+</div>
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+</body>
+</html>
+\nn"use server";
+
+import { db } from "@/db";
+import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member, eventPass } from "@/db/schema";
+import { eq, desc, and, sql } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+
+export async function publishAdminEvent(eventId: string) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  const existing = await db.select().from(event).where(eq(event.id, eventId));
+  if (existing.length === 0) {
+    return { success: false, error: "EVENT_NOT_FOUND" };
+  }
+  const ev = existing[0];
+
+  // Validation Criteria per Backend & Admin Briefs:
+  if (!ev.title || !ev.venueName || !ev.meetingPoint || !ev.startsAt || !ev.endsAt) {
+    return { success: false, error: "Missing required fields (title, venue, meeting point, dates)." };
+  }
+
+  if (new Date(ev.startsAt).getTime() <= Date.now()) {
+    return { success: false, error: "Cannot publish an event with a date in the past." };
+  }
+
+  if (ev.capacityMember < 0) {
+    return { success: false, error: "Member capacity cannot be negative." };
+  }
+
+  if (ev.capacityMember > 0 && ev.minToConfirm > ev.capacityMember) {
+    return { success: false, error: "Minimum to confirm cannot exceed member capacity." };
+  }
+
+  // If minToConfirm is 0, skips pending and goes directly to confirmed (§4.3)
+  const targetStatus = (ev.minToConfirm || 0) === 0 ? "confirmed" : "published_pending";
+  const now = new Date();
+
+  // Compute T-schedule defaults if not already present
+  const starts = new Date(ev.startsAt);
+  const guestOpenAt = ev.guestOpenAt || new Date(starts.getTime() - 14 * 86400000);
+  const decisionAt = ev.decisionAt || new Date(starts.getTime() - 7 * 86400000);
+  const guestCloseAt = ev.guestCloseAt || new Date(starts.getTime() - 2 * 86400000);
+
+  await db.update(event).set({
+    status: targetStatus,
+    publishedAt: now,
+    confirmedAt: targetStatus === "confirmed" ? now : ev.confirmedAt,
+    guestOpenAt,
+    decisionAt,
+    guestCloseAt,
+    updatedAt: now,
+  }).where(eq(event.id, eventId));
+
+  await db.insert(auditLog).values({
+    actorId: adminId || "admin",
+    actorType: "admin",
+    action: "event.publish",
+    entity: "event",
+    entityId: eventId,
+    before: { status: ev.status },
+    after: { status: targetStatus, publishedAt: now },
+  });
+
+  return { success: true, status: targetStatus };
+}
+
+export async function getAdminEvents() {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "host", "super_admin", "read_only"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED" };
+  }
+
+  const eventsData = await db
+    .select({
+      event: event,
+      categoryName: eventCategory.name,
+      bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
+      memberBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'member' THEN 1 END)::int`,
+      guestBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'guest' THEN 1 END)::int`,
+    })
+    .from(event)
+    .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+    .leftJoin(booking, eq(booking.eventId, event.id))
+    .groupBy(event.id, eventCategory.name)
+    .orderBy(desc(event.startsAt));
+
+  const events = eventsData.map(e => ({
+    ...e.event,
+    categoryName: e.categoryName,
+    bookingsCount: e.bookingsCount,
+    memberBookingsCount: e.memberBookingsCount,
+    guestBookingsCount: e.guestBookingsCount,
+  }));
+
+  return { success: true, events };
+}
+
+export async function createAdminEvent(data: {
+  title: string;
+  categoryId?: string;
+  category?: string;
+  partnerId?: string;
+  host?: string;
+  description?: string;
+  neighbourhood: string;
+  venueName: string;
+  meetingPoint: string;
+  startsAt: Date;
+  endsAt: Date;
+  creditCost: number;
+  capacityMember: number;
+  capacityGuest: number;
+  capacityGuestGathering?: number;
+  minToConfirm?: number;
+  isSignature?: boolean;
+  status?: "draft" | "published_pending";
+  languages?: string[];
+  showEventPassCta?: boolean;
+  guestOpenAt?: Date;
+  guestCloseAt?: Date;
+  decisionAt?: Date;
+  publishedAt?: Date;
+  targetStages?: string[];
+}) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  // Resolve categoryId if category name/string is supplied
+  let resolvedCategoryId = data.categoryId || null;
+  if (!resolvedCategoryId && data.category) {
+    const allCats = await db.select().from(eventCategory);
+    const catLower = data.category.toLowerCase();
+    const found = allCats.find(c => c.name.toLowerCase().includes(catLower) || c.slug.toLowerCase().includes(catLower));
+    if (found) {
+      resolvedCategoryId = found.id;
+    }
+  }
+
+  const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-${Date.now().toString().slice(-4)}`;
+
+  const inserted = await db
+    .insert(event)
+    .values({
+      title: data.title,
+      slug,
+      categoryId: resolvedCategoryId,
+      description: data.description || "A curated club gathering for mothers in Barcelona.",
+      neighbourhood: data.neighbourhood || "Barcelona",
+      venueName: data.venueName,
+      meetingPoint: data.meetingPoint,
+      startsAt: data.startsAt,
+      endsAt: data.endsAt,
+      creditCost: data.creditCost,
+      capacityMember: data.capacityMember,
+      capacityGuest: data.capacityGuest,
+      capacityGuestGathering: data.capacityGuestGathering,
+      minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 4,
+      isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
+      isFreeWalk: data.creditCost === 0,
+      showEventPassCta: !!data.showEventPassCta,
+      partnerId: data.partnerId || data.host || null,
+      status: data.status || "published_pending",
+      languages: data.languages || [],
+      guestOpenAt: data.guestOpenAt,
+      guestCloseAt: data.guestCloseAt,
+      decisionAt: data.decisionAt,
+      publishedAt: data.status === "published_pending" ? new Date() : undefined,
+      hostAdminId: adminId,
+    })
+    .returning();
+
+  const newEventId = inserted[0].id;
+
+  if (data.targetStages && data.targetStages.length > 0) {
+    const allStages = await db.select().from(stage);
+    const stagesToInsert = [];
+    for (const sName of data.targetStages) {
+      const found = allStages.find(st => st.labelEn.toLowerCase().includes(sName.toLowerCase()) || st.key.toLowerCase().includes(sName.toLowerCase()));
+      if (found) {
+        stagesToInsert.push({ eventId: newEventId, stageId: found.id });
+      }
+    }
+    if (stagesToInsert.length > 0) {
+      await db.insert(eventStage).values(stagesToInsert);
+    }
+  }
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "create_event",
+    entity: "event",
+    entityId: newEventId,
+    after: { title: data.title, creditCost: data.creditCost, status: data.status },
+  });
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+
+  return { success: true, eventId: newEventId };
+}
+
+export async function updateAdminEvent(eventId: string, data: {
+  title?: string;
+  categoryId?: string;
+  category?: string;
+  partnerId?: string;
+  host?: string;
+  description?: string;
+  neighbourhood?: string;
+  venueName?: string;
+  meetingPoint?: string;
+  startsAt?: Date;
+  endsAt?: Date;
+  creditCost?: number;
+  capacityMember?: number;
+  capacityGuest?: number;
+  capacityGuestGathering?: number;
+  minToConfirm?: number;
+  isSignature?: boolean;
+  showEventPassCta?: boolean;
+  languages?: string[];
+  changeNote?: string;
+  status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
+}) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  const existing = await db.query.event.findFirst({
+    where: eq(event.id, eventId),
+  });
+  if (!existing) return { success: false, error: "EVENT_NOT_FOUND" };
+
+  const timeChanged = data.startsAt && new Date(data.startsAt).getTime() !== new Date(existing.startsAt).getTime();
+  const venueChanged = (data.venueName && data.venueName !== existing.venueName) || (data.meetingPoint && data.meetingPoint !== existing.meetingPoint);
+
+  // Resolve categoryId if category name/string is supplied
+  let resolvedCategoryId = data.categoryId;
+  if (resolvedCategoryId === undefined && data.category) {
+    const allCats = await db.select().from(eventCategory);
+    const catLower = data.category.toLowerCase();
+    const found = allCats.find(c => c.name.toLowerCase().includes(catLower) || c.slug.toLowerCase().includes(catLower));
+    if (found) {
+      resolvedCategoryId = found.id;
+    }
+  }
+
+  const isSig = data.isSignature !== undefined
+    ? data.isSignature
+    : (data.category?.toLowerCase().includes("signature") ?? existing.isSignature);
+
+  await db
+    .update(event)
+    .set({
+      ...(data.title !== undefined && { title: data.title }),
+      ...(resolvedCategoryId !== undefined && { categoryId: resolvedCategoryId || null }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.neighbourhood !== undefined && { neighbourhood: data.neighbourhood }),
+      ...(data.venueName !== undefined && { venueName: data.venueName }),
+      ...(data.meetingPoint !== undefined && { meetingPoint: data.meetingPoint }),
+      ...(data.startsAt !== undefined && { startsAt: data.startsAt }),
+      ...(data.endsAt !== undefined && { endsAt: data.endsAt }),
+      ...(data.creditCost !== undefined && { creditCost: data.creditCost, isFreeWalk: data.creditCost === 0 }),
+      ...(data.capacityMember !== undefined && { capacityMember: data.capacityMember }),
+      ...(data.capacityGuest !== undefined && { capacityGuest: data.capacityGuest }),
+      ...(data.capacityGuestGathering !== undefined && { capacityGuestGathering: data.capacityGuestGathering }),
+      ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
+      ...(isSig !== undefined && { isSignature: isSig }),
+      ...(data.showEventPassCta !== undefined && { showEventPassCta: !!data.showEventPassCta }),
+      ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
+      ...(data.languages !== undefined && { languages: data.languages }),
+      ...(data.status !== undefined && {
+        status: data.status,
+        ...(data.status !== "draft" && !existing.publishedAt && { publishedAt: new Date() }),
+      }),
+      updatedAt: new Date(),
+    })
+    .where(eq(event.id, eventId));
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "update_event",
+    entity: "event",
+    entityId: eventId,
+    before: { startsAt: existing.startsAt, venueName: existing.venueName, meetingPoint: existing.meetingPoint },
+    after: { ...data, changeNote: data.changeNote },
+  });
+
+  // If date/time/venue changed on an active event with bookings, notify all booked attendees (Dev Brief §3.5b)
+  if (timeChanged || venueChanged) {
+    try {
+      const activeBookings = await db
+        .select({
+          bookingId: booking.id,
+          personId: booking.personId,
+          email: person.email,
+          firstName: person.firstName,
+          lastName: person.lastName,
+        })
+        .from(booking)
+        .leftJoin(person, eq(booking.personId, person.id))
+        .where(
+          and(
+            eq(booking.eventId, eventId),
+            sql`${booking.status} IN ('held', 'confirmed')`
+          )
+        );
+
+      const { queueAndSendEmail } = await import("@/lib/brevo");
+      const eventTitle = data.title || existing.title;
+      const newStartsAt = data.startsAt ? new Date(data.startsAt) : new Date(existing.startsAt);
+      const dateFormatted = newStartsAt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+      for (const b of activeBookings) {
+        if (!b.email || !b.personId) continue;
+        await queueAndSendEmail({
+          personId: b.personId,
+          toEmail: b.email,
+          toName: `${b.firstName || "Member"} ${b.lastName || ""}`.trim(),
+          templateKey: "event_details_updated",
+          dedupeKey: `event_update_${eventId}_${b.bookingId}_${Date.now().toString().slice(0, 8)}`,
+          subject: `Update regarding ${eventTitle}`,
+          htmlContent: `
+            <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #f8efe2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
+              <h2 style="font-size: 22px; color: #7b1f2c; margin-top: 0;">Important update for ${eventTitle}</h2>
+              <p style="font-size: 15px; line-height: 1.6;">Dear ${b.firstName || "Member"},</p>
+              <p style="font-size: 15px; line-height: 1.6;">We have updated the schedule or location details for this gathering:</p>
+              ${data.changeNote ? `<p style="font-size: 14.5px; line-height: 1.5; font-style: italic; background: rgba(123,31,44,0.06); padding: 10px 14px; border-left: 2px solid #7b1f2c;">"${data.changeNote}"</p>` : ''}
+              <div style="background: #ffffff; padding: 16px; border-radius: 4px; border-left: 3px solid #7b1f2c; margin: 16px 0;">
+                <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>New Date & Time:</strong> ${dateFormatted}</p>
+                <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Venue:</strong> ${data.venueName || existing.venueName}</p>
+                <p style="margin: 0; font-size: 14px;"><strong>Meeting Point:</strong> ${data.meetingPoint || existing.meetingPoint}</p>
               </div>
+              <p style="font-size: 14px; line-height: 1.5; color: rgba(57,41,42,0.8);">If the new schedule no longer works for you, you can release your place anytime from your account without penalty, and all credits will be returned to your balance.</p>
+              <p style="font-size: 14px; margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+            </div>
+          `,
+          isTransactional: true,
+        });
+      }
+    } catch (notifyErr) {
+      console.error("Failed to dispatch event update notifications:", notifyErr);
+    }
+  }
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+
+  return { success: true };
+}
+
+export async function confirmEventDecision(eventId: string) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(event)
+      .set({
+        status: "confirmed",
+        confirmedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(event.id, eventId));
+
+    // Update all held bookings for this event to confirmed
+    await tx
+      .update(booking)
+      .set({
+        status: "confirmed",
+        updatedAt: new Date(),
+      })
+      .where(and(eq(booking.eventId, eventId), eq(booking.status, "held")));
+
+    await tx.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "confirm_event",
+      entity: "event",
+      entityId: eventId,
+    });
+  });
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+
+  return { success: true };
+}
+
+export async function cancelEventDecision(eventId: string, cancelReason?: string) {
+  const session = await auth();
+  const adminId = session?.user?.id;
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  await db.transaction(async (tx) => {
+    const ev = await tx.query.event.findFirst({
+      where: eq(event.id, eventId),
+    });
+    if (!ev) throw new Error("EVENT_NOT_FOUND");
+
+    await tx
+      .update(event)
+      .set({
+        status: "cancelled",
+        cancelledAt: new Date(),
+        cancelReason: cancelReason || "Cancelled by club",
+        updatedAt: new Date(),
+      })
+      .where(eq(event.id, eventId));
+
+    // 1. Fetch all active bookings to refund credits
+    const activeBookingsWithPerson = await tx
+      .select({
+        booking: booking,
+        person: person,
+      })
+      .from(booking)
+      .leftJoin(person, eq(booking.personId, person.id))
+      .where(
+        and(
+          eq(booking.eventId, eventId),
+          sql`${booking.status} IN ('held', 'confirmed')`
+        )
+      );
+
+    for (const row of activeBookingsWithPerson) {
+      const b = row.booking;
+      const p = row.person;
+      
+      await tx
+        .update(booking)
+        .set({
+          status: "cancelled_event",
+          updatedAt: new Date(),
+        })
+        .where(eq(booking.id, b.id));
+
+      if (b.memberId && b.creditsCharged > 0) {
+        const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+        await tx.insert(creditEntry).values({
+          memberId: b.memberId,
+          amount: b.creditsCharged,
+          type: "return_cancellation",
+          expiresAt,
+          sourceType: "event",
+          sourceId: eventId,
+          reason: `Auto refund: ${ev.title} cancelled by club`,
+        });
+      }
+
+      if (p && p.email) {
+        const { queueAndSendEmail } = await import("@/lib/brevo");
+        
+        // Members get the member template, guests get the guest template
+        if (b.memberId) {
+          await queueAndSendEmail({
+            personId: p.id,
+            toEmail: p.email,
+            toName: p.firstName || "Member",
+            templateKey: "event_cancelled",
+            dedupeKey: `event_cancel_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
+            subject: `Update regarding ${ev.title}`,
+            `,
+            isTransactional: true,
+          });
+        } else {
+          await queueAndSendEmail({
+            personId: p.id,
+            toEmail: p.email,
+            toName: p.firstName || "Guest",
+            templateKey: "event_cancelled_guest",
+            dedupeKey: `event_cancel_guest_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
+            subject: `Update regarding ${ev.title}`,
             `,
             isTransactional: true,
           });

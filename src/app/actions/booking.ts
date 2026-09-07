@@ -199,26 +199,358 @@ export async function bookEvent(eventId: string) {
           ? `Reserva Confirmada: ${result.eventTitle} — The Mothers`
           : `Booking Confirmed: ${result.eventTitle} — The Mothers`;
 
-      const htmlContent = `
-        <div style="font-family: 'Lora', Georgia, serif; color: #39292a; max-width: 600px; margin: 0 auto; padding: 32px; background: #fdf9f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 8px;">
-          <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; margin: 0 0 16px;">
-            ${personRecord.locale === "es" ? "Plaza Reservada" : "Place Confirmed"}
-          </h2>
-          <p style="font-size: 15px; line-height: 1.6;">
-            ${
-              personRecord.locale === "es"
-                ? `Hola ${personRecord.firstName}, tienes tu plaza confirmada para <strong>${result.eventTitle}</strong>.`
-                : `Hi ${personRecord.firstName}, your place is confirmed for <strong>${result.eventTitle}</strong>.`
-            }
-          </p>
-          <div style="background: #fff; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px; padding: 16px; margin: 20px 0; font-size: 14px;">
-            <div>📅 <strong>${new Date(result.startsAt).toLocaleDateString()}</strong></div>
-            <div>📍 <strong>${result.venueName}</strong></div>
-          </div>
-          <p style="font-size: 13px; color: rgba(57,41,42,0.6); margin-top: 24px;">
-            The Mothers · Barcelona · hello@themothers.cc
-          </p>
-        </div>
+      const htmlContent = `\n<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Your place is booked — The Mothers</title>
+<!--[if mso]>
+<style>body,table,td,p,a{font-family:Georgia,'Times New Roman',serif !important;}</style>
+<![endif]-->
+<style>
+@media only screen and (max-width:620px){
+  .px{padding-left:24px !important;padding-right:24px !important;}
+  .h1{font-size:30px !important;line-height:36px !important;}
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#efeae1;">
+<span style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Your place is booked — this email carries the meeting point. Credits have come off your balance.</span>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
+<tr>
+<td align="center" style="padding:32px 12px;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#faf7f1;border:1px solid #ddd4c6;">
+
+<tr>
+<td class="px" align="center" style="padding:34px 48px 26px;border-bottom:1px solid #ddd4c6;">
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:20px;mso-line-height-rule:exactly;letter-spacing:3px;text-transform:uppercase;color:#7b1f2c;">The Mothers</div>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:1.5px;text-transform:uppercase;color:#8a807a;padding-top:7px;">Barcelona</div>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:38px 48px 0;">
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Booking confirmed</div>
+<h1 class="h1" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:42px;mso-line-height-rule:exactly;font-weight:normal;color:#2A1E20;">Your place is booked.</h1>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
+<p style="margin:0 0 16px;">Hello <span style="color:#7b1f2c;">${personRecord.firstName}</span>,</p>
+<p style="margin:0 0 16px;">You're in. <strong style="font-weight:normal;color:#7b1f2c;">[Event title]</strong> — the details are below, and this email is the only thing you need to bring.</p>
+<p style="margin:0;">If plans change, release your place from your account and the credits come straight back, up to [24 hours] before. After that they don't, because the table is already laid.</p>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:30px 48px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #ddd4c6;background-color:#f3efe6;">
+<tr>
+<td style="padding:22px 24px 14px;font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;">Where and when</td>
+</tr>
+<tr>
+<td style="padding:0 24px 22px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
+<div style="font-size:20px;line-height:28px;mso-line-height-rule:exactly;padding-bottom:12px;">[Event title]</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Date</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Day, date] · [time]</td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Meeting point</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Street and number]<br><span style="color:#8a807a;font-size:14px;">[Neighbourhood]</span></td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Spent</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;"><strong style="font-weight:normal;color:#7b1f2c;">[N] credits</strong></td>
+</tr>
+<tr>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Balance</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[N] credits left this month</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:28px 48px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td bgcolor="#7b1f2c" style="border-radius:4px;">
+<a href="Account.dc.html" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">View or release my place</a>
+</td>
+</tr>
+</table>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">Everything you have booked lives in your account.</div>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:32px 48px 0;">
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Worth knowing</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
+<tr>
+<td width="26" valign="top" style="width:26px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">01</td>
+<td valign="top" style="">Release before [24 hours] and your credits return in full. After that they stay spent — the numbers have gone to the host by then.</td>
+</tr>
+<tr>
+<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">02</td>
+<td valign="top" style="padding-top:10px;">If we cancel for any reason, your credits come back automatically and we email you a week ahead where we can.</td>
+</tr>
+<tr>
+<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">03</td>
+<td valign="top" style="padding-top:10px;">Bringing your baby? [Say which events are baby-in-arms and which are not — she should not have to guess.]</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:28px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#5c534e;">
+<p style="margin:0;">Anything before the day — dietary needs, a late arrival, a nap that overran — reply to this email.</p>
+</td>
+</tr>
+
+<tr>
+<td class="px" style="padding:26px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
+<p style="margin:0;">See you there,<br>The Mothers Team</p>
+</td>
+</tr>
+
+<tr>
+<td class="px" align="center" style="padding:32px 48px 34px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+<tr><td style="border-top:1px solid #ddd4c6;font-size:0;line-height:0;">&nbsp;</td></tr>
+</table>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:20px;">
+The Mothers · Carrer de Girona, 08009 Barcelona, Spain<br>
+<a href="mailto:hello@themothers.cc" style="color:#7b1f2c;text-decoration:underline;">hello@themothers.cc</a> &nbsp;·&nbsp;
+<a href="https://themothers.cc" style="color:#7b1f2c;text-decoration:underline;">themothers.cc</a>
+</div>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:18px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">
+You're receiving this because you booked a place using your membership credits.<br>
+This is a booking confirmation, not a marketing email.
+</div>
+</td>
+</tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+</body>
+</html>
+\n"use server";
+
+import { db } from "@/db";
+import { event, booking, creditEntry, creditAllocation, member, person, eventPass, eventWaitlist, auditLog } from "@/db/schema";
+import { eq, and, sql, desc, asc } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { canBook, canRelease, canBuyPass, canRsvp } from "@/lib/access";
+import { spendCredits, returnCredits } from "@/lib/ledger";
+import { queueAndSendEmail } from "@/lib/brevo";
+import crypto from "crypto";
+import { z } from "zod";
+
+// ─── 1. MEMBER BOOKING WITH FOR UPDATE ROW LOCK (§7.1) ──────────────────────
+
+const bookEventSchema = z.object({ eventId: z.string().uuid() });
+
+export async function bookEvent(eventId: string) {
+  const parsed = bookEventSchema.safeParse({ eventId });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  eventId = parsed.data.eventId;
+
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "AUTH_REQUIRED" };
+  }
+
+  const personId = (session.user as any).personId || session.user.id;
+  const memberId = (session.user as any).memberId;
+
+  if (!memberId) {
+    return { success: false, error: "MEMBER_ACCOUNT_REQUIRED" };
+  }
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      // 1. SELECT ... FOR UPDATE on the event row (Lock first, validate second §7.1)
+      const eventRows = await tx
+        .select()
+        .from(event)
+        .where(eq(event.id, eventId))
+        .for("update");
+
+      if (eventRows.length === 0) {
+        throw new Error("EVENT_NOT_FOUND");
+      }
+      const ev = eventRows[0];
+
+      // 2. Fetch member record
+      const memberRecord = await tx.query.member.findFirst({
+        where: eq(member.id, memberId),
+      });
+
+      if (!memberRecord) {
+        throw new Error("MEMBER_NOT_FOUND");
+      }
+
+      // 3. Count existing active bookings for member & total member seats booked
+      const [existingBooking, memberBookingsCount] = await Promise.all([
+        tx.query.booking.findFirst({
+          where: and(
+            eq(booking.eventId, eventId),
+            eq(booking.personId, personId),
+            sql`status IN ('held', 'confirmed')`
+          ),
+        }),
+        tx
+          .select({ count: sql<number>`count(*)` })
+          .from(booking)
+          .where(
+            and(
+              eq(booking.eventId, eventId),
+              eq(booking.kind, "member"),
+              sql`status IN ('held', 'confirmed')`
+            )
+          ),
+      ]);
+
+      const activeMemberBookingsCount = Number(memberBookingsCount[0]?.count || 0);
+
+      // 4. Calculate member credit balance
+      const creditEntries = await tx
+        .select()
+        .from(creditEntry)
+        .where(eq(creditEntry.memberId, memberId));
+
+      const totalBalance = creditEntries.reduce((sum, entry) => sum + entry.amount, 0);
+
+      // 5. Validate using pure access helper
+      const validation = canBook(
+        {
+          isMember: true,
+          member: memberRecord,
+          creditBalance: totalBalance,
+          hasExistingActiveBooking: !!existingBooking,
+        },
+        {
+          status: ev.status,
+          creditCost: ev.creditCost,
+          capacityMember: ev.capacityMember,
+          activeMemberBookingsCount,
+          startsAt: ev.startsAt,
+        }
+      );
+
+      if (!validation.allowed) {
+        throw new Error(validation.reasonCode || "BOOKING_REFUSED");
+      }
+
+      // 6. Write Spend Entry in Credit Ledger if cost > 0 (FIFO spend order §5)
+      let spendEntryId: string | null = null;
+      if (ev.creditCost > 0) {
+        const spendResult = await spendCredits(
+          memberId,
+          ev.creditCost,
+          "booking",
+          eventId,
+          `Booking for ${ev.title}`,
+          tx
+        );
+        spendEntryId = spendResult.spendEntryId;
+      }
+
+      // 7. Insert Booking with snapshotted creditsCharged
+      const initialStatus = ev.status === "confirmed" ? "confirmed" : "held";
+      const bookingInsert = await tx
+        .insert(booking)
+        .values({
+          eventId,
+          personId,
+          memberId,
+          kind: "member",
+          status: initialStatus,
+          creditsCharged: ev.creditCost,
+          bookedAt: new Date(),
+        })
+        .returning({ id: booking.id });
+
+      const newBookingId = bookingInsert[0].id;
+
+      // 7b. Settle oldest pending return awaiting replacement on this event (§5 & §7.3)
+      const oldestPendingReturn = await tx.query.booking.findFirst({
+        where: and(
+          eq(booking.eventId, eventId),
+          eq(booking.pendingReturnState, "awaiting_replacement")
+        ),
+        orderBy: asc(booking.releasedAt),
+      });
+
+      if (oldestPendingReturn && oldestPendingReturn.memberId && oldestPendingReturn.pendingReturnCredits > 0) {
+        await tx
+          .update(booking)
+          .set({
+            pendingReturnState: "settled_returned",
+            updatedAt: new Date(),
+          })
+          .where(eq(booking.id, oldestPendingReturn.id));
+
+        await tx.insert(creditEntry).values({
+          memberId: oldestPendingReturn.memberId,
+          amount: oldestPendingReturn.pendingReturnCredits,
+          type: "return_release",
+          sourceType: "booking",
+          sourceId: oldestPendingReturn.id,
+          reason: `Released seat filled by replacement member for ${ev.title}`,
+        });
+      }
+
+      // 8. Write audit log
+      await tx.insert(auditLog).values({
+        actorId: personId,
+        actorType: "member",
+        action: "book_event",
+        entity: "booking",
+        entityId: newBookingId,
+        after: {
+          eventId,
+          status: initialStatus,
+          creditsCharged: ev.creditCost,
+        },
+      });
+
+      return {
+        bookingId: newBookingId,
+        eventTitle: ev.title,
+        status: initialStatus,
+        startsAt: ev.startsAt,
+        venueName: ev.venueName,
+      };
+    });
+
+    // 9. Post-commit: queue email confirmation (outside transaction §7.1)
+    const personRecord = await db.query.person.findFirst({
+      where: eq(person.id, personId),
+    });
+
+    if (personRecord) {
+      const subject =
+        personRecord.locale === "es"
+          ? `Reserva Confirmada: ${result.eventTitle} — The Mothers`
+          : `Booking Confirmed: ${result.eventTitle} — The Mothers`;
+
       `;
 
       await queueAndSendEmail({
