@@ -21,6 +21,7 @@ export function ApplyModal({
   const [alreadySubmitted, setAlreadySubmitted] = useState<boolean>(false);
   const [showError, setShowError] = useState<boolean>(false);
   const [existingMemberEmail, setExistingMemberEmail] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [answers, setAnswers] = useState<ApplicationFormData & { referralCode?: string }>({
     firstName: "",
@@ -49,6 +50,9 @@ export function ApplyModal({
         setAnswers((prev) => ({
           ...prev,
           ...parsed,
+          firstName: parsed.firstName || "",
+          lastName: parsed.lastName || "",
+          email: parsed.email || "",
           stage: Array.isArray(parsed.stage) ? parsed.stage : (parsed.stage ? [parsed.stage] : ["Pregnant"]),
           childrenAge: Array.isArray(parsed.childrenAge) ? parsed.childrenAge : (parsed.childrenAge ? [parsed.childrenAge] : []),
           hopingToFind: Array.isArray(parsed.hopingToFind) ? parsed.hopingToFind : (parsed.hopingToFind ? [parsed.hopingToFind] : ["Friendships nearby"]),
@@ -71,8 +75,6 @@ export function ApplyModal({
       // ignore
     }
   }, [answers, step]);
-
-  if (!isOpen) return null;
 
   const totalSteps = 11;
   const safeStep = Math.max(0, Math.min(totalSteps - 1, step));
@@ -154,12 +156,12 @@ export function ApplyModal({
   const handleNext = async () => {
     setShowError(false);
     setExistingMemberEmail(false);
-    if (step === 0 && !answers.firstName.trim()) {
+    if (step === 0 && !(answers.firstName || "").trim()) {
       setShowError(true);
       return;
     }
     if (step === 1) {
-      const cleanEmail = answers.email.trim();
+      const cleanEmail = (answers.email || "").trim();
       if (!cleanEmail || !EMAIL_REGEX.test(cleanEmail)) {
         setShowError(true);
         return;
@@ -220,8 +222,6 @@ export function ApplyModal({
     });
   };
 
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
   const handleSubmit = async () => {
     if (!answers.termsAccepted) {
       setShowError(true);
@@ -251,6 +251,8 @@ export function ApplyModal({
       );
     }
   };
+
+  if (!isOpen) return null;
 
   const inputStyle: React.CSSProperties = {
     minHeight: "48px",
@@ -405,13 +407,13 @@ export function ApplyModal({
           <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "8px" }}>
             <input
               type="text"
-              value={answers.firstName}
+              value={answers.firstName || ""}
               onChange={(e) => {
                 setAnswers({ ...answers, firstName: e.target.value });
                 if (showError) setShowError(false);
               }}
               placeholder={lang === "en" ? "First name *" : "Nombre *"}
-              style={{ ...inputStyle, flex: "1 1 180px", border: showError && !answers.firstName.trim() ? "1px solid #993842" : inputStyle.border }}
+              style={{ ...inputStyle, flex: "1 1 180px", border: showError && !(answers.firstName || "").trim() ? "1px solid #993842" : inputStyle.border }}
               autoFocus
             />
             <input
@@ -423,7 +425,7 @@ export function ApplyModal({
             />
           </div>
         )}
-        {showError && step === 0 && !answers.firstName.trim() && (
+        {showError && step === 0 && !(answers.firstName || "").trim() && (
           <p style={{ fontSize: "13px", color: "#993842", margin: "4px 0 0" }}>
             {lang === "en" ? "Please answer this question to continue." : "Por favor, responde a esta pregunta para continuar."}
           </p>
@@ -434,7 +436,7 @@ export function ApplyModal({
           <div style={{ marginBottom: "8px" }}>
             <input
               type="email"
-              value={answers.email}
+              value={answers.email || ""}
               onChange={(e) => {
                 setAnswers({ ...answers, email: e.target.value });
                 if (showError) setShowError(false);
@@ -442,11 +444,11 @@ export function ApplyModal({
               placeholder="you@email.com"
               style={{
                 ...inputStyle,
-                border: showError && (!answers.email.trim() || !EMAIL_REGEX.test(answers.email.trim())) ? "1px solid #993842" : inputStyle.border,
+                border: showError && (!(answers.email || "").trim() || !EMAIL_REGEX.test((answers.email || "").trim())) ? "1px solid #993842" : inputStyle.border,
               }}
               autoFocus
             />
-            {showError && (!answers.email.trim() || !EMAIL_REGEX.test(answers.email.trim())) && (
+            {showError && (!(answers.email || "").trim() || !EMAIL_REGEX.test((answers.email || "").trim())) && (
               <p style={{ fontSize: "13px", color: "#993842", margin: "6px 0 0" }}>
                 {lang === "en" ? "Please enter a valid email address." : "Por favor, introduce un correo electrónico válido."}
               </p>
