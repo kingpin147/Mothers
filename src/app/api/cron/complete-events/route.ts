@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { event, booking, person, member, jobRun, auditLog } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, lt, inArray } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { queueAndSendEmail } from "@/lib/brevo";
 
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       .where(
         and(
           eq(event.status, "confirmed"),
-          sql`ends_at < NOW()`
+          lt(event.endsAt, new Date())
         )
       );
 
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
         .where(
           and(
             eq(booking.eventId, ev.id),
-            sql`booking.status IN ('confirmed', 'attended')`
+            inArray(booking.status, ["confirmed", "attended"])
           )
         );
 
@@ -91,7 +91,8 @@ export async function GET(req: NextRequest) {
             ? `Gracias por asistir: ${ev.title} — The Mothers`
             : `Thank you for attending: ${ev.title} — The Mothers`;
 
-        const htmlContent = `\n<!DOCTYPE html>
+        const htmlContent = `
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -133,8 +134,8 @@ export async function GET(req: NextRequest) {
 
 <tr>
 <td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
-<p style="margin:0 0 16px;"><span style="color:#7b1f2c;">${firstName}</span>,</p>
-<p style="margin:0 0 16px;">Thank you for coming to <span style="color:#7b1f2c;">[event title]</span>. I hope you left with at least one number in your phone — that is the only measure of these nights that matters to us.</p>
+<p style="margin:0 0 16px;"><span style="color:#7b1f2c;">${attendee.firstName || "Member"}</span>,</p>
+<p style="margin:0 0 16px;">Thank you for coming to <span style="color:#7b1f2c;">${ev.title}</span>. I hope you left with at least one number in your phone — that is the only measure of these nights that matters to us.</p>
 <p style="margin:0;">If you want to keep going, here is what is coming up for mothers at your stage. You have one Event Pass left — after that it is membership, or the free walks, which are always open to you.</p>
 </td>
 </tr>
@@ -148,12 +149,8 @@ export async function GET(req: NextRequest) {
 <tr>
 <td style="padding:0 24px 20px;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
 <div style="padding:10px 0;border-top:1px solid #ddd4c6;">
-<span style="color:#2A1E20;">[Event title]</span><br>
-<span style="color:#8a807a;font-size:14px;">[Date] · [Neighbourhood] · [free / N credits]</span>
-</div>
-<div style="padding:10px 0;border-top:1px solid #ddd4c6;">
-<span style="color:#2A1E20;">[Event title]</span><br>
-<span style="color:#8a807a;font-size:14px;">[Date] · [Neighbourhood] · [free / N credits]</span>
+<span style="color:#2A1E20;">See all upcoming walks & gatherings</span><br>
+<span style="color:#8a807a;font-size:14px;">Barcelona · Free & Member Events</span>
 </div>
 </td>
 </tr>
@@ -167,22 +164,14 @@ export async function GET(req: NextRequest) {
 <tr>
 <td style="padding:22px 24px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
 <div style="font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:10px;">Your €35 is waiting</div>
-<p style="margin:0 0 14px;font-size:15px;line-height:25px;mso-line-height-rule:exactly;">Join within <strong style="font-weight:normal;color:#7b1f2c;">thirty days</strong> of last night and the €35 you already paid comes off your membership — against the €19 joining fee first, then your first month — and if you are one of our first fifty members there is no joining fee at all.</p>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:23px;mso-line-height-rule:exactly;color:#2A1E20;">
-<tr><td style="padding:5px 0;">Joining fee</td><td align="right" style="padding:5px 0;">€19</td></tr>
-<tr><td style="padding:5px 0;border-top:1px solid #ddd4c6;">First month</td><td align="right" style="padding:5px 0;border-top:1px solid #ddd4c6;">€39</td></tr>
-<tr><td style="padding:5px 0;border-top:1px solid #ddd4c6;">Joining fee, waived for you</td><td align="right" style="padding:5px 0;border-top:1px solid #ddd4c6;color:#7b1f2c;">−€19</td></tr>
-<tr><td style="padding:7px 0 0;border-top:1px solid #ddd4c6;font-size:16px;">Due when you join</td><td align="right" style="padding:7px 0 0;border-top:1px solid #ddd4c6;font-size:16px;color:#7b1f2c;">€39</td></tr>
-</table>
-<p style="margin:14px 0 16px;font-size:14px;line-height:23px;mso-line-height-rule:exactly;color:#5c534e;">Instead of €58 — and you start with 20 credits to spend.</p>
+<p style="margin:0 0 14px;font-size:15px;line-height:25px;mso-line-height-rule:exactly;">Join within <strong style="font-weight:normal;color:#7b1f2c;">thirty days</strong> of last night and the €35 you already paid comes off your membership — against the €19 joining fee first, then your first month.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td bgcolor="#7b1f2c" style="border-radius:4px;">
-<a href="Membership.dc.html" style="display:block;padding:14px 30px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">Join The Mothers</a>
+<a href="${process.env.NEXTAUTH_URL || "http://localhost:3000"}/membership" style="display:block;padding:14px 30px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">Join The Mothers</a>
 </td>
 </tr>
 </table>
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:#5c534e;padding-top:12px;">Offer ends <span style="color:#7b1f2c;">[date]</span>. Cancel any time, no fee.</div>
 </td>
 </tr>
 </table>
@@ -198,7 +187,7 @@ export async function GET(req: NextRequest) {
 
 <tr>
 <td class="px" style="padding:26px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
-<p style="margin:0;">Warmly,<br><span style="color:#7b1f2c;">[Host first name]</span><br><span style="color:#8a807a;font-size:14px;">The Mothers</span></p>
+<p style="margin:0;">Warmly,<br><span style="color:#7b1f2c;">The Mothers Team</span><br><span style="color:#8a807a;font-size:14px;">The Mothers Barcelona</span></p>
 </td>
 </tr>
 
@@ -226,99 +215,6 @@ You're receiving this because you came to one of our events.<br>
 </table>
 </body>
 </html>
-\nimport { NextRequest, NextResponse } from "next/server";
-import { db } from "@/db";
-import { event, booking, person, member, jobRun, auditLog } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
-import { verifyCronAuth } from "@/lib/cron-auth";
-import { queueAndSendEmail } from "@/lib/brevo";
-
-/**
- * Complete Events Cron (§4.3, §8)
- * 
- * - Mark confirmed events where ends_at < NOW() as "completed"
- * - Queue "After Your Event" email to all attendees the following morning
- * - Only completed events can have attendance marked
- */
-export async function GET(req: NextRequest) {
-  const authError = verifyCronAuth(req);
-  if (authError) return authError;
-
-  const startedAt = new Date();
-  let completed = 0;
-  let emailsQueued = 0;
-
-  try {
-    // Find confirmed events that have ended
-    const finishedEvents = await db
-      .select()
-      .from(event)
-      .where(
-        and(
-          eq(event.status, "confirmed"),
-          sql`ends_at < NOW()`
-        )
-      );
-
-    for (const ev of finishedEvents) {
-      // Mark as completed
-      await db
-        .update(event)
-        .set({
-          status: "completed",
-          updatedAt: new Date(),
-        })
-        .where(eq(event.id, ev.id));
-
-      // Settle any remaining unfilled returns for this finished event (§5 & §7.3)
-      await db
-        .update(booking)
-        .set({
-          pendingReturnState: "settled_unfilled",
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(booking.eventId, ev.id),
-            eq(booking.pendingReturnState, "awaiting_replacement")
-          )
-        );
-
-      await db.insert(auditLog).values({
-        actorType: "system",
-        action: "complete_event",
-        entity: "event",
-        entityId: ev.id,
-        after: { title: ev.title, endsAt: ev.endsAt },
-      });
-
-      completed++;
-
-      // Queue "After Your Event" email to all attendees
-      const attendeeBookings = await db
-        .select({
-          bookingId: booking.id,
-          personId: booking.personId,
-          firstName: person.firstName,
-          lastName: person.lastName,
-          email: person.email,
-          locale: person.locale,
-        })
-        .from(booking)
-        .innerJoin(person, eq(booking.personId, person.id))
-        .where(
-          and(
-            eq(booking.eventId, ev.id),
-            sql`booking.status IN ('confirmed', 'attended')`
-          )
-        );
-
-      for (const attendee of attendeeBookings) {
-        const subject =
-          attendee.locale === "es"
-            ? `Gracias por asistir: ${ev.title} — The Mothers`
-            : `Thank you for attending: ${ev.title} — The Mothers`;
-
         `;
 
         await queueAndSendEmail({
@@ -347,6 +243,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, completed, emailsQueued });
   } catch (error: any) {
+    console.error("complete_events cron error:", error);
     await db.insert(jobRun).values({
       jobKey: "complete_events",
       outcome: "failed",

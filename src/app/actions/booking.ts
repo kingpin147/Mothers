@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { event, booking, creditEntry, creditAllocation, member, person, eventPass, eventWaitlist, auditLog } from "@/db/schema";
-import { eq, and, sql, desc, asc } from "drizzle-orm";
+import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { canBook, canRelease, canBuyPass, canRsvp } from "@/lib/access";
 import { spendCredits, returnCredits } from "@/lib/ledger";
@@ -60,7 +60,7 @@ export async function bookEvent(eventId: string) {
           where: and(
             eq(booking.eventId, eventId),
             eq(booking.personId, personId),
-            sql`status IN ('held', 'confirmed')`
+            inArray(booking.status, ["held", "confirmed"])
           ),
         }),
         tx
@@ -70,7 +70,7 @@ export async function bookEvent(eventId: string) {
             and(
               eq(booking.eventId, eventId),
               eq(booking.kind, "member"),
-              sql`status IN ('held', 'confirmed')`
+              inArray(booking.status, ["held", "confirmed"])
             )
           ),
       ]);
@@ -350,207 +350,6 @@ This is a booking confirmation, not a marketing email.
 </table>
 </body>
 </html>
-\n"use server";
-
-import { db } from "@/db";
-import { event, booking, creditEntry, creditAllocation, member, person, eventPass, eventWaitlist, auditLog } from "@/db/schema";
-import { eq, and, sql, desc, asc } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { canBook, canRelease, canBuyPass, canRsvp } from "@/lib/access";
-import { spendCredits, returnCredits } from "@/lib/ledger";
-import { queueAndSendEmail } from "@/lib/brevo";
-import crypto from "crypto";
-import { z } from "zod";
-
-// ─── 1. MEMBER BOOKING WITH FOR UPDATE ROW LOCK (§7.1) ──────────────────────
-
-const bookEventSchema = z.object({ eventId: z.string().uuid() });
-
-export async function bookEvent(eventId: string) {
-  const parsed = bookEventSchema.safeParse({ eventId });
-  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
-  eventId = parsed.data.eventId;
-
-  const session = await auth();
-  if (!session?.user) {
-    return { success: false, error: "AUTH_REQUIRED" };
-  }
-
-  const personId = (session.user as any).personId || session.user.id;
-  const memberId = (session.user as any).memberId;
-
-  if (!memberId) {
-    return { success: false, error: "MEMBER_ACCOUNT_REQUIRED" };
-  }
-
-  try {
-    const result = await db.transaction(async (tx) => {
-      // 1. SELECT ... FOR UPDATE on the event row (Lock first, validate second §7.1)
-      const eventRows = await tx
-        .select()
-        .from(event)
-        .where(eq(event.id, eventId))
-        .for("update");
-
-      if (eventRows.length === 0) {
-        throw new Error("EVENT_NOT_FOUND");
-      }
-      const ev = eventRows[0];
-
-      // 2. Fetch member record
-      const memberRecord = await tx.query.member.findFirst({
-        where: eq(member.id, memberId),
-      });
-
-      if (!memberRecord) {
-        throw new Error("MEMBER_NOT_FOUND");
-      }
-
-      // 3. Count existing active bookings for member & total member seats booked
-      const [existingBooking, memberBookingsCount] = await Promise.all([
-        tx.query.booking.findFirst({
-          where: and(
-            eq(booking.eventId, eventId),
-            eq(booking.personId, personId),
-            sql`status IN ('held', 'confirmed')`
-          ),
-        }),
-        tx
-          .select({ count: sql<number>`count(*)` })
-          .from(booking)
-          .where(
-            and(
-              eq(booking.eventId, eventId),
-              eq(booking.kind, "member"),
-              sql`status IN ('held', 'confirmed')`
-            )
-          ),
-      ]);
-
-      const activeMemberBookingsCount = Number(memberBookingsCount[0]?.count || 0);
-
-      // 4. Calculate member credit balance
-      const creditEntries = await tx
-        .select()
-        .from(creditEntry)
-        .where(eq(creditEntry.memberId, memberId));
-
-      const totalBalance = creditEntries.reduce((sum, entry) => sum + entry.amount, 0);
-
-      // 5. Validate using pure access helper
-      const validation = canBook(
-        {
-          isMember: true,
-          member: memberRecord,
-          creditBalance: totalBalance,
-          hasExistingActiveBooking: !!existingBooking,
-        },
-        {
-          status: ev.status,
-          creditCost: ev.creditCost,
-          capacityMember: ev.capacityMember,
-          activeMemberBookingsCount,
-          startsAt: ev.startsAt,
-        }
-      );
-
-      if (!validation.allowed) {
-        throw new Error(validation.reasonCode || "BOOKING_REFUSED");
-      }
-
-      // 6. Write Spend Entry in Credit Ledger if cost > 0 (FIFO spend order §5)
-      let spendEntryId: string | null = null;
-      if (ev.creditCost > 0) {
-        const spendResult = await spendCredits(
-          memberId,
-          ev.creditCost,
-          "booking",
-          eventId,
-          `Booking for ${ev.title}`,
-          tx
-        );
-        spendEntryId = spendResult.spendEntryId;
-      }
-
-      // 7. Insert Booking with snapshotted creditsCharged
-      const initialStatus = ev.status === "confirmed" ? "confirmed" : "held";
-      const bookingInsert = await tx
-        .insert(booking)
-        .values({
-          eventId,
-          personId,
-          memberId,
-          kind: "member",
-          status: initialStatus,
-          creditsCharged: ev.creditCost,
-          bookedAt: new Date(),
-        })
-        .returning({ id: booking.id });
-
-      const newBookingId = bookingInsert[0].id;
-
-      // 7b. Settle oldest pending return awaiting replacement on this event (§5 & §7.3)
-      const oldestPendingReturn = await tx.query.booking.findFirst({
-        where: and(
-          eq(booking.eventId, eventId),
-          eq(booking.pendingReturnState, "awaiting_replacement")
-        ),
-        orderBy: asc(booking.releasedAt),
-      });
-
-      if (oldestPendingReturn && oldestPendingReturn.memberId && oldestPendingReturn.pendingReturnCredits > 0) {
-        await tx
-          .update(booking)
-          .set({
-            pendingReturnState: "settled_returned",
-            updatedAt: new Date(),
-          })
-          .where(eq(booking.id, oldestPendingReturn.id));
-
-        await tx.insert(creditEntry).values({
-          memberId: oldestPendingReturn.memberId,
-          amount: oldestPendingReturn.pendingReturnCredits,
-          type: "return_release",
-          sourceType: "booking",
-          sourceId: oldestPendingReturn.id,
-          reason: `Released seat filled by replacement member for ${ev.title}`,
-        });
-      }
-
-      // 8. Write audit log
-      await tx.insert(auditLog).values({
-        actorId: personId,
-        actorType: "member",
-        action: "book_event",
-        entity: "booking",
-        entityId: newBookingId,
-        after: {
-          eventId,
-          status: initialStatus,
-          creditsCharged: ev.creditCost,
-        },
-      });
-
-      return {
-        bookingId: newBookingId,
-        eventTitle: ev.title,
-        status: initialStatus,
-        startsAt: ev.startsAt,
-        venueName: ev.venueName,
-      };
-    });
-
-    // 9. Post-commit: queue email confirmation (outside transaction §7.1)
-    const personRecord = await db.query.person.findFirst({
-      where: eq(person.id, personId),
-    });
-
-    if (personRecord) {
-      const subject =
-        personRecord.locale === "es"
-          ? `Reserva Confirmada: ${result.eventTitle} — The Mothers`
-          : `Booking Confirmed: ${result.eventTitle} — The Mothers`;
-
       `;
 
       await queueAndSendEmail({
@@ -862,7 +661,7 @@ export async function buyGuestPass(params: {
           and(
             eq(booking.eventId, eventId),
             eq(booking.kind, "guest"),
-            sql`status IN ('held', 'confirmed')`
+            inArray(booking.status, ["held", "confirmed"])
           )
         );
 

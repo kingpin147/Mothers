@@ -104,7 +104,7 @@ export async function requestPasswordReset(email: string, locale: "en" | "es" = 
 <tr>
 <td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
 <p style="margin:0 0 16px;">Hello <span style="color:#7b1f2c;">${personRecord.firstName}</span>,</p>
-<p style="margin:0 0 16px;">Someone asked to reset the password for <strong style="font-weight:normal;color:#7b1f2c;">[email@address.com]</strong>. If that was you, the button below sets a new one.</p>
+<p style="margin:0 0 16px;">Someone asked to reset the password for <strong style="font-weight:normal;color:#7b1f2c;">${cleanEmail}</strong>. If that was you, the button below sets a new one.</p>
 <p style="margin:0;">If it wasn't you, nothing has changed and you can ignore this. Your password still works and nobody has been let in.</p>
 </td>
 </tr>
@@ -114,11 +114,11 @@ export async function requestPasswordReset(email: string, locale: "en" | "es" = 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td bgcolor="#7b1f2c" style="border-radius:4px;">
-<a href="Account.dc.html" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">Set a new password</a>
+<a href="${resetUrl}" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">Set a new password</a>
 </td>
 </tr>
 </table>
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">This link works once and expires in [60 minutes]. Asking again sends a fresh one.</div>
+<div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">This link works once and expires in 2 hours. Asking again sends a fresh one.</div>
 </td>
 </tr>
 
@@ -178,68 +178,6 @@ If you did not ask for it, no action is needed.
 </table>
 </body>
 </html>
-\n"use server";
-
-import { db } from "@/db";
-import { person, memberCredential, auditLog } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
-import { queueAndSendEmail } from "@/lib/brevo";
-import bcrypt from "bcryptjs";
-import crypto from "crypto";
-
-// ─── 1. REQUEST PASSWORD RESET (PREVENTS ENUMERATION) ───────────────────────
-
-export async function requestPasswordReset(email: string, locale: "en" | "es" = "en") {
-  try {
-    const cleanEmail = email.toLowerCase().trim();
-
-    const personRecord = await db.query.person.findFirst({
-      where: eq(person.email, cleanEmail),
-    });
-
-    // If person doesn't exist, return success anyway to prevent email enumeration
-    if (!personRecord) {
-      return { success: true };
-    }
-
-    // Generate 32-byte token expiring in 2 hours
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-    const tokenExpiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-
-    const existingCred = await db.query.memberCredential.findFirst({
-      where: eq(memberCredential.personId, personRecord.id),
-    });
-
-    if (existingCred) {
-      await db
-        .update(memberCredential)
-        .set({
-          resetTokenHash: tokenHash,
-          resetTokenExpiresAt: tokenExpiresAt,
-          updatedAt: new Date(),
-        })
-        .where(eq(memberCredential.id, existingCred.id));
-    } else {
-      // If member credential row doesn't exist yet, create placeholder with dummy hash
-      const dummyHash = await bcrypt.hash(crypto.randomBytes(16).toString("hex"), 10);
-      await db.insert(memberCredential).values({
-        personId: personRecord.id,
-        passwordHash: dummyHash,
-        resetTokenHash: tokenHash,
-        resetTokenExpiresAt: tokenExpiresAt,
-      });
-    }
-
-    // Send Brevo Email - Password Reset.html
-    const resetUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/account/reset-password/${rawToken}`;
-    const userLocale = personRecord.locale || locale;
-
-    const subject =
-      userLocale === "es"
-        ? "Restablecer tu contraseña — The Mothers"
-        : "Reset your password — The Mothers";
-
     `;
 
     await queueAndSendEmail({

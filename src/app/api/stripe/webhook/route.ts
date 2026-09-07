@@ -117,7 +117,8 @@ async function handleGuestPassPurchase(personId: string, eventId: string, amount
     const ticketUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/ticket/${rawToken}`;
     const subject = `Your Ticket: ${eventRecord.title} — The Mothers`;
 
-    const htmlContent = `\n<!DOCTYPE html>
+    const htmlContent = `
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -174,19 +175,19 @@ async function handleGuestPassPurchase(personId: string, eventId: string, amount
 </tr>
 <tr>
 <td style="padding:0 24px 22px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
-<div style="font-size:20px;line-height:28px;mso-line-height-rule:exactly;padding-bottom:12px;">[Event title]</div>
+<div style="font-size:20px;line-height:28px;mso-line-height-rule:exactly;padding-bottom:12px;">${eventRecord.title}</div>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
 <tr>
 <td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Date</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Day, date] · [time]</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">${new Date(eventRecord.startsAt).toLocaleDateString()}</td>
 </tr>
 <tr>
 <td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Meeting point</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Street and number — the detail that gets her to the right door]<br><span style="color:#8a807a;font-size:14px;">[Neighbourhood]</span></td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">${eventRecord.meetingPoint}<br><span style="color:#8a807a;font-size:14px;">${eventRecord.neighbourhood}</span></td>
 </tr>
 <tr>
 <td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Paid</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">€35 · [card ending 0000]</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">€${((amountTotalCents || 3500) / 100).toFixed(0)}</td>
 </tr>
 </table>
 </td>
@@ -200,7 +201,7 @@ async function handleGuestPassPurchase(personId: string, eventId: string, amount
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td bgcolor="#7b1f2c" style="border-radius:4px;">
-<a href="Ticket.dc.html" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">View or release my place</a>
+<a href="${ticketUrl}" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">View or release my place</a>
 </td>
 </tr>
 </table>
@@ -234,7 +235,7 @@ async function handleGuestPassPurchase(personId: string, eventId: string, amount
 <tr>
 <td style="padding:22px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#5c534e;">
 <p style="margin:0 0 14px;">If this turns out to be your kind of room, <strong style="font-weight:normal;color:#7b1f2c;">we waive the joining fee</strong> when you join within 30 days of the event, so your first payment is just the month itself. Membership is €39 a month, or €99 every three months, and it covers the whole calendar rather than one table.</p>
-<a href="Membership.dc.html" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;color:#7b1f2c;text-decoration:underline;">See what membership includes</a>
+<a href="${process.env.NEXTAUTH_URL || "http://localhost:3000"}/membership" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;color:#7b1f2c;text-decoration:underline;">See what membership includes</a>
 </td>
 </tr>
 </table>
@@ -277,125 +278,6 @@ This is a booking confirmation, not a marketing email — we keep your details o
 </table>
 </body>
 </html>
-\nimport { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import { db } from "@/db";
-import { person, eventPass, booking, event, member, creditEntry, auditLog } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import crypto from "crypto";
-import { queueAndSendEmail } from "@/lib/brevo";
-import { headers } from "next/headers";
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
-export async function POST(req: Request) {
-  try {
-    const body = await req.text();
-    const headersList = await headers();
-    const signature = headersList.get("stripe-signature");
-
-    if (!signature || !webhookSecret) {
-      return NextResponse.json({ error: "Missing signature or secret" }, { status: 400 });
-    }
-
-    let stripeEvent;
-    try {
-      stripeEvent = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err: any) {
-      console.error(`⚠️ Webhook signature verification failed: ${err.message}`);
-      return NextResponse.json({ error: "Webhook Error" }, { status: 400 });
-    }
-
-    const eventData = stripeEvent.data.object as any;
-
-    if (stripeEvent.type === "checkout.session.completed") {
-      const type = eventData.metadata?.type;
-      const personId = eventData.metadata?.personId;
-      const eventId = eventData.metadata?.eventId; // Guest pass
-      const memberId = eventData.metadata?.memberId; // Membership
-
-      if (type === "guest_pass" && personId && eventId) {
-        await handleGuestPassPurchase(personId, eventId, eventData.amount_total);
-      } else if (type === "membership" && memberId) {
-        await handleMembershipActivation(memberId, eventData.customer, eventData.subscription);
-      }
-    }
-
-    if (stripeEvent.type === "invoice.paid") {
-      const subscriptionId = eventData.subscription;
-      const billingReason = eventData.billing_reason;
-      
-      // If it's a recurring payment (not the initial subscription creation, which is handled in checkout.session.completed)
-      if (subscriptionId && billingReason === "subscription_cycle") {
-        await handleRecurringPayment(subscriptionId, eventData.amount_paid);
-      }
-    }
-
-    if (stripeEvent.type === "customer.subscription.deleted" || stripeEvent.type === "customer.subscription.updated") {
-      const subscription = eventData;
-      if (subscription.status === "canceled" || subscription.status === "past_due" || subscription.status === "unpaid") {
-        await handleSubscriptionStatusChange(subscription.id, subscription.status);
-      }
-    }
-
-    return NextResponse.json({ received: true });
-  } catch (err: any) {
-    console.error("Stripe Webhook Error:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}
-
-async function handleGuestPassPurchase(personId: string, eventId: string, amountTotalCents: number) {
-  await db.transaction(async (tx) => {
-    // Check if pass already exists
-    const existingBooking = await tx.query.booking.findFirst({
-      where: and(eq(booking.personId, personId), eq(booking.eventId, eventId)),
-    });
-    
-    if (existingBooking) return; // Prevent double execution
-
-    const eventRecord = await tx.query.event.findFirst({
-      where: eq(event.id, eventId),
-    });
-    
-    const personRecord = await tx.query.person.findFirst({
-      where: eq(person.id, personId),
-    });
-
-    if (!eventRecord || !personRecord) return;
-
-    // Generate cryptographic token
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-
-    const creditExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    const insertedPass = await tx
-      .insert(eventPass)
-      .values({
-        personId,
-        eventId,
-        priceCents: amountTotalCents || 3500,
-        status: "paid",
-        ticketTokenHash: tokenHash,
-        creditExpiresAt,
-      })
-      .returning();
-
-    const passId = insertedPass[0].id;
-
-    await tx.insert(booking).values({
-      eventId,
-      personId,
-      kind: "guest",
-      status: "confirmed",
-      moneyPaidCents: amountTotalCents || 3500,
-      passId,
-    });
-
-    // Send email
-    const ticketUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/ticket/${rawToken}`;
-    const subject = `Your Ticket: ${eventRecord.title} — The Mothers`;
-
     `;
 
     await queueAndSendEmail({
