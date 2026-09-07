@@ -7,7 +7,7 @@ import { createAdminEvent } from "@/app/actions/adminEvents";
 
 export default function AdminCreateEventPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -104,7 +104,7 @@ export default function AdminCreateEventPage() {
       return;
     }
 
-    setLoading(true);
+    setLoadingAction(status);
 
     const start = new Date(startsAt);
     
@@ -123,7 +123,7 @@ export default function AdminCreateEventPage() {
       capacityMember: memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces),
       capacityGuest: membersOnly ? 0 : (parseInt(guestPlaces) || 0),
       capacityGuestGathering: membersOnly ? 0 : (parseInt(guestGathering) || undefined),
-      minToConfirm: parseInt(minToConfirm) || 0,
+      minToConfirm: minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
       description,
       status,
       languages: langs,
@@ -135,7 +135,7 @@ export default function AdminCreateEventPage() {
       publishedAt: status === "published_pending" ? new Date() : undefined,
     });
 
-    setLoading(false);
+    setLoadingAction(null);
     if (res.success) {
       alert(status === "draft" ? "Draft saved successfully!" : "Event published successfully!");
       router.push("/admin/events");
@@ -382,11 +382,11 @@ export default function AdminCreateEventPage() {
         <div style={{ padding: "18px clamp(22px,3vw,32px) clamp(22px,3vw,28px)", borderTop: "1px solid rgba(57,41,42,0.14)", background: "rgba(57,41,42,0.02)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap" }}>
           <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.65)", maxWidth: "44ch", textWrap: "pretty" }}>{validationLine}</div>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button type="button" onClick={() => handleSave("draft")} disabled={loading} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "11px 18px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
-              {loading ? "Saving..." : "Save as draft"}
+            <button type="button" onClick={() => handleSave("draft")} disabled={!!loadingAction} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "11px 18px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
+              {loadingAction === "draft" ? "Saving..." : "Save as draft"}
             </button>
-            <button type="button" onClick={() => handleSave("published_pending")} disabled={loading} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
-              {loading ? "Publishing..." : "Publish to the calendar →"}
+            <button type="button" onClick={() => handleSave("published_pending")} disabled={!!loadingAction} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
+              {loadingAction === "published_pending" ? "Publishing..." : "Publish to the calendar →"}
             </button>
           </div>
         </div>

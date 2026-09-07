@@ -9,7 +9,7 @@ export default function AdminEditEventPage() {
   const router = useRouter();
   const params = useParams();
   const eventId = params?.id as string;
-  const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
 
   // Form State
@@ -128,15 +128,14 @@ export default function AdminEditEventPage() {
     : 'Still needed before publishing: title, venue, meeting point, dates, minimum, credit cost, description.';
 
 
-  const handleSave = async (newStatus?: "draft" | "published_pending") => {
+  const handleSave = async (status: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled" | string) => {
     if (!title || !venueName || !meetingPoint || !startsAt || !endsAt) {
       alert("Please fill in core details (title, venue, dates).");
       return;
     }
 
-    setLoading(true);
+    setLoadingAction(status);
     const start = new Date(startsAt);
-    const targetStatus = newStatus || (eventStatus as any);
     
     const res = await updateAdminEvent(eventId, {
       title,
@@ -153,17 +152,17 @@ export default function AdminEditEventPage() {
       capacityMember: memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces),
       capacityGuest: membersOnly ? 0 : (parseInt(guestPlaces) || 0),
       capacityGuestGathering: membersOnly ? 0 : (parseInt(guestGathering) || undefined),
-      minToConfirm: parseInt(minToConfirm) || 0,
+      minToConfirm: minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
       description,
       languages: langs,
       showEventPassCta: passCta,
       changeNote: changeNote.trim() || undefined,
-      status: targetStatus,
+      status: status as any,
     });
 
-    setLoading(false);
+    setLoadingAction(null);
     if (res.success) {
-      alert(newStatus === "published_pending" ? "Event published to the calendar!" : "Event updated successfully!");
+      alert(status === "published_pending" ? "Event published to the calendar!" : "Event updated successfully!");
       router.push("/admin/events");
     } else {
       alert(res.error || "Failed to save event");
@@ -426,7 +425,7 @@ export default function AdminEditEventPage() {
                 <button
                   type="button"
                   onClick={() => handleSave("draft")}
-                  disabled={loading}
+                  disabled={!!loadingAction}
                   style={{
                     border: "1px solid rgba(57,41,42,0.3)",
                     background: "transparent",
@@ -439,12 +438,12 @@ export default function AdminEditEventPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {loading ? "Saving..." : "Save draft"}
+                  {loadingAction === "draft" ? "Saving..." : "Save draft"}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSave("published_pending")}
-                  disabled={loading}
+                  disabled={!!loadingAction}
                   style={{
                     border: "1px solid #7b1f2c",
                     background: "transparent",
@@ -457,14 +456,14 @@ export default function AdminEditEventPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {loading ? "Publishing..." : "Publish to the calendar →"}
+                  {loadingAction === "published_pending" ? "Publishing..." : "Publish to the calendar →"}
                 </button>
               </>
             ) : (
               <button
                 type="button"
-                onClick={() => handleSave()}
-                disabled={loading}
+                onClick={() => handleSave(eventStatus)}
+                disabled={!!loadingAction}
                 style={{
                   border: "1px solid #7b1f2c",
                   background: "transparent",
@@ -477,7 +476,7 @@ export default function AdminEditEventPage() {
                   cursor: "pointer",
                 }}
               >
-                {loading ? "Saving..." : "Save changes"}
+                {loadingAction === eventStatus ? "Saving..." : "Save changes"}
               </button>
             )}
           </div>

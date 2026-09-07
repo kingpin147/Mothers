@@ -45,17 +45,17 @@ export function Footer() {
       >
         {/* Brand Column */}
         <div style={{ maxWidth: "320px" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px", textDecoration: "none" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px", textDecoration: "none" }}>
             <img
               src="/assets/logo-mark-alpha.png"
               alt="The Mothers"
-              style={{ height: "48px", width: "auto", display: "block" }}
+              style={{ height: "64px", width: "auto", display: "block" }}
             />
             <span
               aria-hidden="true"
               style={{
                 width: "1px",
-                height: "28px",
+                height: "40px",
                 background: "rgba(57, 41, 42, 0.28)",
                 display: "inline-block",
                 flex: "none",
@@ -64,7 +64,7 @@ export function Footer() {
             <img
               src="/assets/logo-wordmark-alpha.png"
               alt="The Mothers"
-              style={{ height: "20px", width: "auto", display: "block" }}
+              style={{ height: "15px", width: "auto", display: "block" }}
             />
           </Link>
           <p style={{ fontSize: "15px", lineHeight: "1.65", color: "rgba(57, 41, 42, 0.7)", margin: 0 }}>

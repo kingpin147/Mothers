@@ -1271,15 +1271,32 @@ function EventCard({
         )}
 
         {isPending && !isPast && !isCancelled && ev.minToConfirm && (
-          <div style={{ border: "1px solid rgba(164,118,31,0.35)", background: "#fffaf2", borderRadius: "5px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "7px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px", color: "#8a6116" }}>
-              <span>{lang === "en" ? `${ev.bookedMember || 0} of ${ev.minToConfirm} mothers` : `${ev.bookedMember || 0} de ${ev.minToConfirm} madres`}</span>
-              <span>{lang === "en" ? `${Math.max(0, ev.minToConfirm - (ev.bookedMember || 0))} more to confirm` : `Faltan ${Math.max(0, ev.minToConfirm - (ev.bookedMember || 0))} para confirmar`}</span>
+          <div style={{ border: "1px solid rgba(164,118,31,0.35)", background: "#fffaf2", borderRadius: "5px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px", color: "#8a6116", fontWeight: 500 }}>
+              <span>{lang === "en" ? "Minimum mothers to confirm" : "Mínimo de madres para confirmar"}</span>
+              <span>{ev.bookedMember || 0} / {ev.minToConfirm}</span>
             </div>
             <div style={{ height: "4px", borderRadius: "2px", background: "rgba(57,41,42,0.14)", overflow: "hidden" }}>
               <div style={{ height: "100%", background: "#a4761f", width: `${Math.min(100, ((ev.bookedMember || 0) / ev.minToConfirm) * 100)}%` }} />
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#8a6116" }}>
+            
+            {ev.capacityTotal && ev.capacityTotal > 0 ? (
+              <>
+                <div style={{ height: "1px", background: "rgba(57,41,42,0.08)" }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12.5px", color: "rgba(57,41,42,0.75)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>{lang === "en" ? "Room for" : "Espacio para"}</span>
+                    <span>{ev.capacityTotal}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>{lang === "en" ? "Still free" : "Aún libres"}</span>
+                    <span>{ev.capacityRemaining ?? ev.capacityTotal}</span>
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#8a6116", marginTop: "2px" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="12" height="12" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
               <span>{lang === "en" ? `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang)}` : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}`}</span>
             </div>
@@ -1289,8 +1306,8 @@ function EventCard({
           </div>
         )}
 
-        {/* Capacity / Scarcity notice */}
-        {!isCancelled && !isPast && ev.capacityTotal && ev.capacityTotal > 0 ? (
+        {/* Capacity / Scarcity notice (only show if the minToConfirm block is NOT shown) */}
+        {!(isPending && !isPast && !isCancelled && ev.minToConfirm) && !isCancelled && !isPast && (ev.capacityTotal ?? 0) > 0 ? (
           <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>
             <span style={{ color: (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 3) ? "#8a6516" : "rgba(57,41,42,0.7)" }}>
               {lang === "en" ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}` : `Plazas disponibles: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`}

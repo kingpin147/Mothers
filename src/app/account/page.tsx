@@ -1494,10 +1494,15 @@ export default function AccountPage() {
                 )}
               </div>
             ) : (
-              <div style={{ padding: "16px 20px", backgroundColor: "#fff8f8", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "14px", color: "#993842" }}>
-                ✓ {lang === "en"
-                  ? `Your membership has been cancelled and will end at the close of your current billing period.`
-                  : `Tu membresía ha sido cancelada y finalizará al cierre de tu periodo de facturación actual.`}
+              <div style={{ padding: "16px 20px", backgroundColor: "#fdf2f2", border: "1px solid rgba(153,56,66,0.4)", borderRadius: "6px", marginBottom: "14px" }}>
+                <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "17px", color: "#993842", margin: "0 0 6px" }}>
+                  {lang === "en" ? "Membership cancelled" : "Membresía cancelada"}
+                </h3>
+                <p style={{ fontSize: "14px", color: "#39292a", margin: 0, lineHeight: 1.5 }}>
+                  {lang === "en"
+                    ? "Your membership has been cancelled and will end at the close of your current billing period."
+                    : "Tu membresía ha sido cancelada y finalizará al cierre de tu periodo de facturación actual."}
+                </p>
               </div>
             )}
 

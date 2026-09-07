@@ -370,6 +370,31 @@ export default function AdminApplicationsPage() {
               )}
             </div>
           </div>
+        ) : filter === "Declined" ? (
+          <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "24px 32px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", margin: 0 }}>Declined applications</h2>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {declinedApps.map((a, i) => (
+                <div key={a.id || i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: "#39292a" }}>
+                      {a.personName} {a.personLastName}
+                    </div>
+                    <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
+                      Declined on {new Date(a.decidedAt || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {declinedApps.length === 0 && (
+                <div style={{ padding: "16px 0", color: "rgba(57,41,42,0.6)" }}>
+                  No declined applications.
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
           <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>
             List of {filter.toLowerCase()} applications would appear here.

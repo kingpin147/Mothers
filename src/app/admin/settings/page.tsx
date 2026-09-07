@@ -301,8 +301,8 @@ export default function AdminSettingsPage() {
               <SectionTitle title="Rates and fees" subtitle="What a membership costs. Existing members keep the rate they joined on — changing a figure here only affects who joins next." />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px 32px" }}>
                 <InputField label="Joining fee (€)" val={form.joiningFee} keyName="joiningFee" quoted desc="" />
-                <InputField label="Opening Circle - monthly (€)" val={form.openingMonthly} keyName="openingMonthly" quoted desc="Held for twelve months from the day she joins. 50 places." />
-                <InputField label="Opening Circle - quarterly (€)" val={form.openingQuarterly} keyName="openingQuarterly" quoted desc="The same rate paid three months at a time." />
+                {/* <InputField label="Opening Circle - monthly (€)" val={form.openingMonthly} keyName="openingMonthly" quoted desc="Held for twelve months from the day she joins. 50 places." /> */}
+                {/* <InputField label="Opening Circle - quarterly (€)" val={form.openingQuarterly} keyName="openingQuarterly" quoted desc="The same rate paid three months at a time." /> */}
                 <InputField label="Standard - monthly (€)" val={form.standardMonthly} keyName="standardMonthly" quoted desc="What a membership costs once the Opening Circle is gone." />
                 <InputField label="Pass-to-member window (days)" val={form.passToMemberDays} keyName="passToMemberDays" quoted desc="Join within this many days of taking a pass and the joining fee is waived." />
               </div>

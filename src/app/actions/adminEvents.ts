@@ -167,7 +167,7 @@ export async function createAdminEvent(data: {
       capacityMember: data.capacityMember,
       capacityGuest: data.capacityGuest,
       capacityGuestGathering: data.capacityGuestGathering,
-      minToConfirm: data.minToConfirm || 4,
+      minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 4,
       isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
       isFreeWalk: data.creditCost === 0,
       showEventPassCta: !!data.showEventPassCta,
