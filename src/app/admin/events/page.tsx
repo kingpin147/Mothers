@@ -170,7 +170,7 @@ export default function AdminEventsPage() {
     const res = await publishAdminEvent(id);
     setActionLoading(null);
     if (res.success) {
-      alert(`Event published successfully as ${res.status === "confirmed" ? "Confirmed" : "Gathering"}!`);
+      alert(`Event published successfully as ${res.status === "confirmed" ? "Confirmed" : "To be confirmed"}!`);
       loadData();
     } else {
       alert(res.error || "Failed to publish event");
@@ -305,7 +305,7 @@ export default function AdminEventsPage() {
       ev.status;
 
     const displayStatusLabel =
-      ev.status === "published_pending" ? "Gathering" :
+      ev.status === "published_pending" ? "To be confirmed" :
       ev.status === "completed" ? "Past" :
       ev.status.charAt(0).toUpperCase() + ev.status.slice(1);
 
@@ -317,7 +317,7 @@ export default function AdminEventsPage() {
     } else if (ev.status === "confirmed") {
       statusNote = booked >= (ev.capacityMember || 10) ? "Full · places taken" : "Confirmed · live on the public calendar";
     } else if (isGathering) {
-      statusNote = booked >= min && min > 0 ? "Above minimum · confirm to open it up" : daysUntil <= 7 ? "Decision point today · escalated on the dashboard" : daysUntil <= 10 && booked * 2 < min ? "Under half · push in stage thread" : "Live on the public calendar · gathering";
+      statusNote = booked >= min && min > 0 ? "Above minimum · confirm to open it up" : daysUntil <= 7 ? "Decision point today · escalated on the dashboard" : daysUntil <= 10 && booked * 2 < min ? "Under half · push in stage thread" : "Live on the public calendar · to be confirmed";
     } else {
       statusNote = "Roster and attendance recorded";
     }
@@ -361,7 +361,7 @@ export default function AdminEventsPage() {
   const statusFilterTabs = [
     { id: "all", label: `All (${counts.all})` },
     { id: "draft", label: `Draft (${counts.draft})` },
-    { id: "gathering", label: `Gathering (${counts.gathering})` },
+    { id: "gathering", label: `To be confirmed (${counts.gathering})` },
     { id: "confirmed", label: `Confirmed (${counts.confirmed})` },
     { id: "past", label: `Past (${counts.past})` },
     { id: "cancelled", label: `Cancelled (${counts.cancelled})` },
@@ -666,8 +666,8 @@ export default function AdminEventsPage() {
                       <div style={{ fontSize: "13px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>
                         {r.isSignature || r.capacityGuest === 0 ? "None — members only" : `${r.guestBooked} of ${r.capInForce}`}
                       </div>
-                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.62)", marginTop: "3px" }}>
-                        {r.isSignature ? "closed to guests" : r.capInForce !== r.capacityGuest ? `gathering cap ${r.capInForce} in force` : "standing cap"}
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.65)", marginTop: "3px" }}>
+                        {r.isSignature ? "closed to guests" : r.capInForce !== r.capacityGuest ? `to be confirmed cap ${r.capInForce} in force` : "standing cap"}
                       </div>
                       <div style={{ marginTop: "6px", fontSize: "11.5px", lineHeight: 1.4, color: r.passColor }}>
                         {r.passLabel}
@@ -708,7 +708,7 @@ export default function AdminEventsPage() {
 
                     {/* Column 7: Actions */}
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start", width: "100%" }}>
-                      {/* Confirm & Cancel action pair for Gathering events */}
+                      {/* Confirm & Cancel action pair for To be confirmed events */}
                       {r.showDecision && (
                         <div style={{ display: "flex", gap: "7px", flexWrap: "wrap" }}>
                           <button

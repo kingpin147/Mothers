@@ -1619,7 +1619,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const statusChips = [
     { id: "all", labelEn: "All states", labelEs: "Todos los estados", dotBg: "transparent", dotBorder: "rgba(57,41,42,0.3)" },
     { id: "confirmed", labelEn: "Confirmed", labelEs: "Confirmados", dotBg: "#e8f1e9", dotBorder: "rgba(74,122,80,0.45)" },
-    { id: "pending", labelEn: "Gathering", labelEs: "Por confirmar", dotBg: "#fff3e4", dotBorder: "rgba(164,118,31,0.4)" },
+    { id: "pending", labelEn: "To be confirmed", labelEs: "Por confirmar", dotBg: "#fff3e4", dotBorder: "rgba(164,118,31,0.4)" },
     { id: "cancelled", labelEn: "Cancelled", labelEs: "Cancelados", dotBg: "#fbf1f1", dotBorder: "rgba(153,56,66,0.28)" },
     { id: "past", labelEn: "Past", labelEs: "Pasados", dotBg: "#dde3e6", dotBorder: "rgba(96,110,118,0.45)" },
   ];

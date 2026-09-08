@@ -324,7 +324,7 @@ export default function AdminCreateEventPage() {
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Two by default. Zero closes the event to guests.</div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Guest places while gathering</label>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Guest places while to be confirmed</label>
                 <input type="number" value={guestGathering} onChange={(e) => setGuestGathering(e.target.value)} placeholder="Blank — same as above" disabled={membersOnly} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>A higher cap while the event is short of its minimum. Drops back once confirmed; places already sold are always kept.</div>
               </div>
@@ -400,7 +400,7 @@ export default function AdminCreateEventPage() {
           
           <div>
             <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
-              <strong style={{ fontWeight: 600, color: "#39292a" }}>The public calendar</strong> — <span style={{ color: "#7b1f2c" }}>Events</span> shows it under its category, in its month, with its credit cost and the gathering line if it has a minimum.
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The public calendar</strong> — <span style={{ color: "#7b1f2c" }}>Events</span> shows it under its category, in its month, with its credit cost and the to be confirmed line if it has a minimum.
             </div>
           </div>
 
