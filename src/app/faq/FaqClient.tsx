@@ -204,7 +204,7 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
           <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(34px, 5vw, 52px)", lineHeight: 1.1, marginBottom: "16px" }}>
             {lang === "en" ? "You wonder, we answer." : "Todas tus preguntas, respondidas."}
           </h1>
-          <p style={{ fontSize: "16px", color: "var(--color-text-muted)", maxWidth: "560px", margin: "0 auto" }}>
+          <p style={{ fontSize: "19px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.78)", maxWidth: "560px", margin: "0 auto" }}>
             {lang === "en"
               ? "Everything you're wondering before you apply."
               : "Todo lo que quieres saber antes de solicitar tu lugar."}

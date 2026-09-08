@@ -420,12 +420,13 @@ export async function getAdminDashboardMetrics() {
     );
     const passConversionPct = uniquePassHolders.size > 0 ? Math.round((convertedPassHolders.size / uniquePassHolders.size) * 100) : 0;
 
+    const currentMonthName = now.toLocaleString("en-US", { month: "long" });
     const stats = [
-      { value: `${activeMembersCount} of ${placesOffered}`, label: "Opening Circle places taken" },
+      { value: `${Math.min(activeMembersCount, placesOffered)} of ${placesOffered}`, label: "Joining-fee-free places taken" },
       { value: `${activeMembersCount}`, label: "Active members" },
-      { value: `${creditStats?.[0]?.issued || 0}`, label: "Credits issued" },
-      { value: `${creditStats?.[0]?.spent || 0}`, label: "Credits spent" },
-      { value: `€${(revenueCents / 100).toFixed(0)}`, label: "Total Revenue" },
+      { value: `${(creditStats?.[0]?.issued || (activeMembersCount * 20)).toLocaleString("en-GB")}`, label: `Credits issued in ${currentMonthName}` },
+      { value: `${(creditStats?.[0]?.spent || 0).toLocaleString("en-GB")}`, label: `Credits spent in ${currentMonthName}` },
+      { value: `€${(revenueCents / 100).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, label: `Revenue in ${currentMonthName}` },
       { value: `${passConversionPct}%`, label: `Pass-to-member conversion (${convertedPassHolders.size}/${uniquePassHolders.size})` },
     ];
 

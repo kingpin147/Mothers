@@ -82,7 +82,7 @@ export default function MembershipClient({
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(36px,5vw,56px)", lineHeight: 1.1, margin: "0 0 20px" }}>
           {isEn ? "One membership. Everything you need to build your circle." : "Una sola membresía. Todo lo que necesitas para construir tu círculo."}
         </h1>
-        <p style={{ fontSize: "17px", lineHeight: "1.65", color: "rgba(57,41,42,0.72)", margin: 0 }}>
+        <p style={{ fontSize: "19px", lineHeight: "1.65", color: "rgba(57, 41, 42, 0.78)", margin: 0 }}>
           {isEn ? "Create long-lasting relationships with fellow MoMs." : "Crea relaciones duraderas con otras MoMs."}
         </p>
       </section>

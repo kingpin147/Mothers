@@ -138,7 +138,7 @@ export default function PartnersPage() {
               ? "The specialists behind every experience."
               : "Las especialistas detrás de cada experiencia."}
           </h1>
-          <p style={{ fontSize: "16.5px", color: "var(--color-text-muted)", maxWidth: "640px", margin: "0 auto" }}>
+          <p style={{ fontSize: "19px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.78)", maxWidth: "640px", margin: "0 auto" }}>
             {lang === "en"
               ? "One trusted partner per specialty — vetted, exclusive, and here for the long run. See who we work with, and why."
               : "Un partner de confianza por especialidad — seleccionado, exclusivo y aquí para quedarse. Descubre con quién trabajamos y por qué."}

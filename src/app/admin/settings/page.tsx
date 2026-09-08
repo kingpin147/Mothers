@@ -18,9 +18,9 @@ export default function AdminSettingsPage() {
 
   const [form, setForm] = useState({
     joiningFee: 19,
-    openingMonthly: 29,
-    openingQuarterly: 79,
     standardMonthly: 39,
+    standardQuarterly: 99,
+    joiningFeeFreePlaces: 50,
     passToMemberDays: 30,
     
     eventPassPrice: 35,
@@ -39,14 +39,11 @@ export default function AdminSettingsPage() {
     
     godmotherJoinBonus: 5,
     godmotherThreeMonthBonus: 15,
-    godmotherFriendsLimit: 0, // 0 for no limit
     godmotherBonusLife: 6,
     
     answerAppHours: 72,
     paymentLinkHours: 72,
     pauseAllowanceMonths: 2,
-    openingCirclePlaces: 50,
-    rateHeldMonths: 12,
     
     scheduleMembersFrom: 28,
     scheduleGuestsOpen: 14,
@@ -82,13 +79,11 @@ export default function AdminSettingsPage() {
         releaseDeadlineHours: res.settings.releaseDeadlineHours ?? prev.releaseDeadlineHours,
         
         godmotherThreeMonthBonus: res.settings.godmotherThreeMonthBonus ?? prev.godmotherThreeMonthBonus,
-        godmotherFriendsLimit: res.settings.godmotherFriendsLimit ?? prev.godmotherFriendsLimit,
         godmotherBonusLife: res.settings.godmotherBonusLife ?? prev.godmotherBonusLife,
         
         answerAppHours: res.settings.answerAppHours ?? prev.answerAppHours,
         paymentLinkHours: res.settings.paymentLinkHours ?? prev.paymentLinkHours,
         pauseAllowanceMonths: res.settings.pauseAllowanceMonths ?? prev.pauseAllowanceMonths,
-        rateHeldMonths: res.settings.rateHeldMonths ?? prev.rateHeldMonths,
         
         scheduleMembersFrom: res.settings.scheduleMembersFrom ?? prev.scheduleMembersFrom,
         scheduleGuestsOpen: res.settings.scheduleGuestsOpen ?? prev.scheduleGuestsOpen,
@@ -96,8 +91,9 @@ export default function AdminSettingsPage() {
         scheduleDecisionPoint: res.settings.scheduleDecisionPoint ?? prev.scheduleDecisionPoint,
         scheduleGuestsClose: res.settings.scheduleGuestsClose ?? prev.scheduleGuestsClose,
 
-        openingCirclePlaces: res.currentWindow?.placesOffered ?? prev.openingCirclePlaces,
-        openingMonthly: (res.currentWindow?.monthlyPriceCents ?? (prev.openingMonthly * 100)) / 100,
+        joiningFeeFreePlaces: res.settings.joiningFeeFreePlaces ?? (res.currentWindow?.placesOffered ?? prev.joiningFeeFreePlaces),
+        standardMonthly: (res.currentWindow?.monthlyPriceCents ?? (prev.standardMonthly * 100)) / 100,
+        standardQuarterly: (res.settings.quarterlyFeeCents ?? (prev.standardQuarterly * 100)) / 100,
         joiningFee: (res.currentWindow?.joiningFeeCents ?? (prev.joiningFee * 100)) / 100,
       }));
     }
@@ -111,10 +107,10 @@ export default function AdminSettingsPage() {
       opensAt: windowForm.opensAt,
       closesAt: windowForm.closesAt,
       placesOffered: windowForm.placesOffered,
-      openingMonthlyPriceCents: form.openingMonthly * 100,
-      openingQuarterlyPriceCents: form.openingQuarterly * 100,
+      openingMonthlyPriceCents: form.standardMonthly * 100,
+      openingQuarterlyPriceCents: form.standardQuarterly * 100,
       standardMonthlyPriceCents: form.standardMonthly * 100,
-      standardQuarterlyPriceCents: form.openingQuarterly * 100 // Approximation for mock
+      standardQuarterlyPriceCents: form.standardQuarterly * 100
     });
     if (!res.success) {
       alert(res.error || "Failed to create window.");
@@ -140,9 +136,12 @@ export default function AdminSettingsPage() {
     setSaving(true);
     const payload = {
       joiningFeeCents: form.joiningFee * 100,
-      openingMonthlyPriceCents: form.openingMonthly * 100,
-      openingQuarterlyPriceCents: form.openingQuarterly * 100,
       standardMonthlyPriceCents: form.standardMonthly * 100,
+      openingMonthlyPriceCents: form.standardMonthly * 100,
+      openingQuarterlyPriceCents: form.standardQuarterly * 100,
+      quarterlyFeeCents: form.standardQuarterly * 100,
+      joiningFeeFreePlaces: form.joiningFeeFreePlaces,
+      placesOffered: form.joiningFeeFreePlaces,
       passToMemberDays: form.passToMemberDays,
       
       guestPassPriceCents: form.eventPassPrice * 100,
@@ -161,14 +160,11 @@ export default function AdminSettingsPage() {
       
       referralBonusCredits: form.godmotherJoinBonus,
       godmotherThreeMonthBonus: form.godmotherThreeMonthBonus,
-      godmotherFriendsLimit: form.godmotherFriendsLimit,
       godmotherBonusLife: form.godmotherBonusLife,
       
       answerAppHours: form.answerAppHours,
       paymentLinkHours: form.paymentLinkHours,
       pauseAllowanceMonths: form.pauseAllowanceMonths,
-      placesOffered: form.openingCirclePlaces,
-      rateHeldMonths: form.rateHeldMonths,
       
       scheduleMembersFrom: form.scheduleMembersFrom,
       scheduleGuestsOpen: form.scheduleGuestsOpen,
@@ -300,10 +296,10 @@ export default function AdminSettingsPage() {
             <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "32px" }}>
               <SectionTitle title="Rates and fees" subtitle="What a membership costs. Existing members keep the rate they joined on — changing a figure here only affects who joins next." />
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px 32px" }}>
-                <InputField label="Joining fee (€)" val={form.joiningFee} keyName="joiningFee" quoted desc="" />
-                {/* <InputField label="Opening Circle - monthly (€)" val={form.openingMonthly} keyName="openingMonthly" quoted desc="Held for twelve months from the day she joins. 50 places." /> */}
-                {/* <InputField label="Opening Circle - quarterly (€)" val={form.openingQuarterly} keyName="openingQuarterly" quoted desc="The same rate paid three months at a time." /> */}
-                <InputField label="Standard - monthly (€)" val={form.standardMonthly} keyName="standardMonthly" quoted desc="What a membership costs once the Opening Circle is gone." />
+                <InputField label="Joining fee (€)" val={form.joiningFee} keyName="joiningFee" desc="One-off, charged with the first payment. Waived entirely if an Event Pass was taken in the last 30 days." />
+                <InputField label="Membership · monthly (€)" val={form.standardMonthly} keyName="standardMonthly" desc="The one membership rate. Quoted on Membership, Payment, the FAQ and Legal." />
+                <InputField label="Membership · quarterly (€)" val={form.standardQuarterly} keyName="standardQuarterly" desc="The same membership paid three months at a time." />
+                <InputField label="Joining-fee-free places" val={form.joiningFeeFreePlaces} keyName="joiningFeeFreePlaces" desc="Members joining before this many are charged no joining fee. 8 taken, 42 left." />
                 <InputField label="Pass-to-member window (days)" val={form.passToMemberDays} keyName="passToMemberDays" quoted desc="Join within this many days of taking a pass and the joining fee is waived." />
               </div>
             </div>
@@ -340,11 +336,6 @@ export default function AdminSettingsPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px 32px" }}>
                 <InputField label="Bonus when a friend joins" val={form.godmotherJoinBonus} keyName="godmotherJoinBonus" quoted desc="" />
                 <InputField label="Bonus at three months" val={form.godmotherThreeMonthBonus} keyName="godmotherThreeMonthBonus" quoted desc="Granted when the friend reaches her third month as a member." />
-                <div>
-                  <div style={{ fontSize: "13.5px", color: "#39292a", marginBottom: "8px" }}>Friends per member</div>
-                  <input type="text" value="No limit" disabled style={{ width: "100%", maxWidth: "200px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "rgba(57,41,42,0.03)" }} />
-                  <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "8px" }}>Nobody is capped on how many friends she brings.</div>
-                </div>
                 <InputField label="Bonus credit life (months)" val={form.godmotherBonusLife} keyName="godmotherBonusLife" desc="The same life as any other credit." />
               </div>
             </div>
@@ -356,8 +347,6 @@ export default function AdminSettingsPage() {
                 <InputField label="Answer an application within (hours)" val={form.answerAppHours} keyName="answerAppHours" quoted desc="Our promise. The queue turns amber at 48 and wine at 72." />
                 <InputField label="Payment link valid for (hours)" val={form.paymentLinkHours} keyName="paymentLinkHours" quoted desc="After acceptance. Reminder at 48; the place returns to the window at 72." />
                 <InputField label="Pause allowance (months per year)" val={form.pauseAllowanceMonths} keyName="pauseAllowanceMonths" quoted desc="Nothing expires while paused, and nothing new arrives." />
-                <InputField label="Opening Circle places" val={form.openingCirclePlaces} keyName="openingCirclePlaces" quoted desc="The founding cohort. 9 taken." />
-                <InputField label="Rate held for (months)" val={form.rateHeldMonths} keyName="rateHeldMonths" quoted desc="Per member, from her own joining date — not a calendar year." />
               </div>
             </div>
 
@@ -394,17 +383,59 @@ export default function AdminSettingsPage() {
             </div>
 
             {/* Bottom Actions */}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "16px" }}>
-              <button style={{ border: "1px solid rgba(57,41,42,0.25)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "12px 20px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", cursor: "pointer" }}>
-                Discard changes
-              </button>
-              <button 
-                onClick={handleSave} 
-                disabled={saving}
-                style={{ border: `1px solid ${WINE}`, background: "transparent", color: WINE, borderRadius: "4px", padding: "12px 20px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", cursor: "pointer", fontWeight: 600 }}
-              >
-                {saving ? "Saving..." : "Review and save →"}
-              </button>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", borderTop: "1px solid rgba(57,41,42,0.16)", paddingTop: "18px", marginTop: "12px", marginBottom: "26px" }}>
+              <div style={{ maxWidth: "52ch" }}>
+                <div style={{ fontSize: "12.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.68)" }}>
+                  Saving shows you which pages and FAQ answers quote each changed figure, before anything goes live.
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <button 
+                  type="button" 
+                  onClick={loadSettings}
+                  style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "11px 18px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}
+                >
+                  Discard changes
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleSave} 
+                  disabled={saving}
+                  style={{ border: `1px solid ${WINE}`, background: "transparent", color: WINE, borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}
+                >
+                  {saving ? "Saving..." : "Review and save →"}
+                </button>
+              </div>
+            </div>
+
+            {/* Information & Policy Cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "16px" }}>
+              <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px", color: "#39292a" }}>
+                  What changed from the current page
+                </h2>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
+                  <div><strong style={{ fontWeight: 600 }}>Joining fee read €58.</strong> It is €19. The helper text under it even said €19 while the field said 58 — the field is what charges the card.</div>
+                  <div><strong style={{ fontWeight: 600 }}>A rollover cap of 40 existed at all.</strong> We agreed credits have no ceiling; a cap silently destroys credits a member has paid for.</div>
+                  <div><strong style={{ fontWeight: 600 }}>Godmother bonus read 20 credits.</strong> It is 5 when a friend joins and 15 more at three months — two figures, not one.</div>
+                  <div><strong style={{ fontWeight: 600 }}>Credit expiry was missing entirely</strong> — six months is the rule the whole ledger runs on.</div>
+                  <div><strong style={{ fontWeight: 600 }}>The Event Pass price was missing</strong>, as were the pass window, the quarterly rate, the pause allowance and the payment hold.</div>
+                  <div><strong style={{ fontWeight: 600 }}>Save was one filled button with no confirmation.</strong> These figures are quoted on live pages; saving now goes through a review step.</div>
+                </div>
+              </div>
+
+              <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "18px 20px" }}>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "19px", margin: "0 0 10px", color: "#39292a" }}>
+                  Rules this page holds
+                </h2>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
+                  <div>A figure marked <em>quoted publicly</em> appears in copy on the site. Changing it flags every page and FAQ answer that mentions it, and the change is not live until those are settled.</div>
+                  <div>A change never rewrites the past. Existing members keep the rate they joined on; credits keep the expiry they were granted with.</div>
+                  <div>Two Event Passes per person is global and belongs here — never on an individual event.</div>
+                  <div>There is one membership rate. The joining fee is waived for the first fifty members, and for anyone who took an Event Pass in the last thirty days.</div>
+                  <div>Only the Owner can save this page, and every change is written to the audit log with the previous value.</div>
+                </div>
+              </div>
             </div>
 
           </div>

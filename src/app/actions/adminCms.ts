@@ -778,6 +778,7 @@ export async function saveJournalPost(data: {
   excerpt: string;
   body: string;
   author?: string;
+  status?: string; // 'published' | 'draft' | 'unpublished'
   published?: boolean;
   publishedAt?: Date | null;
   audience?: string;
@@ -785,6 +786,8 @@ export async function saveJournalPost(data: {
   try {
     await verifyAdminRole();
     const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-${Date.now().toString().slice(-4)}`;
+
+    const computedStatus = data.status || (data.published ? "published" : "draft");
 
     if (data.id) {
       await db
@@ -794,8 +797,8 @@ export async function saveJournalPost(data: {
           excerpt: data.excerpt,
           body: data.body,
           audience: data.audience || "public",
-          status: data.published ? "published" : "draft",
-          publishedAt: data.publishedAt !== undefined ? data.publishedAt : (data.published ? new Date() : null),
+          status: computedStatus,
+          publishedAt: data.publishedAt !== undefined ? data.publishedAt : (computedStatus === "published" ? new Date() : null),
           updatedAt: new Date(),
         })
         .where(eq(journalPost.id, data.id));
@@ -807,8 +810,8 @@ export async function saveJournalPost(data: {
         body: data.body,
         author: data.author || "The Mothers Editorial",
         audience: data.audience || "public",
-        status: data.published ? "published" : "draft",
-        publishedAt: data.publishedAt !== undefined ? data.publishedAt : (data.published ? new Date() : null),
+        status: computedStatus,
+        publishedAt: data.publishedAt !== undefined ? data.publishedAt : (computedStatus === "published" ? new Date() : null),
       });
     }
 
@@ -817,3 +820,48 @@ export async function saveJournalPost(data: {
     return { success: false, error: error?.message || "SAVE_JOURNAL_FAILED" };
   }
 }
+
+export async function duplicateJournalPost(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await verifyAdminRole();
+    const existing = await db.select().from(journalPost).where(eq(journalPost.id, id)).limit(1);
+    if (!existing.length) return { success: false, error: "POST_NOT_FOUND" };
+
+    const orig = existing[0];
+    const newTitle = `${orig.title} (Draft)`;
+    const newSlug = `${orig.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-draft-${Date.now().toString().slice(-4)}`;
+
+    await db.insert(journalPost).values({
+      title: newTitle,
+      slug: newSlug,
+      excerpt: orig.excerpt,
+      body: orig.body,
+      author: orig.author,
+      audience: orig.audience,
+      status: "draft",
+      publishedAt: null,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "DUPLICATE_FAILED" };
+  }
+}
+
+export async function updateJournalPostSlug(id: string, newSlug: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await verifyAdminRole();
+    const cleanSlug = newSlug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (!cleanSlug) return { success: false, error: "INVALID_SLUG" };
+
+    await db
+      .update(journalPost)
+      .set({ slug: cleanSlug, updatedAt: new Date() })
+      .where(eq(journalPost.id, id));
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "UPDATE_SLUG_FAILED" };
+  }
+}
+

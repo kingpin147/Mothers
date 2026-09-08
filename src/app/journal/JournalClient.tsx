@@ -240,9 +240,9 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
         </h1>
         <p
           style={{
-            fontSize: "17px",
-            lineHeight: 1.7,
-            color: "rgba(57, 41, 42, 0.72)",
+            fontSize: "19px",
+            lineHeight: 1.65,
+            color: "rgba(57, 41, 42, 0.78)",
             maxWidth: "44em",
             margin: 0,
           }}

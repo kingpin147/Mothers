@@ -1250,9 +1250,9 @@ function EventCard({
 
       {/* Status Bar / Capacity & Threshold */}
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "auto", paddingTop: "12px", borderTop: "1px solid rgba(57,41,42,0.12)" }}>
-        {/* Confirmed Indicator (only if not past and not cancelled) */}
+        {/* Confirmed Indicator */}
         {ev.status === "confirmed" && !isPast && !isCancelled && (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12.5px", color: "#456f04", fontWeight: 500 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13.5px", color: "#456f04", fontWeight: 500 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" width="13" height="13" style={{ flexShrink: 0 }}>
               <circle cx="12" cy="12" r="9" />
               <path d="M8.5 12.5 11 15l4.5-5" />
@@ -1261,50 +1261,132 @@ function EventCard({
           </div>
         )}
 
-        {isPending && !isPast && !isCancelled && ev.minToConfirm && (
-          <div style={{ border: "1px solid rgba(164,118,31,0.35)", background: "#fffaf2", borderRadius: "5px", padding: "12px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12.5px", color: "#8a6116", fontWeight: 500 }}>
-              <span>{lang === "en" ? "Minimum mothers to confirm" : "Mínimo de madres para confirmar"}</span>
-              <span>{ev.bookedMember || 0} / {ev.minToConfirm}</span>
+        {/* Pending with minToConfirm (Still gathering) */}
+        {isPending && !isPast && !isCancelled && ev.minToConfirm ? (
+          <div style={{ border: "1px solid rgba(164,118,31,0.35)", background: "#fffaf2", borderRadius: "5px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "7px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", color: "#8a6116" }}>
+                {lang === "en" ? "Minimum mothers to confirm" : "Mínimo de madres para confirmar"}
+              </span>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#8a6116", fontFeatureSettings: "'tnum'" }}>
+                {ev.minToConfirm}
+              </span>
             </div>
             <div style={{ height: "4px", borderRadius: "2px", background: "rgba(57,41,42,0.14)", overflow: "hidden" }}>
               <div style={{ height: "100%", background: "#a4761f", width: `${Math.min(100, ((ev.bookedMember || 0) / ev.minToConfirm) * 100)}%` }} />
             </div>
             
             {ev.capacityTotal && ev.capacityTotal > 0 ? (
-              <>
-                <div style={{ height: "1px", background: "rgba(57,41,42,0.08)" }} />
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "12.5px", color: "rgba(57,41,42,0.75)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>{lang === "en" ? "Room for" : "Espacio para"}</span>
-                    <span>{ev.capacityTotal}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span>{lang === "en" ? "Still free" : "Aún libres"}</span>
-                    <span>{ev.capacityRemaining ?? ev.capacityTotal}</span>
-                  </div>
+              <div style={{ borderTop: "1px solid rgba(164,118,31,0.25)", paddingTop: "7px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
+                  <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", color: "#39292a" }}>
+                    {lang === "en" ? "Room for" : "Espacio para"}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
+                    {ev.capacityTotal}
+                  </span>
                 </div>
-              </>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
+                  <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", color: "#39292a" }}>
+                    {lang === "en" ? "Still free" : "Aún libres"}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
+                    {ev.capacityRemaining ?? ev.capacityTotal}
+                  </span>
+                </div>
+              </div>
             ) : null}
 
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11.5px", color: "#8a6116", marginTop: "2px" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="12" height="12" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-              <span>{lang === "en" ? `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang)}` : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}`}</span>
+            <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
+              {lang === "en"
+                ? `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang)}. Credits are only taken if it goes ahead.`
+                : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}. Los créditos solo se cobran si se confirma.`}
             </div>
-            <span style={{ fontSize: "11.5px", color: "rgba(57,41,42,0.72)", fontStyle: "italic" }}>
-              {lang === "en" ? "Credits are only taken if it goes ahead." : "Los créditos solo se cobran si se confirma."}
-            </span>
+          </div>
+        ) : null}
+
+        {/* Free Unlimited: Open list — no limit on places */}
+        {(!ev.capacityTotal || ev.isFreeWalk || ev.creditCost === 0) && !isCancelled && !isPast && !ev.userStatus?.isBooked && (
+          <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)", marginBottom: "4px" }}>
+            {lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"}
           </div>
         )}
 
-        {/* Capacity / Scarcity notice (only show if the minToConfirm block is NOT shown) */}
-        {!(isPending && !isPast && !isCancelled && ev.minToConfirm) && !isCancelled && !isPast && (ev.capacityTotal ?? 0) > 0 ? (
-          <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>
-            <span style={{ color: (ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 3) ? "#8a6516" : "rgba(57,41,42,0.7)" }}>
-              {lang === "en" ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}` : `Plazas disponibles: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`}
-            </span>
+        {/* Full state label */}
+        {isFull && !isPast && !isCancelled && (
+          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#39292a" }}>
+            {lang === "en" ? "Full" : "Completo"}
           </div>
-        ) : null}
+        )}
+
+        {/* Capped events: 2-line Room for / Still free (when NOT inside minToConfirm block, not cancelled, not past, not already booked) */}
+        {!(isPending && !isPast && !isCancelled && ev.minToConfirm) && !isCancelled && !isPast && !ev.userStatus?.isBooked && (ev.capacityTotal ?? 0) > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", color: "#39292a" }}>
+                {lang === "en" ? "Room for" : "Espacio para"}
+              </span>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
+                {ev.capacityTotal}
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", color: "#39292a" }}>
+                {lang === "en" ? "Still free" : "Aún libres"}
+              </span>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
+                {isFull ? 0 : (ev.capacityRemaining ?? ev.capacityTotal)}
+              </span>
+            </div>
+            {/* Note: Guest places closed if inside T-2 */}
+            {(() => {
+              const now = new Date();
+              const starts = new Date(ev.startsAt);
+              const diffDays = (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+              const isGuestClosed = !isMember && !ev.isSignature && (ev.creditCost <= 18) && (diffDays < 2 || (ev.guestCloseAt && now > new Date(ev.guestCloseAt)));
+              if (isGuestClosed && !isFull) {
+                return (
+                  <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
+                    {lang === "en" ? "Guest places have closed." : "Las plazas de invitada se han cerrado."}
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            {/* Member credit balance note if logged in */}
+            {isMember && !isFull && (
+              <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
+                {lang === "en" ? `You have ${creditBalance} credits.` : `Tienes ${creditBalance} créditos.`}
+              </div>
+            )}
+            {/* Member full waitlist note */}
+            {isMember && isFull && (
+              <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
+                {lang === "en" ? "No credits are taken to wait." : "No se cobran créditos por esperar."}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Signature signed out note */}
+        {ev.isSignature && !isMember && !isCancelled && !isPast && (
+          <div style={{ fontSize: "13.5px", lineHeight: "1.55", color: "#39292a" }}>
+            {lang === "en" ? "This one is for members. " : "Este evento es para socias. "}
+            <Link href="/membership" style={{ color: "#7b1f2c", textDecoration: "underline" }}>
+              {lang === "en" ? "See the membership →" : "Ver la membresía →"}
+            </Link>
+          </div>
+        )}
+
+        {/* Member Booked State */}
+        {ev.userStatus?.isBooked && !isCancelled && !isPast && (
+          <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)" }}>
+            {lang === "en"
+              ? `Booked${ev.userStatus.bookedAt ? ` on ${new Date(ev.userStatus.bookedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""} · cancel free up to 24h before`
+              : `Reservada${ev.userStatus.bookedAt ? ` el ${new Date(ev.userStatus.bookedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}` : ""} · cancelación gratuita hasta 24h antes`}
+          </div>
+        )}
+
         {isCancelled && (
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ fontSize: "13.5px", color: "#39292a", fontWeight: 500 }}>
@@ -1357,26 +1439,23 @@ function EventCard({
           ) : !isCancelled ? (
             <>
               {ev.userStatus?.isBooked ? (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: "10px", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.72)", fontStyle: "italic" }}>
-                    {lang === "en" ? "You're already booked in." : "Ya tienes tu plaza."}
-                  </span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", width: "100%", gap: "10px", flexWrap: "wrap" }}>
                   <Link
                     href={`/events/${ev.id}`}
                     style={{
-                      border: "1px solid rgba(57,41,42,0.22)",
-                      backgroundColor: "rgba(255,255,255,0.6)",
-                      color: "rgba(57,41,42,0.65)",
-                      padding: "8px 18px",
+                      border: "1px solid #7b1f2c",
+                      backgroundColor: "transparent",
+                      color: "#7b1f2c",
+                      padding: "10px 20px",
                       borderRadius: "4px",
                       fontFamily: "var(--font-heading)",
                       fontWeight: 600,
-                      fontSize: "13.5px",
+                      fontSize: "14.5px",
                       textDecoration: "none",
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {lang === "en" ? "Booked" : "Reservada"}
+                    {lang === "en" ? "See your ticket" : "Ver tu entrada"}
                   </Link>
                 </div>
               ) : ev.userStatus?.isWaitlisted ? (
@@ -1417,21 +1496,24 @@ function EventCard({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {lang === "en" ? "Join waitlist" : "Unirme a lista"}
+                    {lang === "en" ? "Join the waitlist" : "Unirme a la lista"}
                   </button>
                 ) : (
-                  <Link
-                    href="/membership"
-                    style={{
-                      fontSize: "13.5px",
-                      color: "#7b1f2c",
-                      textDecoration: "underline",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {lang === "en" ? "The waitlist is for members. See the membership →" : "La lista de espera es para socias. Ver la membresía →"}
-                  </Link>
+                  <div style={{ fontSize: "13.5px", lineHeight: "1.55", color: "#39292a" }}>
+                    {lang === "en" ? "The waitlist is for members. " : "La lista de espera es para socias. "}
+                    <Link
+                      href="/membership"
+                      style={{
+                        color: "#7b1f2c",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      {lang === "en" ? "See the membership →" : "Ver la membresía →"}
+                    </Link>
+                  </div>
                 )
+              ) : ev.isSignature && !isMember ? (
+                null
               ) : (
                 <>
                   {eligible && (
@@ -1440,21 +1522,20 @@ function EventCard({
                       onClick={() => onOpenGuestPass(ev)}
                       style={{
                         border: "1px solid #7b1f2c",
+                        backgroundColor: "transparent",
                         color: "#7b1f2c",
-                        background: "transparent",
-                        padding: "9px 18px",
+                        padding: "10px 18px",
                         borderRadius: "4px",
                         fontFamily: "var(--font-heading)",
                         fontWeight: 600,
-                        fontSize: "14px",
+                        fontSize: "14.5px",
                         cursor: "pointer",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {lang === "en" ? "€35 Event Pass" : "35€ Event Pass"}
+                      {lang === "en" ? "€35 Event Pass" : "Event Pass 35€"}
                     </button>
                   )}
-
                   <button
                     type="button"
                     onClick={handleBookClick}
@@ -1468,21 +1549,15 @@ function EventCard({
                       fontFamily: "var(--font-heading)",
                       fontWeight: 600,
                       fontSize: "14.5px",
-                      cursor: isBooking ? "wait" : "pointer",
+                      cursor: "pointer",
                       whiteSpace: "nowrap",
-                      boxShadow: "0 2px 6px rgba(123,31,44,0.2)",
-                      opacity: isBooking ? 0.75 : 1,
                     }}
                   >
                     {isBooking
                       ? (lang === "en" ? "Booking..." : "Reservando...")
-                      : ev.userStatus?.isWaitlisted 
-                        ? (lang === "en" ? "On waitlist" : "En lista de espera")
-                        : isFull
-                          ? (lang === "en" ? "Join waitlist" : "Unirme a la lista de espera")
-                          : ev.creditCost === 0 || ev.isFreeWalk
-                            ? (lang === "en" ? "Join the list" : "Unirme a la lista")
-                            : (lang === "en" ? "Book" : "Reservar")}
+                      : ev.isFreeWalk || ev.creditCost === 0
+                      ? (lang === "en" ? "Join the list" : "Unirme a la lista")
+                      : (lang === "en" ? "Book" : "Reservar")}
                   </button>
                 </>
               )}
@@ -1732,7 +1807,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(34px, 5vw, 54px)", fontWeight: 400, lineHeight: 1.1, margin: "0 0 16px 0" }}>
             {lang === "en" ? "Upcoming events." : "Próximos eventos."}
           </h1>
-          <p style={{ fontSize: "16.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.72)", margin: "0 auto", maxWidth: "600px" }}>
+          <p style={{ fontSize: "19px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.78)", margin: "0 auto", maxWidth: "680px" }}>
             {lang === "en"
               ? "Walks, workshops, dinners, and seasonal moments \u2014 browse what's coming up and book your place."
               : "Paseos, talleres, cenas y momentos de temporada \u2014 mira lo que se viene y reserva tu lugar."}

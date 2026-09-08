@@ -93,7 +93,7 @@ export default function LegalPage() {
         <h1 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(36px, 5vw, 56px)", lineHeight: 1.1, margin: "0 0 16px" }}>
           {isEn ? "Terms & Privacy." : "Términos y Privacidad."}
         </h1>
-        <p style={{ fontSize: "15px", lineHeight: 1.7, color: "rgba(57,41,42,0.65)", margin: 0, maxWidth: "56ch" }}>
+        <p style={{ fontSize: "19px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.78)", margin: 0, maxWidth: "56ch" }}>
           {isEn
             ? "Clear terms, careful data handling, and simple rules for a trusted room."
             : "Términos claros, tratamiento cuidadoso de los datos y normas sencillas para un espacio de confianza."}

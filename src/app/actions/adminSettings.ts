@@ -33,6 +33,8 @@ export async function getClubSettings() {
   return {
     success: true,
     settings: {
+      quarterlyFeeCents: settingsMap["quarterly_fee_cents"] ?? 9900,
+      joiningFeeFreePlaces: settingsMap["joining_fee_free_places"] ?? (currentWindow?.placesOffered ?? 50),
       monthlyGrantCredits: settingsMap["monthly_grant_credits"] ?? 20,
       rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? 0,
       referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 5,
@@ -73,7 +75,9 @@ export async function updateClubSettings(data: {
   joiningFeeCents?: number;
   openingMonthlyPriceCents?: number;
   openingQuarterlyPriceCents?: number;
+  quarterlyFeeCents?: number;
   standardMonthlyPriceCents?: number;
+  joiningFeeFreePlaces?: number;
   passToMemberDays?: number;
   
   guestPassPriceCents?: number;
@@ -110,6 +114,8 @@ export async function updateClubSettings(data: {
   const { adminId } = await verifyAdmin();
 
   const settingEntries = [
+    { key: "quarterly_fee_cents", value: data.quarterlyFeeCents ?? data.openingQuarterlyPriceCents },
+    { key: "joining_fee_free_places", value: data.joiningFeeFreePlaces ?? data.placesOffered },
     { key: "pass_to_member_days", value: data.passToMemberDays },
     { key: "guest_pass_price_cents", value: data.guestPassPriceCents },
     { key: "pass_credit_ceiling", value: data.passCreditCeiling },
