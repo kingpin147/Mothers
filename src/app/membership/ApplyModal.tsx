@@ -60,7 +60,7 @@ export function ApplyModal({
           termsAccepted: false,
         }));
         if (typeof parsed._step === "number" && !isNaN(parsed._step)) {
-          setStep(Math.max(0, Math.min(10, parsed._step)));
+          setStep(Math.max(0, Math.min(9, parsed._step)));
         }
       }
     } catch {
@@ -76,7 +76,7 @@ export function ApplyModal({
     }
   }, [answers, step]);
 
-  const totalSteps = 11;
+  const totalSteps = 10;
   const safeStep = Math.max(0, Math.min(totalSteps - 1, step));
   const progressPct = ((safeStep + 1) / totalSteps) * 100;
 
@@ -99,12 +99,7 @@ export function ApplyModal({
       titleEs: "¿En qué etapa estás ahora mismo?",
       subEs: "Selecciona todas las que apliquen — nos ayuda a programar encuentros para la etapa en la que estás.",
     },
-    {
-      titleEn: "What are your children's ages?",
-      subEn: "So we can organize play dates by age group. If you're pregnant, just select Pregnant.",
-      titleEs: "¿Qué edades tienen tus hijos/as?",
-      subEs: "Así podemos organizar encuentros por grupo de edad. Si estás embarazada, selecciona Embarazada.",
-    },
+    
     {
       titleEn: "Which neighbourhood are you in?",
       subEn: "So we can host events close to you.",
@@ -182,14 +177,14 @@ export function ApplyModal({
         return;
       }
     }
-    if (step === 5) {
+    if (step === 4) {
       const hoping = Array.isArray(answers.hopingToFind) ? answers.hopingToFind : [];
       if (hoping.length === 0) {
         setShowError(true);
         return;
       }
     }
-    if (step === 6) {
+    if (step === 5) {
       const free = Array.isArray(answers.freeTimes) ? answers.freeTimes : [];
       if (free.length === 0) {
         setShowError(true);
@@ -394,7 +389,7 @@ export function ApplyModal({
         {/* Step Title & Sub */}
         <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(26px, 4vw, 32px)", lineHeight: 1.2, margin: "0 0 12px", color: "#39292a" }}>
           {lang === "en" ? currentMeta.titleEn : currentMeta.titleEs}
-          {[0, 1, 2, 4, 5, 6, 10].includes(step) && <span style={{ color: "#7b1f2c", marginLeft: "4px" }}>*</span>}
+          {[0, 1, 2, 3, 4, 5, 9].includes(step) && <span style={{ color: "#7b1f2c", marginLeft: "4px" }}>*</span>}
         </h2>
         {currentMeta && (
           <p style={{ fontSize: "15px", lineHeight: "1.6", color: "rgba(57,41,42,0.68)", margin: "0 0 28px" }}>
@@ -512,58 +507,8 @@ export function ApplyModal({
           </div>
         )}
 
-        {/* Step 3: Children's Ages (Multiple Choice Chips) */}
+        {/* Step 3: Neighbourhood */}
         {step === 3 && (
-          <div style={{ marginBottom: "8px" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-              {[
-                { en: "Pregnant", es: "Embarazada" },
-                { en: "0–6 months", es: "0–6 meses" },
-                { en: "6–12 months", es: "6–12 meses" },
-                { en: "1–3 years", es: "1–3 años" },
-                { en: "3–6 years", es: "3–6 años" },
-                { en: "6–10 years", es: "6–10 años" },
-                { en: "10+ years", es: "Más de 10 años" },
-              ].map((opt) => {
-                const currentList = Array.isArray(answers.childrenAge) ? answers.childrenAge : (answers.childrenAge ? [answers.childrenAge] : []);
-                const isSelected = currentList.includes(opt.en);
-                return (
-                  <button
-                    key={opt.en}
-                    type="button"
-                    onClick={() => toggleArrayField("childrenAge", opt.en)}
-                    style={{
-                      padding: "10px 16px",
-                      borderRadius: "20px",
-                      border: isSelected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.25)",
-                      backgroundColor: isSelected ? "#7b1f2c" : "rgba(57,41,42,0.04)",
-                      color: isSelected ? "#f8efe2" : "#39292a",
-                      fontFamily: "var(--font-body)",
-                      fontSize: "14px",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "8px",
-                    }}
-                  >
-                    {isSelected && (
-                      <span style={{ color: "#f8efe2", display: "flex" }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" width="13" height="13">
-                          <path d="M20 6 9 17l-5-5" />
-                        </svg>
-                      </span>
-                    )}
-                    {lang === "en" ? opt.en : opt.es}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Neighbourhood */}
-        {step === 4 && (
           <div style={{ marginBottom: "8px" }}>
             <select
               value={answers.neighbourhood}
@@ -579,8 +524,8 @@ export function ApplyModal({
           </div>
         )}
 
-        {/* Step 5: Hoping to find (Chips) */}
-        {step === 5 && (
+        {/* Step 4: Hoping to find (Chips) */}
+        {step === 4 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "8px" }}>
             {[
               { en: "Friendships nearby", es: "Amistades cercanas" },
@@ -625,8 +570,8 @@ export function ApplyModal({
           </div>
         )}
 
-        {/* Step 6: Free times (Chips) */}
-        {step === 6 && (
+        {/* Step 5: Free times (Chips) */}
+        {step === 5 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "8px" }}>
             {[
               { en: "Weekday mornings", es: "Mañanas entre semana" },
@@ -673,8 +618,8 @@ export function ApplyModal({
           </div>
         )}
 
-        {/* Step 7: Referral source */}
-        {step === 7 && (
+        {/* Step 6: Referral source */}
+        {step === 6 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "8px" }}>
             <select
               value={answers.referralSource || ""}
@@ -706,8 +651,8 @@ export function ApplyModal({
           </div>
         )}
 
-        {/* Step 8: Social media */}
-        {step === 8 && (
+        {/* Step 7: Social media */}
+        {step === 7 && (
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "8px" }}>
             <select
               value={answers.socialPlatform}
@@ -729,8 +674,8 @@ export function ApplyModal({
           </div>
         )}
 
-        {/* Step 9: Motivation */}
-        {step === 9 && (
+        {/* Step 8: Motivation */}
+        {step === 8 && (
           <div style={{ marginBottom: "8px" }}>
             <textarea
               value={answers.motivation || ""}
@@ -741,8 +686,8 @@ export function ApplyModal({
           </div>
         )}
 
-        {/* Step 10: Billing & Consent */}
-        {step === 10 && (
+        {/* Step 9: Billing & Consent */}
+        {step === 9 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "8px" }}>
             <select
               value={answers.billingPreference}

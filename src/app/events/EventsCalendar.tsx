@@ -1173,6 +1173,11 @@ function EventCard({
           <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
             {ev.stage && ev.stage !== "All Stages" ? getStageLabel(ev.stage, lang) : (lang === "en" ? "Open to every stage" : "Abierto a todas las etapas")}
           </span>
+          {ev.audienceType && (
+            <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
+              {ev.audienceType === "moms_only" ? (lang === "en" ? "Moms only" : "Solo madres") : (lang === "en" ? "Kids welcome" : "Peques bienvenidos")}
+            </span>
+          )}
           {ev.isOnline && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.6)", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "10px", padding: "3px 9px", whiteSpace: "nowrap", background: "rgba(255,255,255,0.6)" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="11" height="11"><path d="m22 8-6 4 6 4V8Z" /><rect x="2" y="6" width="14" height="12" rx="2" /></svg>
@@ -1233,21 +1238,7 @@ function EventCard({
             {ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}
           </span>
         )}
-        {ev.audienceType && (
-          <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-            {ev.audienceType === "moms_only" ? (
-              <>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>
-                <span>{lang === "en" ? "Moms only" : "Solo madres"}</span>
-              </>
-            ) : (
-              <>
-                <svg viewBox="0 0 30 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="14" style={{ flexShrink: 0 }}><circle cx="10" cy="8" r="4" /><path d="M2 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /><circle cx="24" cy="11" r="2.6" /><path d="M18.5 21c0-2.9 2.5-5.2 5.5-5.2s5.5 2.3 5.5 5.2" /></svg>
-                <span>{lang === "en" ? "Moms + Child" : "Madres con peques"}</span>
-              </>
-            )}
-          </span>
-        )}
+
       </div>
 
       {/* Description */}

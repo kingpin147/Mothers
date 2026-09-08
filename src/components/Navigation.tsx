@@ -107,8 +107,7 @@ export function Navigation() {
               color: "var(--color-text)",
               padding: "6px 10px",
               borderRadius: "4px",
-              fontSize: "13px",
-              fontFamily: "var(--font-heading)",
+              fontSize: "15.5px",
               fontWeight: 500,
               cursor: "pointer",
             }}
@@ -135,9 +134,8 @@ export function Navigation() {
                       color: "var(--color-accent)",
                       padding: "8px 16px",
                       borderRadius: "4px",
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 600,
-                      fontSize: "13.5px",
+                      fontWeight: 500,
+                      fontSize: "15.5px",
                       textDecoration: "none",
                     }}
                   >
@@ -151,7 +149,8 @@ export function Navigation() {
                   border: "none",
                   background: "transparent",
                   color: "rgba(57, 41, 42, 0.65)",
-                  fontSize: "13px",
+                  fontSize: "15.5px",
+                  fontWeight: 500,
                   cursor: "pointer",
                   padding: "6px 8px",
                 }}
@@ -167,9 +166,8 @@ export function Navigation() {
                 color: "var(--color-accent)",
                 padding: "8px 16px",
                 borderRadius: "4px",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                fontSize: "13.5px",
+                fontWeight: 500,
+                fontSize: "15.5px",
                 textDecoration: "none",
               }}
             >
