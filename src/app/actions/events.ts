@@ -149,8 +149,10 @@ export async function getPublicEvents() {
         minute: "2-digit",
       }) : "";
 
+      const placesTaken = countMap.get(ev.id) || 0;
       const capacityTotal = ev.capacityMember && ev.capacityMember > 0 ? ev.capacityMember : null;
-      const capacityRemaining = capacityTotal !== null ? Math.max(0, capacityTotal - (countMap.get(ev.id) || 0)) : null;
+      const capacityRemaining = capacityTotal !== null ? Math.max(0, capacityTotal - placesTaken) : null;
+      const isFull = capacityTotal !== null && capacityTotal > 0 && capacityRemaining !== null && capacityRemaining <= 0;
 
       const audienceType = ev.childcare === "adults_only" ? "moms_only" : "moms_child";
       
@@ -183,9 +185,11 @@ export async function getPublicEvents() {
         stage: ev.stage || "All Stages",
         dateStr,
         timeStr: ends ? `${startTimeStr} – ${endTimeStr}` : startTimeStr,
-        bookedMember: countMap.get(ev.id) || 0,
+        placesTaken,
+        bookedMember: placesTaken,
         capacityTotal,
         capacityRemaining,
+        isFull,
         audienceType,
         languages: ev.languages || ["es", "en"],
         userStatus,

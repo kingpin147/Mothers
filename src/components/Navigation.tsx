@@ -5,17 +5,30 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { getMyCredits } from "@/app/actions/memberAccount";
 
 export function Navigation() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { language: lang, setLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [memberCredits, setMemberCredits] = useState<number | null>(null);
 
   // Close mobile drawer on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  // Fetch credit balance for logged-in members (not admins)
+  useEffect(() => {
+    const role = (session?.user as any)?.role;
+    const isAdminUser = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
+    if (session?.user && !isAdminUser) {
+      getMyCredits().then(({ balance }) => setMemberCredits(balance));
+    } else {
+      setMemberCredits(null);
+    }
+  }, [session]);
 
   const switchLang = (newLang: "en" | "es") => {
     setLanguage(newLang);
@@ -124,7 +137,9 @@ export function Navigation() {
                 const accountHref = isAdminUser ? "/admin" : "/account";
                 const accountLabel = isAdminUser
                   ? (lang === "en" ? "Admin" : "Admin")
-                  : (lang === "en" ? "My Account" : "Mi Cuenta");
+                  : memberCredits !== null
+                    ? `${lang === "en" ? "My account" : "Mi cuenta"} · ${memberCredits} credits`
+                    : (lang === "en" ? "My Account" : "Mi Cuenta");
 
                 return (
                   <Link

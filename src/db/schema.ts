@@ -262,6 +262,7 @@ export const application = pgTable(
     declineNote: text("decline_note"),
     acceptExpiresAt: timestamp("accept_expires_at", { withTimezone: true }),
     paymentLinkToken: text("payment_link_token"),
+    isPaid: boolean("is_paid").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

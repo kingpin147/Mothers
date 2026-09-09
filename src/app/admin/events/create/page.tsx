@@ -32,6 +32,8 @@ export default function AdminCreateEventPage() {
   const [membersOnly, setMembersOnly] = useState(false);
   const [freeEvent, setFreeEvent] = useState(false);
   const [passCta, setPassCta] = useState(false);
+  const [noCeiling, setNoCeiling] = useState(false);
+  const [noMinimum, setNoMinimum] = useState(false);
 
   // Schedule overrides
   const [schMembers, setSchMembers] = useState("T-28");
@@ -120,10 +122,12 @@ export default function AdminCreateEventPage() {
       startsAt: start,
       endsAt: new Date(endsAt),
       creditCost: freeEvent ? 0 : (parseInt(creditCost) || 0),
-      capacityMember: memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces),
-      capacityGuest: membersOnly ? 0 : (parseInt(guestPlaces) || 0),
-      capacityGuestGathering: membersOnly ? 0 : (parseInt(guestGathering) || undefined),
-      minToConfirm: minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
+      // 0 = uncapped (no ceiling). When noCeiling is checked, store 0 explicitly.
+      capacityMember: noCeiling ? 0 : (memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces)),
+      // When noCeiling is on, guests are also uncapped (they share the same unlimited event).
+      capacityGuest: membersOnly ? 0 : (noCeiling ? 0 : (parseInt(guestPlaces) || 0)),
+      capacityGuestGathering: membersOnly ? 0 : (noCeiling ? 0 : (parseInt(guestGathering) || undefined)),
+      minToConfirm: noMinimum || minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
       description,
       status,
       languages: langs,
@@ -287,28 +291,71 @@ export default function AdminCreateEventPage() {
 
           {/* PLACES AND COST */}
           <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>Places and cost</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.65)", marginBottom: "14px" }}>Places and cost</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 170px), 1fr))", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Minimum to run <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="number" value={minToConfirm} onChange={(e) => setMinToConfirm(e.target.value)} placeholder="—" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>The number below which you would cancel. Everything at T-10 and T-7 is measured against this.</div>
+                <input
+                  type="number"
+                  value={noMinimum ? "" : minToConfirm}
+                  onChange={(e) => setMinToConfirm(e.target.value)}
+                  placeholder={noMinimum ? "—" : "—"}
+                  disabled={noMinimum}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: noMinimum ? "rgba(57,41,42,0.04)" : "#fff", opacity: noMinimum ? 0.6 : 1 }}
+                />
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>The number below which you would cancel. Everything at T-10 and T-7 is measured against this.</div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member places <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="number" value={memberPlaces} onChange={(e) => setMemberPlaces(e.target.value)} placeholder="—" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Leave empty for a walk with no ceiling.</div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member places</label>
+                <input
+                  type="number"
+                  value={noCeiling ? "" : memberPlaces}
+                  onChange={(e) => setMemberPlaces(e.target.value)}
+                  placeholder={noCeiling ? "No ceiling" : "—"}
+                  disabled={noCeiling}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: noCeiling ? "rgba(57,41,42,0.04)" : "#fff", opacity: noCeiling ? 0.6 : 1 }}
+                />
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>
+                  {noCeiling ? "Open to all members and their guests — no limit on bookings." : "The ceiling on member bookings. Leave empty or tick below for no ceiling."}
+                </div>
               </div>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Credit cost <span style={{ color: "#7b1f2c" }}>*</span></label>
                 <input type="number" value={creditCost} onChange={(e) => setCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#7b1f2c", marginTop: "6px" }}>{costHint}</div>
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>{costHint}</div>
               </div>
             </div>
-            <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer", marginTop: "14px" }}>
-              <input type="checkbox" checked={freeEvent} onChange={(e) => setFreeEvent(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
-              <span>Free event — an RSVP list, no credits taken</span>
-            </label>
+            {/* Checkboxes row */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "14px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={noCeiling}
+                  onChange={(e) => {
+                    setNoCeiling(e.target.checked);
+                    if (e.target.checked) setMemberPlaces("");
+                  }}
+                  style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }}
+                />
+                <span>No ceiling — open to all members and their guests</span>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={noMinimum}
+                  onChange={(e) => {
+                    setNoMinimum(e.target.checked);
+                    if (e.target.checked) setMinToConfirm("");
+                  }}
+                  style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }}
+                />
+                <span>No minimum — RSVP list, runs whatever the numbers</span>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
+                <input type="checkbox" checked={freeEvent} onChange={(e) => setFreeEvent(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }} />
+                <span>Free event — an RSVP list, no credits taken</span>
+              </label>
+            </div>
           </div>
 
           <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>

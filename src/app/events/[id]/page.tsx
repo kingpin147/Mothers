@@ -424,9 +424,24 @@ export default function EventDetailPage() {
                   >
                     {lang === "en" ? "RSVP for Free Walk" : "Reservar Paseo Gratuito"}
                   </button>
+                ) : ev.creditCost === 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => { setModalOpen(true); setIsRsvpModal(true); setErrorMsg(null); }}
+                    style={{ backgroundColor: "var(--color-accent)", color: "#f8efe2", border: "none", padding: "12px 26px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14.5px", cursor: "pointer" }}
+                  >
+                    {lang === "en" ? "RSVP" : "Reservar"}
+                  </button>
+                ) : ev.isSignature || ev.creditCost > 18 ? (
+                  <Link
+                    href="/membership"
+                    style={{ backgroundColor: "var(--color-accent)", color: "#f8efe2", padding: "12px 22px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14.5px", textDecoration: "none", display: "inline-block" }}
+                  >
+                    {lang === "en" ? "Explore Membership" : "Explorar Membresía"}
+                  </Link>
                 ) : (
                   <Link
-                    href="/account/login"
+                    href={`/account/login?callbackUrl=${encodeURIComponent(`/events/${ev.id}`)}`}
                     style={{ backgroundColor: "var(--color-accent)", color: "#f8efe2", padding: "12px 22px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14.5px", textDecoration: "none", display: "inline-block" }}
                   >
                     {lang === "en" ? "Sign In to Book" : "Acceder para Reservar"}

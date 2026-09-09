@@ -389,3 +389,43 @@ export async function revealPerkCode(perkId: string) {
   }
 }
 
+
+// Lightweight credit-balance fetch used by the Navigation bar
+export async function getMyCredits(): Promise<{ balance: number }> {
+  try {
+    const session = await auth();
+    if (!session?.user) return { balance: 0 };
+
+    let memberId = (session.user as any).memberId;
+
+    // Fall back to look-up by personId or email if memberId isn't on the session token
+    if (!memberId) {
+      const personId = (session.user as any).personId || session.user.id;
+      let personRec = personId
+        ? await db.query.person.findFirst({ where: eq(person.id, personId) })
+        : null;
+      if (!personRec && session.user.email) {
+        personRec = await db.query.person.findFirst({
+          where: eq(person.email, session.user.email.toLowerCase().trim()),
+        });
+      }
+      if (personRec) {
+        const memberRec = await db.query.member.findFirst({
+          where: eq(member.personId, personRec.id),
+        });
+        memberId = memberRec?.id;
+      }
+    }
+
+    if (!memberId) return { balance: 0 };
+
+    const rows = await db
+      .select({ total: sql<number>`COALESCE(SUM(${creditEntry.amount}), 0)` })
+      .from(creditEntry)
+      .where(eq(creditEntry.memberId, memberId));
+
+    return { balance: Number(rows[0]?.total ?? 0) };
+  } catch {
+    return { balance: 0 };
+  }
+}

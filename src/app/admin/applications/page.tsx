@@ -28,7 +28,7 @@ export default function AdminApplicationsPage() {
   }, []);
 
   const waitingApps = apps.filter(a => a.status === 'submitted');
-  const awaitingPaymentApps = apps.filter(a => a.status === 'accepted' && !a.isPaid); // Mock logic for awaiting payment
+  const awaitingPaymentApps = apps.filter(a => a.status === 'accepted' && !a.isPaid);
   const declinedApps = apps.filter(a => a.status === 'declined');
 
   const currentApp = waitingApps[currentIndex];
@@ -347,7 +347,7 @@ export default function AdminApplicationsPage() {
                           alert("Payment window extended by 72 hours.");
                           fetchApps();
                         } else alert(res.error || "Failed to extend");
-                      }} disabled={!!actionLoading} style={{ border: "none", background: "none", color: "#39292a", fontSize: "13px", cursor: "pointer", fontFamily: "'Lora', Georgia, serif" }}>Extend</button>
+                      }} disabled={!!actionLoading} style={{ border: "1px solid rgba(57,41,42,0.35)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "4px 11px", fontSize: "12px", fontWeight: 600, fontFamily: "'Cormorant Garamond', serif", cursor: "pointer", letterSpacing: "0.02em" }}>Extend +72h</button>
                       <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
                       <button onClick={async () => {
                         if (!confirm("Are you sure you want to release this place and lapse the member?")) return;

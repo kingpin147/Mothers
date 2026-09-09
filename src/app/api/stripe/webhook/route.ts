@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
-import { person, eventPass, booking, event, member, creditEntry, auditLog } from "@/db/schema";
+import { person, eventPass, booking, event, member, creditEntry, auditLog, application } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import { queueAndSendEmail } from "@/lib/brevo";
@@ -305,6 +305,22 @@ async function handleMembershipActivation(memberId: string, customerId: string, 
       stripeSubscriptionId: subscriptionId,
       updatedAt: new Date()
     }).where(eq(member.id, memberId));
+
+    // Mark the most recent accepted application for this person as paid
+    const recentApp = await tx.query.application.findFirst({
+      where: and(
+        eq(application.personId, mem.personId),
+        eq(application.status, "accepted")
+      ),
+      orderBy: (application, { desc }) => [desc(application.decidedAt)]
+    });
+
+    if (recentApp && !recentApp.isPaid) {
+      await tx.update(application).set({
+        isPaid: true,
+        updatedAt: new Date()
+      }).where(eq(application.id, recentApp.id));
+    }
 
     const isQuarterly = mem.billingFrequency === "quarterly";
     const amount = isQuarterly ? 60 : 20;

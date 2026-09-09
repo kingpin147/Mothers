@@ -48,7 +48,9 @@ export interface PublicEvent {
   capacityGuest?: number | null;
   capacityTotal?: number | null;
   capacityRemaining?: number | null;
+  placesTaken?: number;
   bookedMember?: number;
+  isFull?: boolean;
   minToConfirm?: number | null;
   guestPriceCents?: number | null;
   showEventPassCta?: boolean | null;
@@ -1112,7 +1114,8 @@ function EventCard({
   const isPast = ev.status === "past" || ev.status === "completed" ||
     (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
   const isPending = ev.status === "published_pending" || ev.status === "pending";
-  const isFull = Boolean(ev.capacityTotal && ev.capacityTotal > 0 && ev.capacityRemaining !== null && ev.capacityRemaining !== undefined && ev.capacityRemaining <= 0);
+  // Use server-computed isFull value
+  const isFull = ev.isFull || false;
 
   const handleBookClick = () => {
     if (ev.isFreeWalk || ev.creditCost === 0) {
@@ -1126,8 +1129,10 @@ function EventCard({
         onMemberBook(ev);
       }
     } else if (ev.creditCost > 18 || ev.isSignature) {
-      onOpenCeiling(ev);
+      // Signed-out visitor viewing signature or >18 credit event → membership page
+      window.location.href = "/membership";
     } else {
+      // Signed-out visitor viewing regular paid event (≤18 credits) → login with callback
       window.location.href = `/account/login?callbackUrl=${encodeURIComponent(`/events/${ev.id}`)}`;
     }
   };
@@ -1305,10 +1310,17 @@ function EventCard({
           </div>
         ) : null}
 
-        {/* Free Unlimited: Open list — no limit on places */}
-        {(!ev.capacityTotal || ev.isFreeWalk || ev.creditCost === 0) && !isCancelled && !isPast && !ev.userStatus?.isBooked && (
+        {/* Free Unlimited: Open list — no limit on places (only show for truly uncapped events) */}
+        {!ev.capacityTotal && !isCancelled && !isPast && !ev.userStatus?.isBooked && !isFull && (
           <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)", marginBottom: "4px" }}>
             {lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"}
+          </div>
+        )}
+
+        {/* Scarcity indicator: show when spaces are running low (3 or fewer) but not full */}
+        {!isFull && ev.capacityRemaining && ev.capacityRemaining > 0 && ev.capacityRemaining <= 3 && !isCancelled && !isPast && !ev.userStatus?.isBooked && (
+          <div style={{ fontSize: "13.5px", color: "#8a6116", fontWeight: 500, marginBottom: "4px" }}>
+            {lang === "en" ? `${ev.capacityRemaining} ${ev.capacityRemaining === 1 ? 'place' : 'places'} left` : `${ev.capacityRemaining} ${ev.capacityRemaining === 1 ? 'plaza' : 'plazas'} libre${ev.capacityRemaining === 1 ? '' : 's'}`}
           </div>
         )}
 
@@ -1766,6 +1778,9 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       if (!isConfirmed || isPastEvent || isCancelled) return false;
     } else if (activeStatus === "pending") {
       if (!isPending || isPastEvent || isCancelled) return false;
+    } else if (activeStatus === "all") {
+      // Default "all" view: exclude past events unless explicitly selected
+      if (isPastEvent) return false;
     }
 
     return true;

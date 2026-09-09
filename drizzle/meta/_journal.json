@@ -29,6 +29,20 @@
       "when": 1788374848778,
       "tag": "0003_nostalgic_power_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788930213471,
+      "tag": "0004_red_firedrake",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788930237207,
+      "tag": "0005_vengeful_taskmaster",
+      "breakpoints": true
     }
   ]
 }

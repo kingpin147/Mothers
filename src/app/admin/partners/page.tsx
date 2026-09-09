@@ -23,6 +23,7 @@ export default function AdminPartnersPage() {
   const [composing, setComposing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editOfferText, setEditOfferText] = useState("");
+  const [editDiscountCode, setEditDiscountCode] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
@@ -144,6 +145,7 @@ export default function AdminPartnersPage() {
       specialty: p.specialty,
       umbrella: p.umbrella,
       offerForMembers: editOfferText.trim(),
+      discountCode: editDiscountCode.trim() || undefined,
       exclusive: p.exclusive,
       status: p.status,
     });
@@ -226,8 +228,8 @@ export default function AdminPartnersPage() {
           {stats.map((s, idx) => (
             <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "6px", background: "#fffdfa", padding: "15px 17px" }}>
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "24px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: s.color }}>{s.value}</div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", marginTop: "6px", lineHeight: 1.4 }}>{s.label}</div>
-              <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "5px" }}>{s.note}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)", marginTop: "6px", lineHeight: 1.4 }}>{s.label}</div>
+              <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "5px" }}>{s.note}</div>
             </div>
           ))}
         </div>
@@ -318,7 +320,7 @@ export default function AdminPartnersPage() {
         {/* TABLE */}
         <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", overflowX: "auto", marginBottom: "18px" }}>
           <div style={{ minWidth: "1140px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1.3fr 2.1fr 1fr 1.1fr 1.2fr", gap: "14px", padding: "14px 18px", borderBottom: "1px solid rgba(57,41,42,0.18)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1.3fr 2.1fr 1fr 1.1fr 1.2fr", gap: "14px", padding: "14px 18px", borderBottom: "1px solid rgba(57,41,42,0.18)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)" }}>
               <div>Partner</div>
               <div>Umbrella</div>
               <div>What members get</div>
@@ -340,7 +342,7 @@ export default function AdminPartnersPage() {
                   <div>
                     <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", lineHeight: 1.3, marginBottom: "3px" }}>{p.name}</div>
                     <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.68)" }}>{p.specialty}</div>
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.55)", marginTop: "3px" }}>{p.neighbourhood || p.area || "Barcelona"}</div>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.72)", marginTop: "3px" }}>{p.neighbourhood || p.area || "Barcelona"}</div>
                   </div>
 
                   <div>
@@ -355,15 +357,33 @@ export default function AdminPartnersPage() {
                   <div>
                     {isEdit ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                        <input
-                          type="text"
-                          value={editOfferText}
-                          onChange={(e) => setEditOfferText(e.target.value)}
-                          style={{ width: "100%", padding: "6px 8px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", fontSize: "13px" }}
-                        />
-                        <div style={{ display: "flex", gap: "6px" }}>
-                          <button type="button" onClick={() => handleInlineSaveOffer(p)} style={{ border: "1px solid #7b1f2c", background: "#7b1f2c", color: "#fff", borderRadius: "4px", padding: "4px 10px", fontSize: "12px", cursor: "pointer" }}>Save</button>
-                          <button type="button" onClick={() => setEditingId(null)} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", borderRadius: "4px", padding: "4px 10px", fontSize: "12px", cursor: "pointer" }}>Cancel</button>
+                        <div>
+                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.75)", marginBottom: "4px" }}>Offer text</div>
+                          <input
+                            type="text"
+                            value={editOfferText}
+                            onChange={(e) => setEditOfferText(e.target.value)}
+                            style={{ width: "100%", padding: "6px 8px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", fontSize: "13px", fontFamily: "'Lora', Georgia, serif", color: "#39292a", background: "#fff" }}
+                          />
+                        </div>
+                        <div>
+                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.75)", marginBottom: "4px" }}>Promo code <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0, fontSize: "10.5px" }}>(leave blank if none)</span></div>
+                          <input
+                            type="text"
+                            value={editDiscountCode}
+                            onChange={(e) => setEditDiscountCode(e.target.value.toUpperCase())}
+                            placeholder="e.g. MOTHERS-LUZ"
+                            style={{ width: "100%", padding: "6px 8px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", fontSize: "13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.06em", color: "#39292a", background: "#fff" }}
+                          />
+                        </div>
+                        <div style={{ fontSize: "11px", lineHeight: 1.5, color: "rgba(57,41,42,0.65)", marginTop: "2px" }}>
+                          {editDiscountCode.trim()
+                            ? "Members see this code and a Copy button — use it at the partner's own checkout."
+                            : "No code — members show their membership on arrival."}
+                        </div>
+                        <div style={{ display: "flex", gap: "6px", marginTop: "2px" }}>
+                          <button type="button" onClick={() => handleInlineSaveOffer(p)} style={{ border: "1px solid #7b1f2c", background: "#7b1f2c", color: "#fff", borderRadius: "4px", padding: "5px 12px", fontSize: "12px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, cursor: "pointer" }}>Save</button>
+                          <button type="button" onClick={() => setEditingId(null)} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", borderRadius: "4px", padding: "5px 12px", fontSize: "12px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, cursor: "pointer", color: "#39292a" }}>Cancel</button>
                         </div>
                       </div>
                     ) : (
@@ -390,7 +410,7 @@ export default function AdminPartnersPage() {
                     <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
                       {p.claims || 0}
                     </div>
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.45, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.45, color: "rgba(57,41,42,0.75)", marginTop: "4px" }}>
                       {p.claimNote || "active claims"}
                     </div>
                   </div>
@@ -399,7 +419,7 @@ export default function AdminPartnersPage() {
                     <div style={{ fontSize: "13px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>
                       {p.term || (p.agreementEndsAt ? `Ends ${new Date(p.agreementEndsAt).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}` : "Active agreement")}
                     </div>
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: isEnding ? AMBER : "rgba(57,41,42,0.6)", marginTop: "4px" }}>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: isEnding ? AMBER : "rgba(57,41,42,0.75)", marginTop: "4px" }}>
                       {p.renewNote || (isEnding ? "Ends in 21 days" : "Standard agreement")}
                     </div>
                   </div>
@@ -417,6 +437,7 @@ export default function AdminPartnersPage() {
                           } else {
                             setEditingId(p.id);
                             setEditOfferText(offerText);
+                            setEditDiscountCode(codeVal || "");
                           }
                         }}
                         style={{ border: "none", background: "transparent", color: "#7b1f2c", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", cursor: "pointer", padding: 0, textDecoration: "underline" }}
