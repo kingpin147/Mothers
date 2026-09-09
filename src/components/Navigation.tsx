@@ -159,7 +159,7 @@ export function Navigation() {
                 );
               })()}
               <button
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={() => signOut({ callbackUrl: `${window.location.origin}/` })}
                 style={{
                   border: "none",
                   background: "transparent",
@@ -322,7 +322,7 @@ export function Navigation() {
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    signOut({ callbackUrl: "/" });
+                    signOut({ callbackUrl: `${window.location.origin}/` });
                   }}
                   style={{
                     width: "100%",
