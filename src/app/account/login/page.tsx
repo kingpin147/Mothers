@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -33,9 +33,17 @@ function LoginForm() {
     if (saved === "es" || saved === "en") setLang(saved);
   }, []);
 
-  // Redirect if already authenticated
+  // Handle session expiry and redirects
   useEffect(() => {
-    if (status === "authenticated" && session?.user) {
+    const isSessionExpired = searchParams?.get("session_expired") === "1";
+
+    if (isSessionExpired && status === "authenticated") {
+      // Force client-side signout to clear the stale session that middleware rejected
+      signOut({ redirect: false });
+      return;
+    }
+
+    if (status === "authenticated" && session?.user && !isSessionExpired) {
       const role = (session.user as any)?.role;
       const isAdmin =
         role === "owner" ||

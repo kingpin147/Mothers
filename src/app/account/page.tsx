@@ -458,10 +458,27 @@ export default function AccountPage() {
                   ))}
                 </div>
               ) : (
-                <div style={{ padding: "20px", backgroundColor: "#faf7f2", borderRadius: "6px", textAlign: "center", color: "rgba(57,41,42,0.6)", fontSize: "14px", fontStyle: "italic" }}>
-                  {lang === "en"
-                    ? "No upcoming bookings. Browse the calendar and reserve your next spot."
-                    : "Sin próximas reservas. Explora el calendario y reserva tu siguiente plaza."}
+                <div style={{ padding: "32px 20px", backgroundColor: "#faf7f2", borderRadius: "6px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
+                  <div style={{ color: "rgba(57,41,42,0.6)", fontSize: "14px", fontStyle: "italic" }}>
+                    {lang === "en"
+                      ? "No upcoming bookings. Browse the calendar and reserve your next spot."
+                      : "Sin próximas reservas. Explora el calendario y reserva tu siguiente plaza."}
+                  </div>
+                  <Link
+                    href="/events"
+                    style={{
+                      backgroundColor: "#7b1f2c",
+                      color: "#f8efe2",
+                      padding: "12px 24px",
+                      borderRadius: "4px",
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "14.5px",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {lang === "en" ? "Explore events calendar" : "Explorar calendario de eventos"}
+                  </Link>
                 </div>
               )}
 
@@ -470,24 +487,6 @@ export default function AccountPage() {
                   ? "Meeting points are shared with booked members only — please keep them inside the club. Cancel more than 24 hours ahead and your credits come straight back. Inside 24 hours, they return only if someone on the waitlist takes your place — and two no-shows in three months pause your RSVPs."
                   : "Los puntos de encuentro se comparten solo con las socias reservadas; por favor, mantenlos dentro del club. Si cancelas con más de 24h, recuperas tus créditos. Dentro de las 24h, solo se devuelven si alguien de la lista ocupa tu plaza."}
               </p>
-            </div>
-
-            <div style={{ display: "flex", gap: "16px" }}>
-              <Link
-                href="/events"
-                style={{
-                  backgroundColor: "#7b1f2c",
-                  color: "#f8efe2",
-                  padding: "12px 24px",
-                  borderRadius: "4px",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "14.5px",
-                  textDecoration: "none",
-                }}
-              >
-                {lang === "en" ? "Explore events calendar" : "Explorar calendario de eventos"}
-              </Link>
             </div>
 
             {/* WhatsApp Stage Circles - Render a box for each stage they are in */}

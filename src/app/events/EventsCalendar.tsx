@@ -1180,7 +1180,7 @@ function EventCard({
           </span>
           {ev.audienceType && (
             <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
-              {ev.audienceType === "moms_only" ? (lang === "en" ? "Moms only" : "Solo madres") : (lang === "en" ? "Kids welcome" : "Peques bienvenidos")}
+              {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only" ? (lang === "en" ? "Mothers only" : "Solo madres") : (lang === "en" ? "Kids welcome" : "Peques bienvenidos")}
             </span>
           )}
           {ev.isOnline && (
@@ -1724,27 +1724,27 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     if (activeStage !== "all") {
       const rawStage = (ev.stage || "").toLowerCase();
       if (activeStage === "big_kids" || activeStage === "big kids") {
-        if (!rawStage.includes("big") && !rawStage.includes("grande") && !rawStage.includes("10+") && !rawStage.includes("6–10") && !rawStage.includes("6-10") && !rawStage.includes("6+") && rawStage !== "all stages") return false;
+        if (!rawStage.includes("big") && !rawStage.includes("grande") && !rawStage.includes("10+") && !rawStage.includes("6–10") && !rawStage.includes("6-10") && !rawStage.includes("6+")) return false;
       } else if (activeStage === "babies") {
-        if (!rawStage.includes("bab") && !rawStage.includes("0–12") && !rawStage.includes("0-12") && !rawStage.includes("postpartum") && !rawStage.includes("posparto") && rawStage !== "all stages") return false;
+        if (!rawStage.includes("bab") && !rawStage.includes("0–12") && !rawStage.includes("0-12") && !rawStage.includes("postpartum") && !rawStage.includes("posparto")) return false;
       } else if (activeStage === "toddlers") {
-        if (!rawStage.includes("toddler") && !rawStage.includes("peque") && !rawStage.includes("1–3") && !rawStage.includes("1-3") && rawStage !== "all stages") return false;
+        if (!rawStage.includes("toddler") && !rawStage.includes("peque") && !rawStage.includes("1–3") && !rawStage.includes("1-3")) return false;
       } else if (activeStage === "children") {
-        if (!rawStage.includes("child") && !rawStage.includes("niño") && !rawStage.includes("3–6") && !rawStage.includes("3-6") && !rawStage.includes("3y+") && rawStage !== "all stages") return false;
+        if (!rawStage.includes("child") && !rawStage.includes("niño") && !rawStage.includes("3–6") && !rawStage.includes("3-6") && !rawStage.includes("3y+")) return false;
       } else if (activeStage === "pregnant") {
-        if (!rawStage.includes("pregnant") && !rawStage.includes("embaraz") && rawStage !== "all stages") return false;
+        if (!rawStage.includes("pregnant") && !rawStage.includes("embaraz")) return false;
       } else {
-        if (!rawStage.includes(activeStage) && rawStage !== "all stages") return false;
+        if (!rawStage.includes(activeStage)) return false;
       }
     }
 
     // 3. Audience / Kids match
     if (activeAudience === "kids") {
-      const isMomsOnly = ev.audienceType === "mothers_only" || ev.categorySlug === "evenings" || (ev.title && ev.title.toLowerCase().includes("date"));
+      const isMomsOnly = ev.audienceType === "mothers_only" || ev.audienceType === "moms_only" || ev.categorySlug === "evenings" || (ev.title && ev.title.toLowerCase().includes("date"));
       if (isMomsOnly) return false;
     } else if (activeAudience === "moms") {
       const isKids = ev.audienceType === "kids_welcome" || ev.categorySlug === "baby" || ev.isFreeWalk;
-      if (isKids && ev.audienceType !== "mothers_only") return false;
+      if (isKids && ev.audienceType !== "mothers_only" && ev.audienceType !== "moms_only") return false;
     }
 
     // 4. Date match
