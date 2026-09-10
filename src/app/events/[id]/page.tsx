@@ -335,9 +335,9 @@ export default function EventDetailPage() {
               <div>
                 <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Audience" : "Público"}</div>
                 <div style={{ fontWeight: 600 }}>
-                  👤 {ev.audienceType === "moms_only"
-                    ? (lang === "en" ? "Moms only" : "Solo madres")
-                    : (lang === "en" ? "Moms + Child" : "Madres con peques")}
+                  👤 {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
+                    ? (lang === "en" ? "Mothers only" : "Solo madres")
+                    : (lang === "en" ? "Kids welcome" : "Peques bienvenidos")}
                 </div>
               </div>
             )}

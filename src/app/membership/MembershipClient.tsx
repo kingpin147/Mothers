@@ -39,7 +39,9 @@ export default function MembershipClient({
 
   useEffect(() => {
     const updateLang = () => {
-      const saved = localStorage.getItem("tm_lang");
+      const saved =
+        localStorage.getItem("site_language") ||
+        localStorage.getItem("tm_lang");
       if (saved === "es" || saved === "en") setLang(saved as Locale);
     };
     updateLang();

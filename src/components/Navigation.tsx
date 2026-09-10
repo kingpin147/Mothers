@@ -138,7 +138,7 @@ export function Navigation() {
                 const accountLabel = isAdminUser
                   ? (lang === "en" ? "Admin" : "Admin")
                   : memberCredits !== null
-                    ? `${lang === "en" ? "My account" : "Mi cuenta"} · ${Math.max(0, memberCredits)} credits`
+                    ? `${lang === "en" ? "My account" : "Mi cuenta"} · ${Math.max(0, memberCredits)} ${lang === "en" ? "credits" : "créditos"}`
                     : (lang === "en" ? "My Account" : "Mi Cuenta");
 
                 return (

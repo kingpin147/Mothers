@@ -89,6 +89,7 @@ function getStageLabel(raw: string | null | undefined, lang: Lang): string {
   if (s.includes("toddler") || s.includes("peque") || s.includes("1–3") || s.includes("1-3") || s.includes("primera infancia")) return lang === "en" ? "Toddlers" : "Peques";
   if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10") || s.includes("6+")) return lang === "en" ? "Big kids" : "Niños grandes";
   if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-") || s.includes("niño")) return lang === "en" ? "Children" : "Niños";
+  if (s.includes("mom") || s.includes("madre") || s.includes("kid") || s.includes("peque") || s.includes("adult") || s.includes("welcome") || s.includes("bienvenido")) return "";
   return raw; // fallback: show as-is
 }
 
@@ -832,14 +833,17 @@ function TopUpModal({
       if (res.success && res.url) {
         window.location.href = res.url;
       } else {
-        setError(res.error || "Payment failed");
+        setError(res.error || (lang === "en" ? "Payment failed" : "Pago fallido"));
         setLoading(false);
       }
     } catch {
-      setError("Payment failed");
+      setError(lang === "en" ? "Payment failed" : "Pago fallido");
       setLoading(false);
     }
   };
+
+  const eventTitle = getEventDisplayTitle(ev, lang);
+  const isGathering = ev.status === "published_pending" || ev.status === "pending";
 
   return (
     <div
@@ -852,10 +856,10 @@ function TopUpModal({
     >
       <div
         style={{
-          position: "relative", width: "100%", maxWidth: "480px", margin: "auto",
+          position: "relative", width: "100%", maxWidth: "520px", margin: "auto",
           border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px",
-          padding: "clamp(28px, 5vw, 40px)", backgroundColor: "#ffffff",
-          boxShadow: "0 24px 60px rgba(45,43,43,0.18)", textAlign: "center",
+          padding: "clamp(32px, 5vw, 44px)", backgroundColor: "#ffffff",
+          boxShadow: "0 24px 60px rgba(45,43,43,0.18)", textAlign: "left",
         }}
       >
         <button
@@ -872,36 +876,88 @@ function TopUpModal({
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="17" height="17"><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
 
-        <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "24px", margin: "0 0 14px", color: "#39292a" }}>
-          {lang === "en" ? "Top up your credits" : "Recargar créditos"}
-        </h2>
-        <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "0 0 24px" }}>
+        <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "10px" }}>
+          {lang === "en" ? "Add Credits & Book" : "Añadir Créditos y Reservar"}
+        </div>
+        <p style={{ fontSize: "15px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", margin: "0 0 22px" }}>
           {lang === "en"
-            ? `You have ${creditBalance} credits and need ${ev.creditCost} to book "${ev.title}". Top up the remaining ${shortfall} credits for €${shortfall} to complete your booking.`
-            : `Tienes ${creditBalance} créditos y necesitas ${ev.creditCost} para reservar "${ev.title}". Recarga los ${shortfall} créditos restantes por ${shortfall}€ para completar tu reserva.`}
+            ? <>This one costs {ev.creditCost} credits and you have {creditBalance}. Add {shortfall} credits for &euro;{shortfall} and we&rsquo;ll book you in straight away.</>
+            : <>Este evento cuesta {ev.creditCost} créditos y tienes {creditBalance}. Añade {shortfall} créditos por {shortfall}€ y reservamos directamente.</>}
         </p>
 
+        <div
+          style={{
+            border: "1px solid rgba(57,41,42,0.14)", borderRadius: "6px",
+            padding: "18px 20px", marginBottom: "20px",
+            backgroundColor: "#faf7f1",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 0" }}>
+            <span style={{ fontSize: "14px", color: "rgba(57,41,42,0.7)" }}>
+              {lang === "en" ? "This experience" : "Esta experiencia"}
+            </span>
+            <span style={{ fontFamily: "var(--font-heading)", fontSize: "15px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
+              {ev.creditCost} {lang === "en" ? "credits" : "créditos"}
+            </span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 0", borderTop: "1px solid rgba(57,41,42,0.1)" }}>
+            <span style={{ fontSize: "14px", color: "rgba(57,41,42,0.7)" }}>
+              {lang === "en" ? "Your balance" : "Tu saldo"}
+            </span>
+            <span style={{ fontFamily: "var(--font-heading)", fontSize: "15px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
+              {creditBalance} {lang === "en" ? (creditBalance === 1 ? "credit" : "credits") : (creditBalance === 1 ? "crédito" : "créditos")}
+            </span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 0", borderTop: "1px solid rgba(57,41,42,0.1)" }}>
+            <span style={{ fontSize: "14px", color: "rgba(57,41,42,0.7)" }}>
+              {lang === "en" ? `Add ${shortfall} ${shortfall === 1 ? "credit" : "credits"} — €1 each` : `Añadir ${shortfall} ${shortfall === 1 ? "crédito" : "créditos"} — 1€ cada uno`}
+            </span>
+            <span style={{ fontFamily: "var(--font-heading)", fontSize: "15px", color: "#7b1f2c", fontWeight: 600, fontFeatureSettings: "'tnum'" }}>
+              &euro;{shortfall}
+            </span>
+          </div>
+        </div>
+
         {error && (
-          <div style={{ color: "#993842", fontSize: "14px", marginBottom: "16px", background: "#fbf1f1", padding: "10px", borderRadius: "4px" }}>
+          <div style={{ color: "#993842", fontSize: "14px", marginBottom: "16px", background: "#fbf1f1", padding: "10px 14px", borderRadius: "4px" }}>
             {error}
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleTopUp}
-          disabled={loading}
-          style={{
-            border: "1px solid #7b1f2c", color: "#f8efe2", backgroundColor: "#7b1f2c",
-            padding: "12px 24px", borderRadius: "4px", fontFamily: "var(--font-heading)",
-            fontWeight: 600, fontSize: "15px", cursor: loading ? "not-allowed" : "pointer",
-            width: "100%", opacity: loading ? 0.7 : 1,
-          }}
-        >
-          {loading 
-            ? (lang === "en" ? "Processing..." : "Procesando...") 
-            : (lang === "en" ? `Pay €${shortfall}` : `Pagar ${shortfall}€`)}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "12px", marginTop: "4px", borderTop: "1px solid rgba(57,41,42,0.12)" }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              border: "none", background: "transparent", color: "rgba(57,41,42,0.65)",
+              fontSize: "14.5px", cursor: "pointer", padding: "10px 4px",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            {lang === "en" ? "Not now" : "Ahora no"}
+          </button>
+          <button
+            type="button"
+            onClick={handleTopUp}
+            disabled={loading}
+            style={{
+              border: "1px solid #7b1f2c", color: "#7b1f2c", backgroundColor: "transparent",
+              padding: "11px 28px", borderRadius: "4px", fontFamily: "var(--font-heading)",
+              fontWeight: 600, fontSize: "15px", cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.6 : 1, whiteSpace: "nowrap",
+            }}
+          >
+            {loading
+              ? (lang === "en" ? "Processing..." : "Procesando...")
+              : (lang === "en" ? "Book" : "Reservar")}
+          </button>
+        </div>
+
+        <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.58)", margin: "18px 0 0" }}>
+          {lang === "en"
+            ? <>Top-up credits join your balance under the same rules: 6-month expiry, oldest credits used first. {isGathering ? "Balance below cost. On a gathering event the wording changes to &ldquo;held against your place&rdquo;." : ""}</>
+            : <>Los créditos recargados se añaden a tu saldo con las mismas reglas: caducidad a 6 meses, se usan primero los más antiguos. {isGathering ? "Saldo por debajo del coste. En un evento de confirmación pendiente, el saldo se reserva para tu plaza." : ""}</>}
+        </p>
       </div>
     </div>
   );
@@ -923,6 +979,189 @@ function BookingSuccessModal({
   const displayTitle = getEventDisplayTitle(ev, lang);
   const formattedDate = formatEventDate(ev.startsAt, lang);
   const venueDisplay = ev.venueAddress || ev.venueName || (lang === "en" ? "Exact meeting point shared once you book" : "Punto de encuentro exacto compartido tras reservar");
+
+  const isGathering =
+    (ev.status === "pending" || ev.status === "published_pending") &&
+    (ev.minToConfirm ?? 0) > 0;
+  const moreNeeded = Math.max(0, (ev.minToConfirm ?? 0) - (ev.bookedMember ?? 0));
+  const decideBy = isGathering ? formatDecideByDate(ev.startsAt, lang) : "";
+
+  if (isGathering) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 1000,
+          backgroundColor: "rgba(57, 41, 42, 0.45)",
+          backdropFilter: "blur(3px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: "480px",
+            margin: "auto",
+            border: "1px solid rgba(57,41,42,0.14)",
+            borderRadius: "8px",
+            padding: "clamp(28px, 5vw, 36px)",
+            backgroundColor: "#FEFDF9",
+            boxShadow: "0 20px 50px rgba(45,43,43,0.16)",
+            textAlign: "center",
+          }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              position: "absolute",
+              top: "16px",
+              right: "16px",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              color: "rgba(57,41,42,0.5)",
+              width: "30px",
+              height: "30px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "44px",
+              height: "44px",
+              borderRadius: "50%",
+              background: "#fbf3e4",
+              color: "#7b1f2c",
+              marginBottom: "16px",
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+              <path d="m9 16 2 2 4-4" />
+            </svg>
+          </div>
+
+          <h2
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontWeight: 600,
+              fontSize: "23px",
+              margin: "0 0 12px",
+              color: "#39292a",
+            }}
+          >
+            {lang === "en" ? "Your place is reserved." : "Tu plaza está reservada."}
+          </h2>
+
+          <p
+            style={{
+              fontSize: "14.5px",
+              lineHeight: "1.6",
+              color: "rgba(57,41,42,0.74)",
+              margin: "0 0 8px",
+              textAlign: "left",
+            }}
+          >
+            {lang === "en" ? (
+              <>
+                We&rsquo;re still gathering mothers for &ldquo;{displayTitle}&rdquo; on {formattedDate}. Your place is held, not booked — credits are only taken if it goes ahead.
+              </>
+            ) : (
+              <>
+                Seguimos reuniendo madres para &ldquo;{displayTitle}&rdquo; el {formattedDate}. Tu plaza está retenida, no confirmada — los créditos solo se cobran si el encuentro sale adelante.
+              </>
+            )}
+          </p>
+
+          <div
+            style={{
+              background: "#fffaf2",
+              border: "1px solid rgba(164,118,31,0.35)",
+              borderRadius: "6px",
+              padding: "16px 18px",
+              textAlign: "left",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              marginBottom: "20px",
+            }}
+          >
+            {moreNeeded > 0 ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13.5px", color: "#8a6116" }}>
+                  {lang === "en" ? `We need ${moreNeeded} more mother${moreNeeded === 1 ? "" : "s"} to confirm.` : `Faltan ${moreNeeded} madre${moreNeeded === 1 ? "" : "s"} más para confirmar.`}
+                </span>
+                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#8a6116", fontFeatureSettings: "'tnum'" }}>
+                  {ev.bookedMember ?? 0}/{ev.minToConfirm}
+                </span>
+              </div>
+            ) : (
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13.5px", color: "#8a6116" }}>
+                {lang === "en" ? "We have enough mothers — waiting for final confirmation." : "Ya tenemos suficientes madres — esperando confirmación final."}
+              </div>
+            )}
+            <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
+              {lang === "en"
+                ? `Final decision by ${decideBy}. If it doesn't go ahead, the ${ev.creditCost} credit${ev.creditCost === 1 ? "" : "s"} return straight to your balance — no action needed.`
+                : `Decisión final el ${decideBy}. Si no se realiza, los ${ev.creditCost} crédito${ev.creditCost === 1 ? "" : "s"} vuelven directamente a tu saldo — sin hacer nada.`}
+            </p>
+          </div>
+
+          <p
+            style={{
+              fontSize: "12.5px",
+              lineHeight: "1.6",
+              color: "rgba(57,41,42,0.6)",
+              margin: "0 0 24px",
+              textAlign: "left",
+            }}
+          >
+            {lang === "en"
+              ? "Change of plans before it confirms? Cancel from your account and your place is released — credit never leaves your balance. Once confirmed, the normal 24h cancellation rule applies."
+              : "¿Cambio de planes antes de que se confirme? Cancela desde tu cuenta y liberas tu plaza — el crédito nunca llega a cobrarse. Una vez confirmado, se aplica la regla normal de 24h."}
+          </p>
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              border: "1px solid #7b1f2c",
+              backgroundColor: "#7b1f2c",
+              color: "#fdfaf5",
+              padding: "9px 30px",
+              borderRadius: "4px",
+              fontFamily: "var(--font-heading)",
+              fontWeight: 600,
+              fontSize: "14.5px",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {lang === "en" ? "Got it" : "Entendido"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -953,7 +1192,6 @@ function BookingSuccessModal({
           textAlign: "center",
         }}
       >
-        {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
@@ -978,7 +1216,6 @@ function BookingSuccessModal({
           </svg>
         </button>
 
-        {/* Green Shield Icon */}
         <div
           style={{
             display: "inline-flex",
@@ -998,7 +1235,6 @@ function BookingSuccessModal({
           </svg>
         </div>
 
-        {/* Title */}
         <h2
           style={{
             fontFamily: "var(--font-heading)",
@@ -1008,10 +1244,9 @@ function BookingSuccessModal({
             color: "#39292a",
           }}
         >
-          {lang === "en" ? "Your place is booked." : "Tu plaza está reservada."}
+          {lang === "en" ? "Your place is booked." : "Tu plaza está confirmada."}
         </h2>
 
-        {/* Body */}
         <p
           style={{
             fontSize: "14.5px",
@@ -1022,16 +1257,15 @@ function BookingSuccessModal({
         >
           {lang === "en" ? (
             <>
-              Your place at &ldquo;{displayTitle}&rdquo; on {formattedDate} is booked, using {ev.creditCost} credits. You have {remainingCredits} credits left this month.
+              Your place at &ldquo;{displayTitle}&rdquo; on {formattedDate} is booked{ev.creditCost > 0 ? `, using ${ev.creditCost} credit${ev.creditCost === 1 ? "" : "s"}` : ""}. {ev.creditCost > 0 ? `You have ${remainingCredits} credit${remainingCredits === 1 ? "" : "s"} left this month.` : "No credits used."}
             </>
           ) : (
             <>
-              Tu plaza en &ldquo;{displayTitle}&rdquo; el {formattedDate} está reservada, usando {ev.creditCost} créditos. Te quedan {remainingCredits} créditos este mes.
+              Tu plaza en &ldquo;{displayTitle}&rdquo; el {formattedDate} está confirmada{ev.creditCost > 0 ? `, usando ${ev.creditCost} crédito${ev.creditCost === 1 ? "" : "s"}` : ""}. {ev.creditCost > 0 ? `Te quedan ${remainingCredits} crédito${remainingCredits === 1 ? "" : "s"} este mes.` : "Sin coste en créditos."}
             </>
           )}
         </p>
 
-        {/* Green Detail Box */}
         <div
           style={{
             background: "#f4f7ee",
@@ -1054,12 +1288,16 @@ function BookingSuccessModal({
           </div>
           <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
             {lang === "en"
+              ? "You'll receive a WhatsApp reminder 24 hours before with exact timing and a one-tap map link to the meeting point."
+              : "Recibirás un recordatorio por WhatsApp 24 horas antes con el horario exacto y un enlace de mapa directo al punto de encuentro."}
+          </p>
+          <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
+            {lang === "en"
               ? "Change of plans? Cancel from your account more than 24 hours ahead and the credit comes straight back. Inside 24 hours they return only if someone on the waitlist takes your place."
               : "¿Cambio de planes? Cancela desde tu cuenta con más de 24 horas de antelación y recuperas el crédito al momento. Dentro de las 24 horas solo se devuelve si alguien de la lista de espera ocupa tu lugar."}
           </p>
         </div>
 
-        {/* Action Button: Got it */}
         <button
           type="button"
           onClick={onClose}
@@ -1121,16 +1359,13 @@ function EventCard({
     if (ev.isFreeWalk || ev.creditCost === 0) {
       onOpenFreeRsvp(ev);
     } else if (isMember) {
-      if (creditBalance < ev.creditCost && ev.creditCost <= 18) {
+      if (creditBalance < ev.creditCost) {
         onOpenTopUp(ev);
-      } else if (creditBalance < ev.creditCost && (ev.creditCost > 18 || ev.isSignature)) {
-        onOpenCeiling(ev);
       } else {
         onMemberBook(ev);
       }
     } else if (ev.creditCost > 18 || ev.isSignature) {
-      // Signed-out visitor viewing signature or >18 credit event → membership page
-      window.location.href = "/membership";
+      onOpenCeiling(ev);
     } else {
       // Signed-out visitor viewing regular paid event (≤18 credits) → login with callback
       window.location.href = `/account/login?callbackUrl=${encodeURIComponent(`/events/${ev.id}`)}`;
@@ -1175,9 +1410,15 @@ function EventCard({
 
         {/* Row 2: Stage & Online */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
-          <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
-            {ev.stage && ev.stage !== "All Stages" ? getStageLabel(ev.stage, lang) : (lang === "en" ? "Open to every stage" : "Abierto a todas las etapas")}
-          </span>
+          {(() => {
+            const stageLabel = ev.stage && ev.stage !== "All Stages" ? getStageLabel(ev.stage, lang) : "";
+            const displayStage = stageLabel || (lang === "en" ? "Open to every stage" : "Abierto a todas las etapas");
+            return (
+              <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
+                {displayStage}
+              </span>
+            );
+          })()}
           {ev.audienceType && (
             <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
               {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only" ? (lang === "en" ? "Mothers only" : "Solo madres") : (lang === "en" ? "Kids welcome" : "Peques bienvenidos")}
@@ -1638,11 +1879,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         setBookingSuccessEvent(ev);
       } else {
         if (res.error === "INSUFFICIENT_CREDITS") {
-          if (ev.creditCost <= 18) {
-            setTopUpEvent(ev);
-          } else {
-            setCeilingEvent(ev);
-          }
+          setTopUpEvent(ev);
         } else {
           alert(res.error || (lang === "en" ? "Could not complete booking." : "No se pudo completar la reserva."));
         }

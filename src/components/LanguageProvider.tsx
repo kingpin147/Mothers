@@ -15,7 +15,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Locale>("en");
 
   useEffect(() => {
-    const saved = localStorage.getItem("site_language") as Locale;
+    const saved =
+      (localStorage.getItem("site_language") as Locale) ||
+      (localStorage.getItem("tm_lang") as Locale);
     if (saved === "en" || saved === "es") {
       setLanguageState(saved);
     }
@@ -24,6 +26,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = (lang: Locale) => {
     setLanguageState(lang);
     localStorage.setItem("site_language", lang);
+    localStorage.setItem("tm_lang", lang);
+    window.dispatchEvent(new CustomEvent("tm_lang_change", { detail: lang }));
   };
 
   const t = (keyPath: string) => {
