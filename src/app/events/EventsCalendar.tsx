@@ -395,8 +395,8 @@ function FreeWalkRsvpModal({
             </h2>
             <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "0 0 24px" }}>
               {lang === "en"
-                ? "We will send WhatsApp confirmation and the exact starting point the day before the walk."
-                : "Te enviaremos la confirmación por WhatsApp y el punto de encuentro exacto el día anterior al paseo."}
+                ? "We will send an email confirmation and the exact starting point the day before the walk."
+                : "Te enviaremos una confirmación por correo electrónico y el punto de encuentro exacto el día anterior al paseo."}
             </p>
             <button
               type="button"
@@ -455,18 +455,20 @@ function FreeWalkRsvpModal({
               />
               <input
                 type="tel"
+                inputMode="numeric"
+                pattern="[0-9+ ]*"
                 required
-                placeholder={lang === "en" ? "Phone (WhatsApp)" : "Teléfono (WhatsApp)"}
+                placeholder={lang === "en" ? "Phone" : "Teléfono"}
                 value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
+                onChange={(e) => setWhatsapp(e.target.value.replace(/[^\d+ ]/g, ""))}
                 style={{ ...modalInputStyle, gridColumn: "1 / -1" }}
               />
             </div>
 
             <p style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)", margin: "0 0 16px", lineHeight: 1.5 }}>
               {lang === "en"
-                ? "We send the exact starting point by WhatsApp the day before, so please give the number you use there."
-                : "Enviamos el punto de inicio exacto por WhatsApp el día anterior, indícanos el número que usas."}
+                ? "We send an email confirmation and the exact starting point the day before the walk."
+                : "Enviaremos una confirmación por correo electrónico y el punto de inicio exacto el día anterior al paseo."}
             </p>
 
             <label style={{ display: "flex", gap: "10px", alignItems: "flex-start", marginBottom: "18px", cursor: "pointer" }}>
@@ -1240,8 +1242,8 @@ function BookingSuccessModal({
           </div>
           <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
             {lang === "en"
-              ? "You'll receive a WhatsApp reminder 24 hours before with exact timing and a one-tap map link to the meeting point."
-              : "Recibirás un recordatorio por WhatsApp 24 horas antes con el horario exacto y un enlace de mapa directo al punto de encuentro."}
+              ? "You'll receive an email reminder 24 hours before with exact timing and a one-tap map link to the meeting point."
+              : "Recibirás un recordatorio por correo electrónico 24 horas antes con el horario exacto y un enlace directo al mapa del punto de encuentro."}
           </p>
           <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
             {lang === "en"
@@ -1503,10 +1505,12 @@ function EventCard({
           </div>
         ) : null}
 
-        {/* Free Unlimited: Open list — no limit on places (only show for truly uncapped events) */}
-        {!ev.capacityTotal && !isCancelled && !isPast && !ev.userStatus?.isBooked && !isFull && (
+        {/* Free Unlimited / Open list */}
+        {(!ev.capacityTotal || ev.isFreeWalk || ev.creditCost === 0) && !isCancelled && !isPast && !isFull && (
           <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)", marginBottom: "4px" }}>
-            {lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"}
+            {lang === "en"
+              ? `Open list — no limit on places${(ev.placesTaken || 0) > 0 ? ` · ${ev.placesTaken} mother${ev.placesTaken === 1 ? "" : "s"} coming` : ""}`
+              : `Lista abierta — sin límite de plazas${(ev.placesTaken || 0) > 0 ? ` · ${ev.placesTaken} madre${ev.placesTaken === 1 ? "" : "s"} apuntada${ev.placesTaken === 1 ? "" : "s"}` : ""}`}
           </div>
         )}
 
@@ -1639,24 +1643,29 @@ function EventCard({
           ) : !isCancelled ? (
             <>
               {ev.userStatus?.isBooked ? (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", width: "100%", gap: "10px", flexWrap: "wrap" }}>
-                  <Link
-                    href={`/events/${ev.id}`}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: "10px", flexWrap: "wrap" }}>
+                  <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.65)" }}>
+                    {lang === "en" ? "You're already booked in." : "Ya has reservado."}
+                  </div>
+                  <button
+                    disabled
                     style={{
-                      border: "1px solid #7b1f2c",
-                      backgroundColor: "transparent",
-                      color: "#7b1f2c",
-                      padding: "10px 20px",
+                      border: "1px solid rgba(57,41,42,0.25)",
+                      backgroundColor: "rgba(57,41,42,0.04)",
+                      color: "rgba(57,41,42,0.5)",
+                      padding: "9px 20px",
                       borderRadius: "4px",
                       fontFamily: "var(--font-heading)",
                       fontWeight: 600,
-                      fontSize: "14.5px",
-                      textDecoration: "none",
+                      fontSize: "14px",
+                      cursor: "default",
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {lang === "en" ? "See your ticket" : "Ver tu entrada"}
-                  </Link>
+                    {ev.isFreeWalk || ev.creditCost === 0 || !ev.capacityTotal
+                      ? (lang === "en" ? "You're on the list" : "Estás en la lista")
+                      : (lang === "en" ? "Booked" : "Reservada")}
+                  </button>
                 </div>
               ) : ev.userStatus?.isWaitlisted ? (
                 <Link

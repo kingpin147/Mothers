@@ -13,84 +13,96 @@ export async function getPublicEvents() {
     const personId = session?.user?.id;
     let creditBalance = 0;
     
-    // 1. Fetch categories
-    const categories = await db
-      .select()
-      .from(eventCategory)
-      .orderBy(asc(eventCategory.sortOrder));
-
-    // 2. Fetch active events with category & partner
-    const events = await db
-      .select({
-        id: event.id,
-        title: event.title,
-        slug: event.slug,
-        categoryId: event.categoryId,
-        categoryName: eventCategory.name,
-        categorySlug: eventCategory.slug,
-        stage: eventCategory.stageAffinity,
-        description: event.description,
-        neighbourhood: event.neighbourhood,
-        venueName: event.venueName,
-        partnerId: event.partnerId,
-        partnerName: partner.name,
-        partnerSlug: partner.id,
-        startsAt: event.startsAt,
-        endsAt: event.endsAt,
-        creditCost: event.creditCost,
-        guestPriceCents: event.guestPriceCents,
-        capacityMember: event.capacityMember,
-        capacityGuest: event.capacityGuest,
-        minToConfirm: event.minToConfirm,
-        isSignature: event.isSignature,
-        isFreeWalk: event.isFreeWalk,
-        status: event.status,
-        childcare: event.childcare,
-        languages: event.languages,
-        showEventPassCta: event.showEventPassCta,
-        guestOpenAt: event.guestOpenAt,
-        guestCloseAt: event.guestCloseAt,
-        cancelReason: event.cancelReason,
-      })
-      .from(event)
-      .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
-      .leftJoin(partner, eq(event.partnerId, partner.id))
-      .where(
-        sql`${event.status} IN ('published_pending', 'confirmed', 'completed', 'cancelled')`
-      )
-      .orderBy(asc(event.startsAt));
-
-    // 3. Count confirmed & held bookings per event
-    const bookingsCount = await db
-      .select({
-        eventId: booking.eventId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(booking)
-      .where(sql`${booking.status} IN ('held', 'confirmed')`)
-      .groupBy(booking.eventId);
+    // Run independent database queries in parallel for high performance
+    const [categories, events, bookingsCount, userBookings, userWaitlists, memberRec] = await Promise.all([
+      db.select().from(eventCategory).orderBy(asc(eventCategory.sortOrder)),
+      db
+        .select({
+          id: event.id,
+          title: event.title,
+          slug: event.slug,
+          categoryId: event.categoryId,
+          categoryName: eventCategory.name,
+          categorySlug: eventCategory.slug,
+          stage: eventCategory.stageAffinity,
+          description: event.description,
+          neighbourhood: event.neighbourhood,
+          venueName: event.venueName,
+          meetingPoint: event.meetingPoint,
+          partnerId: event.partnerId,
+          partnerName: partner.name,
+          partnerSlug: partner.id,
+          startsAt: event.startsAt,
+          endsAt: event.endsAt,
+          creditCost: event.creditCost,
+          guestPriceCents: event.guestPriceCents,
+          capacityMember: event.capacityMember,
+          capacityGuest: event.capacityGuest,
+          minToConfirm: event.minToConfirm,
+          isSignature: event.isSignature,
+          isFreeWalk: event.isFreeWalk,
+          status: event.status,
+          childcare: event.childcare,
+          languages: event.languages,
+          showEventPassCta: event.showEventPassCta,
+          guestOpenAt: event.guestOpenAt,
+          guestCloseAt: event.guestCloseAt,
+          cancelReason: event.cancelReason,
+        })
+        .from(event)
+        .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+        .leftJoin(partner, eq(event.partnerId, partner.id))
+        .where(
+          sql`${event.status} IN ('published_pending', 'confirmed', 'completed', 'cancelled')`
+        )
+        .orderBy(asc(event.startsAt)),
+      db
+        .select({
+          eventId: booking.eventId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(booking)
+        .where(sql`${booking.status} IN ('held', 'confirmed')`)
+        .groupBy(booking.eventId),
+      personId
+        ? db
+            .select({
+              eventId: booking.eventId,
+              status: booking.status,
+              createdAt: booking.createdAt,
+              updatedAt: booking.updatedAt,
+              creditsCharged: booking.creditsCharged,
+            })
+            .from(booking)
+            .where(eq(booking.personId, personId))
+        : Promise.resolve([]),
+      personId
+        ? db
+            .select({
+              eventId: eventWaitlist.eventId,
+              createdAt: eventWaitlist.createdAt,
+              position: eventWaitlist.position,
+            })
+            .from(eventWaitlist)
+            .where(eq(eventWaitlist.personId, personId))
+        : Promise.resolve([]),
+      personId
+        ? db.query.member.findFirst({
+            where: eq(member.personId, personId),
+          })
+        : Promise.resolve(null),
+    ]);
 
     const countMap = new Map<string, number>();
     for (const b of bookingsCount) {
       if (b.eventId) countMap.set(b.eventId, b.count);
     }
     
-    // 4. Fetch user statuses if authenticated
+    // User statuses
     const userBookingsMap = new Map<string, any>();
     const userWaitlistMap = new Map<string, any>();
     
     if (personId) {
-      const userBookings = await db
-        .select({
-          eventId: booking.eventId,
-          status: booking.status,
-          createdAt: booking.createdAt,
-          updatedAt: booking.updatedAt,
-          creditsCharged: booking.creditsCharged,
-        })
-        .from(booking)
-        .where(eq(booking.personId, personId));
-
       for (const b of userBookings) {
         const existing = userBookingsMap.get(b.eventId!);
         if (!existing || b.createdAt! > existing.createdAt!) {
@@ -98,22 +110,10 @@ export async function getPublicEvents() {
         }
       }
 
-      const userWaitlists = await db
-        .select({
-          eventId: eventWaitlist.eventId,
-          createdAt: eventWaitlist.createdAt,
-          position: eventWaitlist.position,
-        })
-        .from(eventWaitlist)
-        .where(eq(eventWaitlist.personId, personId));
-
       for (const w of userWaitlists) {
         userWaitlistMap.set(w.eventId!, w);
       }
       
-      const memberRec = await db.query.member.findFirst({
-        where: eq(member.personId, personId),
-      });
       if (memberRec) {
         const { creditEntry } = await import("@/db/schema");
         const creditEntries = await db
@@ -286,6 +286,7 @@ export async function getPublicEventById(id: string) {
         description: event.description,
         neighbourhood: event.neighbourhood,
         venueName: event.venueName,
+        meetingPoint: event.meetingPoint,
         startsAt: event.startsAt,
         endsAt: event.endsAt,
         creditCost: event.creditCost,

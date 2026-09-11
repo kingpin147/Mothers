@@ -152,7 +152,7 @@ export async function getEventRosterDetail(eventId: string) {
 
 const adminMarkAttendanceSchema = z.object({
   type: z.enum(["member", "guest"]),
-  id: z.string().uuid(),
+  id: z.string().min(1),
   status: z.enum(["attended", "no_show", "confirmed", "released"]),
 });
 
@@ -194,8 +194,8 @@ export async function adminMarkAttendance(
 }
 
 const adminManualBookSchema = z.object({
-  eventId: z.string().uuid(),
-  memberId: z.string().uuid(),
+  eventId: z.string().min(1),
+  memberId: z.string().min(1),
   deductCredits: z.boolean(),
   notes: z.string().optional(),
 });
@@ -264,7 +264,7 @@ export async function adminManualBookMember(data: {
 }
 
 const adminIssueGuestPassSchema = z.object({
-  eventId: z.string().uuid(),
+  eventId: z.string().min(1),
   firstName: z.string().min(1).trim(),
   lastName: z.string().trim().default(""),
   email: z.string().email().toLowerCase().trim(),

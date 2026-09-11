@@ -24,10 +24,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const PREDEFINED_CATEGORIES = [
-  "Walks & park socials",
-  "Play dates",
-  "MoM's dates",
-  "Learn & grow",
+  "Easy connection",
+  "Play date",
+  "MoM's date",
+  "Learn & Grow",
   "Signature moments",
 ];
 
@@ -103,8 +103,15 @@ export default function AdminEventsPage() {
     const res = await getEventAttendees(ev.id);
     setRosterLoading(false);
     if (res.success) {
-      setMemberBookings(res.memberBookings || []);
+      const mb = res.memberBookings || [];
+      setMemberBookings(mb);
       setGuestPasses(res.guestPasses || []);
+      const available = allMembers.filter(m => !mb.some((b: any) => b.email === m.email));
+      if (available.length > 0) {
+        setSelectedMemberId(available[0].id);
+      } else {
+        setSelectedMemberId("");
+      }
     }
   };
 
@@ -144,11 +151,19 @@ export default function AdminEventsPage() {
 
   const handleManualMemberBook = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedMemberId || !activeEventRoster) return;
+    const available = allMembers.filter(m => !memberBookings.some((b: any) => b.email === m.email));
+    let memberToBook = selectedMemberId;
+    if (!memberToBook && available.length > 0) {
+      memberToBook = available[0].id;
+    }
+    if (!memberToBook || !activeEventRoster) {
+      alert("Please select an available member.");
+      return;
+    }
     setBookingMember(true);
     const res = await adminManualBookMember({
       eventId: activeEventRoster.id,
-      memberId: selectedMemberId,
+      memberId: memberToBook,
       deductCredits,
     });
     setBookingMember(false);
@@ -156,7 +171,14 @@ export default function AdminEventsPage() {
       alert("Member booked to event successfully!");
       const refreshed = await getEventAttendees(activeEventRoster.id);
       if (refreshed.success) {
-        setMemberBookings(refreshed.memberBookings || []);
+        const mb = refreshed.memberBookings || [];
+        setMemberBookings(mb);
+        const nextAvail = allMembers.filter(m => !mb.some((b: any) => b.email === m.email));
+        if (nextAvail.length > 0) {
+          setSelectedMemberId(nextAvail[0].id);
+        } else {
+          setSelectedMemberId("");
+        }
       }
       loadData();
     } else {

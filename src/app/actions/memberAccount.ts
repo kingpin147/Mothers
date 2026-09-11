@@ -55,66 +55,70 @@ export async function getAccountData() {
       return { success: false, error: "MEMBER_NOT_FOUND" };
     }
 
-    // Fetch current credit balance (sum of all entries)
-    const creditRows = await db
-      .select({
-        total: sql<number>`COALESCE(SUM(amount), 0)`,
-      })
-      .from(creditEntry)
-      .where(eq(creditEntry.memberId, memberId));
+    // Parallelize independent sub-queries for maximum performance
+    const [creditRows, ledger, upcomingBookings, godmotherStats, activePartners] = await Promise.all([
+      db
+        .select({
+          total: sql<number>`COALESCE(SUM(amount), 0)`,
+        })
+        .from(creditEntry)
+        .where(eq(creditEntry.memberId, memberId)),
+      db
+        .select({
+          id: creditEntry.id,
+          amount: creditEntry.amount,
+          type: creditEntry.type,
+          reason: creditEntry.reason,
+          expiresAt: creditEntry.expiresAt,
+          createdAt: creditEntry.createdAt,
+        })
+        .from(creditEntry)
+        .where(eq(creditEntry.memberId, memberId))
+        .orderBy(asc(creditEntry.createdAt)),
+      db
+        .select({
+          id: booking.id,
+          eventId: booking.eventId,
+          eventTitle: event.title,
+          eventDate: event.startsAt,
+          eventEndDate: event.endsAt,
+          eventLocation: event.neighbourhood,
+          meetingPoint: event.meetingPoint,
+          venueName: event.venueName,
+          status: booking.status,
+          eventStatus: event.status,
+          minToConfirm: event.minToConfirm,
+          isSignature: event.isSignature,
+          categoryName: eventCategory.name,
+          categorySlug: eventCategory.slug,
+          creditsCharged: booking.creditsCharged,
+          confirmedCount: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b2 WHERE b2.event_id = ${event.id} AND b2.status IN ('held', 'confirmed'))`.as('confirmed_count'),
+        })
+        .from(booking)
+        .innerJoin(event, eq(booking.eventId, event.id))
+        .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+        .where(
+          and(
+            eq(booking.memberId, memberId),
+            sql`${event.startsAt} > NOW()`,
+            sql`${booking.status} IN ('held', 'confirmed')`
+          )
+        )
+        .orderBy(asc(event.startsAt))
+        .limit(10),
+      db
+        .select({
+          totalCreditsEarned: sql<number>`COALESCE(SUM(CASE WHEN type = 'godmother' THEN amount ELSE 0 END), 0)`,
+        })
+        .from(creditEntry)
+        .where(eq(creditEntry.memberId, memberId)),
+      db
+        .select()
+        .from(partner)
+        .where(eq(partner.status, "active")),
+    ]);
 
     const currentBalance = Number(creditRows[0]?.total || 0);
-
-    // Fetch credit ledger (FIFO ordered, most recent last)
-    const ledger = await db
-      .select({
-        id: creditEntry.id,
-        amount: creditEntry.amount,
-        type: creditEntry.type,
-        reason: creditEntry.reason,
-        expiresAt: creditEntry.expiresAt,
-        createdAt: creditEntry.createdAt,
-      })
-      .from(creditEntry)
-      .where(eq(creditEntry.memberId, memberId))
-      .orderBy(asc(creditEntry.createdAt));
-
-    // Fetch upcoming bookings
-    const upcomingBookings = await db
-      .select({
-        id: booking.id,
-        eventId: booking.eventId,
-        eventTitle: event.title,
-        eventDate: event.startsAt,
-        eventLocation: event.neighbourhood,
-        status: booking.status,
-        creditsCharged: booking.creditsCharged,
-      })
-      .from(booking)
-      .innerJoin(event, eq(booking.eventId, event.id))
-      .where(
-        and(
-          eq(booking.memberId, memberId),
-          sql`${event.startsAt} > NOW()`,
-          sql`${booking.status} IN ('held', 'confirmed')`
-        )
-      )
-      .orderBy(asc(event.startsAt))
-      .limit(5);
-
-    // Fetch godmother referral details
-    const godmotherStats = await db
-      .select({
-        totalCreditsEarned: sql<number>`COALESCE(SUM(CASE WHEN type = 'godmother' THEN amount ELSE 0 END), 0)`,
-      })
-      .from(creditEntry)
-      .where(eq(creditEntry.memberId, memberId));
-
-    // Fetch active partners
-    const activePartners = await db
-      .select()
-      .from(partner)
-      .where(eq(partner.status, "active"));
 
     return {
       success: true,

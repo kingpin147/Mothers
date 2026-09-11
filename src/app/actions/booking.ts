@@ -12,7 +12,7 @@ import { z } from "zod";
 
 // ─── 1. MEMBER BOOKING WITH FOR UPDATE ROW LOCK (§7.1) ──────────────────────
 
-const bookEventSchema = z.object({ eventId: z.string().uuid() });
+const bookEventSchema = z.object({ eventId: z.string().min(1) });
 
 export async function bookEvent(eventId: string) {
   const parsed = bookEventSchema.safeParse({ eventId });
@@ -120,8 +120,39 @@ export async function bookEvent(eventId: string) {
         spendEntryId = spendResult.spendEntryId;
       }
 
-      // 7. Insert Booking with snapshotted creditsCharged
-      const initialStatus = ev.status === "confirmed" ? "confirmed" : "held";
+      // 7. Check if this booking fulfills the minimum threshold to confirm the event
+      const newActiveCount = activeMemberBookingsCount + 1;
+      const isQuorumReached =
+        ev.status === "published_pending" &&
+        ev.minToConfirm != null &&
+        ev.minToConfirm > 0 &&
+        newActiveCount >= ev.minToConfirm;
+
+      const targetEventStatus = isQuorumReached ? "confirmed" : ev.status;
+      const initialStatus = targetEventStatus === "confirmed" ? "confirmed" : "held";
+
+      if (isQuorumReached) {
+        // Auto-promote event to confirmed
+        await tx
+          .update(event)
+          .set({
+            status: "confirmed",
+            confirmedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(event.id, eventId));
+
+        // Promote all held bookings on this event to confirmed
+        await tx
+          .update(booking)
+          .set({
+            status: "confirmed",
+            updatedAt: new Date(),
+          })
+          .where(and(eq(booking.eventId, eventId), eq(booking.status, "held")));
+      }
+
+      // Insert Booking with snapshotted creditsCharged
       const bookingInsert = await tx
         .insert(booking)
         .values({
@@ -176,6 +207,7 @@ export async function bookEvent(eventId: string) {
           eventId,
           status: initialStatus,
           creditsCharged: ev.creditCost,
+          eventAutoConfirmed: isQuorumReached,
         },
       });
 
@@ -187,6 +219,12 @@ export async function bookEvent(eventId: string) {
         venueName: ev.venueName,
       };
     });
+
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/events");
+    revalidatePath(`/events/${eventId}`);
+    revalidatePath("/admin/events");
+    revalidatePath("/account");
 
     // 9. Post-commit: queue email confirmation (outside transaction §7.1)
     const personRecord = await db.query.person.findFirst({
@@ -373,7 +411,7 @@ This is a booking confirmation, not a marketing email.
 
 // ─── 2. MEMBER RELEASE WITH AUTO WAITLIST PROMOTION (§7.3, §7.4) ────────────
 
-const releaseBookingSchema = z.object({ bookingId: z.string().uuid() });
+const releaseBookingSchema = z.object({ bookingId: z.string().min(1) });
 
 export async function releaseBooking(bookingId: string) {
   const parsed = releaseBookingSchema.safeParse({ bookingId });

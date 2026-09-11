@@ -28,6 +28,7 @@ interface EventDetail {
   description: string | null;
   neighbourhood: string;
   venueName: string;
+  meetingPoint?: string | null;
   startsAt: Date;
   endsAt: Date;
   creditCost: number;
@@ -277,7 +278,7 @@ export default function EventDetailPage() {
             )}
             {ev.isSignature && (
               <span style={{ fontSize: "12px", color: "#7b5a00", border: "1px solid #d4a800", borderRadius: "12px", padding: "3px 10px", backgroundColor: "#fffbeb" }}>
-                ★ {lang === "en" ? "Signature Moment" : "Signature Moment"}
+                {lang === "en" ? "Signature Moment" : "Signature Moment"}
               </span>
             )}
             {ev.guestPassEligible && (
@@ -296,19 +297,31 @@ export default function EventDetailPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", backgroundColor: "rgba(255,255,255,0.65)", padding: "20px", borderRadius: "6px", marginBottom: "28px", fontSize: "14px" }}>
             <div>
               <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Date" : "Fecha"}</div>
-              <div style={{ fontWeight: 600 }}>📅 {ev.dateStr}</div>
+              <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
+                <span>{ev.dateStr}</span>
+              </div>
             </div>
             <div>
               <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Time" : "Hora"}</div>
-              <div style={{ fontWeight: 600 }}>🕐 {ev.timeStr}</div>
+              <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                <span>{ev.timeStr}</span>
+              </div>
             </div>
             <div>
               <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Area" : "Zona"}</div>
-              <div style={{ fontWeight: 600 }}>📍 {ev.neighbourhood}</div>
+              <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                <span>{ev.neighbourhood}</span>
+              </div>
             </div>
             <div>
               <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Venue" : "Espacio"}</div>
-              <div style={{ fontWeight: 600 }}>🏛 {ev.venueName}</div>
+              <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><path d="M3 21h18M3 7l9-4 9 4M4 10v11M20 10v11M8 10v11M12 10v11M16 10v11" /></svg>
+                <span>{ev.venueName}</span>
+              </div>
             </div>
             <div>
               <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Member spots" : "Plazas socias"}</div>
@@ -328,16 +341,22 @@ export default function EventDetailPage() {
             {ev.languages && ev.languages.length > 0 && (
               <div>
                 <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Language" : "Idioma"}</div>
-                <div style={{ fontWeight: 600 }}>🌐 {ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}</div>
+                <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" /></svg>
+                  <span>{ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}</span>
+                </div>
               </div>
             )}
             {ev.audienceType && (
               <div>
                 <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Audience" : "Público"}</div>
-                <div style={{ fontWeight: 600 }}>
-                  👤 {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
-                    ? (lang === "en" ? "Mothers only" : "Solo madres")
-                    : (lang === "en" ? "Kids welcome" : "Peques bienvenidos")}
+                <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                  <span>
+                    {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
+                      ? (lang === "en" ? "Mothers only" : "Solo madres")
+                      : (lang === "en" ? "Kids welcome" : "Peques bienvenidos")}
+                  </span>
                 </div>
               </div>
             )}
@@ -362,11 +381,26 @@ export default function EventDetailPage() {
           )}
 
           {/* Meeting point note */}
-          <div style={{ backgroundColor: "rgba(255,255,255,0.7)", border: "1px dashed rgba(57,41,42,0.2)", borderRadius: "6px", padding: "14px 18px", marginBottom: "28px", fontSize: "13px", color: "rgba(57,41,42,0.65)" }}>
-            🔒 {lang === "en"
-              ? "Meeting point is shared with confirmed attendees only. Book your place to unlock it."
-              : "El punto de encuentro se comparte solo con las confirmadas. Reserva tu plaza para verlo."}
-          </div>
+          {isAlreadyBooked ? (
+            <div style={{ backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.3)", borderRadius: "6px", padding: "14px 18px", marginBottom: "28px", fontSize: "13.5px", color: "#39292a" }}>
+              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#568b05", fontWeight: 700, marginBottom: "4px" }}>
+                {lang === "en" ? "Meeting Point" : "Punto de Encuentro"}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 600 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
+                <span>{ev.meetingPoint || ev.venueName}</span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ backgroundColor: "rgba(255,255,255,0.7)", border: "1px dashed rgba(57,41,42,0.2)", borderRadius: "6px", padding: "14px 18px", marginBottom: "28px", fontSize: "13px", color: "rgba(57,41,42,0.65)", display: "flex", alignItems: "center", gap: "8px" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15" style={{ flexShrink: 0 }}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+              <span>
+                {lang === "en"
+                  ? "Meeting point is shared with confirmed attendees only. Book your place to unlock it."
+                  : "El punto de encuentro se comparte solo con las confirmadas. Reserva tu plaza para verlo."}
+              </span>
+            </div>
+          )}
 
           {/* Action bar */}
           {ev.status !== "cancelled" && ev.status !== "completed" && (
@@ -392,10 +426,10 @@ export default function EventDetailPage() {
                       type="button"
                       disabled
                       style={{
-                        backgroundColor: "rgba(86,139,5,0.1)",
-                        border: "1px solid #568b05",
-                        color: "#568b05",
-                        padding: "12px 26px",
+                        border: "1px solid rgba(57,41,42,0.25)",
+                        backgroundColor: "rgba(57,41,42,0.04)",
+                        color: "rgba(57,41,42,0.5)",
+                        padding: "10px 22px",
                         borderRadius: "4px",
                         fontFamily: "var(--font-heading)",
                         fontWeight: 600,
@@ -403,7 +437,9 @@ export default function EventDetailPage() {
                         cursor: "default",
                       }}
                     >
-                      ✓ {lang === "en" ? "You are booked" : "Ya estás reservada"}
+                      {ev.creditCost === 0 || ev.isFreeWalk || !ev.capacityMember
+                        ? (lang === "en" ? "You're on the list" : "Estás en la lista")
+                        : (lang === "en" ? "Booked" : "Reservada")}
                     </button>
                   ) : (
                     <button
@@ -505,8 +541,8 @@ export default function EventDetailPage() {
                   </div>
                   <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.72)", margin: 0, lineHeight: 1.55 }}>
                     {lang === "en"
-                      ? `${ev.title} is moderated by the Community Manager. Meeting-point changes and last-minute spots are shared with only members on the list.`
-                      : `${ev.title} está moderado por la Community Manager. Los cambios de punto de encuentro y plazas de última hora solo se comparten con las socias de la lista.`}
+                      ? "You'll receive an email reminder 24 hours before with exact timing and a one-tap map link to the meeting point."
+                      : "Recibirás un recordatorio por correo electrónico 24 horas antes con el horario exacto y enlace al punto de encuentro."}
                   </p>
                 </div>
 
@@ -543,8 +579,8 @@ export default function EventDetailPage() {
                       <div style={{ fontWeight: 600, marginBottom: "4px" }}>{lang === "en" ? "Free Walk RSVP" : "Reserva de Paseo Gratuito"}</div>
                       <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.65)", lineHeight: 1.5 }}>
                         {lang === "en"
-                          ? "This event is free and open to all mothers. Let us know you're coming!"
-                          : "Este evento es gratuito y abierto a todas las madres. ¡Infórmanos que vienes!"}
+                          ? "This event is free and open to all mothers. We will send an email confirmation and the exact starting point the day before the walk."
+                          : "Este evento es gratuito y abierto a todas las madres. Te enviaremos una confirmación por correo electrónico y el punto de encuentro exacto el día anterior al paseo."}
                       </div>
                     </div>
                     <div>
@@ -560,8 +596,16 @@ export default function EventDetailPage() {
                       <input type="email" className="input" value={rsvpForm.email} onChange={(e) => setRsvpForm({ ...rsvpForm, email: e.target.value })} required />
                     </div>
                     <div>
-                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>{lang === "en" ? "WhatsApp (optional)" : "WhatsApp (opcional)"}</label>
-                      <input type="tel" className="input" value={rsvpForm.whatsapp} onChange={(e) => setRsvpForm({ ...rsvpForm, whatsapp: e.target.value })} />
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(57,41,42,0.6)", marginBottom: "5px" }}>{lang === "en" ? "Phone (optional)" : "Teléfono (opcional)"}</label>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9+ ]*"
+                        className="input"
+                        placeholder={lang === "en" ? "Phone number" : "Número de teléfono"}
+                        value={rsvpForm.whatsapp}
+                        onChange={(e) => setRsvpForm({ ...rsvpForm, whatsapp: e.target.value.replace(/[^\d+ ]/g, "") })}
+                      />
                     </div>
                     <button type="submit" disabled={actionLoading} style={{ width: "100%", padding: "13px", backgroundColor: "var(--color-accent)", color: "#f8efe2", border: "none", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "15px", cursor: actionLoading ? "wait" : "pointer", opacity: actionLoading ? 0.7 : 1, marginTop: "4px" }}>
                       {actionLoading ? (lang === "en" ? "Submitting…" : "Enviando…") : (lang === "en" ? "Confirm RSVP" : "Confirmar Reserva")}

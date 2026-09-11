@@ -14,7 +14,7 @@ export default function AdminEditEventPage() {
 
   // Form State
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Walks & park socials");
+  const [category, setCategory] = useState("Easy connection");
   const [neighbourhood, setNeighbourhood] = useState("Ciutat Vella");
   const [venueName, setVenueName] = useState("");
   const [meetingPoint, setMeetingPoint] = useState("");
@@ -231,7 +231,7 @@ export default function AdminEditEventPage() {
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Category</label>
                   <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
-                    <option value="Walks & park socials">Walks & park socials</option>
+                    <option value="Easy connection">Easy connection</option>
                     <option value="Play date">Play date</option>
                     <option value="MoM's date">MoM's date</option>
                     <option value="Learn & Grow">Learn & Grow</option>

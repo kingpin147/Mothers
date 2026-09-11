@@ -6,7 +6,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Locale } from "@/lib/i18n";
 import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, getStripePortalUrl } from "@/app/actions/memberAccount";
-import { buyExtraCredits } from "@/app/actions/booking";
+import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
 
 type AccountTab = "overview" | "credits" | "perks" | "membership";
 
@@ -293,6 +293,33 @@ export default function AccountPage() {
     }
   };
 
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+
+  const handleCancelBooking = async (bookingId: string) => {
+    const promptMsg = lang === "en"
+      ? "Are you sure you want to cancel this reservation? If you cancel more than 24 hours ahead, your credits return immediately."
+      : "¿Estás segura de que quieres cancelar esta reserva? Si cancelas con más de 24 horas de antelación, tus créditos vuelven de inmediato.";
+    
+    if (!window.confirm(promptMsg)) return;
+
+    setCancellingBookingId(bookingId);
+    try {
+      const res = await releaseBooking(bookingId);
+      if (res.success) {
+        const updated = await getAccountData();
+        if (updated.success) {
+          setAccountData(updated);
+        }
+      } else {
+        alert(res.error || (lang === "en" ? "Failed to cancel reservation." : "No se pudo cancelar la reserva."));
+      }
+    } catch (err: any) {
+      alert(err?.message || "An error occurred.");
+    } finally {
+      setCancellingBookingId(null);
+    }
+  };
+
   const TABS: { id: AccountTab; labelEn: string; labelEs: string }[] = [
     { id: "overview", labelEn: "Overview", labelEs: "Resumen" },
     { id: "credits", labelEn: "Credits", labelEs: "Créditos" },
@@ -425,37 +452,72 @@ export default function AccountPage() {
               </h3>
 
               {accountData?.bookings?.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  {accountData.bookings.map((b: any) => (
-                    <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "16px" }}>
-                      <div>
-                        <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "10px", padding: "2px 8px", marginRight: "8px", verticalAlign: "middle" }}>
-                          {lang === "en" ? "Easy connection" : "Conexión fácil"}
-                        </span>
-                        <div style={{ fontWeight: 600, fontSize: "15px", marginTop: "6px" }}>{b.eventTitle}</div>
-                        <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.65)", marginTop: "4px" }}>
-                          {new Date(b.eventDate).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "short", day: "numeric", month: "short" })} · {new Date(b.eventDate).toLocaleTimeString(lang === "en" ? "en-GB" : "es-ES", { hour: "2-digit", minute: "2-digit" })}
+                <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                  {accountData.bookings.map((b: any) => {
+                    const isPending = b.eventStatus === "published_pending" || b.eventStatus === "pending" || b.status === "held";
+                    const categoryLabel = b.categoryName || (b.isSignature ? "Signature moments" : "Easy connection");
+                    const dateFormatted = new Date(b.eventDate).toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short", day: "numeric", year: "numeric" });
+                    const timeFormatted = new Date(b.eventDate).toLocaleTimeString(lang === "en" ? "en-GB" : "es-ES", { hour: "2-digit", minute: "2-digit" });
+                    const locationText = b.meetingPoint || (b.venueName ? `${b.venueName} — ${b.eventLocation}` : b.eventLocation);
+
+                    return (
+                      <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "18px" }}>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "12px", padding: "2px 9px", display: "inline-block", backgroundColor: "rgba(255,255,255,0.7)" }}>
+                            {categoryLabel}
+                          </span>
+                          
+                          <div style={{ fontWeight: 600, fontSize: "15.5px", marginTop: "6px", color: "#39292a" }}>
+                            {b.eventTitle}
+                          </div>
+
+                          {isPending && (
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", backgroundColor: "#fffaf2", border: "1px solid rgba(164,118,31,0.35)", padding: "3px 8px", borderRadius: "4px", fontSize: "11px", color: "#8a6116", fontWeight: 600, marginTop: "6px", flexWrap: "wrap" }}>
+                              <span style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                {lang === "en" ? "AWAITING CONFIRMATION" : "PENDIENTE DE CONFIRMACIÓN"}
+                              </span>
+                              <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.7)" }}>
+                                {b.minToConfirm && b.confirmedCount != null
+                                  ? (lang === "en" ? `${Math.max(1, b.minToConfirm - b.confirmedCount)} more mothers and it is confirmed` : `${Math.max(1, b.minToConfirm - b.confirmedCount)} madres más para confirmar`)
+                                  : (lang === "en" ? "Gathering members to confirm" : "Reuniendo socias para confirmar")}
+                              </span>
+                            </div>
+                          )}
+
+                          <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.7)", marginTop: "6px" }}>
+                            {dateFormatted} • {timeFormatted}
+                          </div>
+
+                          <div style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.65)", marginTop: "3px", display: "flex", alignItems: "baseline", gap: "6px" }}>
+                            <span style={{ color: "#568b05", fontSize: "10px" }}>●</span>
+                            <span>{locationText}</span>
+                          </div>
                         </div>
-                        <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.5)", marginTop: "2px" }}>
-                          📍 {b.eventLocation}
+                        
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelBooking(b.id)}
+                            disabled={cancellingBookingId === b.id}
+                            style={{
+                              border: "1px solid rgba(57, 41, 42, 0.28)",
+                              backgroundColor: "#fffdfa",
+                              color: "rgba(57, 41, 42, 0.75)",
+                              padding: "5px 14px",
+                              borderRadius: "16px",
+                              fontSize: "12px",
+                              fontFamily: "'Lora', Georgia, serif",
+                              cursor: cancellingBookingId === b.id ? "not-allowed" : "pointer",
+                              whiteSpace: "nowrap",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            {cancellingBookingId === b.id ? (lang === "en" ? "Cancelling..." : "Cancelando...") : (lang === "en" ? "Cancel" : "Cancelar")}
+                          </button>
                         </div>
                       </div>
-                      
-                      <span style={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        backgroundColor: b.status === "confirmed" ? "#e8f1e9" : "#fff3e4",
-                        color: b.status === "confirmed" ? "#285430" : "#a4761f",
-                        padding: "4px 10px",
-                        borderRadius: "4px",
-                        border: `1px solid ${b.status === "confirmed" ? "rgba(74,122,80,0.3)" : "rgba(164,118,31,0.3)"}`,
-                      }}>
-                        {b.status === "confirmed"
-                          ? (lang === "en" ? "Confirmed" : "Confirmada")
-                          : (lang === "en" ? "Pending" : "Pendiente")}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div style={{ padding: "32px 20px", backgroundColor: "#faf7f2", borderRadius: "6px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
@@ -482,10 +544,10 @@ export default function AccountPage() {
                 </div>
               )}
 
-              <p style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.5)", lineHeight: 1.5, marginTop: "20px", marginBottom: 0 }}>
+              <p style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.55)", lineHeight: 1.55, marginTop: "24px", marginBottom: 0 }}>
                 {lang === "en"
-                  ? "Meeting points are shared with booked members only — please keep them inside the club. Cancel more than 24 hours ahead and your credits come straight back. Inside 24 hours, they return only if someone on the waitlist takes your place — and two no-shows in three months pause your RSVPs."
-                  : "Los puntos de encuentro se comparten solo con las socias reservadas; por favor, mantenlos dentro del club. Si cancelas con más de 24h, recuperas tus créditos. Dentro de las 24h, solo se devuelven si alguien de la lista ocupa tu plaza."}
+                  ? "Meeting points are shared with booked members only — please keep them inside the club. Cancel more than 24 hours ahead and your credits come straight back. Inside 24 hours, they remain only if someone on the waitlist takes your place — and we've all been in those last-minute fix moments. Reserved credits are held for events until filling. They return to your balance if the occasion can't go ahead."
+                  : "Los puntos de encuentro se comparten solo con las socias reservadas; por favor, mantenlos dentro del club. Si cancelas con más de 24 horas de antelación, tus créditos vuelven de inmediato. Dentro de las 24 horas, solo se devuelven si alguien de la lista de espera ocupa tu plaza. Los créditos reservados se retienen hasta completarse el evento y regresan a tu saldo si la ocasión no puede llevarse a cabo."}
               </p>
             </div>
 
