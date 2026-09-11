@@ -11,7 +11,7 @@ export default function AdminCreateEventPage() {
 
   // Form State
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Easy connection");
+  const [category, setCategory] = useState("Walks & park socials");
   const [neighbourhood, setNeighbourhood] = useState("Ciutat Vella");
   const [venueName, setVenueName] = useState("");
   const [meetingPoint, setMeetingPoint] = useState("");
@@ -181,10 +181,10 @@ export default function AdminCreateEventPage() {
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Category <span style={{ color: "#7b1f2c" }}>*</span></label>
                   <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
-                    <option value="Easy connection">Easy connection</option>
-                    <option value="Play date">Play date</option>
-                    <option value="MoM's date">MoM's date</option>
-                    <option value="Learn & Grow">Learn & Grow</option>
+                    <option value="Walks & park socials">Walks & park socials</option>
+                    <option value="Play dates">Play dates</option>
+                    <option value="MoM's dates">MoM's dates</option>
+                    <option value="Learn & grow">Learn & grow</option>
                     <option value="Signature moments">Signature moments</option>
                   </select>
                   <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>A label for members and a filter for you. It carries no price.</div>
