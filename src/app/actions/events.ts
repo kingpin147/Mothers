@@ -56,12 +56,7 @@ export async function getPublicEvents() {
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
       .leftJoin(partner, eq(event.partnerId, partner.id))
       .where(
-        and(
-          sql`${event.status} IN ('published_pending', 'confirmed', 'completed', 'cancelled')`,
-          sql`LOWER(${event.title}) NOT LIKE '%test%'`,
-          sql`LOWER(${event.title}) NOT LIKE '%rachel%'`,
-          sql`(${event.description} IS NULL OR LOWER(${event.description}) NOT LIKE '%test%')`
-        )
+        sql`${event.status} IN ('published_pending', 'confirmed', 'completed', 'cancelled')`
       )
       .orderBy(asc(event.startsAt));
 

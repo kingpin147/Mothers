@@ -132,29 +132,29 @@ export default function MembershipClient({
 
       {/* ── MEMBERSHIP CARD ── */}
       <section style={{ maxWidth: "960px", margin: "0 auto", padding: "0 clamp(24px,5vw,64px) clamp(28px,4vw,40px)" }}>
-        <div style={{ border: "2px solid #7b1f2c", borderRadius: "8px", padding: "clamp(32px,5vw,52px)", background: "#f8efe2", boxShadow: "0 12px 32px rgba(45,43,43,0.08)" }}>
+        <div style={{ border: "none", borderRadius: "8px", padding: "clamp(32px,5vw,52px)", background: "#7b1f2c", boxShadow: "0 12px 32px rgba(45,43,43,0.08)", color: "#f8efe2" }}>
           {/* Badge */}
           <div style={{ marginBottom: "16px" }}>
-            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#568b05", border: "1px solid rgba(86,139,5,0.5)", borderRadius: "12px", padding: "4px 12px", whiteSpace: "nowrap" }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#f8efe2", background: "#568b05", borderRadius: "12px", padding: "4px 12px", whiteSpace: "nowrap" }}>
               {isEn ? "No joining fee — first 50" : "Sin cuota de inscripción — primeras 50"}
             </span>
           </div>
 
           {/* Price + CTA row */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px 40px", justifyContent: "space-between", alignItems: "flex-end", paddingBottom: "22px", borderBottom: "1px solid rgba(57,41,42,0.16)" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px 40px", justifyContent: "space-between", alignItems: "flex-end", paddingBottom: "22px", borderBottom: "1px solid rgba(248,239,226,0.2)" }}>
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(44px,6vw,56px)", lineHeight: 1, color: "#7b1f2c", fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(44px,6vw,56px)", lineHeight: 1, color: "#f8efe2", fontVariantNumeric: "tabular-nums" }}>
                   {isEn ? "€39" : "39€"}
                 </span>
-                <span style={{ fontSize: "17px", color: "rgba(57,41,42,0.6)" }}>
+                <span style={{ fontSize: "17px", color: "rgba(248,239,226,0.8)" }}>
                   {isEn ? "/ month" : "/ mes"}
                 </span>
               </div>
-              <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.62)", margin: "10px 0 0" }}>
+              <p style={{ fontSize: "14px", color: "rgba(248,239,226,0.8)", margin: "10px 0 0" }}>
                 {isEn ? "or €99 every 3 months" : "o 99€ cada 3 meses"}
               </p>
-              <p style={{ fontSize: "14px", color: "rgba(57,41,42,0.62)", margin: "4px 0 0" }}>
+              <p style={{ fontSize: "14px", color: "rgba(248,239,226,0.8)", margin: "4px 0 0" }}>
                 {isEn ? `€${joiningFee} joining fee, once — free for our first 50 members` : `${joiningFee}€ de inscripción, una vez — gratis para nuestras primeras 50 socias`}
               </p>
             </div>
@@ -165,9 +165,9 @@ export default function MembershipClient({
                   type="button"
                   onClick={() => setApplyModalOpen(true)}
                   style={{
-                    border: "1px solid #7b1f2c",
-                    background: "#7b1f2c",
-                    color: "#f8efe2",
+                    border: "1px solid #f8efe2",
+                    background: "#f8efe2",
+                    color: "#7b1f2c",
                     padding: "14px 30px",
                     borderRadius: "4px",
                     fontFamily: "'Cormorant Garamond', serif",
@@ -184,7 +184,7 @@ export default function MembershipClient({
           </div>
 
           {/* Body headline */}
-          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: "1.35", color: "#39292a", margin: "26px 0 20px", maxWidth: "40ch" }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: "1.35", color: "#f8efe2", margin: "26px 0 20px", maxWidth: "40ch" }}>
             {isEn ? "One membership. Everything the club does, and 20 credits a month to spend on it." : "Una sola membresía. Todo lo que hace el club, y 20 créditos al mes para gastarlos."}
           </p>
 
@@ -205,15 +205,15 @@ export default function MembershipClient({
               "Ventajas con partners",
               "Reserva prioritaria en todo",
             ]).map((perk, i) => (
-              <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "15px", lineHeight: "1.5" }}>
-                <span style={{ flex: "none", color: "#568b05", marginTop: "3px" }}><CheckIcon /></span>
+              <div key={i} style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "15px", lineHeight: "1.5", color: "#f8efe2" }}>
+                <span style={{ flex: "none", color: "#f8efe2", marginTop: "3px" }}><CheckIcon /></span>
                 <span>{perk}</span>
               </div>
             ))}
           </div>
 
           {/* Fine print */}
-          <div style={{ borderTop: "1px solid rgba(57,41,42,0.16)", paddingTop: "18px", display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ borderTop: "1px solid rgba(248,239,226,0.2)", paddingTop: "18px", display: "flex", flexDirection: "column", gap: "6px" }}>
             {(isEn ? [
               "Applications open one week a month. When the Window is shut, join the waitlist.",
               "Pause for up to two months a year at no cost. Cancel any time, with no fee.",
@@ -221,7 +221,7 @@ export default function MembershipClient({
               "Las solicitudes se abren una semana al mes. Si la Ventana está cerrada, únete a la lista de espera.",
               "Puedes pausar hasta dos meses al año sin coste. Cancela cuando quieras, sin penalización.",
             ]).map((line, i) => (
-              <p key={i} style={{ fontSize: "13.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.65)", margin: 0 }}>{line}</p>
+              <p key={i} style={{ fontSize: "13.5px", lineHeight: "1.55", color: "rgba(248,239,226,0.75)", margin: 0 }}>{line}</p>
             ))}
           </div>
         </div>

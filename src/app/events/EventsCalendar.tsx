@@ -1077,67 +1077,19 @@ function BookingSuccessModal({
               fontSize: "14.5px",
               lineHeight: "1.6",
               color: "rgba(57,41,42,0.74)",
-              margin: "0 0 8px",
-              textAlign: "left",
+              margin: "0 0 24px",
+              textAlign: "center",
             }}
           >
             {lang === "en" ? (
               <>
-                We&rsquo;re still gathering mothers for &ldquo;{displayTitle}&rdquo; on {formattedDate}. Your place is held, not booked — credits are only taken if it goes ahead.
+                {moreNeeded > 0 ? `${moreNeeded} more mother${moreNeeded === 1 ? "" : "s"} and` : "Enough mothers have joined so"} &ldquo;{displayTitle}&rdquo; is confirmed. Your {ev.creditCost} credit{ev.creditCost === 1 ? "" : "s"} are held, not spent — we confirm by {decideBy}, and if it moves your place moves with it.
               </>
             ) : (
               <>
-                Seguimos reuniendo madres para &ldquo;{displayTitle}&rdquo; el {formattedDate}. Tu plaza está retenida, no confirmada — los créditos solo se cobran si el encuentro sale adelante.
+                {moreNeeded > 0 ? `Faltan ${moreNeeded} madre${moreNeeded === 1 ? "" : "s"} para confirmar` : "Ya hay suficientes madres para confirmar"} &ldquo;{displayTitle}&rdquo;. Tus {ev.creditCost} crédito{ev.creditCost === 1 ? "" : "s"} están retenidos, no gastados — confirmamos el {decideBy}, y si cambia de fecha, tu plaza se mantiene.
               </>
             )}
-          </p>
-
-          <div
-            style={{
-              background: "#fffaf2",
-              border: "1px solid rgba(164,118,31,0.35)",
-              borderRadius: "6px",
-              padding: "16px 18px",
-              textAlign: "left",
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-              marginBottom: "20px",
-            }}
-          >
-            {moreNeeded > 0 ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13.5px", color: "#8a6116" }}>
-                  {lang === "en" ? `We need ${moreNeeded} more mother${moreNeeded === 1 ? "" : "s"} to confirm.` : `Faltan ${moreNeeded} madre${moreNeeded === 1 ? "" : "s"} más para confirmar.`}
-                </span>
-                <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#8a6116", fontFeatureSettings: "'tnum'" }}>
-                  {ev.bookedMember ?? 0}/{ev.minToConfirm}
-                </span>
-              </div>
-            ) : (
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13.5px", color: "#8a6116" }}>
-                {lang === "en" ? "We have enough mothers — waiting for final confirmation." : "Ya tenemos suficientes madres — esperando confirmación final."}
-              </div>
-            )}
-            <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
-              {lang === "en"
-                ? `Final decision by ${decideBy}. If it doesn't go ahead, the ${ev.creditCost} credit${ev.creditCost === 1 ? "" : "s"} return straight to your balance — no action needed.`
-                : `Decisión final el ${decideBy}. Si no se realiza, los ${ev.creditCost} crédito${ev.creditCost === 1 ? "" : "s"} vuelven directamente a tu saldo — sin hacer nada.`}
-            </p>
-          </div>
-
-          <p
-            style={{
-              fontSize: "12.5px",
-              lineHeight: "1.6",
-              color: "rgba(57,41,42,0.6)",
-              margin: "0 0 24px",
-              textAlign: "left",
-            }}
-          >
-            {lang === "en"
-              ? "Change of plans before it confirms? Cancel from your account and your place is released — credit never leaves your balance. Once confirmed, the normal 24h cancellation rule applies."
-              : "¿Cambio de planes antes de que se confirme? Cancela desde tu cuenta y liberas tu plaza — el crédito nunca llega a cobrarse. Una vez confirmado, se aplica la regla normal de 24h."}
           </p>
 
           <button
@@ -1606,12 +1558,7 @@ function EventCard({
               }
               return null;
             })()}
-            {/* Member credit balance note if logged in */}
-            {isMember && !isFull && (
-              <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
-                {lang === "en" ? `You have ${creditBalance} credits.` : `Tienes ${creditBalance} créditos.`}
-              </div>
-            )}
+
             {/* Member full waitlist note */}
             {isMember && isFull && (
               <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
