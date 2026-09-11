@@ -131,30 +131,30 @@ export default function MembershipClient({
       )}
 
       {/* ── MEMBERSHIP CARD ── */}
-      <section style={{ maxWidth: "960px", margin: "0 auto", padding: "0 clamp(24px,5vw,64px) clamp(28px,4vw,40px)" }}>
-        <div style={{ border: "none", borderRadius: "8px", padding: "clamp(32px,5vw,52px)", background: "#7b1f2c", boxShadow: "0 12px 32px rgba(45,43,43,0.08)", color: "#f8efe2" }}>
+      <section style={{ maxWidth: "960px", margin: "0 auto", padding: "0 clamp(18px,5vw,64px) clamp(28px,4vw,40px)" }}>
+        <div style={{ border: "1px solid rgba(248,239,226,0.15)", borderRadius: "10px", padding: "clamp(28px,5vw,52px)", background: "#5c141e", boxShadow: "0 18px 45px rgba(45,15,20,0.16)", color: "#f8efe2" }}>
           {/* Badge */}
           <div style={{ marginBottom: "16px" }}>
-            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#f8efe2", background: "#568b05", borderRadius: "12px", padding: "4px 12px", whiteSpace: "nowrap" }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#f8efe2", background: "#4e8002", borderRadius: "14px", padding: "5px 14px", display: "inline-block", whiteSpace: "nowrap" }}>
               {isEn ? "No joining fee — first 50" : "Sin cuota de inscripción — primeras 50"}
             </span>
           </div>
 
           {/* Price + CTA row */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px 40px", justifyContent: "space-between", alignItems: "flex-end", paddingBottom: "22px", borderBottom: "1px solid rgba(248,239,226,0.2)" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px 40px", justifyContent: "space-between", alignItems: "flex-end", paddingBottom: "24px", borderBottom: "1px solid rgba(248,239,226,0.22)" }}>
             <div>
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(44px,6vw,56px)", lineHeight: 1, color: "#f8efe2", fontVariantNumeric: "tabular-nums" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(44px,6vw,58px)", lineHeight: 1, color: "#ffffff", fontVariantNumeric: "tabular-nums" }}>
                   {isEn ? "€39" : "39€"}
                 </span>
-                <span style={{ fontSize: "17px", color: "rgba(248,239,226,0.8)" }}>
+                <span style={{ fontSize: "17px", color: "rgba(248,239,226,0.85)" }}>
                   {isEn ? "/ month" : "/ mes"}
                 </span>
               </div>
-              <p style={{ fontSize: "14px", color: "rgba(248,239,226,0.8)", margin: "10px 0 0" }}>
+              <p style={{ fontSize: "14px", color: "rgba(248,239,226,0.85)", margin: "10px 0 0" }}>
                 {isEn ? "or €99 every 3 months" : "o 99€ cada 3 meses"}
               </p>
-              <p style={{ fontSize: "14px", color: "rgba(248,239,226,0.8)", margin: "4px 0 0" }}>
+              <p style={{ fontSize: "14px", color: "rgba(248,239,226,0.85)", margin: "4px 0 0" }}>
                 {isEn ? `€${joiningFee} joining fee, once — free for our first 50 members` : `${joiningFee}€ de inscripción, una vez — gratis para nuestras primeras 50 socias`}
               </p>
             </div>
@@ -165,16 +165,17 @@ export default function MembershipClient({
                   type="button"
                   onClick={() => setApplyModalOpen(true)}
                   style={{
-                    border: "1px solid #f8efe2",
-                    background: "#f8efe2",
-                    color: "#7b1f2c",
-                    padding: "14px 30px",
+                    border: "none",
+                    background: "#fffdfa",
+                    color: "#5c141e",
+                    padding: "14px 32px",
                     borderRadius: "4px",
                     fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: "16px",
                     whiteSpace: "nowrap",
                     cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
                   }}
                 >
                   {isEn ? "Apply for membership" : "Solicitar la membresía"}

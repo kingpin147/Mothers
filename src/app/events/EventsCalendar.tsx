@@ -1816,23 +1816,31 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       if (res.success) {
         const newCredits = Math.max(0, currentCreditBalance - (ev.creditCost || 0));
         setCurrentCreditBalance(newCredits);
+
+        const newBookedCount = (ev.bookedMember || 0) + 1;
+        const finalStatus =
+          res.eventStatus ||
+          (ev.minToConfirm && newBookedCount >= ev.minToConfirm ? "confirmed" : ev.status);
+
+        const updatedEv: PublicEvent = {
+          ...ev,
+          status: finalStatus,
+          placesTaken: (ev.placesTaken || 0) + 1,
+          bookedMember: newBookedCount,
+          capacityRemaining:
+            ev.capacityRemaining != null ? Math.max(0, ev.capacityRemaining - 1) : null,
+          userStatus: {
+            ...ev.userStatus,
+            isBooked: true,
+            bookedAt: new Date(),
+            creditsCharged: ev.creditCost,
+          },
+        };
+
         setEventsList((prev) =>
-          prev.map((e) =>
-            e.id === ev.id
-              ? {
-                  ...e,
-                  status: e.status === "published_pending" || e.status === "pending" ? "confirmed" : e.status,
-                  userStatus: {
-                    ...e.userStatus,
-                    isBooked: true,
-                    bookedAt: new Date(),
-                    creditsCharged: e.creditCost,
-                  },
-                }
-              : e
-          )
+          prev.map((e) => (e.id === ev.id ? updatedEv : e))
         );
-        setBookingSuccessEvent(ev);
+        setBookingSuccessEvent(updatedEv);
       } else {
         if (res.error === "INSUFFICIENT_CREDITS") {
           setTopUpEvent(ev);

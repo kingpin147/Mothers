@@ -215,6 +215,7 @@ export async function bookEvent(eventId: string) {
         bookingId: newBookingId,
         eventTitle: ev.title,
         status: initialStatus,
+        eventStatus: targetEventStatus,
         startsAt: ev.startsAt,
         venueName: ev.venueName,
       };
@@ -402,7 +403,12 @@ This is a booking confirmation, not a marketing email.
       });
     }
 
-    return { success: true, bookingId: result.bookingId };
+    return {
+      success: true,
+      bookingId: result.bookingId,
+      status: result.status,
+      eventStatus: result.eventStatus,
+    };
   } catch (error: any) {
     console.error("bookEvent error:", error);
     return { success: false, error: error?.message || "BOOKING_FAILED" };
