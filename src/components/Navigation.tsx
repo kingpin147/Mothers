@@ -159,7 +159,10 @@ export function Navigation() {
                 );
               })()}
               <button
-                onClick={() => signOut({ callbackUrl: `${window.location.origin}/` })}
+                onClick={async () => {
+                  await signOut({ redirect: false });
+                  window.location.href = "/";
+                }}
                 style={{
                   border: "none",
                   background: "transparent",
@@ -320,9 +323,10 @@ export function Navigation() {
                 })()}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setMobileMenuOpen(false);
-                    signOut({ callbackUrl: `${window.location.origin}/` });
+                    await signOut({ redirect: false });
+                    window.location.href = "/";
                   }}
                   style={{
                     width: "100%",

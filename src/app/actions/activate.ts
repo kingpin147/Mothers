@@ -36,7 +36,7 @@ export async function getActivationDetails(token: string) {
     person: personRecord,
     member: memberRecord,
     window: windowRecord,
-    monthlyPriceCents: windowRecord?.monthlyPriceCents || 2900,
+    monthlyPriceCents: windowRecord?.monthlyPriceCents || 3900,
     joiningFeeCents: windowRecord?.joiningFeeCents || 1900,
   };
 }

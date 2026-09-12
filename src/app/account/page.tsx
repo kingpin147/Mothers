@@ -1584,7 +1584,10 @@ export default function AccountPage() {
             <div style={{ marginTop: "12px", borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "24px", display: "flex", justifyContent: "flex-end" }}>
               <button
                 type="button"
-                onClick={() => signOut({ callbackUrl: '/' })}
+                onClick={async () => {
+                  await signOut({ redirect: false });
+                  window.location.href = "/";
+                }}
                 style={{
                   border: "1px solid rgba(57, 41, 42, 0.3)",
                   color: "#39292a",

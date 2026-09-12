@@ -187,7 +187,7 @@ export default function AdminDashboardPage() {
           </div>
           <div style={{ display: "flex", gap: "9px", alignItems: "center" }}>
             <span style={{ border: "1px solid rgba(123,31,44,0.5)", color: "#7b1f2c", borderRadius: "4px", padding: "7px 13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{roleLabel}</span>
-            <button onClick={() => { setIsLoggingOut(true); signOut({ callbackUrl: `${window.location.origin}/` }); }} style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", background: "transparent", borderRadius: "4px", padding: "7px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", whiteSpace: "nowrap", cursor: "pointer" }}>Sign out</button>
+            <button onClick={async () => { setIsLoggingOut(true); await signOut({ redirect: false }); window.location.href = "/"; }} style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", background: "transparent", borderRadius: "4px", padding: "7px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", whiteSpace: "nowrap", cursor: "pointer" }}>Sign out</button>
           </div>
         </div>
 

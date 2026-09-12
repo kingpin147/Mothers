@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -256,18 +256,18 @@ function getCategoryInfo(ev: PublicEvent, lang: Lang): { key: string; label: str
 
 function getCardBg(ev: PublicEvent, isPast?: boolean): string {
   if (isPast || ev.status === "cancelled") return "#f1eeea";
+  if (ev.status === "published_pending" || ev.status === "pending") return "#fbf3e4";
   if (ev.userStatus?.isBooked) return "#eef4e9";
   if (ev.status === "confirmed") return "#eef4e9";
-  if (ev.status === "published_pending" || ev.status === "pending") return "#fbf3e4";
   if (ev.isSignature) return "#f1eaea";
   return "#f3f0ea";
 }
 
 function getCardBorder(ev: PublicEvent, isPast?: boolean): string {
   if (isPast || ev.status === "cancelled") return "rgba(57, 41, 42, 0.18)";
+  if (ev.status === "published_pending" || ev.status === "pending") return "rgba(164, 118, 31, 0.45)";
   if (ev.userStatus?.isBooked) return "rgba(86, 139, 5, 0.34)";
   if (ev.status === "confirmed") return "rgba(86, 139, 5, 0.34)";
-  if (ev.status === "published_pending" || ev.status === "pending") return "rgba(164, 118, 31, 0.45)";
   if (ev.isSignature) return "rgba(123, 31, 44, 0.32)";
   return "rgba(57, 41, 42, 0.2)";
 }
@@ -980,7 +980,7 @@ function BookingSuccessModal({
 }) {
   const displayTitle = getEventDisplayTitle(ev, lang);
   const formattedDate = formatEventDate(ev.startsAt, lang);
-  const venueDisplay = ev.venueAddress || ev.venueName || (lang === "en" ? "Exact meeting point shared once you book" : "Punto de encuentro exacto compartido tras reservar");
+  const isFreeWalk = ev.isFreeWalk || ev.creditCost === 0;
 
   const isGathering =
     (ev.status === "pending" || ev.status === "published_pending") &&
@@ -988,6 +988,7 @@ function BookingSuccessModal({
   const moreNeeded = Math.max(0, (ev.minToConfirm ?? 0) - (ev.bookedMember ?? 0));
   const decideBy = isGathering ? formatDecideByDate(ev.startsAt, lang) : "";
 
+  // ── Modal 02: Gathering / To be confirmed ───────────────────────────
   if (isGathering) {
     return (
       <div
@@ -1055,9 +1056,9 @@ function BookingSuccessModal({
               marginBottom: "16px",
             }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+              <path d="M19 21H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2Z" />
+              <path d="M16 3v4M8 3v4M3 11h18" />
               <path d="m9 16 2 2 4-4" />
             </svg>
           </div>
@@ -1077,7 +1078,7 @@ function BookingSuccessModal({
           <p
             style={{
               fontSize: "14.5px",
-              lineHeight: "1.6",
+              lineHeight: "1.65",
               color: "rgba(57,41,42,0.74)",
               margin: "0 0 24px",
               textAlign: "center",
@@ -1085,11 +1086,11 @@ function BookingSuccessModal({
           >
             {lang === "en" ? (
               <>
-                {moreNeeded > 0 ? `${moreNeeded} more mother${moreNeeded === 1 ? "" : "s"} and` : "Enough mothers have joined so"} &ldquo;{displayTitle}&rdquo; is confirmed. Your {ev.creditCost} credit{ev.creditCost === 1 ? "" : "s"} are held, not spent — we confirm by {decideBy}, and if it moves your place moves with it.
+                {moreNeeded > 0 ? `${moreNeeded} more mother${moreNeeded === 1 ? "" : "s"} and` : "Enough mothers have joined so"} &ldquo;{displayTitle}&rdquo; is confirmed. Your {ev.creditCost} credit{ev.creditCost === 1 ? "" : "s"} are held, not spent &mdash; we confirm by {decideBy}, and if it moves your place moves with it.
               </>
             ) : (
               <>
-                {moreNeeded > 0 ? `Faltan ${moreNeeded} madre${moreNeeded === 1 ? "" : "s"} para confirmar` : "Ya hay suficientes madres para confirmar"} &ldquo;{displayTitle}&rdquo;. Tus {ev.creditCost} crédito{ev.creditCost === 1 ? "" : "s"} están retenidos, no gastados — confirmamos el {decideBy}, y si cambia de fecha, tu plaza se mantiene.
+                {moreNeeded > 0 ? `Faltan ${moreNeeded} madre${moreNeeded === 1 ? "" : "s"} para confirmar` : "Ya hay suficientes madres para confirmar"} &ldquo;{displayTitle}&rdquo;. Tus {ev.creditCost} cr&eacute;dito{ev.creditCost === 1 ? "" : "s"} est&aacute;n retenidos, no gastados &mdash; confirmamos el {decideBy}, y si cambia de fecha, tu plaza se mantiene.
               </>
             )}
           </p>
@@ -1101,7 +1102,7 @@ function BookingSuccessModal({
               border: "1px solid #7b1f2c",
               backgroundColor: "#7b1f2c",
               color: "#fdfaf5",
-              padding: "9px 30px",
+              padding: "10px 28px",
               borderRadius: "4px",
               fontFamily: "var(--font-heading)",
               fontWeight: 600,
@@ -1117,6 +1118,163 @@ function BookingSuccessModal({
     );
   }
 
+  // ── Modal 05: Free Walk ─────────────────────────────────────────────
+  if (isFreeWalk) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 1000,
+          backgroundColor: "rgba(57, 41, 42, 0.45)",
+          backdropFilter: "blur(3px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: "480px",
+            margin: "auto",
+            border: "1px solid rgba(57,41,42,0.14)",
+            borderRadius: "8px",
+            padding: "clamp(28px, 5vw, 36px)",
+            backgroundColor: "#FEFDF9",
+            boxShadow: "0 20px 50px rgba(45,43,43,0.16)",
+            textAlign: "center",
+          }}
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              position: "absolute",
+              top: "16px",
+              right: "16px",
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              color: "rgba(57,41,42,0.5)",
+              width: "30px",
+              height: "30px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "44px",
+              height: "44px",
+              borderRadius: "50%",
+              background: "#edf5e8",
+              color: "#568b05",
+              marginBottom: "16px",
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+          </div>
+
+          <h2
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontWeight: 600,
+              fontSize: "23px",
+              margin: "0 0 12px",
+              color: "#39292a",
+            }}
+          >
+            {lang === "en" ? "Your place is booked." : "Tu plaza está confirmada."}
+          </h2>
+
+          <p
+            style={{
+              fontSize: "14.5px",
+              lineHeight: "1.65",
+              color: "rgba(57,41,42,0.74)",
+              margin: "0 0 16px",
+            }}
+          >
+            {lang === "en" ? (
+              <>
+                Your place at &ldquo;{displayTitle}&rdquo; on {formattedDate} is booked. Walks and park socials are included in your membership &mdash; no credits needed.
+              </>
+            ) : (
+              <>
+                Tu plaza en &ldquo;{displayTitle}&rdquo; el {formattedDate} est&aacute; confirmada. Los paseos y encuentros est&aacute;n incluidos en tu membres&iacute;a &mdash; sin coste en cr&eacute;ditos.
+              </>
+            )}
+          </p>
+
+          <div
+            style={{
+              border: "1px solid rgba(86,139,5,0.35)",
+              background: "rgba(86,139,5,0.07)",
+              borderRadius: "6px",
+              padding: "12px 16px",
+              margin: "0 0 20px",
+              textAlign: "left",
+            }}
+          >
+            <div style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#568b05", fontWeight: 600, marginBottom: "6px" }}>
+              {lang === "en" ? "What happens next" : "Qué ocurre después"}
+            </div>
+            <div style={{ fontSize: "13px", lineHeight: "1.6", color: "rgba(57,41,42,0.78)" }}>
+              {lang === "en" ? (
+                <>
+                  &bull; Your place is held &mdash; there is no limit on places for this one, so nothing to wait on.<br />
+                  &bull; The day before &mdash; we send you the exact meeting point on WhatsApp.
+                </>
+              ) : (
+                <>
+                  &bull; Tu plaza est&aacute; reservada &mdash; no hay l&iacute;mite de plazas, no hay que esperar.<br />
+                  &bull; El d&iacute;a anterior &mdash; te enviamos el punto de encuentro exacto por WhatsApp.
+                </>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              border: "1px solid #7b1f2c",
+              backgroundColor: "#7b1f2c",
+              color: "#fdfaf5",
+              padding: "10px 28px",
+              borderRadius: "4px",
+              fontFamily: "var(--font-heading)",
+              fontWeight: 600,
+              fontSize: "14.5px",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {lang === "en" ? "Got it" : "Entendido"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Modal 01: Confirmed with Credits ────────────────────────────────
   return (
     <div
       style={{
@@ -1179,12 +1337,12 @@ function BookingSuccessModal({
             height: "44px",
             borderRadius: "50%",
             background: "#edf5e8",
-            color: "#456f04",
+            color: "#568b05",
             marginBottom: "16px",
           }}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
             <path d="m9 12 2 2 4-4" />
           </svg>
         </div>
@@ -1204,62 +1362,64 @@ function BookingSuccessModal({
         <p
           style={{
             fontSize: "14.5px",
-            lineHeight: "1.6",
+            lineHeight: "1.65",
             color: "rgba(57,41,42,0.74)",
-            margin: "0 0 20px",
+            margin: "0 0 16px",
           }}
         >
           {lang === "en" ? (
             <>
-              Your place at &ldquo;{displayTitle}&rdquo; on {formattedDate} is booked{ev.creditCost > 0 ? `, using ${ev.creditCost} credit${ev.creditCost === 1 ? "" : "s"}` : ""}. {ev.creditCost > 0 ? `You have ${remainingCredits} credit${remainingCredits === 1 ? "" : "s"} left this month.` : "No credits used."}
+              Your place at &ldquo;{displayTitle}&rdquo; on {formattedDate} is booked, using {ev.creditCost} credit{ev.creditCost === 1 ? "" : "s"}. You have {remainingCredits} credit{remainingCredits === 1 ? "" : "s"} left this month.
             </>
           ) : (
             <>
-              Tu plaza en &ldquo;{displayTitle}&rdquo; el {formattedDate} está confirmada{ev.creditCost > 0 ? `, usando ${ev.creditCost} crédito${ev.creditCost === 1 ? "" : "s"}` : ""}. {ev.creditCost > 0 ? `Te quedan ${remainingCredits} crédito${remainingCredits === 1 ? "" : "s"} este mes.` : "Sin coste en créditos."}
+              Tu plaza en &ldquo;{displayTitle}&rdquo; el {formattedDate} est&aacute; confirmada, usando {ev.creditCost} cr&eacute;dito{ev.creditCost === 1 ? "" : "s"}. Te quedan {remainingCredits} cr&eacute;dito{remainingCredits === 1 ? "" : "s"} este mes.
             </>
           )}
         </p>
 
         <div
           style={{
-            background: "#f4f7ee",
-            border: "1px solid rgba(86,139,5,0.28)",
+            border: "1px solid rgba(86,139,5,0.35)",
+            background: "rgba(86,139,5,0.07)",
             borderRadius: "6px",
-            padding: "16px 18px",
+            padding: "12px 16px",
+            margin: "0 0 14px",
             textAlign: "left",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            marginBottom: "24px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", fontSize: "13.5px", fontWeight: 500, color: "#3e6308" }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" style={{ flexShrink: 0, marginTop: "2px" }}>
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            <span>{venueDisplay}</span>
+          <div style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#568b05", fontWeight: 600, marginBottom: "6px" }}>
+            {lang === "en" ? "What happens next" : "Qué ocurre después"}
           </div>
-          <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
-            {lang === "en"
-              ? "You'll receive an email reminder 24 hours before with exact timing and a one-tap map link to the meeting point."
-              : "Recibirás un recordatorio por correo electrónico 24 horas antes con el horario exacto y un enlace directo al mapa del punto de encuentro."}
-          </p>
-          <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
-            {lang === "en"
-              ? "Change of plans? Cancel from your account more than 24 hours ahead and the credit comes straight back. Inside 24 hours they return only if someone on the waitlist takes your place."
-              : "¿Cambio de planes? Cancela desde tu cuenta con más de 24 horas de antelación y recuperas el crédito al momento. Dentro de las 24 horas solo se devuelve si alguien de la lista de espera ocupa tu lugar."}
-          </p>
+          <div style={{ fontSize: "13px", lineHeight: "1.6", color: "rgba(57,41,42,0.78)" }}>
+            {lang === "en" ? (
+              <>
+                &bull; Three days before &mdash; a WhatsApp message confirming whether you have a place.<br />
+                &bull; The day before &mdash; we send you the exact meeting point on WhatsApp.
+              </>
+            ) : (
+              <>
+                &bull; Tres d&iacute;as antes &mdash; un mensaje de WhatsApp confirmando tu plaza.<br />
+                &bull; El d&iacute;a anterior &mdash; te enviamos el punto de encuentro exacto por WhatsApp.
+              </>
+            )}
+          </div>
         </div>
+
+        <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.58)", margin: "0 0 20px", fontStyle: "italic" }}>
+          {lang === "en"
+            ? "Change of plans? Cancel more than 24 hours ahead and the credits come straight back."
+            : "¿Cambio de planes? Cancela con más de 24 horas de antelación y los créditos se devuelven al momento."}
+        </p>
 
         <button
           type="button"
           onClick={onClose}
           style={{
             border: "1px solid #7b1f2c",
-            backgroundColor: "transparent",
-            color: "#7b1f2c",
-            padding: "9px 30px",
+            backgroundColor: "#7b1f2c",
+            color: "#fdfaf5",
+            padding: "10px 28px",
             borderRadius: "4px",
             fontFamily: "var(--font-heading)",
             fontWeight: 600,
@@ -1348,6 +1508,11 @@ function EventCard({
             {isCancelled && (
               <span style={{ fontSize: "11px", letterSpacing: "0.06em", textTransform: "uppercase", color: "#993842", border: "1px solid rgba(153,56,66,0.45)", background: "rgba(153,56,66,0.07)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
                 {lang === "en" ? "Cancelled" : "Cancelado"}
+              </span>
+            )}
+            {ev.userStatus?.isBooked && !isCancelled && !isPast && !isPending && (
+              <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#456f04", background: "rgba(86,139,5,0.1)", border: "1px solid rgba(86,139,5,0.45)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
+                {lang === "en" ? "You are going" : "Asistirás"}
               </span>
             )}
             <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap", background: "rgba(255,255,255,0.6)" }}>
@@ -1499,8 +1664,12 @@ function EventCard({
 
             <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
               {lang === "en"
-                ? `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang)}. Credits are only taken if it goes ahead.`
-                : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}. Los créditos solo se cobran si se confirma.`}
+                ? (ev.userStatus?.isBooked
+                    ? `Your ${ev.creditCost} credits are held, not spent. Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang)}.`
+                    : `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang)}. Credits are only taken if it goes ahead.`)
+                : (ev.userStatus?.isBooked
+                    ? `Tus ${ev.creditCost} créditos están retenidos, no gastados. Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}.`
+                    : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}. Los créditos solo se cobran si se confirma.`)}
             </div>
           </div>
         ) : null}
@@ -1662,9 +1831,11 @@ function EventCard({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {ev.isFreeWalk || ev.creditCost === 0 || !ev.capacityTotal
-                      ? (lang === "en" ? "You're on the list" : "Estás en la lista")
-                      : (lang === "en" ? "Booked" : "Reservada")}
+                    {isPending
+                      ? (lang === "en" ? "Place reserved" : "Plaza reservada")
+                      : (ev.isFreeWalk || ev.creditCost === 0 || !ev.capacityTotal
+                          ? (lang === "en" ? "You're on the list" : "Estás en la lista")
+                          : (lang === "en" ? "Booked" : "Reservada"))}
                   </button>
                 </div>
               ) : ev.userStatus?.isWaitlisted ? (
@@ -1808,9 +1979,11 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [freeRsvpEvent, setFreeRsvpEvent] = useState<PublicEvent | null>(null);
   const [ceilingEvent, setCeilingEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
 
   const handleMemberBook = async (ev: PublicEvent) => {
     setBookingLoadingId(ev.id);
+    setBookingError(null);
     try {
       const res = await bookEvent(ev.id);
       if (res.success) {
@@ -1845,12 +2018,12 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         if (res.error === "INSUFFICIENT_CREDITS") {
           setTopUpEvent(ev);
         } else {
-          alert(res.error || (lang === "en" ? "Could not complete booking." : "No se pudo completar la reserva."));
+          setBookingError(res.error || (lang === "en" ? "Could not complete booking." : "No se pudo completar la reserva."));
         }
       }
     } catch (err: any) {
       console.error("Booking error:", err);
-      alert(err?.message || (lang === "en" ? "Booking failed." : "Error al reservar."));
+      setBookingError(err?.message || (lang === "en" ? "Booking failed." : "Error al reservar."));
     } finally {
       setBookingLoadingId(null);
     }
@@ -2306,6 +2479,68 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           creditBalance={currentCreditBalance}
           onClose={() => setTopUpEvent(null)}
         />
+      )}
+
+      {bookingError && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            backgroundColor: "rgba(57, 41, 42, 0.45)",
+            backdropFilter: "blur(3px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              maxWidth: "440px",
+              margin: "auto",
+              border: "1px solid rgba(153, 56, 66, 0.3)",
+              borderRadius: "8px",
+              padding: "32px 28px",
+              backgroundColor: "#FEFDF9",
+              boxShadow: "0 20px 50px rgba(45,43,43,0.16)",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ color: "#993842", marginBottom: "14px" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="32" height="32" style={{ margin: "0 auto", display: "block" }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 10px", color: "#39292a" }}>
+              {lang === "en" ? "Booking Notice" : "Aviso de reserva"}
+            </h3>
+            <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.76)", margin: "0 0 22px" }}>
+              {bookingError}
+            </p>
+            <button
+              type="button"
+              onClick={() => setBookingError(null)}
+              style={{
+                border: "1px solid #7b1f2c",
+                backgroundColor: "#7b1f2c",
+                color: "#fdfaf5",
+                padding: "10px 28px",
+                borderRadius: "4px",
+                fontFamily: "var(--font-heading)",
+                fontWeight: 600,
+                fontSize: "14.5px",
+                cursor: "pointer",
+              }}
+            >
+              {lang === "en" ? "Understood" : "Entendido"}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
