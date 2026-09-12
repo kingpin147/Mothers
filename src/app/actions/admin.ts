@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { application, person, member, window, adminUser, auditLog, creditEntry } from "@/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { application, person, member, window, adminUser, auditLog, creditEntry, eventPass } from "@/db/schema";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { queueAndSendEmail } from "@/lib/brevo";
 import crypto from "crypto";
@@ -138,6 +138,69 @@ export async function acceptApplication(applicationId: string) {
     after: { status: "accepted", acceptExpiresAt: expiresAt.toISOString() },
   });
 
+  // Check joining fee waiver
+  const [totalAcceptedCount, recentPass] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(member).where(sql`status IN ('active', 'accepted_awaiting_payment')`),
+    db.query.eventPass.findFirst({
+      where: and(
+        eq(eventPass.personId, personRecord.id),
+        sql`purchased_at >= NOW() - INTERVAL '30 days'`
+      ),
+    }),
+  ]);
+
+  const isFirst50 = Number(totalAcceptedCount[0]?.count || 0) <= 50;
+  const hasRecentPass = !!recentPass;
+
+  let paymentBreakdownHtml = "";
+  if (isFirst50) {
+    paymentBreakdownHtml = `
+<tr>
+<td style="padding:6px 0;">Joining fee — one time</td>
+<td align="right" style="padding:6px 0;color:#568b05;">Waived (€0)</td>
+</tr>
+<tr>
+<td style="padding:6px 0;border-top:1px solid #ddd4c6;">First month</td>
+<td align="right" style="padding:6px 0;border-top:1px solid #ddd4c6;">€39</td>
+</tr>
+<tr>
+<td style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;font-weight:bold;">Total today</td>
+<td align="right" style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;color:#7b1f2c;font-weight:bold;">€39</td>
+</tr>`;
+  } else if (hasRecentPass) {
+    paymentBreakdownHtml = `
+<tr>
+<td style="padding:6px 0;">Joining fee — one time</td>
+<td align="right" style="padding:6px 0;">€19</td>
+</tr>
+<tr>
+<td style="padding:6px 0;border-top:1px solid #ddd4c6;">First month</td>
+<td align="right" style="padding:6px 0;border-top:1px solid #ddd4c6;">€39</td>
+</tr>
+<tr>
+<td style="padding:6px 0;border-top:1px solid #ddd4c6;">Event Pass credit (last 30 days)</td>
+<td align="right" style="padding:6px 0;border-top:1px solid #ddd4c6;color:#568b05;">−€19</td>
+</tr>
+<tr>
+<td style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;font-weight:bold;">Total today</td>
+<td align="right" style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;color:#7b1f2c;font-weight:bold;">€39</td>
+</tr>`;
+  } else {
+    paymentBreakdownHtml = `
+<tr>
+<td style="padding:6px 0;">Joining fee — one time</td>
+<td align="right" style="padding:6px 0;">€19</td>
+</tr>
+<tr>
+<td style="padding:6px 0;border-top:1px solid #ddd4c6;">First month</td>
+<td align="right" style="padding:6px 0;border-top:1px solid #ddd4c6;">€39</td>
+</tr>
+<tr>
+<td style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;font-weight:bold;">Total today</td>
+<td align="right" style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;color:#7b1f2c;font-weight:bold;">€58</td>
+</tr>`;
+  }
+
   // Send Email - Accepted.html
   const activationUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/membership/activate/${paymentLinkToken}`;
   const subject =
@@ -217,22 +280,7 @@ export async function acceptApplication(applicationId: string) {
 <tr>
 <td style="padding:0 24px 6px;">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
-<tr>
-<td style="padding:6px 0;">Joining fee — one time <span style="color:#8a807a;">[omit this row for our first fifty members]</span></td>
-<td align="right" style="padding:6px 0;">€19</td>
-</tr>
-<tr>
-<td style="padding:6px 0;border-top:1px solid #ddd4c6;">First month</td>
-<td align="right" style="padding:6px 0;border-top:1px solid #ddd4c6;">€39</td>
-</tr>
-<tr>
-<td style="padding:6px 0;border-top:1px solid #ddd4c6;">[If she came on an Event Pass: Joining fee waived]</td>
-<td align="right" style="padding:6px 0;border-top:1px solid #ddd4c6;color:#7b1f2c;">[−€19]</td>
-</tr>
-<tr>
-<td style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;">Total today</td>
-<td align="right" style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;color:#7b1f2c;">[€39 / €58]</td>
-</tr>
+${paymentBreakdownHtml}
 </table>
 </td>
 </tr>

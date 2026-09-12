@@ -161,11 +161,13 @@ export default function GuestTicketPage() {
         setReleased(true);
         setAskingRelease(false);
       } else {
-        alert(res.error || "Failed to release place.");
+        setErrorMsg(res.error || (lang === "es" ? "No se pudo liberar la plaza." : "Failed to release place."));
+        setAskingRelease(false);
       }
     } catch (error) {
       setReleasing(false);
-      alert("An error occurred while releasing your place.");
+      setErrorMsg(lang === "es" ? "Ocurrió un error al liberar tu plaza." : "An error occurred while releasing your place.");
+      setAskingRelease(false);
     }
   };
 

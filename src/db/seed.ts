@@ -1,4 +1,4 @@
-﻿import postgres from "postgres";
+import postgres from "postgres";
 import * as dotenv from "dotenv";
 import crypto from "crypto";
 
@@ -186,7 +186,7 @@ export const EVENTS = [
     title: "Play date — Postnatal yoga",
     categoryId: "cat-baby",
     description: "Gentle postnatal yoga with your baby beside you, led by a certified instructor.",
-    meetingPoint: "Carrer de Verdi 42, 2Âº — buzzer “Loto”",
+    meetingPoint: "Carrer de Verdi 42, 2º — buzzer “Loto”",
     neighbourhood: "Gràcia",
     venueName: "Loto Barcelona Yoga",
     partnerId: "loto-barcelona-yoga",
@@ -261,7 +261,7 @@ export const EVENTS = [
     title: "Learn & Grow — Sleep Q&A with an expert",
     categoryId: "cat-learn",
     description: "A pediatric sleep consultant answers your toughest nighttime questions.",
-    meetingPoint: "Carrer de Pau Claris 138, 1Âº-2Âª — Dorm Bé studio",
+    meetingPoint: "Carrer de Pau Claris 138, 1º-2ª — Dorm Bé studio",
     neighbourhood: "Eixample",
     venueName: "Dorm Bé studio",
     partnerId: "dorm-be-sleep-consultants",
@@ -462,7 +462,7 @@ export const EVENTS = [
     title: "MoM's date — Tasting menu, private room",
     categoryId: "cat-evenings",
     description: "Six courses at one long table, a room of our own, and a night that ends when we say it does.",
-    meetingPoint: "Passeig de Gràcia 78, 1Âº — the private dining room",
+    meetingPoint: "Passeig de Gràcia 78, 1º — the private dining room",
     neighbourhood: "Eixample",
     venueName: "Sala Gràcia",
     partnerId: "sala-gracia",
@@ -534,7 +534,7 @@ export const EVENTS = [
 ];
 
 async function seed() {
-  console.log("ðŸŒ± Seeding 17 reference events, categories, and partners...");
+  console.log("🌱 Seeding 17 reference events, categories, and partners...");
 
   try {
     // 1. Seed categories

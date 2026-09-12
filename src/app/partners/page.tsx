@@ -71,12 +71,15 @@ export default function PartnersPage() {
     return formName.trim().length > 0 && formBusiness.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail);
   };
 
+  const [formError, setFormError] = useState<string | null>(null);
+
   const submitForm = async () => {
     if (!isFormValid()) {
       setFormTouched(true);
       return;
     }
     setSubmitting(true);
+    setFormError(null);
     const res = await submitPartnerApplication({
       name: formName,
       business: formBusiness,
@@ -89,7 +92,7 @@ export default function PartnersPage() {
     if (res.success) {
       setSubmitted(true);
     } else {
-      alert("Something went wrong. Please try again.");
+      setFormError(res.error || (lang === "es" ? "Algo falló. Por favor inténtalo de nuevo." : "Something went wrong. Please try again."));
     }
   };
 
@@ -283,6 +286,11 @@ export default function PartnersPage() {
 
         {!submitted ? (
           <div style={{ border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", padding: "clamp(28px, 5vw, 40px)", backgroundColor: "#f8efe2", display: "flex", flexDirection: "column", gap: "16px" }}>
+            {formError && (
+              <div style={{ backgroundColor: "rgba(153,56,66,0.08)", border: "1px solid rgba(153,56,66,0.3)", color: "#993842", padding: "10px 14px", borderRadius: "4px", fontSize: "14px" }}>
+                {formError}
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
