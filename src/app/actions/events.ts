@@ -5,7 +5,7 @@ import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner
 import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
-// ─── 1. GET PUBLIC EVENTS & DYNAMIC CATEGORIES ─────────────────────────────
+// â”€â”€â”€ 1. GET PUBLIC EVENTS & DYNAMIC CATEGORIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getPublicEvents() {
   try {
@@ -145,7 +145,10 @@ export async function getPublicEvents() {
       }) : "";
 
       const placesTaken = countMap.get(ev.id) || 0;
-      const capacityTotal = ev.capacityMember && ev.capacityMember > 0 ? ev.capacityMember : null;
+      const memberCap = ev.capacityMember || 0;
+      const guestCap = ev.capacityGuest || 0;
+      const capSum = memberCap + guestCap;
+      const capacityTotal = capSum > 0 ? capSum : null;
       const capacityRemaining = capacityTotal !== null ? Math.max(0, capacityTotal - placesTaken) : null;
       const isFull = capacityTotal !== null && capacityTotal > 0 && capacityRemaining !== null && capacityRemaining <= 0;
 
@@ -179,7 +182,7 @@ export async function getPublicEvents() {
         category: ev.categoryName || "Easy connection",
         stage: ev.stage || "All Stages",
         dateStr,
-        timeStr: ends ? `${startTimeStr} – ${endTimeStr}` : startTimeStr,
+        timeStr: ends ? `${startTimeStr} â€“ ${endTimeStr}` : startTimeStr,
         placesTaken,
         bookedMember: placesTaken,
         capacityTotal,
@@ -208,7 +211,7 @@ export async function getPublicEvents() {
   }
 }
 
-// ─── 2. CATEGORY MANAGEMENT ACTIONS ─────────────────────────────────────────
+// â”€â”€â”€ 2. CATEGORY MANAGEMENT ACTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getEventCategories() {
   const categories = await db
@@ -267,12 +270,17 @@ export async function deleteEvent(eventId: string) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
 
+  // Delete related non-financial records
+  await db.delete(eventWaitlist).where(eq(eventWaitlist.eventId, eventId));
+  await db.delete(eventHistory).where(eq(eventHistory.eventId, eventId));
+  
+  // Note: guestRsvp and eventStage have ON DELETE CASCADE in the schema.
   await db.delete(event).where(eq(event.id, eventId));
 
   return { success: true };
 }
 
-// ─── 3. GET SINGLE PUBLIC EVENT BY ID ────────────────────────────────────────
+// â”€â”€â”€ 3. GET SINGLE PUBLIC EVENT BY ID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getPublicEventById(id: string) {
   try {
@@ -317,7 +325,7 @@ export async function getPublicEventById(id: string) {
     const dateStr = starts.toLocaleDateString("en-GB", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
-    const timeStr = `${starts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} – ${ends.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+    const timeStr = `${starts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} â€“ ${ends.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
 
     // Count active bookings for this event
     const [memberCount, guestCount] = await Promise.all([
@@ -331,7 +339,7 @@ export async function getPublicEventById(id: string) {
     const bookedGuest = Number(guestCount[0]?.count || 0);
     const spotsRemaining = ev.capacityMember > 0 ? Math.max(0, ev.capacityMember - bookedMember) : null;
 
-    // Guest pass eligibility: confirmed, non-signature, ≤18 credits, inside guest window (custom or static T-14 to T-2)
+    // Guest pass eligibility: confirmed, non-signature, â‰¤18 credits, inside guest window (custom or static T-14 to T-2)
     const now = new Date();
     let guestPassEligible =
       ev.status === "confirmed" &&

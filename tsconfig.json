@@ -23,5 +23,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "FINAL VERSION _ Next JS _ Themothers.cc (3)"]
+  "exclude": ["node_modules", "scratch", "scripts", "FINAL VERSION (PHASE 1) _ Next JS _ Themothers.cc (3)", "fix-db.ts", "fix-enum.ts"]
 }

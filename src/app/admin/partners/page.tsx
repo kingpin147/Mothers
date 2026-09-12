@@ -158,7 +158,11 @@ export default function AdminPartnersPage() {
   const q = query.trim().toLowerCase();
   let list = partners.filter((p) => {
     const pStatus = p.status || "Live";
-    const pUmbrella = p.umbrella || "Expert Care & Support";
+    
+    let pUmbrella = p.umbrella || "Wellness & Movement";
+    if (pUmbrella === "Childcare & Family") pUmbrella = "Baby & Child Activities";
+    else if (pUmbrella === "Food & Hospitality") pUmbrella = "Places & Hospitality";
+
     const matchUmbrella = umbrellaFilter === "all" || pUmbrella === umbrellaFilter;
     const matchStatus = statusFilter === "all" || pStatus === statusFilter;
     const matchQ =
@@ -252,8 +256,9 @@ export default function AdminPartnersPage() {
                 <select value={draft.umbrella} onChange={(e) => setDraft({ ...draft, umbrella: e.target.value })} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", background: "#fff" }}>
                   <option value="Wellness & Movement">Wellness & Movement</option>
                   <option value="Expert Care & Support">Expert Care & Support</option>
-                  <option value="Childcare & Family">Childcare & Family</option>
-                  <option value="Food & Hospitality">Food & Hospitality</option>
+                  <option value="Baby & Child Activities">Baby & Child Activities</option>
+                  <option value="Places & Hospitality">Places & Hospitality</option>
+                  <option value="Brands & Retail">Brands & Retail</option>
                 </select>
               </div>
               <div>
@@ -299,8 +304,9 @@ export default function AdminPartnersPage() {
             <option value="all">Every umbrella</option>
             <option value="Wellness & Movement">Wellness & Movement</option>
             <option value="Expert Care & Support">Expert Care & Support</option>
-            <option value="Childcare & Family">Childcare & Family</option>
-            <option value="Food & Hospitality">Food & Hospitality</option>
+            <option value="Baby & Child Activities">Baby & Child Activities</option>
+            <option value="Places & Hospitality">Places & Hospitality</option>
+            <option value="Brands & Retail">Brands & Retail</option>
           </select>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
             <option value="all">Any status</option>
@@ -346,7 +352,12 @@ export default function AdminPartnersPage() {
                   </div>
 
                   <div>
-                    <div style={{ fontSize: "13.5px", lineHeight: 1.5 }}>{p.umbrella || "Expert Care & Support"}</div>
+                    {(() => {
+                      let pu = p.umbrella || "Wellness & Movement";
+                      if (pu === "Childcare & Family") pu = "Baby & Child Activities";
+                      else if (pu === "Food & Hospitality") pu = "Places & Hospitality";
+                      return <div style={{ fontSize: "13.5px", lineHeight: 1.5 }}>{pu}</div>;
+                    })()}
                     {p.exclusive && (
                       <span style={{ display: "inline-block", border: "1px solid rgba(182,130,53,0.6)", color: "#8a6220", borderRadius: "3px", padding: "3px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", marginTop: "6px" }}>
                         Exclusive to us
@@ -432,6 +443,17 @@ export default function AdminPartnersPage() {
                       <button
                         type="button"
                         onClick={() => {
+                          setEditPartnerFullDraft({ name: p.name, specialty: p.specialty || "", umbrella: p.umbrella || "Wellness & Movement", exclusive: !!p.exclusive });
+                          setEditingPartnerFullId(p.id);
+                        }}
+                        style={{ border: "none", background: "transparent", color: "#7b1f2c", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+                      >
+                        Edit partner
+                      </button>
+                      <span style={{ color: "rgba(57,41,42,0.3)" }}>•</span>
+                      <button
+                        type="button"
+                        onClick={() => {
                           if (isEdit) {
                             setEditingId(null);
                           } else {
@@ -498,7 +520,7 @@ export default function AdminPartnersPage() {
               <div>Only a live agreement shows on the member&apos;s Perks tab. Draft, paused and ended are invisible to her.</div>
               <div>Ending an agreement leaves claimed offers honoured, and says so in the member&apos;s own record.</div>
               <div>An agreement within thirty days of its end date appears under Money needing attention on the dashboard.</div>
-              <div>Umbrellas are the four we use: Wellness &amp; Movement, Expert Care &amp; Support, Childcare &amp; Family, Food &amp; Hospitality.</div>
+              <div>Umbrellas are the five we use: Wellness &amp; Movement, Expert Care &amp; Support, Baby &amp; Child Activities, Places &amp; Hospitality, Brands &amp; Retail.</div>
             </div>
           </div>
         </div>

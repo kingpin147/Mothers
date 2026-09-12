@@ -456,24 +456,26 @@ export default function AccountPage() {
                   {accountData.bookings.map((b: any) => {
                     const isPending = b.eventStatus === "published_pending" || b.eventStatus === "pending" || b.status === "held";
                     const categoryLabel = b.categoryName || (b.isSignature ? "Signature moments" : "Easy connection");
-                    const dateFormatted = new Date(b.eventDate).toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short", day: "numeric", year: "numeric" });
-                    const timeFormatted = new Date(b.eventDate).toLocaleTimeString(lang === "en" ? "en-GB" : "es-ES", { hour: "2-digit", minute: "2-digit" });
+                    const safeDate = b.eventDate ? new Date(b.eventDate) : null;
+                    const isValidDate = safeDate && !isNaN(safeDate.getTime());
+                    const dateFormatted = isValidDate ? safeDate.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short", day: "numeric", year: "numeric" }) : "";
+                    const timeFormatted = isValidDate ? safeDate.toLocaleTimeString(lang === "en" ? "en-GB" : "es-ES", { hour: "2-digit", minute: "2-digit" }) : "";
                     const locationText = b.meetingPoint || (b.venueName ? `${b.venueName} — ${b.eventLocation}` : b.eventLocation);
 
                     return (
-                      <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "18px" }}>
+                      <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "18px" }}>
                         <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "12px", padding: "2px 9px", display: "inline-block", backgroundColor: "rgba(255,255,255,0.7)" }}>
+                          <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57, 41, 42, 0.7)", border: "1px solid rgba(57, 41, 42, 0.28)", borderRadius: "12px", padding: "2px 9px", display: "inline-block", backgroundColor: "transparent" }}>
                             {categoryLabel}
                           </span>
                           
-                          <div style={{ fontWeight: 600, fontSize: "15.5px", marginTop: "6px", color: "#39292a" }}>
+                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", marginTop: "6px", color: "#39292a" }}>
                             {b.eventTitle}
                           </div>
 
                           {isPending && (
-                            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", backgroundColor: "#fffaf2", border: "1px solid rgba(164,118,31,0.35)", padding: "3px 8px", borderRadius: "4px", fontSize: "11px", color: "#8a6116", fontWeight: 600, marginTop: "6px", flexWrap: "wrap" }}>
-                              <span style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#8a6116", fontWeight: 600, marginTop: "6px", flexWrap: "wrap" }}>
+                              <span style={{ textTransform: "uppercase", letterSpacing: "0.05em", backgroundColor: "#fffaf2", border: "1px solid rgba(164,118,31,0.35)", padding: "3px 8px", borderRadius: "4px" }}>
                                 {lang === "en" ? "AWAITING CONFIRMATION" : "PENDIENTE DE CONFIRMACIÓN"}
                               </span>
                               <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.7)" }}>
@@ -485,11 +487,14 @@ export default function AccountPage() {
                           )}
 
                           <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.7)", marginTop: "6px" }}>
-                            {dateFormatted} • {timeFormatted}
+                            {dateFormatted} - {timeFormatted}
                           </div>
 
-                          <div style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.65)", marginTop: "3px", display: "flex", alignItems: "baseline", gap: "6px" }}>
-                            <span style={{ color: "#568b05", fontSize: "10px" }}>●</span>
+                          <div style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.65)", marginTop: "3px", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#568b05" }}>
+                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                              <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
                             <span>{locationText}</span>
                           </div>
                         </div>
@@ -653,7 +658,8 @@ export default function AccountPage() {
                 </div>
                 <div style={{ fontSize: "14px", color: "rgba(57,41,42,0.7)", fontWeight: 500 }}>
                   {(() => {
-                    const renewalDate = memberData?.currentPeriodEnd ? new Date(memberData.currentPeriodEnd) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+                    const d = memberData?.currentPeriodEnd ? new Date(memberData.currentPeriodEnd) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+                    const renewalDate = isNaN(d.getTime()) ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1) : d;
                     const renewalDateStr = renewalDate.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short", day: "numeric", year: "numeric" });
                     return lang === "en" ? `Credits renew on ${renewalDateStr}` : `Los créditos se renuevan el ${renewalDateStr}`;
                   })()}
@@ -1170,7 +1176,7 @@ export default function AccountPage() {
                   <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a" }}>
                     {(() => {
                       const d = memberData?.currentPeriodEnd ? new Date(memberData.currentPeriodEnd) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
-                      return d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" });
+                      return !isNaN(d.getTime()) ? d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" }) : "";
                     })()}
                   </div>
                   <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)", marginTop: "4px" }}>

@@ -33,8 +33,9 @@ export async function publishAdminEvent(eventId: string) {
     return { success: false, error: "Member capacity cannot be negative." };
   }
 
-  if (ev.capacityMember > 0 && ev.minToConfirm > ev.capacityMember) {
-    return { success: false, error: "Minimum to confirm cannot exceed member capacity." };
+  const totalCap = ev.capacityMember + ev.capacityGuest;
+  if (totalCap > 0 && ev.minToConfirm > totalCap) {
+    return { success: false, error: "Minimum to confirm cannot exceed total capacity (member + guest)." };
   }
 
   // If minToConfirm is 0, skips pending and goes directly to confirmed (§4.3)
@@ -85,6 +86,8 @@ export async function getAdminEvents() {
       bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
       memberBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'member' THEN 1 END)::int`,
       guestBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'guest' THEN 1 END)::int`,
+      totalHistoricalBookings: sql<number>`(SELECT count(*) FROM booking b WHERE b.event_id = event.id)::int`,
+      totalPasses: sql<number>`(SELECT count(*) FROM event_pass ep WHERE ep.event_id = event.id)::int`,
     })
     .from(event)
     .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
@@ -98,6 +101,8 @@ export async function getAdminEvents() {
     bookingsCount: e.bookingsCount,
     memberBookingsCount: e.memberBookingsCount,
     guestBookingsCount: e.guestBookingsCount,
+    totalHistoricalBookings: e.totalHistoricalBookings,
+    totalPasses: e.totalPasses,
   }));
 
   return { success: true, events };
@@ -147,6 +152,11 @@ export async function createAdminEvent(data: {
     if (found) {
       resolvedCategoryId = found.id;
     }
+  }
+
+  const totalCap = data.capacityMember + data.capacityGuest;
+  if (totalCap > 0 && (data.minToConfirm || 0) > totalCap) {
+    return { success: false, error: "Minimum to confirm cannot exceed total capacity (member + guest)." };
   }
 
   const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-${Date.now().toString().slice(-4)}`;
@@ -253,6 +263,15 @@ export async function updateAdminEvent(eventId: string, data: {
 
   const timeChanged = data.startsAt && new Date(data.startsAt).getTime() !== new Date(existing.startsAt).getTime();
   const venueChanged = (data.venueName && data.venueName !== existing.venueName) || (data.meetingPoint && data.meetingPoint !== existing.meetingPoint);
+
+  const newMemberCap = data.capacityMember !== undefined ? data.capacityMember : existing.capacityMember;
+  const newGuestCap = data.capacityGuest !== undefined ? data.capacityGuest : existing.capacityGuest;
+  const newMinConfirm = data.minToConfirm !== undefined ? data.minToConfirm : existing.minToConfirm;
+  
+  const totalCap = newMemberCap + newGuestCap;
+  if (totalCap > 0 && newMinConfirm > totalCap) {
+    return { success: false, error: "Minimum to confirm cannot exceed total capacity (member + guest)." };
+  }
 
   // Resolve categoryId if category name/string is supplied
   let resolvedCategoryId = data.categoryId;

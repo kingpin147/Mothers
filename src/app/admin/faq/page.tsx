@@ -6,20 +6,19 @@ import { getAdminFaqs, saveFaq } from "@/app/actions/adminCms";
 
 const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
 
-const GROUP_ORDER = ['Joining', 'Credits', 'Events', 'Guests & the Event Pass', 'Membership & money', 'General'];
+const GROUP_ORDER = [];
 const POLICY_RE = /€\s?\d|\b\d+\s?(credits?|months?|hours?|days?)\b/i;
 
 export default function AdminFaqPage() {
   const [faqs, setFaqs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [groupFilter, setGroupFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
   const [composing, setComposing] = useState(false);
   const [draftQ, setDraftQ] = useState("");
   const [draftA, setDraftA] = useState("");
-  const [draftGroup, setDraftGroup] = useState("Joining");
+
   const [draftTried, setDraftTried] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
 
@@ -54,7 +53,7 @@ export default function AdminFaqPage() {
   const q = query.trim().toLowerCase();
 
   const matchItem = (f: any) => {
-    const groupMatched = groupFilter === 'all' || f.category === groupFilter;
+    const groupMatched = true;
     let statusMatched = true;
     if (statusFilter === 'published') statusMatched = f.active === true;
     if (statusFilter === 'draft') statusMatched = f.active === false;
@@ -66,13 +65,9 @@ export default function AdminFaqPage() {
 
   const shown = faqs.filter(matchItem);
 
-  // --- Grouped view ---
-  const groups = GROUP_ORDER.map(name => {
-    const items = shown.filter(f => f.category === name);
-    return { name, items, count: items.length };
-  }).filter(g => g.count > 0);
 
-  const noResults = groups.length === 0 && !loading;
+
+  const noResults = shown.length === 0 && !loading;
 
   // --- Handlers ---
   const handleSaveDraft = async () => {
@@ -82,7 +77,7 @@ export default function AdminFaqPage() {
     }
     setSavingDraft(true);
     const res = await saveFaq({
-      category: draftGroup,
+      category: "General",
       questionEn: draftQ.trim(),
       answerEn: draftA.trim(),
       questionEs: '',
@@ -95,7 +90,7 @@ export default function AdminFaqPage() {
       setComposing(false);
       setDraftQ('');
       setDraftA('');
-      setDraftGroup('Joining');
+
       setDraftTried(false);
       fetchFaqs();
     } else {
@@ -138,7 +133,7 @@ export default function AdminFaqPage() {
   };
 
   const handleReorder = async (item: any, direction: number) => {
-    const sameGroup = faqs.filter(f => f.category === item.category);
+    const sameGroup = faqs;
     const idx = sameGroup.findIndex(f => f.id === item.id);
     if (idx < 0) return;
     let swapIdx = idx + direction;
@@ -194,7 +189,7 @@ export default function AdminFaqPage() {
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "6px", background: "#fffdfa", padding: "15px 17px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "24px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: "#39292a" }}>{totalCount}</div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", marginTop: "6px", lineHeight: 1.4 }}>Questions</div>
-            <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "5px" }}>across {GROUP_ORDER.length} groups</div>
+            <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "5px" }}>in a single list</div>
           </div>
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "6px", background: "#fffdfa", padding: "15px 17px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "24px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: GREEN }}>{publishedCount}</div>
@@ -222,16 +217,6 @@ export default function AdminFaqPage() {
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>Question, in English</label>
                 <input type="text" value={draftQ} onChange={(e) => { setDraftQ(e.target.value); setDraftTried(false); }} placeholder="As a member would ask it" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", background: "#fff" }} />
               </div>
-              <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>Group</label>
-                <select value={draftGroup} onChange={(e) => setDraftGroup(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", background: "#fff" }}>
-                  <option value="Joining">Joining</option>
-                  <option value="Credits">Credits</option>
-                  <option value="Events">Events</option>
-                  <option value="Guests & the Event Pass">Guests & the Event Pass</option>
-                  <option value="Membership & money">Membership & money</option>
-                </select>
-              </div>
             </div>
             <div style={{ marginBottom: "12px" }}>
               <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>Answer, in English</label>
@@ -252,14 +237,7 @@ export default function AdminFaqPage() {
         {/* Filters */}
         <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "16px 18px", marginBottom: "16px", display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search a question or its answer" style={{ flex: "1 1 240px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }} />
-          <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
-            <option value="all">Every group</option>
-            <option value="Joining">Joining</option>
-            <option value="Credits">Credits</option>
-            <option value="Events">Events</option>
-            <option value="Guests & the Event Pass">Guests & the Event Pass</option>
-            <option value="Membership & money">Membership & money</option>
-          </select>
+
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
             <option value="all">All questions</option>
             <option value="missing">Missing Spanish</option>
@@ -273,15 +251,14 @@ export default function AdminFaqPage() {
           <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>Loading FAQs...</div>
         ) : (
           <>
-            {/* Grouped Question List */}
-            {groups.map(g => (
-              <div key={g.name} style={{ marginBottom: "18px" }}>
+            {/* Flat Question List */}
+              <div style={{ marginBottom: "18px" }}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", marginBottom: "10px" }}>
-                  <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: 1.2, margin: 0 }}>{g.name}</h2>
-                  <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)" }}>{g.count} {g.count === 1 ? 'question' : 'questions'}</span>
+                  <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: 1.2, margin: 0 }}>All Questions</h2>
+                  <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)" }}>{shown.length} {shown.length === 1 ? 'question' : 'questions'}</span>
                 </div>
                 <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", overflow: "hidden" }}>
-                  {g.items.map((f, idx) => {
+                  {shown.map((f, idx) => {
                     const isOpen = openId === f.id;
                     const hasMissingEs = !f.questionEs || f.questionEs.trim() === '';
                     const hasPolicy = POLICY_RE.test(f.answerEn || '');
@@ -374,7 +351,6 @@ export default function AdminFaqPage() {
                   })}
                 </div>
               </div>
-            ))}
 
             {/* No results */}
             {noResults && (

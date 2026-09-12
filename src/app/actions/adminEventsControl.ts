@@ -164,7 +164,7 @@ export async function adminMarkAttendance(
   status: "attended" | "no_show" | "confirmed" | "released"
 ) {
   const parsed = adminMarkAttendanceSchema.safeParse({ type, id, status });
-  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  if (!parsed.success) { console.error("Parse Error:", parsed.error); return { success: false, error: "INVALID_INPUT" }; }
   ({ type, id, status } = parsed.data);
 
   const { adminId } = await verifyAdmin();
@@ -209,7 +209,7 @@ export async function adminManualBookMember(data: {
   notes?: string;
 }) {
   const parsed = adminManualBookSchema.safeParse(data);
-  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  if (!parsed.success) { console.error("Parse Error:", parsed.error); return { success: false, error: "INVALID_INPUT" }; }
   const validData = parsed.data;
 
   const { adminId } = await verifyAdmin();
@@ -267,7 +267,7 @@ const adminIssueGuestPassSchema = z.object({
   eventId: z.string().min(1),
   firstName: z.string().min(1).trim(),
   lastName: z.string().trim().default(""),
-  email: z.string().email().toLowerCase().trim(),
+  email: z.string().trim().toLowerCase().email(),
 });
 
 // ─── 4. ADMIN ISSUE GUEST PASS DIRECTLY ──────────────────────────────────────
@@ -279,7 +279,7 @@ export async function adminIssueGuestPass(data: {
   email: string;
 }) {
   const parsed = adminIssueGuestPassSchema.safeParse(data);
-  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  if (!parsed.success) { console.error("Parse Error:", parsed.error); return { success: false, error: "INVALID_INPUT" }; }
   const validData = parsed.data;
 
   const { adminId } = await verifyAdmin();
@@ -394,7 +394,7 @@ export async function adjustCreditsAction(data: {
   reason: string;
 }) {
   const parsed = adjustCreditsSchema.safeParse(data);
-  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  if (!parsed.success) { console.error("Parse Error:", parsed.error); return { success: false, error: "INVALID_INPUT" }; }
   const validData = parsed.data;
 
   const { adminId } = await verifyAdmin();
@@ -412,3 +412,42 @@ export async function adjustCreditsAction(data: {
   }
 }
 
+
+export async function adminCancelMemberBooking(bookingId: string) {
+  const { adminId } = await verifyAdmin();
+  if (!bookingId) return { success: false, error: "INVALID_INPUT" };
+
+  try {
+    await db.transaction(async (tx) => {
+      const b = await tx.query.booking.findFirst({
+        where: eq(booking.id, bookingId),
+      });
+      if (!b) throw new Error("Booking not found");
+      if (b.status === "released" || b.status === "cancelled_event") throw new Error("Already cancelled");
+
+      await tx.update(booking).set({ status: "released", releasedAt: new Date() }).where(eq(booking.id, bookingId));
+
+      if (b.memberId && b.creditsCharged > 0) {
+        await tx.insert(creditEntry).values({
+          memberId: b.memberId,
+          amount: b.creditsCharged,
+          type: "return_release",
+          sourceType: "booking",
+          sourceId: b.id,
+          reason: "Admin cancelled booking",
+        });
+      }
+
+      await tx.insert(auditLog).values({
+        actorId: adminId,
+        actorType: "admin",
+        action: "manual_booking_cancelled",
+        entity: "booking",
+        entityId: b.id,
+      });
+    });
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "CANCEL_FAILED" };
+  }
+}

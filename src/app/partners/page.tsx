@@ -106,7 +106,15 @@ export default function PartnersPage() {
   }, []);
 
   const activeObj = UMBRELLAS.find((u) => u.id === activeUmbrella) || UMBRELLAS[0];
-  const visiblePartners = activeUmbrella === "all" ? partners : partners.filter((p) => p.umbrella === activeUmbrella);
+  const visiblePartners = activeUmbrella === "all" ? partners : partners.filter((p) => {
+    const pu = (p.umbrella || "").toLowerCase();
+    if (activeUmbrella === "wellness") return pu.includes("wellness");
+    if (activeUmbrella === "expert") return pu.includes("expert") || pu.includes("care") || pu.includes("support");
+    if (activeUmbrella === "child") return pu.includes("child") || pu.includes("baby");
+    if (activeUmbrella === "places") return pu.includes("place") || pu.includes("food") || pu.includes("hospitality");
+    if (activeUmbrella === "brands") return pu.includes("brand") || pu.includes("retail");
+    return false;
+  });
 
   return (
     <div style={{ backgroundColor: "var(--color-bg)", minHeight: "100vh", padding: "clamp(48px, 6vw, 88px) clamp(24px, 5vw, 64px)" }}>

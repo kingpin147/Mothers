@@ -1,0 +1,87 @@
+# Implementation Plan
+
+This plan addresses:
+1. The FAQ alignment issue from your Notion comments.
+2. The "Archive CTA" bug on the Admin Events page.
+3. The Frontend Event Card capacity calculation issue ("Room for" / "Still free").
+4. Admin Partner Categories & Partner Card Visibility.
+5. Admin Logout Bug.
+
+## Part 1: Fix FAQ Parity
+
+Based on the design specs (`FAQ.dc.html`), the frontend relies on a flat list of 21 questions, while the Admin dashboard was built with legacy "groups" (Joining, Credits, Events, etc.). 
+
+### Proposed Changes
+1. **Remove Groups from Admin FAQ**: Modify `src/app/admin/faq/page.tsx` to completely remove the `GROUP_ORDER` logic and "Every group" dropdown. The UI will render a single, flat list that can be reordered seamlessly.
+2. **Move Hardcoded FAQs to Database**: Modify `src/app/faq/FaqClient.tsx` to remove the hardcoded `FAQ_LIST`. The frontend will rely entirely on the CMS database.
+3. **Database Migration / Seeding**: Create and run a one-time script (`scratch/seed-faqs.ts`) that inserts the 21 approved questions from the design into your database.
+
+## Part 2: Fix the Event Archive CTA
+
+**The underlying cause:** 
+The database correctly blocks deletion if the event has *any* financial history (like a guest pass or a booking), even if those bookings were later cancelled, because we need to preserve the credit ledger. However, the dashboard only looks at *active* bookings when deciding whether to show the Archive button, leading to silent failures. Also, past events unintentionally hid the disabled message.
+
+### Proposed Changes
+1. **Accurate Archive Availability**: Update the database query in `src/app/actions/adminEvents.ts` to count *all* historical bookings and guest passes. The Archive button will only be clickable if the event genuinely has zero financial history.
+2. **Safe Deletion**: Update `deleteEvent` in `src/app/actions/events.ts` to cleanly remove harmless leftover records (like waitlists and RSVPs) before deleting the event.
+3. **Consistent UI**: Update `src/app/admin/events/page.tsx` so that if an event cannot be archived, it *always* shows the "Archive — unavailable, bookings exist" message, even for past events.
+
+## Part 3: Fix Frontend Event Capacity Calculation
+
+**Your Question:** "On the card (FRONT) shall we consider that room for values corresponds to: members + Guest?"
+
+**Answer:** Yes, absolutely. Currently, the frontend is erroneously calculating "Room for" strictly as the "Member places" ceiling, completely ignoring the "Guest places" pool! That's why the numbers look wrong. 
+
+### Proposed Changes
+1. **Fix Frontend Math**: In `src/app/actions/events.ts` (`getPublicEvents`), I will update `capacityTotal` to be `capacityMember + capacityGuest`. This means "Room for" will correctly show the *total* physical room capacity, and "Still free" will correctly be `(Member + Guest Capacity) - (All Bookings)`.
+2. **Add Admin Validation**: I will add a safeguard to `src/app/actions/adminEvents.ts` to block creating an event where the "Minimum to run" is higher than the total capacity (`Member Places` + `Guest Places`), which will prevent the contradictory setup you demonstrated in your screenshot (min 8, but only 4 member places + 2 guest places = 6 total capacity).
+
+### Part 4: Admin Partner Categories & Partner Card Visibility
+- **Update Admin Dropdown**: Modify the partner creation/edit form in `src/app/admin/partners/page.tsx` to use the exact correct category labels: "Wellness & Movement", "Expert Care & Support", "Baby & Child Activities", "Places & Hospitality", and "Brands & Retail".
+- **Fix Public Filter**: In `src/app/partners/page.tsx`, the `visiblePartners` filter currently compares the database's `umbrella` string against the category's `id` (e.g., "wellness"). I will update this to compare against `activeObj.labelEn` and include fallbacks for legacy values (e.g., matching "Baby & Child Activities" and the legacy "Childcare & Family").
+
+### Part 5: Admin Logout Bug & Localhost Redirect
+- **Fix Localhost Redirect Bug**: The issue where logging out redirects you to `localhost` instead of the live site happens because of a security feature in NextAuth. If your Vercel environment variable `NEXTAUTH_URL` is incorrectly set to `http://localhost:3000` (or is missing), NextAuth will refuse to redirect to `mothers-zeta.vercel.app` and will fall back to localhost. **You will need to update `NEXTAUTH_URL` to `https://mothers-zeta.vercel.app` in your Vercel Project Settings.**
+- **Fix Redirect Destination**: In `src/app/admin/page.tsx`, the logout button currently asks to redirect to `/account/login`. I will change this to redirect to the Home page (`/`) as you requested.
+- **Fix Race Condition**: Logging out on the admin dashboard triggers an `unauthenticated` state which causes a `useEffect` to push the user to `/account/login`. I will add a short-circuit state (`isLoggingOut`) so the user smoothly redirects to the Home page without a visual bug.
+
+### Part 6: Admin Event Roster Management
+- **Add Roster Removal Action**: I'll create a `cancelMemberBooking(bookingId: string)` action in `src/app/actions/adminEvents.ts`. This will update the booking status to `cancelled`, automatically refund the credits to the user, and insert an audit log.
+- **Update Roster UI**: In `src/app/admin/events/page.tsx`, I'll add a "Remove" button next to each confirmed member in the Roster modal that triggers this action and refreshes the list.
+- **Fix Manual Booking Bug**: I will fix the bug where manually adding a member or issuing a guest pass returns an `INVALID_INPUT` alert. This involves correcting a validation chain (the Guest Pass schema incorrectly validates the email before trimming spaces) and ensuring the manual member selection accurately binds to the database UUID.
+
+### Part 7: Admin Partner Edits
+- **Editable Partner Modal**: Currently in `src/app/admin/partners/page.tsx`, there's no way to edit a partner's core fields (Name, Specialty, Umbrella) after creation—only their offer can be changed inline. I will build an "Edit Partner" modal that pops up allowing you to change all fields and save them via `savePartner`.
+
+### Part 8: Member Account Page Crash
+- **Fix Client-Side Exception**: I will investigate and resolve the application error that occurs when clicking on "account" as a member. This is likely caused by the page attempting to render missing profile data (e.g., if a member's record hasn't fully propagated, or if an event date is missing). I'll add robust defensive checks so the page loads smoothly in all data states.
+
+### Part 9: Event Category Labels consistency
+- **Standardize Event Labels**: I will update all hardcoded event categories across the admin and public frontend to match the new labels exactly: "Easy connection", "Play date", "MoM's date", "Learn & Grow", and "Signature moments". This includes fixing the dropdown menus in `events/create/page.tsx`, `events/[id]/edit/page.tsx`, and `events/page.tsx` as well as their display references in `account/page.tsx` and `MembershipClient.tsx`.
+
+### Part 10: Account Upcoming Event Box Redesign
+- **Adapt to Original Design**: In `src/app/account/page.tsx`, I will redesign the "Upcoming reservations" cards to match your original UX mockup. This will include the location icon, the properly formatted meeting point text, the date/time, and the "Cancel" CTA button positioned cleanly on the right side.
+
+### Part 11: Remove Emoticon Ticket UI
+- **Revert to Standard Event Card**: I will remove the full-page green "Confirmed Event" ticket design that appears after booking. Instead, when a member books an event, they will simply see the standard event card with a disabled "Booked" button. To view their booking details, they will go to their Account page (as designed in Part 10). I will also remove the emoticons you mentioned.
+
+### Part 12: Theme Loader & Performance
+- **Beautiful Theme Loader**: I will replace the generic loading spinners with a beautiful, theme-consistent loading indicator (using the brand colors like `#7b1f2c`).
+- **Admin Performance**: I will investigate the slow loading times on the Admin page (which likely stem from heavy, unoptimized database queries fetching all events/members simultaneously) and implement optimizations so it doesn't feel like a bug when you click buttons.
+
+### Part 13: Manual Event Confirmation Override
+- **Force Confirm Event**: Currently, an event is only confirmed when `minToConfirm` is reached. I will add a manual override in the Admin panel that allows you to force-confirm an event even if the minimum attendee threshold hasn't been met (useful for special cases at t-7). 
+
+### Part 14: Consistent Status Labels & Open List CTA
+- **"To be confirmed" Label**: I will change the "Pending" status pill on the upcoming events card to say "To be confirmed" to stay consistent with your branding.
+- **Open List CTA**: When a member joins the open list, the CTA will correctly change to "You are on the list" (instead of remaining active or showing generic text).
+
+### Part 15: Phone Validation & Email Reminders
+- **Phone Number Field**: I will update the guest/open list phone number fields to only accept numbers, preventing users from accidentally typing letters.
+- **Email Reminder Text**: Throughout the booking and open list modals, I will update the copy to say "we will send an email confirmation or email reminder" instead of referencing WhatsApp (since WhatsApp is expensive). I will also explore adding the "number of mothers coming" to the success modals if data allows.
+
+## User Review Required
+
+> [!IMPORTANT]
+> - **Event Cancellation Email**: When you manually remove a member from an event roster, should the system automatically send them a cancellation email letting them know their credits were refunded? Or do you prefer to handle that communication personally? Let me know!
+> - **Partner Updates**: For the categories, I will map your existing "Childcare & Family" and "Food & Hospitality" partners to the new public labels. Does that sound correct?

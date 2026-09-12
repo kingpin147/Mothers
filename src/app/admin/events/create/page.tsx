@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,7 @@ export default function AdminCreateEventPage() {
 
   // Form State
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Walks & park socials");
+  const [category, setCategory] = useState("Easy connection");
   const [neighbourhood, setNeighbourhood] = useState("Ciutat Vella");
   const [venueName, setVenueName] = useState("");
   const [meetingPoint, setMeetingPoint] = useState("");
@@ -28,7 +28,7 @@ export default function AdminCreateEventPage() {
   // Toggles & Arrays
   const [langs, setLangs] = useState<string[]>(["English"]);
   const [stages, setStages] = useState<string[]>(["Babies"]);
-  const [headStart, setHeadStart] = useState("No head start — opens to everyone at once");
+  const [headStart, setHeadStart] = useState("No head start â€” opens to everyone at once");
   const [membersOnly, setMembersOnly] = useState(false);
   const [freeEvent, setFreeEvent] = useState(false);
   const [passCta, setPassCta] = useState(false);
@@ -66,8 +66,8 @@ export default function AdminCreateEventPage() {
   const passBorder = passDisabled ? 'rgba(57,41,42,0.16)' : 'rgba(86,139,5,0.4)';
   const passBg = passDisabled ? 'rgba(57,41,42,0.04)' : 'rgba(86,139,5,0.05)';
   const passNote = passDisabled
-    ? 'Unavailable — this event is members only. A pass could not complete, so we do not advertise it.'
-    : 'Off by default. When on, a non-member sees a second outlined button beside Reserve, leading straight into pass checkout. The button disappears by itself at T-2 when guest bookings close. Two passes per person, ever — that limit lives in settings, not here.';
+    ? 'Unavailable â€” this event is members only. A pass could not complete, so we do not advertise it.'
+    : 'Off by default. When on, a non-member sees a second outlined button beside Reserve, leading straight into pass checkout. The button disappears by itself at T-2 when guest bookings close. Two passes per person, ever â€” that limit lives in settings, not here.';
   const guestOpacity = membersOnly ? 0.55 : 1;
   const guestIntro = membersOnly
     ? 'This event is members only, so guest places and the pass button are closed.'
@@ -76,7 +76,7 @@ export default function AdminCreateEventPage() {
   const costBg = freeEvent ? 'rgba(57,41,42,0.05)' : '#fff';
   const costHint = freeEvent
     ? 'No credits taken for a free event.'
-    : 'Required, and yours alone to set. Comparable events have cost 16–20 credits — for information, never written into the field.';
+    : 'Required, and yours alone to set. Comparable events have cost 16â€“20 credits â€” for information, never written into the field.';
 
   const validationLine = freeEvent
     ? 'Still needed before publishing: title, venue, meeting point, dates, minimum, description.'
@@ -164,7 +164,7 @@ export default function AdminCreateEventPage() {
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px,3.2vw,33px)", lineHeight: 1.15, margin: "0 0 7px" }}>Put something in the calendar</h1>
             <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: 0, maxWidth: "62ch", textWrap: "pretty" }}>Nothing is published until you say so, and nothing is pre-filled that only you can know.</p>
           </div>
-          <Link href="/admin/events" style={{ border: "1px solid rgba(57,41,42,0.25)", color: "#39292a", borderRadius: "4px", width: "34px", height: "34px", fontSize: "16px", lineHeight: 1, flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>✕</Link>
+          <Link href="/admin/events" style={{ border: "1px solid rgba(57,41,42,0.25)", color: "#39292a", borderRadius: "4px", width: "34px", height: "34px", fontSize: "16px", lineHeight: 1, flex: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>âœ•</Link>
         </div>
 
         <div style={{ padding: "clamp(20px,2.6vw,28px) clamp(22px,3vw,32px)", display: "flex", flexDirection: "column", gap: "26px" }}>
@@ -181,7 +181,7 @@ export default function AdminCreateEventPage() {
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Category <span style={{ color: "#7b1f2c" }}>*</span></label>
                   <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
-                    <option value="Walks & park socials">Walks & park socials</option>
+                    <option value="Easy connection">Easy connection</option>
                     <option value="Play dates">Play dates</option>
                     <option value="MoM's dates">MoM's dates</option>
                     <option value="Learn & grow">Learn & grow</option>
@@ -194,14 +194,14 @@ export default function AdminCreateEventPage() {
                   <select value={neighbourhood} onChange={(e) => setNeighbourhood(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
                     <option>Ciutat Vella</option>
                     <option>Eixample</option>
-                    <option>Sants-Montjuïc</option>
+                    <option>Sants-MontjuÃ¯c</option>
                     <option>Les Corts</option>
-                    <option>Sarrià-Sant Gervasi</option>
-                    <option>Gràcia</option>
-                    <option>Horta-Guinardó</option>
+                    <option>SarriÃ -Sant Gervasi</option>
+                    <option>GrÃ cia</option>
+                    <option>Horta-GuinardÃ³</option>
                     <option>Nou Barris</option>
                     <option>Sant Andreu</option>
-                    <option>Sant Martí</option>
+                    <option>Sant MartÃ­</option>
                     <option>Online</option>
                     <option>Outside Barcelona</option>
                   </select>
@@ -214,7 +214,7 @@ export default function AdminCreateEventPage() {
                 </div>
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Exact meeting point <span style={{ color: "#7b1f2c" }}>*</span></label>
-                  <input type="text" value={meetingPoint} onChange={(e) => setMeetingPoint(e.target.value)} placeholder="e.g. Til·lers gate, by the fountain" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                  <input type="text" value={meetingPoint} onChange={(e) => setMeetingPoint(e.target.value)} placeholder="e.g. TilÂ·lers gate, by the fountain" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
                   <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Sent only to people who have booked.</div>
                 </div>
               </div>
@@ -270,7 +270,7 @@ export default function AdminCreateEventPage() {
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Head start for one group</label>
                 <select value={headStart} onChange={(e) => setHeadStart(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
-                  <option>No head start — opens to everyone at once</option>
+                  <option>No head start â€” opens to everyone at once</option>
                   <option>Babies, two days early</option>
                   <option>Toddlers, two days early</option>
                   <option>Pregnant, three days early</option>
@@ -280,7 +280,7 @@ export default function AdminCreateEventPage() {
               <div style={{ display: "flex", alignItems: "flex-end" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer", paddingBottom: "11px" }}>
                   <input type="checkbox" checked={membersOnly} onChange={onMembersOnly} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
-                  <span>Members only — no guest places at all</span>
+                  <span>Members only â€” no guest places at all</span>
                 </label>
               </div>
             </div>
@@ -298,7 +298,7 @@ export default function AdminCreateEventPage() {
                   type="number"
                   value={noMinimum ? "" : minToConfirm}
                   onChange={(e) => setMinToConfirm(e.target.value)}
-                  placeholder={noMinimum ? "—" : "—"}
+                  placeholder={noMinimum ? "â€”" : "â€”"}
                   disabled={noMinimum}
                   style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: noMinimum ? "rgba(57,41,42,0.04)" : "#fff", opacity: noMinimum ? 0.6 : 1 }}
                 />
@@ -310,17 +310,17 @@ export default function AdminCreateEventPage() {
                   type="number"
                   value={noCeiling ? "" : memberPlaces}
                   onChange={(e) => setMemberPlaces(e.target.value)}
-                  placeholder={noCeiling ? "No ceiling" : "—"}
+                  placeholder={noCeiling ? "No ceiling" : "â€”"}
                   disabled={noCeiling}
                   style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: noCeiling ? "rgba(57,41,42,0.04)" : "#fff", opacity: noCeiling ? 0.6 : 1 }}
                 />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>
-                  {noCeiling ? "Open to all members and their guests — no limit on bookings." : "The ceiling on member bookings. Leave empty or tick below for no ceiling."}
+                  {noCeiling ? "Open to all members and their guests â€” no limit on bookings." : "The ceiling on member bookings. Leave empty or tick below for no ceiling."}
                 </div>
               </div>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Credit cost <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="number" value={creditCost} onChange={(e) => setCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
+                <input type="number" value={creditCost} onChange={(e) => setCreditCost(e.target.value)} placeholder="â€”" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>{costHint}</div>
               </div>
             </div>
@@ -336,7 +336,7 @@ export default function AdminCreateEventPage() {
                   }}
                   style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }}
                 />
-                <span>No ceiling — open to all members and their guests</span>
+                <span>No ceiling â€” open to all members and their guests</span>
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
                 <input
@@ -348,11 +348,11 @@ export default function AdminCreateEventPage() {
                   }}
                   style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }}
                 />
-                <span>No minimum — RSVP list, runs whatever the numbers</span>
+                <span>No minimum â€” RSVP list, runs whatever the numbers</span>
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
                 <input type="checkbox" checked={freeEvent} onChange={(e) => setFreeEvent(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }} />
-                <span>Free event — an RSVP list, no credits taken</span>
+                <span>Free event â€” an RSVP list, no credits taken</span>
               </label>
             </div>
           </div>
@@ -371,14 +371,14 @@ export default function AdminCreateEventPage() {
               </div>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Guest places while to be confirmed</label>
-                <input type="number" value={guestGathering} onChange={(e) => setGuestGathering(e.target.value)} placeholder="Blank — same as above" disabled={membersOnly} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                <input type="number" value={guestGathering} onChange={(e) => setGuestGathering(e.target.value)} placeholder="Blank â€” same as above" disabled={membersOnly} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>A higher cap while the event is short of its minimum. Drops back once confirmed; places already sold are always kept.</div>
               </div>
             </div>
             <div style={{ marginTop: "16px", border: `1px solid ${passBorder}`, borderRadius: "6px", padding: "14px 16px", background: passBg }}>
               <label style={{ display: "flex", alignItems: "flex-start", gap: "11px", fontSize: "14px", lineHeight: 1.55, cursor: passCursor }}>
                 <input type="checkbox" checked={passCta} disabled={passDisabled} onChange={(e) => setPassCta(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", marginTop: "2px" }} />
-                <span><strong style={{ fontWeight: 600 }}>Show the €35 Event Pass button</strong><br /><span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)" }}>{passNote}</span></span>
+                <span><strong style={{ fontWeight: 600 }}>Show the â‚¬35 Event Pass button</strong><br /><span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)" }}>{passNote}</span></span>
               </label>
             </div>
           </div>
@@ -420,7 +420,7 @@ export default function AdminCreateEventPage() {
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>The words members read</div>
             <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Description <span style={{ color: "#7b1f2c" }}>*</span></label>
             <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What happens, who it suits, what to bring. Two or three sentences." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
-            <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Spanish version can be added after publishing — the page falls back to English until it exists.</div>
+            <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Spanish version can be added after publishing â€” the page falls back to English until it exists.</div>
           </div>
 
         </div>
@@ -432,7 +432,7 @@ export default function AdminCreateEventPage() {
               {loadingAction === "draft" ? "Saving..." : "Save as draft"}
             </button>
             <button type="button" onClick={() => handleSave("published_pending")} disabled={!!loadingAction} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
-              {loadingAction === "published_pending" ? "Publishing..." : "Publish to the calendar →"}
+              {loadingAction === "published_pending" ? "Publishing..." : "Publish to the calendar â†’"}
             </button>
           </div>
         </div>
@@ -446,25 +446,25 @@ export default function AdminCreateEventPage() {
           
           <div>
             <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
-              <strong style={{ fontWeight: 600, color: "#39292a" }}>The public calendar</strong> — <span style={{ color: "#7b1f2c" }}>Events</span> shows it under its category, in its month, with its credit cost and the to be confirmed line if it has a minimum.
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The public calendar</strong> â€” <span style={{ color: "#7b1f2c" }}>Events</span> shows it under its category, in its month, with its credit cost and the to be confirmed line if it has a minimum.
             </div>
           </div>
 
           <div>
             <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
-              <strong style={{ fontWeight: 600, color: "#39292a" }}>The admin calendar</strong> — <span style={{ color: "#7b1f2c" }}>Admin Events</span> lists it with live booked-against-minimum counts as members book.
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The admin calendar</strong> â€” <span style={{ color: "#7b1f2c" }}>Admin Events</span> lists it with live booked-against-minimum counts as members book.
             </div>
           </div>
 
           <div>
             <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
-              <strong style={{ fontWeight: 600, color: "#39292a" }}>The dashboard</strong> — it enters the T-10 and T-7 queues on <span style={{ color: "#7b1f2c" }}>the dashboard</span> by date, and This week when it is within seven days.
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The dashboard</strong> â€” it enters the T-10 and T-7 queues on <span style={{ color: "#7b1f2c" }}>the dashboard</span> by date, and This week when it is within seven days.
             </div>
           </div>
 
           <div>
             <div style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", textWrap: "pretty" }}>
-              <strong style={{ fontWeight: 600, color: "#39292a" }}>The audit log</strong> — creating, confirming and cancelling are all written down with what changed.
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>The audit log</strong> â€” creating, confirming and cancelling are all written down with what changed.
             </div>
           </div>
 
