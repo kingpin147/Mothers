@@ -230,7 +230,7 @@ export default function AdminEventsPage() {
 
   const handleOpenCancel = (ev: any) => {
     setCancelEventId(ev.id);
-    setCancelReasonText("Too few of us this time â€” we will run it again soon.");
+    setCancelReasonText("Too few of us this time — we will run it again soon.");
   };
 
   const handleExecuteCancel = async (id: string) => {
@@ -305,16 +305,16 @@ export default function AdminEventsPage() {
       tMarker = "Tomorrow";
       tColor = MUTED;
     } else if (daysUntil <= 2) {
-      tMarker = `T-${daysUntil} Â· guests closed`;
+      tMarker = `T-${daysUntil} · guests closed`;
       tColor = MUTED;
     } else if (daysUntil <= 7) {
-      tMarker = `T-7 Â· ${booked >= min ? "minimum met" : "decide today"}`;
+      tMarker = `T-7 · ${booked >= min ? "minimum met" : "decide today"}`;
       tColor = booked >= min ? GREEN : WINE;
     } else if (daysUntil <= 10) {
-      tMarker = `T-10 Â· ${booked * 2 < min ? "early warning" : "on track"}`;
+      tMarker = `T-10 · ${booked * 2 < min ? "early warning" : "on track"}`;
       tColor = booked * 2 < min ? AMBER : GREEN;
     } else {
-      tMarker = `T-${daysUntil} Â· open`;
+      tMarker = `T-${daysUntil} · open`;
       tColor = MUTED;
     }
 
@@ -323,11 +323,11 @@ export default function AdminEventsPage() {
 
     const passActive = ev.showEventPassCta && !ev.isSignature && daysUntil > 2 && ev.status !== "cancelled" && ev.status !== "completed";
     const passLabel = ev.isSignature
-      ? "No pass â€” members only"
+      ? "No pass — members only"
       : passActive
       ? "Pass button on"
       : daysUntil <= 2 && ev.status === "confirmed"
-      ? "Pass button off â€” guests closed"
+      ? "Pass button off — guests closed"
       : ev.isFreeWalk
       ? "No pass needed"
       : "Pass button off";
@@ -349,13 +349,13 @@ export default function AdminEventsPage() {
 
     let statusNote = "";
     if (ev.status === "draft") {
-      statusNote = "Invisible publicly Â· publishing starts the schedule";
+      statusNote = "Invisible publicly · publishing starts the schedule";
     } else if (ev.status === "cancelled") {
-      statusNote = ev.cancelReason ? `â€œ${ev.cancelReason}â€` : "Cancelled Â· every credit returned";
+      statusNote = ev.cancelReason ? `“${ev.cancelReason}”` : "Cancelled · every credit returned";
     } else if (ev.status === "confirmed") {
-      statusNote = booked >= (ev.capacityMember || 10) ? "Full Â· places taken" : "Confirmed Â· live on the public calendar";
+      statusNote = booked >= (ev.capacityMember || 10) ? "Full · places taken" : "Confirmed · live on the public calendar";
     } else if (isGathering) {
-      statusNote = booked >= min && min > 0 ? "Above minimum Â· confirm to open it up" : daysUntil <= 7 ? "Decision point today Â· escalated on the dashboard" : daysUntil <= 10 && booked * 2 < min ? "Under half Â· push in stage thread" : "Live on the public calendar Â· to be confirmed";
+      statusNote = booked >= min && min > 0 ? "Above minimum · confirm to open it up" : daysUntil <= 7 ? "Decision point today · escalated on the dashboard" : daysUntil <= 10 && booked * 2 < min ? "Under half · push in stage thread" : "Live on the public calendar · to be confirmed";
     } else {
       statusNote = "Roster and attendance recorded";
     }
@@ -428,13 +428,13 @@ export default function AdminEventsPage() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
           <div style={{ flex: "1 1 400px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
-              <Link href="/admin" style={{ color: WINE, textDecoration: "none" }}>â† Dashboard</Link> Â· Events Â· <Link href="/admin/members" style={{ color: WINE, textDecoration: "none" }}>Members</Link>
+              <Link href="/admin" style={{ color: WINE, textDecoration: "none" }}>â† Dashboard</Link> · Events · <Link href="/admin/members" style={{ color: WINE, textDecoration: "none" }}>Members</Link>
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(30px, 4vw, 42px)", lineHeight: 1.1, margin: "0 0 9px" }}>
               The calendar
             </h1>
             <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "70ch" }}>
-              Every event, where it sits in its schedule, and how full it is. Bookings against the minimum is the number that matters â€” everything else is context.
+              Every event, where it sits in its schedule, and how full it is. Bookings against the minimum is the number that matters — everything else is context.
             </p>
           </div>
           
@@ -615,9 +615,9 @@ export default function AdminEventsPage() {
               color: "rgba(57,41,42,0.55)",
             }}>
               <div>Event</div>
-              <div>When Â· schedule</div>
+              <div>When · schedule</div>
               <div>Booked / min</div>
-              <div>Guests Â· pass</div>
+              <div>Guests · pass</div>
               <div>Credits</div>
               <div>Status</div>
               <div>Actions</div>
@@ -663,7 +663,7 @@ export default function AdminEventsPage() {
                         {r.title}
                       </div>
                       <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.68)" }}>
-                        {r.venueName} Â· {r.neighbourhood}
+                        {r.venueName} · {r.neighbourhood}
                       </div>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "7px" }}>
                         <span style={{ border: "1px solid rgba(57,41,42,0.2)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", color: "rgba(57,41,42,0.7)" }}>
@@ -680,7 +680,7 @@ export default function AdminEventsPage() {
                       </div>
                     </div>
 
-                    {/* Column 2: When Â· Schedule */}
+                    {/* Column 2: When · Schedule */}
                     <div>
                       <div style={{ fontSize: "13.5px", lineHeight: 1.5, fontWeight: 600 }}>{dateShort}</div>
                       <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.68)" }}>{timeStr}</div>
@@ -692,17 +692,17 @@ export default function AdminEventsPage() {
                     {/* Column 3: Booked / Min */}
                     <div>
                       <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: r.fillColor }}>
-                        {r.displayState === "draft" ? "â€”" : r.minToConfirm > 0 ? `${r.bookingsCount} / ${r.minToConfirm}` : String(r.bookingsCount)}
+                        {r.displayState === "draft" ? "—" : r.minToConfirm > 0 ? `${r.bookingsCount} / ${r.minToConfirm}` : String(r.bookingsCount)}
                       </div>
                       <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
-                        {r.displayState === "draft" ? "minimum not set" : r.minToConfirm > 0 ? (r.bookingsCount === 0 ? "nothing yet" : `${r.memberBooked} members, ${r.guestBooked} guest`) : "no minimum Â· RSVP list"}
+                        {r.displayState === "draft" ? "minimum not set" : r.minToConfirm > 0 ? (r.bookingsCount === 0 ? "nothing yet" : `${r.memberBooked} members, ${r.guestBooked} guest`) : "no minimum · RSVP list"}
                       </div>
                     </div>
 
-                    {/* Column 4: Guests Â· Pass */}
+                    {/* Column 4: Guests · Pass */}
                     <div>
                       <div style={{ fontSize: "13px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>
-                        {r.isSignature || r.capacityGuest === 0 ? "None â€” members only" : `${r.guestBooked} of ${r.capInForce}`}
+                        {r.isSignature || r.capacityGuest === 0 ? "None — members only" : `${r.guestBooked} of ${r.capInForce}`}
                       </div>
                       <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.65)", marginTop: "3px" }}>
                         {r.isSignature ? "closed to guests" : r.capInForce !== r.capacityGuest ? `to be confirmed cap ${r.capInForce} in force` : "standing cap"}
@@ -878,7 +878,7 @@ export default function AdminEventsPage() {
                         >
                           Roster ({r.bookingsCount})
                         </button>
-                        <span style={{ color: "rgba(57,41,42,0.3)" }}>Â·</span>
+                        <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
                         <Link
                           href={`/admin/events/${r.id}/edit`}
                           style={{
@@ -889,7 +889,7 @@ export default function AdminEventsPage() {
                         >
                           Edit
                         </Link>
-                        <span style={{ color: "rgba(57,41,42,0.3)" }}>Â·</span>
+                        <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
                         <button
                           type="button"
                           onClick={() => setOpenActionMenuId(isMenuOpen ? null : r.id)}
@@ -950,7 +950,7 @@ export default function AdminEventsPage() {
                             if (disableArchive) {
                               return (
                                 <div style={{ padding: "6px 13px", fontSize: "12px", color: "rgba(57,41,42,0.45)" }}>
-                                  Archive â€” unavailable, {hasFinancials ? "financial history exists" : "event is in the past"}
+                                  Archive — unavailable, {hasFinancials ? "financial history exists" : "event is in the past"}
                                 </div>
                               );
                             }
@@ -984,13 +984,13 @@ export default function AdminEventsPage() {
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "9px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
               <div>
-                <strong style={{ fontWeight: 600 }}>Booked / min</strong> â€” members plus guests already booked, against the minimum this event needs to run. Amber under half at T-10, wine at the decision point.
+                <strong style={{ fontWeight: 600 }}>Booked / min</strong> — members plus guests already booked, against the minimum this event needs to run. Amber under half at T-10, wine at the decision point.
               </div>
               <div>
-                <strong style={{ fontWeight: 600 }}>Guests Â· pass</strong> â€” guest places taken against whichever cap is in force: the standing figure, or the higher gathering figure while the event is short. Below it, whether the â‚¬35 Event Pass button is shown.
+                <strong style={{ fontWeight: 600 }}>Guests · pass</strong> — guest places taken against whichever cap is in force: the standing figure, or the higher gathering figure while the event is short. Below it, whether the €35 Event Pass button is shown.
               </div>
               <div>
-                <strong style={{ fontWeight: 600 }}>When Â· schedule</strong> â€” the date, and where the event sits in its own T-schedule. Set per event, not hard-coded.
+                <strong style={{ fontWeight: 600 }}>When · schedule</strong> — the date, and where the event sits in its own T-schedule. Set per event, not hard-coded.
               </div>
             </div>
           </div>
@@ -1004,7 +1004,7 @@ export default function AdminEventsPage() {
                 Credit cost is typed by hand per event. No category price, no inheritance on duplicate, and changing it after anyone has booked asks what happens to the difference.
               </div>
               <div>
-                Cancelled events stay on the calendar with their reason. <strong style={{ fontWeight: 600 }}>There is no delete</strong> â€” archive only, and never once a booking exists.
+                Cancelled events stay on the calendar with their reason. <strong style={{ fontWeight: 600 }}>There is no delete</strong> — archive only, and never once a booking exists.
               </div>
               <div>
                 Two Event Passes per person is global, set in settings. It never appears in the event editor.
@@ -1018,7 +1018,7 @@ export default function AdminEventsPage() {
 
       </div>
 
-      {/* â”€â”€â”€ MODAL: EVENT ATTENDEES & TICKETING ROSTER â”€â”€â”€ */}
+      {/* ─── MODAL: EVENT ATTENDEES & TICKETING ROSTER ─── */}
       {activeEventRoster && (
         <div style={{
           position: "fixed",
@@ -1044,7 +1044,7 @@ export default function AdminEventsPage() {
                   ðŸ“ Meeting Point: <strong>{activeEventRoster.meetingPoint}</strong>
                 </div>
               </div>
-              <button onClick={() => setActiveEventRoster(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#39292a" }}>âœ•</button>
+              <button onClick={() => setActiveEventRoster(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#39292a" }}>✕</button>
             </div>
 
             {rosterLoading ? (
@@ -1101,7 +1101,7 @@ export default function AdminEventsPage() {
                                     onClick={() => handleCancelMemberBooking(b.id)}
                                     style={{ backgroundColor: "#fef2f2", color: "#b91c1c", border: "1px solid #fecdd3", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
                                   >
-                                    âœ• Remove
+                                    ✕ Remove
                                   </button>
                                 )}
                                 <button
@@ -1116,7 +1116,7 @@ export default function AdminEventsPage() {
                                   onClick={() => handleMarkAttendance("member", b.id, "no_show")}
                                   style={{ backgroundColor: "#fef2f2", color: "#b91c1c", border: "1px solid #fecdd3", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
                                 >
-                                  âœ• No-Show
+                                  ✕ No-Show
                                 </button>
                               </div>
                             </td>
@@ -1155,7 +1155,7 @@ export default function AdminEventsPage() {
                               <div style={{ fontWeight: 600 }}>{gp.firstName} {gp.lastName}</div>
                               <div style={{ fontSize: "11.5px", color: MUTED }}>{gp.email}</div>
                             </td>
-                            <td style={{ padding: "10px 12px", fontWeight: 600 }}>â‚¬{(gp.pricePaidCents / 100).toFixed(2)}</td>
+                            <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
                             <td style={{ padding: "10px 12px" }}>
                               <a
                                 href={`/ticket/${gp.ticketToken}`}
@@ -1163,7 +1163,7 @@ export default function AdminEventsPage() {
                                 rel="noreferrer"
                                 style={{ color: WINE, fontSize: "12px", textDecoration: "underline" }}
                               >
-                                Open Guest Ticket â†’
+                                Open Guest Ticket →
                               </a>
                             </td>
                             <td style={{ padding: "10px 12px", textAlign: "right" }}>
@@ -1210,7 +1210,7 @@ export default function AdminEventsPage() {
 
                   {/* Direct Guest Pass Issue */}
                   <div style={{ backgroundColor: "#fbf8f3", padding: "18px", borderRadius: "6px", border: "1px solid rgba(57,41,42,0.15)" }}>
-                    <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Issue â‚¬35 Guest Ticket Pass</h4>
+                    <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Issue €35 Guest Ticket Pass</h4>
                     <p style={{ fontSize: "12px", color: MUTED, margin: "0 0 12px" }}>Generates a unique payment link. The guest is only confirmed once they complete checkout.</p>
                     <form onSubmit={handleIssueGuest} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
@@ -1239,7 +1239,7 @@ export default function AdminEventsPage() {
                         style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
                       />
                       <button type="submit" disabled={issuingPass} style={{ backgroundColor: "#fff", color: WINE, border: `1px solid ${WINE}`, borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-                        {issuingPass ? "Generating..." : "Generate Guest Ticket â†’"}
+                        {issuingPass ? "Generating..." : "Generate Guest Ticket →"}
                       </button>
                     </form>
 

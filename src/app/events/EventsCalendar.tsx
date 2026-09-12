@@ -11,10 +11,10 @@ export type Lang = "en" | "es";
 
 export const getLanguageLabel = (code: string, currentLang: "en" | "es") => {
   const mapping: Record<string, { en: string; es: string }> = {
-    en: { en: "English", es: "InglÃ©s" },
-    es: { en: "Spanish", es: "EspaÃ±ol" },
-    fr: { en: "French", es: "FrancÃ©s" },
-    ca: { en: "Catalan", es: "CatalÃ¡n" },
+    en: { en: "English", es: "Inglés" },
+    es: { en: "Spanish", es: "Español" },
+    fr: { en: "French", es: "Francés" },
+    ca: { en: "Catalan", es: "Catalán" },
   };
   return mapping[code.toLowerCase()] ? mapping[code.toLowerCase()][currentLang] : code;
 };
@@ -78,89 +78,89 @@ interface Props {
   creditBalance?: number;
 }
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Normalise raw DB stage value â†’ canonical display label
+// Normalise raw DB stage value → canonical display label
 function getStageLabel(raw: string | null | undefined, lang: Lang): string {
   if (!raw) return "";
   const s = raw.toLowerCase();
   if (s.includes("pregnant") || s.includes("embaraz")) return lang === "en" ? "Pregnant" : "Embarazada";
-  if (s.includes("postpartum") || s.includes("posparto") || s.includes("0") || s.includes("babies") || s.includes("baby") || s.includes("0â€“12") || s.includes("0-12")) return lang === "en" ? "Babies" : "BebÃ©s";
-  if (s.includes("toddler") || s.includes("peque") || s.includes("1â€“3") || s.includes("1-3") || s.includes("primera infancia")) return lang === "en" ? "Toddlers" : "Peques";
-  if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6â€“10") || s.includes("6-10") || s.includes("6+")) return lang === "en" ? "Big kids" : "NiÃ±os grandes";
-  if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3â€“") || s.includes("3-") || s.includes("4â€“") || s.includes("4-") || s.includes("niÃ±o")) return lang === "en" ? "Children" : "NiÃ±os";
+  if (s.includes("postpartum") || s.includes("posparto") || s.includes("0") || s.includes("babies") || s.includes("baby") || s.includes("0–12") || s.includes("0-12")) return lang === "en" ? "Babies" : "Bebés";
+  if (s.includes("toddler") || s.includes("peque") || s.includes("1–3") || s.includes("1-3") || s.includes("primera infancia")) return lang === "en" ? "Toddlers" : "Peques";
+  if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10") || s.includes("6+")) return lang === "en" ? "Big kids" : "Niños grandes";
+  if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-") || s.includes("niño")) return lang === "en" ? "Children" : "Niños";
   if (s.includes("mom") || s.includes("madre") || s.includes("kid") || s.includes("peque") || s.includes("adult") || s.includes("welcome") || s.includes("bienvenido")) return "";
   return raw; // fallback: show as-is
 }
 
 const EVENT_I18N: Record<string, { esTitle: string; esDesc: string }> = {
   "summer supper in the courtyard": {
-    esTitle: "Momento especial â€” Cena de verano en el patio",
-    esDesc: "Una mesa larga bajo la higuera, un solo menÃº, sin mÃ³viles. Nuestra primera cena del verano.",
+    esTitle: "Momento especial — Cena de verano en el patio",
+    esDesc: "Una mesa larga bajo la higuera, un solo menú, sin móviles. Nuestra primera cena del verano.",
   },
-  "morning walk â€” ciutadella park": {
-    esTitle: "Paseo matutino â€” Parque de la Ciutadella",
-    esDesc: "Un paseo tranquilo con carrito por el parque, seguido de un cafÃ© cerca.",
+  "morning walk — ciutadella park": {
+    esTitle: "Paseo matutino — Parque de la Ciutadella",
+    esDesc: "Un paseo tranquilo con carrito por el parque, seguido de un café cerca.",
   },
-  "park social â€” turÃ³ park lawn": {
-    esTitle: "Encuentro en el parque â€” CÃ©sped del TurÃ³ Park",
-    esDesc: "Mantas en la hierba, algo para compartir y ningÃºn horario â€” ven diez minutos o quÃ©date hasta que se vaya la luz.",
+  "park social — turó park lawn": {
+    esTitle: "Encuentro en el parque — Césped del Turó Park",
+    esDesc: "Mantas en la hierba, algo para compartir y ningún horario — ven diez minutos o quédate hasta que se vaya la luz.",
   },
-  "play date â€” postnatal yoga": {
-    esTitle: "Play date â€” Yoga posparto",
-    esDesc: "Yoga posparto suave con tu bebÃ© a tu lado, guiado por una instructora certificada.",
+  "play date — postnatal yoga": {
+    esTitle: "Play date — Yoga posparto",
+    esDesc: "Yoga posparto suave con tu bebé a tu lado, guiado por una instructora certificada.",
   },
   "dinner at can culleretes": {
-    esTitle: "MoM's date â€” Cena en Can Culleretes",
-    esDesc: "Una cena relajada solo para madres â€” sin obligaciÃ³n de hablar de peques.",
+    esTitle: "MoM's date — Cena en Can Culleretes",
+    esDesc: "Una cena relajada solo para madres — sin obligación de hablar de peques.",
   },
   "vermut on bonavista": {
-    esTitle: "MoM's date â€” Vermut en Bonavista",
-    esDesc: "Una tarde temprana con vermut y aceitunas. Mesa pequeÃ±a, sin agenda, en casa a las diez.",
+    esTitle: "MoM's date — Vermut en Bonavista",
+    esDesc: "Una tarde temprana con vermut y aceitunas. Mesa pequeña, sin agenda, en casa a las diez.",
   },
   "sleep q&a with an expert": {
-    esTitle: "Aprender y crecer â€” Preguntas sobre el sueÃ±o con una experta",
-    esDesc: "Una consultora de sueÃ±o infantil responde tus preguntas mÃ¡s difÃ­ciles sobre las noches.",
+    esTitle: "Aprender y crecer — Preguntas sobre el sueño con una experta",
+    esDesc: "Una consultora de sueño infantil responde tus preguntas más difíciles sobre las noches.",
   },
   "autumn rooftop brunch": {
-    esTitle: "Momento Ãºnico â€” Brunch de otoÃ±o en la azotea",
-    esDesc: "Un brunch de temporada en una azotea con mÃºsica en vivo, para socias y sus peques.",
+    esTitle: "Momento único — Brunch de otoño en la azotea",
+    esDesc: "Un brunch de temporada en una azotea con música en vivo, para socias y sus peques.",
   },
-  "park gÃ¼ell area": {
-    esTitle: "Paseo con carrito â€” Zona del Park GÃ¼ell",
+  "park güell area": {
+    esTitle: "Paseo con carrito — Zona del Park Güell",
     esDesc: "Un paseo tranquilo cerca del parque, con parada para merendar a mitad de camino.",
   },
   "baby massage class": {
-    esTitle: "Play date â€” Clase de masaje infantil",
-    esDesc: "Aprende tÃ©cnicas sencillas de masaje para calmar a tu bebÃ© y fortalecer el vÃ­nculo.",
+    esTitle: "Play date — Clase de masaje infantil",
+    esDesc: "Aprende técnicas sencillas de masaje para calmar a tu bebé y fortalecer el vínculo.",
   },
   "returning to work panel": {
-    esTitle: "Aprender y crecer â€” Panel sobre la vuelta al trabajo",
+    esTitle: "Aprender y crecer — Panel sobre la vuelta al trabajo",
     esDesc: "Un panel de madres trabajadoras comparte consejos honestos sobre la vuelta al trabajo.",
   },
-  "hosted coffee â€” grÃ cia": {
-    esTitle: "CafÃ© con anfitriona â€” GrÃ cia",
-    esDesc: "Una mesa reservada, una anfitriona que presenta a todas y un cafÃ© esperÃ¡ndote. Ocho madres, sin tener que romper el hielo tÃº sola.",
+  "hosted coffee — gràcia": {
+    esTitle: "Café con anfitriona — Gràcia",
+    esDesc: "Una mesa reservada, una anfitriona que presenta a todas y un café esperándote. Ocho madres, sin tener que romper el hielo tú sola.",
   },
-  "hosted brunch â€” eixample": {
-    esTitle: "Brunch con anfitriona â€” Eixample",
-    esDesc: "El mismo formato fÃ¡cil en versiÃ³n brunch: mesa reservada para nosotras, una anfitriona en el centro y una bebida incluida.",
+  "hosted brunch — eixample": {
+    esTitle: "Brunch con anfitriona — Eixample",
+    esDesc: "El mismo formato fácil en versión brunch: mesa reservada para nosotras, una anfitriona en el centro y una bebida incluida.",
   },
   "asking for what you need at home": {
-    esTitle: "Aprender y crecer â€” Pedir lo que necesitas en casa",
-    esDesc: "Dos horas sobre la conversaciÃ³n que nadie ensaya: nombrar lo que necesitas de tu pareja o de tu familia, y pedirlo con claridad.",
+    esTitle: "Aprender y crecer — Pedir lo que necesitas en casa",
+    esDesc: "Dos horas sobre la conversación que nadie ensaya: nombrar lo que necesitas de tu pareja o de tu familia, y pedirlo con claridad.",
   },
   "tasting menu, private room": {
-    esTitle: "MoM's date â€” MenÃº degustaciÃ³n en sala privada",
+    esTitle: "MoM's date — Menú degustación en sala privada",
     esDesc: "Seis pases en una sola mesa larga, una sala para nosotras y una noche que acaba cuando lo decidimos.",
   },
   "one-to-one with a perinatal osteopath": {
-    esTitle: "Signature moment â€” SesiÃ³n 1:1 con osteÃ³pata perinatal",
-    esDesc: "Una hora privada completa con una osteÃ³pata perinatal, en una sala tranquila, para el cuerpo que sostuvo y sigue sosteniendo.",
+    esTitle: "Signature moment — Sesión 1:1 con osteópata perinatal",
+    esDesc: "Una hora privada completa con una osteópata perinatal, en una sala tranquila, para el cuerpo que sostuvo y sigue sosteniendo.",
   },
   "newborn feeding circle": {
-    esTitle: "Play date â€” CÃ­rculo de lactancia",
-    esDesc: "Un pequeÃ±o cÃ­rculo de apoyo para dudas de lactancia en los primeros meses, con una consultora certificada.",
+    esTitle: "Play date — Círculo de lactancia",
+    esDesc: "Un pequeño círculo de apoyo para dudas de lactancia en los primeros meses, con una consultora certificada.",
   },
 };
 
@@ -229,7 +229,7 @@ function getCategoryInfo(ev: PublicEvent, lang: Lang): { key: string; label: str
       label: "Easy connection",
     };
   }
-  if (raw.includes("play") || raw.includes("baby") || raw.includes("bebÃ©") || raw.includes("infan")) {
+  if (raw.includes("play") || raw.includes("baby") || raw.includes("bebé") || raw.includes("infan")) {
     return {
       key: "baby",
       label: "Play date",
@@ -288,7 +288,7 @@ function formatEventDate(startsAt: string | Date, lang: Lang): string {
   const month = d.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short" });
   const day = d.getDate();
   const year = d.getFullYear();
-  return `${month} ${day}, ${year} Â· ${time}`;
+  return `${month} ${day}, ${year} · ${time}`;
 }
 
 const modalInputStyle: React.CSSProperties = {
@@ -305,7 +305,7 @@ const modalInputStyle: React.CSSProperties = {
   outline: "none",
 };
 
-// â”€â”€â”€ FreeWalkRsvpModal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── FreeWalkRsvpModal ────────────────────────────────────────────────────────
 
 function FreeWalkRsvpModal({
   event: ev,
@@ -342,10 +342,10 @@ function FreeWalkRsvpModal({
       if (result.success) {
         setSuccess(true);
       } else {
-        setError(result.error || (lang === "en" ? "Something went wrong." : "Algo fallÃ³."));
+        setError(result.error || (lang === "en" ? "Something went wrong." : "Algo falló."));
       }
     } catch {
-      setError(lang === "en" ? "Something went wrong." : "Algo fallÃ³.");
+      setError(lang === "en" ? "Something went wrong." : "Algo falló.");
     } finally {
       setLoading(false);
     }
@@ -391,12 +391,12 @@ function FreeWalkRsvpModal({
               </svg>
             </div>
             <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "26px", fontWeight: 600, margin: "0 0 12px", color: "#39292a" }}>
-              {lang === "en" ? "You're on the list." : "EstÃ¡s en la lista."}
+              {lang === "en" ? "You're on the list." : "Estás en la lista."}
             </h2>
             <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "0 0 24px" }}>
               {lang === "en"
                 ? "We will send an email confirmation and the exact starting point the day before the walk."
-                : "Te enviaremos una confirmaciÃ³n por correo electrÃ³nico y el punto de encuentro exacto el dÃ­a anterior al paseo."}
+                : "Te enviaremos una confirmación por correo electrónico y el punto de encuentro exacto el día anterior al paseo."}
             </p>
             <button
               type="button"
@@ -413,7 +413,7 @@ function FreeWalkRsvpModal({
         ) : (
           <form onSubmit={handleSubmit}>
             <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "10px" }}>
-              {lang === "en" ? "FREE WALK â€” OPEN TO EVERYONE" : "PASEO GRATIS â€” ABIERTO A TODAS"}
+              {lang === "en" ? "FREE WALK — OPEN TO EVERYONE" : "PASEO GRATIS — ABIERTO A TODAS"}
             </div>
             <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "26px", lineHeight: 1.2, margin: "0 0 10px", color: "#39292a" }}>
               {getEventDisplayTitle(ev, lang)}
@@ -421,11 +421,11 @@ function FreeWalkRsvpModal({
             <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.68)", margin: "0 0 20px" }}>
               {isUnlimited
                 ? (lang === "en"
-                    ? "There is no limit on places for this one â€” leave your details and you are on the list straight away. We only ask so we know who is coming and where to send the meeting point."
-                    : "No hay lÃ­mite de plazas para este encuentro â€” deja tus datos y estarÃ¡s en la lista directamente. Solo los pedimos para saber quiÃ©n viene y enviarte el punto de encuentro.")
+                    ? "There is no limit on places for this one — leave your details and you are on the list straight away. We only ask so we know who is coming and where to send the meeting point."
+                    : "No hay límite de plazas para este encuentro — deja tus datos y estarás en la lista directamente. Solo los pedimos para saber quién viene y enviarte el punto de encuentro.")
                 : (lang === "en"
                     ? "Walks and park socials are free and open to all, but a slot has to be requested so we know who is coming. Members book first; if slots are left, they go to the open list and we confirm three days before."
-                    : "Los paseos y encuentros en el parque son gratis y abiertos a todas, pero solicitamos pedir plaza para saber quiÃ©n viene. Las socias reservan primero; si quedan plazas, pasan a la lista abierta y confirmamos tres dÃ­as antes.")}
+                    : "Los paseos y encuentros en el parque son gratis y abiertos a todas, pero solicitamos pedir plaza para saber quién viene. Las socias reservan primero; si quedan plazas, pasan a la lista abierta y confirmamos tres días antes.")}
             </p>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
@@ -458,7 +458,7 @@ function FreeWalkRsvpModal({
                 inputMode="numeric"
                 pattern="[0-9+ ]*"
                 required
-                placeholder={lang === "en" ? "Phone" : "TelÃ©fono"}
+                placeholder={lang === "en" ? "Phone" : "Teléfono"}
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value.replace(/[^\d+ ]/g, ""))}
                 style={{ ...modalInputStyle, gridColumn: "1 / -1" }}
@@ -468,7 +468,7 @@ function FreeWalkRsvpModal({
             <p style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)", margin: "0 0 16px", lineHeight: 1.5 }}>
               {lang === "en"
                 ? "We send an email confirmation and the exact starting point the day before the walk."
-                : "Enviaremos una confirmaciÃ³n por correo electrÃ³nico y el punto de inicio exacto el dÃ­a anterior al paseo."}
+                : "Enviaremos una confirmación por correo electrónico y el punto de inicio exacto el día anterior al paseo."}
             </p>
 
             <label style={{ display: "flex", gap: "10px", alignItems: "flex-start", marginBottom: "18px", cursor: "pointer" }}>
@@ -481,7 +481,7 @@ function FreeWalkRsvpModal({
               <span style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.78)", lineHeight: 1.45 }}>
                 {lang === "en"
                   ? "Email me the dates of upcoming free walks and news from The Mothers"
-                  : "Enviadme las fechas de los prÃ³ximos paseos gratuitos y noticias de The Mothers"}
+                  : "Enviadme las fechas de los próximos paseos gratuitos y noticias de The Mothers"}
               </span>
             </label>
 
@@ -506,14 +506,14 @@ function FreeWalkRsvpModal({
                   fontWeight: 600, fontSize: "15px", cursor: loading ? "wait" : "pointer",
                 }}
               >
-                {loading ? (lang === "en" ? "Joining..." : "UniÃ©ndome...") : (lang === "en" ? "Join the open list" : "Unirme a la lista abierta")}
+                {loading ? (lang === "en" ? "Joining..." : "Uniéndome...") : (lang === "en" ? "Join the open list" : "Unirme a la lista abierta")}
               </button>
             </div>
 
             <p style={{ fontSize: "11.5px", color: "rgba(57,41,42,0.48)", margin: "14px 0 0", textAlign: "left", lineHeight: 1.45 }}>
               {lang === "en"
                 ? "We use your details for this walk and to send you the meeting point, plus the walk dates if you ticked the box. Nothing else."
-                : "Usamos tus datos para este paseo y para enviarte el punto de encuentro, mÃ¡s las fechas si marcaste la casilla. Nada mÃ¡s."}
+                : "Usamos tus datos para este paseo y para enviarte el punto de encuentro, más las fechas si marcaste la casilla. Nada más."}
             </p>
           </form>
         )}
@@ -522,7 +522,7 @@ function FreeWalkRsvpModal({
   );
 }
 
-// â”€â”€â”€ GuestPassModal (Event Pass Step 1) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── GuestPassModal (Event Pass Step 1) ───────────────────────────────────────
 
 function GuestPassModal({
   event: ev,
@@ -556,11 +556,11 @@ function GuestPassModal({
       if (result.success && result.url) {
         window.location.href = result.url;
       } else {
-        setError(result.error || (lang === "en" ? "Something went wrong." : "Algo fallÃ³."));
+        setError(result.error || (lang === "en" ? "Something went wrong." : "Algo falló."));
         setLoading(false);
       }
     } catch {
-      setError(lang === "en" ? "Something went wrong." : "Algo fallÃ³.");
+      setError(lang === "en" ? "Something went wrong." : "Algo falló.");
       setLoading(false);
     }
   }, [ev.id, firstName, lastName, email, isMom, lang]);
@@ -605,7 +605,7 @@ function GuestPassModal({
         <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.68)", margin: "0 0 20px" }}>
           {lang === "en"
             ? "First time joining us? An Event Pass gets you into any event up to 18 credits. Everyone gets two, then it's membership. Signature moments stay with members."
-            : "Primera vez con nosotras? Un Event Pass te da acceso a cualquier evento de hasta 18 crÃ©ditos. Todas tienen dos, luego es membresÃ­a. Los momentos Ãºnicos son exclusivos de socias."}
+            : "Primera vez con nosotras? Un Event Pass te da acceso a cualquier evento de hasta 18 créditos. Todas tienen dos, luego es membresía. Los momentos únicos son exclusivos de socias."}
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -638,7 +638,7 @@ function GuestPassModal({
 
           <div style={{ margin: "16px 0 20px" }}>
             <div style={{ fontSize: "14px", color: "rgba(57,41,42,0.8)", marginBottom: "10px" }}>
-              {lang === "en" ? "Are you a mother?" : "Â¿Eres madre?"}
+              {lang === "en" ? "Are you a mother?" : "¿Eres madre?"}
             </div>
             <div style={{ display: "flex", gap: "24px" }}>
               <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14.5px", color: "#39292a" }}>
@@ -649,7 +649,7 @@ function GuestPassModal({
                   onChange={() => setIsMom("yes")}
                   style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", cursor: "pointer" }}
                 />
-                {lang === "en" ? "Yes" : "SÃ­"}
+                {lang === "en" ? "Yes" : "Sí"}
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14.5px", color: "#39292a" }}>
                 <input
@@ -659,7 +659,7 @@ function GuestPassModal({
                   onChange={() => setIsMom("no")}
                   style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", cursor: "pointer" }}
                 />
-                {lang === "en" ? "No, not yet" : "No, todavÃ­a no"}
+                {lang === "en" ? "No, not yet" : "No, todavía no"}
               </label>
             </div>
           </div>
@@ -668,12 +668,12 @@ function GuestPassModal({
             <div style={{ border: "1px solid rgba(123,31,44,0.3)", borderRadius: "6px", background: "rgba(123,31,44,0.05)", padding: "14px 16px", marginBottom: "18px" }}>
               <p style={{ fontSize: "13.5px", lineHeight: "1.55", color: "#39292a", margin: "0 0 10px" }}>
                 {lang === "en"
-                  ? "The Mothers exists for women who are already mothers or expecting, and every table is built around that. We can't seat you at this one â€” but if you are expecting, choose 'Yes' and apply: pregnancy counts."
-                  : "The Mothers existe para mujeres que ya son madres o estÃ¡n embarazadas. No podemos reservar este evento â€” pero si estÃ¡s esperando un bebÃ©, elige 'SÃ­': el embarazo cuenta."}
+                  ? "The Mothers exists for women who are already mothers or expecting, and every table is built around that. We can't seat you at this one — but if you are expecting, choose 'Yes' and apply: pregnancy counts."
+                  : "The Mothers existe para mujeres que ya son madres o están embarazadas. No podemos reservar este evento — pero si estás esperando un bebé, elige 'Sí': el embarazo cuenta."}
               </p>
               {letterAdded ? (
                 <p style={{ fontSize: "13px", color: "#456f04", margin: 0, fontWeight: 500 }}>
-                  {lang === "en" ? "You're on the Letter. We'll write when there is something worth reading." : "EstÃ¡s en la Carta. Te escribiremos cuando haya algo que merezca la pena leer."}
+                  {lang === "en" ? "You're on the Letter. We'll write when there is something worth reading." : "Estás en la Carta. Te escribiremos cuando haya algo que merezca la pena leer."}
                 </p>
               ) : (
                 <button
@@ -711,7 +711,7 @@ function GuestPassModal({
   );
 }
 
-// â”€â”€â”€ CeilingModal ("This one is beyond the Event Pass") â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CeilingModal ("This one is beyond the Event Pass") ───────────────────────
 
 function CeilingModal({
   event: ev,
@@ -771,11 +771,11 @@ function CeilingModal({
         <p style={{ fontSize: "14px", lineHeight: "1.65", color: "rgba(57,41,42,0.72)", margin: "0 0 26px" }}>
           {ev.isSignature
             ? (lang === "en"
-                ? `Signature moments â€” like "${ev.title}" â€” are the handful of experiences each year kept for members alone: everything else on the calendar opens to guests on an Event Pass.`
-                : `Los "Momentos Ãºnicos" â€” como "${ev.title}" â€” son las experiencias reservadas exclusivamente para socias: todo lo demÃ¡s en el calendario se abre a invitadas con un Event Pass.`)
+                ? `Signature moments — like "${ev.title}" — are the handful of experiences each year kept for members alone: everything else on the calendar opens to guests on an Event Pass.`
+                : `Los "Momentos únicos" — como "${ev.title}" — son las experiencias reservadas exclusivamente para socias: todo lo demás en el calendario se abre a invitadas con un Event Pass.`)
             : (lang === "en"
-                ? `An Event Pass covers experiences up to 18 credits. "${ev.title}" costs ${ev.creditCost} â€” the richer end of the calendar, and one of the reasons members pay monthly rather than by the event. Members book it with credits; guests are welcome at anything up to 18.`
-                : `Un Event Pass cubre experiencias de hasta 18 crÃ©ditos. "${ev.title}" cuesta ${ev.creditCost} crÃ©ditos â€” el extremo mÃ¡s exclusivo del calendario, y una de las razones por las que las socias pagan mensualmente en lugar de por evento. Las socias lo reservan con crÃ©ditos; las invitadas son bienvenidas en cualquier evento de hasta 18 crÃ©ditos.`)}
+                ? `An Event Pass covers experiences up to 18 credits. "${ev.title}" costs ${ev.creditCost} — the richer end of the calendar, and one of the reasons members pay monthly rather than by the event. Members book it with credits; guests are welcome at anything up to 18.`
+                : `Un Event Pass cubre experiencias de hasta 18 créditos. "${ev.title}" cuesta ${ev.creditCost} créditos — el extremo más exclusivo del calendario, y una de las razones por las que las socias pagan mensualmente en lugar de por evento. Las socias lo reservan con créditos; las invitadas son bienvenidas en cualquier evento de hasta 18 créditos.`)}
         </p>
 
         <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
@@ -798,7 +798,7 @@ function CeilingModal({
               fontWeight: 600, fontSize: "15px", textDecoration: "none", display: "inline-block",
             }}
           >
-            {lang === "en" ? "Explore membership" : "Explorar membresÃ­a"}
+            {lang === "en" ? "Explore membership" : "Explorar membresía"}
           </Link>
         </div>
       </div>
@@ -806,7 +806,7 @@ function CeilingModal({
   );
 }
 
-// â”€â”€â”€ TopUpModal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── TopUpModal ───────────────────────────────────────────────────────────────
 
 function TopUpModal({
   event: ev,
@@ -879,12 +879,12 @@ function TopUpModal({
         </button>
 
         <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "10px" }}>
-          {lang === "en" ? "Add Credits & Book" : "AÃ±adir CrÃ©ditos y Reservar"}
+          {lang === "en" ? "Add Credits & Book" : "Añadir Créditos y Reservar"}
         </div>
         <p style={{ fontSize: "15px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", margin: "0 0 22px" }}>
           {lang === "en"
             ? <>This one costs {ev.creditCost} credits and you have {creditBalance}. Add {shortfall} credits for &euro;{shortfall} and we&rsquo;ll book you in straight away.</>
-            : <>Este evento cuesta {ev.creditCost} crÃ©ditos y tienes {creditBalance}. AÃ±ade {shortfall} crÃ©ditos por {shortfall}â‚¬ y reservamos directamente.</>}
+            : <>Este evento cuesta {ev.creditCost} créditos y tienes {creditBalance}. Añade {shortfall} créditos por {shortfall}€ y reservamos directamente.</>}
         </p>
 
         <div
@@ -899,7 +899,7 @@ function TopUpModal({
               {lang === "en" ? "This experience" : "Esta experiencia"}
             </span>
             <span style={{ fontFamily: "var(--font-heading)", fontSize: "15px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
-              {ev.creditCost} {lang === "en" ? "credits" : "crÃ©ditos"}
+              {ev.creditCost} {lang === "en" ? "credits" : "créditos"}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 0", borderTop: "1px solid rgba(57,41,42,0.1)" }}>
@@ -907,12 +907,12 @@ function TopUpModal({
               {lang === "en" ? "Your balance" : "Tu saldo"}
             </span>
             <span style={{ fontFamily: "var(--font-heading)", fontSize: "15px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
-              {creditBalance} {lang === "en" ? (creditBalance === 1 ? "credit" : "credits") : (creditBalance === 1 ? "crÃ©dito" : "crÃ©ditos")}
+              {creditBalance} {lang === "en" ? (creditBalance === 1 ? "credit" : "credits") : (creditBalance === 1 ? "crédito" : "créditos")}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 0", borderTop: "1px solid rgba(57,41,42,0.1)" }}>
             <span style={{ fontSize: "14px", color: "rgba(57,41,42,0.7)" }}>
-              {lang === "en" ? `Add ${shortfall} ${shortfall === 1 ? "credit" : "credits"} â€” â‚¬1 each` : `AÃ±adir ${shortfall} ${shortfall === 1 ? "crÃ©dito" : "crÃ©ditos"} â€” 1â‚¬ cada uno`}
+              {lang === "en" ? `Add ${shortfall} ${shortfall === 1 ? "credit" : "credits"} — €1 each` : `Añadir ${shortfall} ${shortfall === 1 ? "crédito" : "créditos"} — 1€ cada uno`}
             </span>
             <span style={{ fontFamily: "var(--font-heading)", fontSize: "15px", color: "#7b1f2c", fontWeight: 600, fontFeatureSettings: "'tnum'" }}>
               &euro;{shortfall}
@@ -958,14 +958,14 @@ function TopUpModal({
         <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.58)", margin: "18px 0 0" }}>
           {lang === "en"
             ? <>Top-up credits join your balance under the same rules: 6-month expiry, oldest credits used first. {isGathering ? "Balance below cost. On a gathering event the wording changes to &ldquo;held against your place&rdquo;." : ""}</>
-            : <>Los crÃ©ditos recargados se aÃ±aden a tu saldo con las mismas reglas: caducidad a 6 meses, se usan primero los mÃ¡s antiguos. {isGathering ? "Saldo por debajo del coste. En un evento de confirmaciÃ³n pendiente, el saldo se reserva para tu plaza." : ""}</>}
+            : <>Los créditos recargados se añaden a tu saldo con las mismas reglas: caducidad a 6 meses, se usan primero los más antiguos. {isGathering ? "Saldo por debajo del coste. En un evento de confirmación pendiente, el saldo se reserva para tu plaza." : ""}</>}
         </p>
       </div>
     </div>
   );
 }
 
-// â”€â”€â”€ BookingSuccessModal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── BookingSuccessModal ───────────────────────────────────────────────────────
 
 function BookingSuccessModal({
   event: ev,
@@ -1071,7 +1071,7 @@ function BookingSuccessModal({
               color: "#39292a",
             }}
           >
-            {lang === "en" ? "Your place is reserved." : "Tu plaza estÃ¡ reservada."}
+            {lang === "en" ? "Your place is reserved." : "Tu plaza está reservada."}
           </h2>
 
           <p
@@ -1085,11 +1085,11 @@ function BookingSuccessModal({
           >
             {lang === "en" ? (
               <>
-                {moreNeeded > 0 ? `${moreNeeded} more mother${moreNeeded === 1 ? "" : "s"} and` : "Enough mothers have joined so"} &ldquo;{displayTitle}&rdquo; is confirmed. Your {ev.creditCost} credit{ev.creditCost === 1 ? "" : "s"} are held, not spent â€” we confirm by {decideBy}, and if it moves your place moves with it.
+                {moreNeeded > 0 ? `${moreNeeded} more mother${moreNeeded === 1 ? "" : "s"} and` : "Enough mothers have joined so"} &ldquo;{displayTitle}&rdquo; is confirmed. Your {ev.creditCost} credit{ev.creditCost === 1 ? "" : "s"} are held, not spent — we confirm by {decideBy}, and if it moves your place moves with it.
               </>
             ) : (
               <>
-                {moreNeeded > 0 ? `Faltan ${moreNeeded} madre${moreNeeded === 1 ? "" : "s"} para confirmar` : "Ya hay suficientes madres para confirmar"} &ldquo;{displayTitle}&rdquo;. Tus {ev.creditCost} crÃ©dito{ev.creditCost === 1 ? "" : "s"} estÃ¡n retenidos, no gastados â€” confirmamos el {decideBy}, y si cambia de fecha, tu plaza se mantiene.
+                {moreNeeded > 0 ? `Faltan ${moreNeeded} madre${moreNeeded === 1 ? "" : "s"} para confirmar` : "Ya hay suficientes madres para confirmar"} &ldquo;{displayTitle}&rdquo;. Tus {ev.creditCost} crédito{ev.creditCost === 1 ? "" : "s"} están retenidos, no gastados — confirmamos el {decideBy}, y si cambia de fecha, tu plaza se mantiene.
               </>
             )}
           </p>
@@ -1198,7 +1198,7 @@ function BookingSuccessModal({
             color: "#39292a",
           }}
         >
-          {lang === "en" ? "Your place is booked." : "Tu plaza estÃ¡ confirmada."}
+          {lang === "en" ? "Your place is booked." : "Tu plaza está confirmada."}
         </h2>
 
         <p
@@ -1215,7 +1215,7 @@ function BookingSuccessModal({
             </>
           ) : (
             <>
-              Tu plaza en &ldquo;{displayTitle}&rdquo; el {formattedDate} estÃ¡ confirmada{ev.creditCost > 0 ? `, usando ${ev.creditCost} crÃ©dito${ev.creditCost === 1 ? "" : "s"}` : ""}. {ev.creditCost > 0 ? `Te quedan ${remainingCredits} crÃ©dito${remainingCredits === 1 ? "" : "s"} este mes.` : "Sin coste en crÃ©ditos."}
+              Tu plaza en &ldquo;{displayTitle}&rdquo; el {formattedDate} está confirmada{ev.creditCost > 0 ? `, usando ${ev.creditCost} crédito${ev.creditCost === 1 ? "" : "s"}` : ""}. {ev.creditCost > 0 ? `Te quedan ${remainingCredits} crédito${remainingCredits === 1 ? "" : "s"} este mes.` : "Sin coste en créditos."}
             </>
           )}
         </p>
@@ -1243,12 +1243,12 @@ function BookingSuccessModal({
           <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
             {lang === "en"
               ? "You'll receive an email reminder 24 hours before with exact timing and a one-tap map link to the meeting point."
-              : "RecibirÃ¡s un recordatorio por correo electrÃ³nico 24 horas antes con el horario exacto y un enlace directo al mapa del punto de encuentro."}
+              : "Recibirás un recordatorio por correo electrónico 24 horas antes con el horario exacto y un enlace directo al mapa del punto de encuentro."}
           </p>
           <p style={{ fontSize: "12.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0 }}>
             {lang === "en"
               ? "Change of plans? Cancel from your account more than 24 hours ahead and the credit comes straight back. Inside 24 hours they return only if someone on the waitlist takes your place."
-              : "Â¿Cambio de planes? Cancela desde tu cuenta con mÃ¡s de 24 horas de antelaciÃ³n y recuperas el crÃ©dito al momento. Dentro de las 24 horas solo se devuelve si alguien de la lista de espera ocupa tu lugar."}
+              : "¿Cambio de planes? Cancela desde tu cuenta con más de 24 horas de antelación y recuperas el crédito al momento. Dentro de las 24 horas solo se devuelve si alguien de la lista de espera ocupa tu lugar."}
           </p>
         </div>
 
@@ -1321,7 +1321,7 @@ function EventCard({
     } else if (ev.creditCost > 18 || ev.isSignature) {
       onOpenCeiling(ev);
     } else {
-      // Signed-out visitor viewing regular paid event (â‰¤18 credits) â†’ login with callback
+      // Signed-out visitor viewing regular paid event (≤18 credits) → login with callback
       window.location.href = `/account/login?callbackUrl=${encodeURIComponent(`/events/${ev.id}`)}`;
     }
   };
@@ -1358,7 +1358,7 @@ function EventCard({
           <span style={{ fontSize: "11.5px", color: "rgba(57,41,42,0.7)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 500, paddingTop: "3px" }}>
             {ev.creditCost === 0 || ev.isFreeWalk
               ? (lang === "en" ? "Included" : "Incluido")
-              : `${ev.creditCost} ${lang === "en" ? "credits" : "crÃ©ditos"}`}
+              : `${ev.creditCost} ${lang === "en" ? "credits" : "créditos"}`}
           </span>
         </div>
 
@@ -1381,7 +1381,7 @@ function EventCard({
           {ev.isOnline && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.6)", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "10px", padding: "3px 9px", whiteSpace: "nowrap", background: "rgba(255,255,255,0.6)" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="11" height="11"><path d="m22 8-6 4 6 4V8Z" /><rect x="2" y="6" width="14" height="12" rx="2" /></svg>
-              {lang === "en" ? "Online" : "En lÃ­nea"}
+              {lang === "en" ? "Online" : "En línea"}
             </span>
           )}
         </div>
@@ -1425,7 +1425,7 @@ function EventCard({
         {ev.neighbourhood && (
           <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-            {ev.neighbourhood}{ev.venueName ? ` Â· ${ev.venueName}` : ""}
+            {ev.neighbourhood}{ev.venueName ? ` · ${ev.venueName}` : ""}
           </span>
         )}
         <span style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12.5px", color: "rgba(57,41,42,0.5)", fontStyle: "italic" }}>
@@ -1435,7 +1435,7 @@ function EventCard({
         {ev.languages && ev.languages.length > 0 && (
           <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" /></svg>
-            {ev.languages.map(l => getLanguageLabel(l, lang)).join(" Â· ")}
+            {ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}
           </span>
         )}
 
@@ -1457,7 +1457,7 @@ function EventCard({
               <circle cx="12" cy="12" r="9" />
               <path d="M8.5 12.5 11 15l4.5-5" />
             </svg>
-            <span>{lang === "en" ? "Confirmed â€” going ahead" : "Confirmado â€” se realiza"}</span>
+            <span>{lang === "en" ? "Confirmed — going ahead" : "Confirmado — se realiza"}</span>
           </div>
         )}
 
@@ -1466,7 +1466,7 @@ function EventCard({
           <div style={{ border: "1px solid rgba(164,118,31,0.35)", background: "#fffaf2", borderRadius: "5px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "7px" }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
               <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", color: "#8a6116" }}>
-                {lang === "en" ? "Minimum mothers to confirm" : "MÃ­nimo de madres para confirmar"}
+                {lang === "en" ? "Minimum mothers to confirm" : "Mínimo de madres para confirmar"}
               </span>
               <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#8a6116", fontFeatureSettings: "'tnum'" }}>
                 {ev.minToConfirm}
@@ -1488,7 +1488,7 @@ function EventCard({
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
                   <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", color: "#39292a" }}>
-                    {lang === "en" ? "Still free" : "AÃºn libres"}
+                    {lang === "en" ? "Still free" : "Aún libres"}
                   </span>
                   <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
                     {ev.capacityRemaining ?? ev.capacityTotal}
@@ -1500,7 +1500,7 @@ function EventCard({
             <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
               {lang === "en"
                 ? `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang)}. Credits are only taken if it goes ahead.`
-                : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}. Los crÃ©ditos solo se cobran si se confirma.`}
+                : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}. Los créditos solo se cobran si se confirma.`}
             </div>
           </div>
         ) : null}
@@ -1509,8 +1509,8 @@ function EventCard({
         {(!ev.capacityTotal || ev.isFreeWalk || ev.creditCost === 0) && !isCancelled && !isPast && !isFull && (
           <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)", marginBottom: "4px" }}>
             {lang === "en"
-              ? `Open list â€” no limit on places${(ev.placesTaken || 0) > 0 ? ` Â· ${ev.placesTaken} mother${ev.placesTaken === 1 ? "" : "s"} coming` : ""}`
-              : `Lista abierta â€” sin lÃ­mite de plazas${(ev.placesTaken || 0) > 0 ? ` Â· ${ev.placesTaken} madre${ev.placesTaken === 1 ? "" : "s"} apuntada${ev.placesTaken === 1 ? "" : "s"}` : ""}`}
+              ? `Open list — no limit on places${(ev.placesTaken || 0) > 0 ? ` · ${ev.placesTaken} mother${ev.placesTaken === 1 ? "" : "s"} coming` : ""}`
+              : `Lista abierta — sin límite de plazas${(ev.placesTaken || 0) > 0 ? ` · ${ev.placesTaken} madre${ev.placesTaken === 1 ? "" : "s"} apuntada${ev.placesTaken === 1 ? "" : "s"}` : ""}`}
           </div>
         )}
 
@@ -1541,7 +1541,7 @@ function EventCard({
             </div>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
               <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", color: "#39292a" }}>
-                {lang === "en" ? "Still free" : "AÃºn libres"}
+                {lang === "en" ? "Still free" : "Aún libres"}
               </span>
               <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#39292a", fontFeatureSettings: "'tnum'" }}>
                 {isFull ? 0 : (ev.capacityRemaining ?? ev.capacityTotal)}
@@ -1566,7 +1566,7 @@ function EventCard({
             {/* Member full waitlist note */}
             {isMember && isFull && (
               <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
-                {lang === "en" ? "No credits are taken to wait." : "No se cobran crÃ©ditos por esperar."}
+                {lang === "en" ? "No credits are taken to wait." : "No se cobran créditos por esperar."}
               </div>
             )}
           </div>
@@ -1577,7 +1577,7 @@ function EventCard({
           <div style={{ fontSize: "13.5px", lineHeight: "1.55", color: "#39292a" }}>
             {lang === "en" ? "This one is for members. " : "Este evento es para socias. "}
             <Link href="/membership" style={{ color: "#7b1f2c", textDecoration: "underline" }}>
-              {lang === "en" ? "See the membership â†’" : "Ver la membresÃ­a â†’"}
+              {lang === "en" ? "See the membership →" : "Ver la membresía →"}
             </Link>
           </div>
         )}
@@ -1586,8 +1586,8 @@ function EventCard({
         {ev.userStatus?.isBooked && !isCancelled && !isPast && (
           <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)" }}>
             {lang === "en"
-              ? `Booked${ev.userStatus.bookedAt ? ` on ${new Date(ev.userStatus.bookedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""} Â· cancel free up to 24h before`
-              : `Reservada${ev.userStatus.bookedAt ? ` el ${new Date(ev.userStatus.bookedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}` : ""} Â· cancelaciÃ³n gratuita hasta 24h antes`}
+              ? `Booked${ev.userStatus.bookedAt ? ` on ${new Date(ev.userStatus.bookedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""} · cancel free up to 24h before`
+              : `Reservada${ev.userStatus.bookedAt ? ` el ${new Date(ev.userStatus.bookedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}` : ""} · cancelación gratuita hasta 24h antes`}
           </div>
         )}
 
@@ -1595,13 +1595,13 @@ function EventCard({
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             <div style={{ fontSize: "13.5px", color: "#39292a", fontWeight: 500 }}>
               {lang === "en" ? "Cancelled" : "Cancelado"}
-              {ev.cancelReason && ` â€” ${ev.cancelReason}`}
+              {ev.cancelReason && ` — ${ev.cancelReason}`}
             </div>
             {ev.userStatus?.isRefunded && ev.userStatus.refundedAt && ev.userStatus.creditsCharged ? (
               <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)" }}>
                 {lang === "en"
                   ? `Your ${ev.userStatus.creditsCharged} credits were returned in full on ${new Date(ev.userStatus.refundedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
-                  : `Tus ${ev.userStatus.creditsCharged} crÃ©ditos fueron devueltos en su totalidad el ${new Date(ev.userStatus.refundedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
+                  : `Tus ${ev.userStatus.creditsCharged} créditos fueron devueltos en su totalidad el ${new Date(ev.userStatus.refundedAt).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}`}
               </div>
             ) : null}
           </div>
@@ -1614,7 +1614,7 @@ function EventCard({
             </div>
             {isFull && (
               <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>
-                {lang === "en" ? "Oops! This event is full." : "Â¡Vaya! Este evento estÃ¡ completo."}
+                {lang === "en" ? "Oops! This event is full." : "¡Vaya! Este evento está completo."}
               </div>
             )}
           </div>
@@ -1663,7 +1663,7 @@ function EventCard({
                     }}
                   >
                     {ev.isFreeWalk || ev.creditCost === 0 || !ev.capacityTotal
-                      ? (lang === "en" ? "You're on the list" : "EstÃ¡s en la lista")
+                      ? (lang === "en" ? "You're on the list" : "Estás en la lista")
                       : (lang === "en" ? "Booked" : "Reservada")}
                   </button>
                 </div>
@@ -1717,7 +1717,7 @@ function EventCard({
                         textDecoration: "underline",
                       }}
                     >
-                      {lang === "en" ? "See the membership â†’" : "Ver la membresÃ­a â†’"}
+                      {lang === "en" ? "See the membership →" : "Ver la membresía →"}
                     </Link>
                   </div>
                 )
@@ -1742,7 +1742,7 @@ function EventCard({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {lang === "en" ? "â‚¬35 Event Pass" : "Event Pass 35â‚¬"}
+                      {lang === "en" ? "€35 Event Pass" : "Event Pass 35€"}
                     </button>
                   )}
                   <button
@@ -1778,7 +1778,7 @@ function EventCard({
   );
 }
 
-// â”€â”€â”€ Main EventsCalendar Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Main EventsCalendar Component ───────────────────────────────────────────
 
 export function EventsCalendar({ events, categories, creditBalance = 0 }: Props) {
   const { data: session } = useSession();
@@ -1869,10 +1869,10 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const stageChips = [
     { id: "all", labelEn: "All stages", labelEs: "Todas las etapas" },
     { id: "pregnant", labelEn: "Pregnant", labelEs: "Embarazada" },
-    { id: "babies", labelEn: "Babies", labelEs: "BebÃ©s" },
+    { id: "babies", labelEn: "Babies", labelEs: "Bebés" },
     { id: "toddlers", labelEn: "Toddlers", labelEs: "Peques" },
-    { id: "children", labelEn: "Children", labelEs: "NiÃ±os" },
-    { id: "big_kids", labelEn: "Big kids", labelEs: "NiÃ±os grandes" },
+    { id: "children", labelEn: "Children", labelEs: "Niños" },
+    { id: "big_kids", labelEn: "Big kids", labelEs: "Niños grandes" },
   ];
 
   const audienceChips = [
@@ -1891,8 +1891,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
 
   const dateChips = [
     { id: "all", labelEn: "All dates", labelEs: "Todas las fechas" },
-    { id: "this_month", labelEn: `This month Â· ${currentMonthNameEn}`, labelEs: `Este mes Â· ${currentMonthNameEs}` },
-    { id: "next_month", labelEn: `Next month Â· ${nextMonthNameEn}`, labelEs: `PrÃ³ximo mes Â· ${nextMonthNameEs}` },
+    { id: "this_month", labelEn: `This month · ${currentMonthNameEn}`, labelEs: `Este mes · ${currentMonthNameEs}` },
+    { id: "next_month", labelEn: `Next month · ${nextMonthNameEn}`, labelEs: `Próximo mes · ${nextMonthNameEs}` },
   ];
 
   const statusChips = [
@@ -1925,13 +1925,13 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     if (activeStage !== "all") {
       const rawStage = (ev.stage || "").toLowerCase();
       if (activeStage === "big_kids" || activeStage === "big kids") {
-        if (!rawStage.includes("big") && !rawStage.includes("grande") && !rawStage.includes("10+") && !rawStage.includes("6â€“10") && !rawStage.includes("6-10") && !rawStage.includes("6+")) return false;
+        if (!rawStage.includes("big") && !rawStage.includes("grande") && !rawStage.includes("10+") && !rawStage.includes("6–10") && !rawStage.includes("6-10") && !rawStage.includes("6+")) return false;
       } else if (activeStage === "babies") {
-        if (!rawStage.includes("bab") && !rawStage.includes("0â€“12") && !rawStage.includes("0-12") && !rawStage.includes("postpartum") && !rawStage.includes("posparto")) return false;
+        if (!rawStage.includes("bab") && !rawStage.includes("0–12") && !rawStage.includes("0-12") && !rawStage.includes("postpartum") && !rawStage.includes("posparto")) return false;
       } else if (activeStage === "toddlers") {
-        if (!rawStage.includes("toddler") && !rawStage.includes("peque") && !rawStage.includes("1â€“3") && !rawStage.includes("1-3")) return false;
+        if (!rawStage.includes("toddler") && !rawStage.includes("peque") && !rawStage.includes("1–3") && !rawStage.includes("1-3")) return false;
       } else if (activeStage === "children") {
-        if (!rawStage.includes("child") && !rawStage.includes("niÃ±o") && !rawStage.includes("3â€“6") && !rawStage.includes("3-6") && !rawStage.includes("3y+")) return false;
+        if (!rawStage.includes("child") && !rawStage.includes("niño") && !rawStage.includes("3–6") && !rawStage.includes("3-6") && !rawStage.includes("3y+")) return false;
       } else if (activeStage === "pregnant") {
         if (!rawStage.includes("pregnant") && !rawStage.includes("embaraz")) return false;
       } else {
@@ -2021,7 +2021,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
             {lang === "en" ? "CALENDAR" : "CALENDARIO"}
           </div>
           <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(34px, 5vw, 54px)", fontWeight: 400, lineHeight: 1.1, margin: "0 0 16px 0" }}>
-            {lang === "en" ? "Upcoming events." : "PrÃ³ximos eventos."}
+            {lang === "en" ? "Upcoming events." : "Próximos eventos."}
           </h1>
           <p style={{ fontSize: "19px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.78)", margin: "0 auto", maxWidth: "680px" }}>
             {lang === "en"
@@ -2030,7 +2030,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           </p>
         </div>
 
-        {/* â”€â”€â”€ 3 FILTER ROWS MATCHING EXACT MODEL â”€â”€â”€ */}
+        {/* ─── 3 FILTER ROWS MATCHING EXACT MODEL ─── */}
         <div style={{ marginBottom: "36px" }}>
           {/* Categories & Dates Group */}
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px" }}>
@@ -2215,14 +2215,14 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           </div>
         </div>
 
-        {/* â”€â”€â”€ EVENTS GRID â”€â”€â”€ */}
+        {/* ─── EVENTS GRID ─── */}
         {sortedEvents.length === 0 ? (
           <div style={{ textAlign: "center", padding: "64px 24px", color: "var(--color-text-muted)" }}>
             <p style={{ fontFamily: "var(--font-heading)", fontSize: "20px", margin: "0 0 8px" }}>
-              {lang === "en" ? "No events match these filters." : "NingÃºn evento coincide con estos filtros."}
+              {lang === "en" ? "No events match these filters." : "Ningún evento coincide con estos filtros."}
             </p>
             <p style={{ fontSize: "14px", margin: "0 0 16px" }}>
-              {lang === "en" ? "Try clearing some filters to see what is coming up." : "Prueba a quitar algunos filtros para ver los prÃ³ximos eventos."}
+              {lang === "en" ? "Try clearing some filters to see what is coming up." : "Prueba a quitar algunos filtros para ver los próximos eventos."}
             </p>
             {hasActiveFilters && (
               <button
@@ -2265,7 +2265,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         )}
       </div>
 
-      {/* â”€â”€â”€ MODALS â”€â”€â”€ */}
+      {/* ─── MODALS ─── */}
       {bookingSuccessEvent && (
         <BookingSuccessModal
           event={bookingSuccessEvent}

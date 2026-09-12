@@ -7,7 +7,7 @@ if (!process.env.DATABASE_URL) dotenv.config({ path: ".env" });
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
-  console.error("âŒ DATABASE_URL is not set");
+  console.error("❌ DATABASE_URL is not set");
   process.exit(1);
 }
 
@@ -24,7 +24,7 @@ export const CATEGORIES = [
 export const PARTNERS = [
   {
     id: "terraza-sarria",
-    name: "Terraza SarriÃ ",
+    name: "Terraza Sarrià",
     umbrella: "Places & Hospitality",
     specialty: "Rooftop dining & private events",
     description: "A seasonal courtyard and rooftop space for special club moments.",
@@ -35,7 +35,7 @@ export const PARTNERS = [
     name: "Loto Barcelona Yoga",
     umbrella: "Wellness & Movement",
     specialty: "Postnatal & prenatal yoga",
-    description: "Gentle postnatal and perinatal movement studio in GrÃ cia.",
+    description: "Gentle postnatal and perinatal movement studio in Gràcia.",
     offerForMembers: "15% discount on class packages.",
   },
   {
@@ -51,12 +51,12 @@ export const PARTNERS = [
     name: "Vermuteria Bonavista",
     umbrella: "Places & Hospitality",
     specialty: "Aperitivo & artisan vermut",
-    description: "Cozy neighbourhood vermuteria in GrÃ cia.",
+    description: "Cozy neighbourhood vermuteria in Gràcia.",
     offerForMembers: "Reserved back room and complimentary tapa.",
   },
   {
     id: "dorm-be-sleep-consultants",
-    name: "Dorm BÃ© Sleep Consultants",
+    name: "Dorm Bé Sleep Consultants",
     umbrella: "Expert Care & Support",
     specialty: "Pediatric sleep consulting",
     description: "Certified pediatric sleep consultants helping families rest.",
@@ -80,7 +80,7 @@ export const PARTNERS = [
   },
   {
     id: "sala-gracia",
-    name: "Sala GrÃ cia",
+    name: "Sala Gràcia",
     umbrella: "Places & Hospitality",
     specialty: "Private dining & tastings",
     description: "Intimate private dining rooms for special gatherings.",
@@ -108,12 +108,12 @@ export const EVENTS = [
   {
     id: "event-13",
     slug: "summer-supper-in-the-courtyard-13",
-    title: "Signature moment â€” Summer supper in the courtyard",
+    title: "Signature moment — Summer supper in the courtyard",
     categoryId: "cat-signature",
     description: "A long table under the fig tree, one menu, no phones. Our first supper of the summer.",
-    meetingPoint: "Carrer de Sant DomÃ¨nec 12 â€” the courtyard door",
-    neighbourhood: "GrÃ cia",
-    venueName: "Terraza SarriÃ ",
+    meetingPoint: "Carrer de Sant Domènec 12 — the courtyard door",
+    neighbourhood: "Gràcia",
+    venueName: "Terraza Sarrià",
     partnerId: "terraza-sarria",
     startsAt: "2026-08-10T20:30:00.000Z",
     endsAt: "2026-08-10T23:00:00.000Z",
@@ -133,10 +133,10 @@ export const EVENTS = [
   {
     id: "event-1",
     slug: "morning-walk-ciutadella-park-1",
-    title: "Morning walk â€” Ciutadella Park",
+    title: "Morning walk — Ciutadella Park",
     categoryId: "cat-easy",
     description: "A relaxed stroller walk through the park, followed by coffee nearby.",
-    meetingPoint: "Passeig de Picasso 21 â€” Arc de Triomf gate, look for the cream Mothers tote",
+    meetingPoint: "Passeig de Picasso 21 — Arc de Triomf gate, look for the cream Mothers tote",
     neighbourhood: "Ciutat Vella",
     venueName: "Parc de la Ciutadella",
     partnerId: null,
@@ -158,12 +158,12 @@ export const EVENTS = [
   {
     id: "event-12",
     slug: "park-social-turo-park-lawn-12",
-    title: "Park social â€” TurÃ³ Park lawn",
+    title: "Park social — Turó Park lawn",
     categoryId: "cat-easy",
-    description: "Blankets on the grass, snacks to share, and no schedule â€” come for ten minutes or stay until the light goes.",
-    meetingPoint: "Av. de Pau Casals 19 â€” lawn beside the pond",
-    neighbourhood: "SarriÃ -Sant Gervasi",
-    venueName: "TurÃ³ Park",
+    description: "Blankets on the grass, snacks to share, and no schedule — come for ten minutes or stay until the light goes.",
+    meetingPoint: "Av. de Pau Casals 19 — lawn beside the pond",
+    neighbourhood: "Sarrià-Sant Gervasi",
+    venueName: "Turó Park",
     partnerId: null,
     startsAt: "2026-09-02T17:30:00.000Z",
     endsAt: "2026-09-02T19:30:00.000Z",
@@ -183,11 +183,11 @@ export const EVENTS = [
   {
     id: "event-2",
     slug: "play-date-postnatal-yoga-2",
-    title: "Play date â€” Postnatal yoga",
+    title: "Play date — Postnatal yoga",
     categoryId: "cat-baby",
     description: "Gentle postnatal yoga with your baby beside you, led by a certified instructor.",
-    meetingPoint: "Carrer de Verdi 42, 2Âº â€” buzzer â€œLotoâ€",
-    neighbourhood: "GrÃ cia",
+    meetingPoint: "Carrer de Verdi 42, 2Âº — buzzer “Loto”",
+    neighbourhood: "Gràcia",
     venueName: "Loto Barcelona Yoga",
     partnerId: "loto-barcelona-yoga",
     startsAt: "2026-08-21T10:30:00.000Z",
@@ -208,10 +208,10 @@ export const EVENTS = [
   {
     id: "event-3",
     slug: "moms-date-dinner-at-can-culleretes-3",
-    title: "MoM's date â€” Dinner at Can Culleretes",
+    title: "MoM's date — Dinner at Can Culleretes",
     categoryId: "cat-evenings",
-    description: "A relaxed dinner for mothers only â€” no kid talk required.",
-    meetingPoint: "Carrer d'en Quintana 5 â€” ask for The Mothers table",
+    description: "A relaxed dinner for mothers only — no kid talk required.",
+    meetingPoint: "Carrer d'en Quintana 5 — ask for The Mothers table",
     neighbourhood: "Ciutat Vella",
     venueName: "Can Culleretes",
     partnerId: "can-culleretes",
@@ -233,11 +233,11 @@ export const EVENTS = [
   {
     id: "event-20",
     slug: "moms-date-vermut-on-bonavista-20",
-    title: "MoM's date â€” Vermut on Bonavista",
+    title: "MoM's date — Vermut on Bonavista",
     categoryId: "cat-evenings",
     description: "An early evening over vermut and olives. Small table, no agenda, home by ten.",
-    meetingPoint: "Carrer de Bonavista 6 â€” the back room, ask for The Mothers",
-    neighbourhood: "GrÃ cia",
+    meetingPoint: "Carrer de Bonavista 6 — the back room, ask for The Mothers",
+    neighbourhood: "Gràcia",
     venueName: "Vermuteria Bonavista",
     partnerId: "vermuteria-bonavista",
     startsAt: "2026-09-10T19:30:00.000Z",
@@ -258,12 +258,12 @@ export const EVENTS = [
   {
     id: "event-4",
     slug: "learn-grow-sleep-qa-with-an-expert-4",
-    title: "Learn & Grow â€” Sleep Q&A with an expert",
+    title: "Learn & Grow — Sleep Q&A with an expert",
     categoryId: "cat-learn",
     description: "A pediatric sleep consultant answers your toughest nighttime questions.",
-    meetingPoint: "Carrer de Pau Claris 138, 1Âº-2Âª â€” Dorm BÃ© studio",
+    meetingPoint: "Carrer de Pau Claris 138, 1Âº-2Âª — Dorm Bé studio",
     neighbourhood: "Eixample",
-    venueName: "Dorm BÃ© studio",
+    venueName: "Dorm Bé studio",
     partnerId: "dorm-be-sleep-consultants",
     startsAt: "2026-09-01T18:00:00.000Z",
     endsAt: "2026-09-01T19:30:00.000Z",
@@ -283,12 +283,12 @@ export const EVENTS = [
   {
     id: "event-5",
     slug: "signature-moment-autumn-rooftop-brunch-5",
-    title: "Signature moment â€” Autumn rooftop brunch",
+    title: "Signature moment — Autumn rooftop brunch",
     categoryId: "cat-signature",
     description: "A seasonal rooftop brunch with live music, for members and their little ones.",
-    meetingPoint: "Carrer de Cardenal Sentmenat 30 â€” rooftop, 7th floor",
-    neighbourhood: "SarriÃ -Sant Gervasi",
-    venueName: "Terraza SarriÃ ",
+    meetingPoint: "Carrer de Cardenal Sentmenat 30 — rooftop, 7th floor",
+    neighbourhood: "Sarrià-Sant Gervasi",
+    venueName: "Terraza Sarrià",
     partnerId: "terraza-sarria",
     startsAt: "2026-09-12T11:00:00.000Z",
     endsAt: "2026-09-12T14:00:00.000Z",
@@ -308,12 +308,12 @@ export const EVENTS = [
   {
     id: "event-6",
     slug: "stroller-walk-park-guell-area-6",
-    title: "Stroller walk â€” Park GÃ¼ell area",
+    title: "Stroller walk — Park Güell area",
     categoryId: "cat-easy",
     description: "An easy-paced walk near the park, with a stop for snacks halfway through.",
-    meetingPoint: "Carrer d'Olot 5 â€” steps at the main gate",
-    neighbourhood: "GrÃ cia",
-    venueName: "Park GÃ¼ell",
+    meetingPoint: "Carrer d'Olot 5 — steps at the main gate",
+    neighbourhood: "Gràcia",
+    venueName: "Park Güell",
     partnerId: null,
     startsAt: "2026-09-16T10:00:00.000Z",
     endsAt: "2026-09-16T11:30:00.000Z",
@@ -333,10 +333,10 @@ export const EVENTS = [
   {
     id: "event-7",
     slug: "play-date-baby-massage-class-7",
-    title: "Play date â€” Baby massage class",
+    title: "Play date — Baby massage class",
     categoryId: "cat-baby",
     description: "Learn simple massage techniques to soothe and bond with your baby.",
-    meetingPoint: "Carrer del Comandant BenÃ­tez 11 â€” studio B",
+    meetingPoint: "Carrer del Comandant Benítez 11 — studio B",
     neighbourhood: "Les Corts",
     venueName: "Petit Toucher",
     partnerId: "petit-toucher",
@@ -358,10 +358,10 @@ export const EVENTS = [
   {
     id: "event-8",
     slug: "learn-grow-returning-to-work-panel-8",
-    title: "Learn & Grow â€” Returning to work panel",
+    title: "Learn & Grow — Returning to work panel",
     categoryId: "cat-learn",
     description: "A panel of working mothers share honest advice on the return to work.",
-    meetingPoint: "Zoom â€” link sent when you book",
+    meetingPoint: "Zoom — link sent when you book",
     neighbourhood: "Eixample",
     venueName: "Zoom",
     partnerId: "momentum-careers-barcelona",
@@ -384,11 +384,11 @@ export const EVENTS = [
   {
     id: "event-10",
     slug: "hosted-coffee-gracia-10",
-    title: "Hosted coffee â€” GrÃ cia",
+    title: "Hosted coffee — Gràcia",
     categoryId: "cat-easy",
     description: "A booked table, a host who introduces everyone, and a coffee waiting for you. Eight mothers, no small talk to start from scratch.",
-    meetingPoint: "PlaÃ§a de la Vila de GrÃ cia 12 â€” reserved table on the terrace",
-    neighbourhood: "GrÃ cia",
+    meetingPoint: "Plaça de la Vila de Gràcia 12 — reserved table on the terrace",
+    neighbourhood: "Gràcia",
     venueName: "Can Culleretes",
     partnerId: "can-culleretes",
     startsAt: "2026-08-25T10:30:00.000Z",
@@ -409,10 +409,10 @@ export const EVENTS = [
   {
     id: "event-11",
     slug: "hosted-brunch-eixample-11",
-    title: "Hosted brunch â€” Eixample",
+    title: "Hosted brunch — Eixample",
     categoryId: "cat-easy",
     description: "The same easy format over brunch: a table held for us, a host at the centre, and one drink included.",
-    meetingPoint: "Carrer del Consell de Cent 333 â€” back room, under the skylight",
+    meetingPoint: "Carrer del Consell de Cent 333 — back room, under the skylight",
     neighbourhood: "Eixample",
     venueName: "Carrer del Consell de Cent",
     partnerId: null,
@@ -434,12 +434,12 @@ export const EVENTS = [
   {
     id: "event-23",
     slug: "learn-grow-asking-for-what-you-need-at-home-23",
-    title: "Learn & Grow â€” Asking for what you need at home",
+    title: "Learn & Grow — Asking for what you need at home",
     categoryId: "cat-learn",
     description: "Two hours on the conversation nobody rehearses: naming what you need from a partner or a parent, and asking for it plainly.",
-    meetingPoint: "Carrer de SepÃºlveda 61, entresuelo â€” studio A",
+    meetingPoint: "Carrer de Sepúlveda 61, entresuelo — studio A",
     neighbourhood: "Sant Antoni",
-    venueName: "Carrer de SepÃºlveda",
+    venueName: "Carrer de Sepúlveda",
     partnerId: null,
     startsAt: "2026-09-05T11:00:00.000Z",
     endsAt: "2026-09-05T13:00:00.000Z",
@@ -459,12 +459,12 @@ export const EVENTS = [
   {
     id: "event-22",
     slug: "moms-date-tasting-menu-private-room-22",
-    title: "MoM's date â€” Tasting menu, private room",
+    title: "MoM's date — Tasting menu, private room",
     categoryId: "cat-evenings",
     description: "Six courses at one long table, a room of our own, and a night that ends when we say it does.",
-    meetingPoint: "Passeig de GrÃ cia 78, 1Âº â€” the private dining room",
+    meetingPoint: "Passeig de Gràcia 78, 1Âº — the private dining room",
     neighbourhood: "Eixample",
-    venueName: "Sala GrÃ cia",
+    venueName: "Sala Gràcia",
     partnerId: "sala-gracia",
     startsAt: "2026-09-24T20:30:00.000Z",
     endsAt: "2026-09-24T23:30:00.000Z",
@@ -484,10 +484,10 @@ export const EVENTS = [
   {
     id: "event-21",
     slug: "signature-moment-one-to-one-with-a-perinatal-osteopath-21",
-    title: "Signature moment â€” One-to-one with a perinatal osteopath",
+    title: "Signature moment — One-to-one with a perinatal osteopath",
     categoryId: "cat-signature",
     description: "A full private hour with a perinatal osteopath, in a quiet room, for the body that carried and still carries.",
-    meetingPoint: "Carrer d'Aribau 112, principal â€” the treatment suite",
+    meetingPoint: "Carrer d'Aribau 112, principal — the treatment suite",
     neighbourhood: "Eixample",
     venueName: "Casa Aribau",
     partnerId: "casa-aribau",
@@ -509,7 +509,7 @@ export const EVENTS = [
   {
     id: "event-9",
     slug: "play-date-newborn-feeding-circle-9",
-    title: "Play date â€” Newborn feeding circle",
+    title: "Play date — Newborn feeding circle",
     categoryId: "cat-baby",
     description: "A small support circle for feeding questions in the early months, with a lactation consultant on hand.",
     meetingPoint: "Carrer de Girona 84, entresuelo",
@@ -549,7 +549,7 @@ async function seed() {
           stage_affinity = EXCLUDED.stage_affinity;
       `;
     }
-    console.log("âœ… Categories seeded");
+    console.log("✅ Categories seeded");
 
     // 2. Seed partners
     for (const p of PARTNERS) {
@@ -564,7 +564,7 @@ async function seed() {
           offer_for_members = EXCLUDED.offer_for_members;
       `;
     }
-    console.log("âœ… Partners seeded");
+    console.log("✅ Partners seeded");
 
     // 3. Seed 17 Events
     for (const ev of EVENTS) {
@@ -605,9 +605,9 @@ async function seed() {
           partner_id = EXCLUDED.partner_id;
       `;
     }
-    console.log("âœ… 17 Events seeded successfully!");
+    console.log("✅ 17 Events seeded successfully!");
   } catch (error) {
-    console.error("âŒ Seeding error:", error);
+    console.error("❌ Seeding error:", error);
     process.exit(1);
   } finally {
     await sql.end();

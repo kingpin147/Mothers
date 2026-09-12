@@ -5,7 +5,7 @@ import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner
 import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
-// â”€â”€â”€ 1. GET PUBLIC EVENTS & DYNAMIC CATEGORIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── 1. GET PUBLIC EVENTS & DYNAMIC CATEGORIES ─────────────────────────────
 
 export async function getPublicEvents() {
   try {
@@ -182,7 +182,7 @@ export async function getPublicEvents() {
         category: ev.categoryName || "Easy connection",
         stage: ev.stage || "All Stages",
         dateStr,
-        timeStr: ends ? `${startTimeStr} â€“ ${endTimeStr}` : startTimeStr,
+        timeStr: ends ? `${startTimeStr} – ${endTimeStr}` : startTimeStr,
         placesTaken,
         bookedMember: placesTaken,
         capacityTotal,
@@ -211,7 +211,7 @@ export async function getPublicEvents() {
   }
 }
 
-// â”€â”€â”€ 2. CATEGORY MANAGEMENT ACTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── 2. CATEGORY MANAGEMENT ACTIONS ─────────────────────────────────────────
 
 export async function getEventCategories() {
   const categories = await db
@@ -279,7 +279,7 @@ export async function deleteEvent(eventId: string) {
   return { success: true };
 }
 
-// â”€â”€â”€ 3. GET SINGLE PUBLIC EVENT BY ID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── 3. GET SINGLE PUBLIC EVENT BY ID ────────────────────────────────────────
 
 export async function getPublicEventById(id: string) {
   try {
@@ -324,7 +324,7 @@ export async function getPublicEventById(id: string) {
     const dateStr = starts.toLocaleDateString("en-GB", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
-    const timeStr = `${starts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} â€“ ${ends.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+    const timeStr = `${starts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} – ${ends.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
 
     // Count active bookings for this event
     const [memberCount, guestCount] = await Promise.all([
@@ -338,7 +338,7 @@ export async function getPublicEventById(id: string) {
     const bookedGuest = Number(guestCount[0]?.count || 0);
     const spotsRemaining = ev.capacityMember > 0 ? Math.max(0, ev.capacityMember - bookedMember) : null;
 
-    // Guest pass eligibility: confirmed, non-signature, â‰¤18 credits, inside guest window (custom or static T-14 to T-2)
+    // Guest pass eligibility: confirmed, non-signature, ≤18 credits, inside guest window (custom or static T-14 to T-2)
     const now = new Date();
     let guestPassEligible =
       ev.status === "confirmed" &&
