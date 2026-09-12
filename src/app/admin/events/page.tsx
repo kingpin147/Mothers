@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
@@ -212,8 +212,11 @@ export default function AdminEventsPage() {
     }
   };
 
-  const handleConfirm = async (id: string) => {
-    if (!confirm("Confirm this event? All held member bookings will be marked confirmed.")) return;
+  const handleConfirm = async (id: string, isForce: boolean = false) => {
+    const confirmPrompt = isForce
+      ? "Force confirm this event even though the minimum attendees haven't been reached? All held bookings will be confirmed."
+      : "Confirm this event? All held member bookings will be marked confirmed.";
+    if (!confirm(confirmPrompt)) return;
     setActionLoading(id);
     const res = await confirmEventDecision(id);
     setActionLoading(null);
@@ -748,7 +751,7 @@ export default function AdminEventsPage() {
                         <div style={{ display: "flex", gap: "7px", flexWrap: "wrap" }}>
                           <button
                             type="button"
-                            onClick={() => handleConfirm(r.id)}
+                            onClick={() => handleConfirm(r.id, r.minToConfirm > 0 && r.bookingsCount < r.minToConfirm)}
                             disabled={actionLoading === r.id}
                             style={{
                               border: `1px solid ${GREEN}`,
@@ -762,7 +765,7 @@ export default function AdminEventsPage() {
                               cursor: "pointer",
                             }}
                           >
-                            Confirm
+                            {r.minToConfirm > 0 && r.bookingsCount < r.minToConfirm ? "Force confirm" : "Confirm"}
                           </button>
                           <button
                             type="button"

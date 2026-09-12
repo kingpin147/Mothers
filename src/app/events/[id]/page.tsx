@@ -8,6 +8,7 @@ import { bookEvent, buyGuestPass, buyExtraCredits } from "@/app/actions/booking"
 import { getPublicEventById } from "@/app/actions/events";
 import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 import { getAccountData } from "@/app/actions/memberAccount";
+import ThemeLoader from "@/components/ThemeLoader";
 
 const getLanguageLabel = (code: string, currentLang: "en" | "es") => {
   const mapping: Record<string, { en: string; es: string }> = {
@@ -55,8 +56,8 @@ interface EventDetail {
 
 function getCardBg(status: string) {
   switch (status) {
-    case "confirmed":         return "#e8f1e9";
-    case "published_pending": return "#fff3e4";
+    case "confirmed":         return "#fff";
+    case "published_pending": return "#fff";
     case "cancelled":         return "#fbf1f1";
     case "completed":         return "#e9eaea";
     default:                  return "#fff";
@@ -204,11 +205,7 @@ export default function EventDetailPage() {
 
   if (fetchLoading) {
     return (
-      <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ fontFamily: "var(--font-heading)", fontSize: "18px", color: "var(--color-text-muted)" }}>
-          {lang === "en" ? "Loading event…" : "Cargando evento…"}
-        </p>
-      </div>
+      <ThemeLoader fullPage text={lang === "en" ? "Loading event…" : "Cargando evento…"} size="large" />
     );
   }
 
@@ -229,8 +226,8 @@ export default function EventDetailPage() {
   }
 
   const statusLabel = {
-    confirmed: { en: "Confirmed Event", es: "Evento Confirmado", color: "#285430", bg: "#e8f1e9" },
-    published_pending: { en: "Pending Confirmation", es: "Pendiente de Confirmación", color: "#a4761f", bg: "#fff3e4" },
+    confirmed: { en: "Confirmed", es: "Confirmado", color: "#285430", bg: "#e8f1e9" },
+    published_pending: { en: "To be confirmed", es: "Por confirmar", color: "#a4761f", bg: "#fff3e4" },
     cancelled: { en: "Cancelled", es: "Cancelado", color: "#993842", bg: "#fbf1f1" },
     completed: { en: "Past Event", es: "Evento Pasado", color: "#606e76", bg: "#e9eaea" },
   }[ev.status] || { en: ev.status, es: ev.status, color: "#606e76", bg: "#f0f0f0" };
@@ -251,41 +248,40 @@ export default function EventDetailPage() {
 
         {/* Main Card */}
         <div style={{ backgroundColor: getCardBg(ev.status), border: "1px solid rgba(57,41,42,0.16)", borderRadius: "10px", padding: "clamp(28px, 5vw, 48px)" }}>
-          {/* Status + cost row */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
-            <span style={{ backgroundColor: statusLabel.bg, color: statusLabel.color, fontSize: "11.5px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", padding: "5px 12px", borderRadius: "4px", border: `1px solid ${statusLabel.color}44` }}>
-              {lang === "en" ? statusLabel.en : statusLabel.es}
-            </span>
-            <span style={{ fontFamily: "var(--font-heading)", fontSize: "18px", fontWeight: 600, color: "var(--color-accent)" }}>
+          {/* Top category chips + cost & status */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+              {ev.categoryName && (
+                <span style={{ fontSize: "12px", color: "var(--color-accent)", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "12px", padding: "3px 10px", backgroundColor: "rgba(255,255,255,0.7)" }}>
+                  {ev.categoryName}
+                </span>
+              )}
+              {ev.stageAffinity && ev.stageAffinity !== "General" && (
+                <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.65)", border: "1px solid rgba(57,41,42,0.18)", borderRadius: "12px", padding: "3px 10px", backgroundColor: "rgba(255,255,255,0.7)" }}>
+                  {ev.stageAffinity}
+                </span>
+              )}
+              {ev.isSignature && (
+                <span style={{ fontSize: "12px", color: "#7b5a00", border: "1px solid #d4a800", borderRadius: "12px", padding: "3px 10px", backgroundColor: "#fffbeb" }}>
+                  {lang === "en" ? "Signature Moment" : "Signature Moment"}
+                </span>
+              )}
+              {ev.guestPassEligible && (
+                <span style={{ fontSize: "12px", color: "#456f04", border: "1px solid rgba(86,139,5,0.45)", borderRadius: "12px", padding: "3px 10px", backgroundColor: "rgba(86,139,5,0.07)" }}>
+                  {lang === "en" ? "Open to guests — €35" : "Abierto a invitadas — 35€"}
+                </span>
+              )}
+              <span style={{ backgroundColor: statusLabel.bg, color: statusLabel.color, fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "3px 9px", borderRadius: "4px", border: `1px solid ${statusLabel.color}33` }}>
+                {lang === "en" ? statusLabel.en : statusLabel.es}
+              </span>
+            </div>
+
+            <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: 600, color: "var(--color-accent)" }}>
               {ev.creditCost === 0 || ev.isFreeWalk
                 ? (lang === "en" ? "Included with membership" : "Incluido con membresía")
                 : `${ev.creditCost} ${lang === "en" ? "credits" : "créditos"}`}
               {ev.guestPassEligible && ` · ${guestPassLabel}`}
-            </span>
-          </div>
-
-          {/* Category + stage chips */}
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
-            {ev.categoryName && (
-              <span style={{ fontSize: "12px", color: "var(--color-accent)", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "12px", padding: "3px 10px", backgroundColor: "rgba(255,255,255,0.7)" }}>
-                {ev.categoryName}
-              </span>
-            )}
-            {ev.stageAffinity && ev.stageAffinity !== "General" && (
-              <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.65)", border: "1px solid rgba(57,41,42,0.18)", borderRadius: "12px", padding: "3px 10px", backgroundColor: "rgba(255,255,255,0.7)" }}>
-                {ev.stageAffinity}
-              </span>
-            )}
-            {ev.isSignature && (
-              <span style={{ fontSize: "12px", color: "#7b5a00", border: "1px solid #d4a800", borderRadius: "12px", padding: "3px 10px", backgroundColor: "#fffbeb" }}>
-                {lang === "en" ? "Signature Moment" : "Signature Moment"}
-              </span>
-            )}
-            {ev.guestPassEligible && (
-              <span style={{ fontSize: "12px", color: "#456f04", border: "1px solid rgba(86,139,5,0.45)", borderRadius: "12px", padding: "3px 10px", backgroundColor: "rgba(86,139,5,0.07)" }}>
-                {lang === "en" ? "Open to guests — €35" : "Abierto a invitadas — 35€"}
-              </span>
-            )}
+            </div>
           </div>
 
           {/* Title */}
@@ -536,7 +532,7 @@ export default function EventDetailPage() {
                 <div style={{ backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.3)", borderRadius: "6px", padding: "14px 16px", marginBottom: "22px", textAlign: "left" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
                     <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#456f04" }}>
-                      &#9889; {lang === "en" ? "Booking fast" : "Reservando rápido"}
+                      {lang === "en" ? "Booking confirmed" : "Reserva confirmada"}
                     </span>
                   </div>
                   <p style={{ fontSize: "13px", color: "rgba(57,41,42,0.72)", margin: 0, lineHeight: 1.55 }}>

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Locale } from "@/lib/i18n";
 import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, getStripePortalUrl } from "@/app/actions/memberAccount";
 import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
+import ThemeLoader from "@/components/ThemeLoader";
 
 type AccountTab = "overview" | "credits" | "perks" | "membership";
 
@@ -230,8 +231,8 @@ export default function AccountPage() {
 
   if (status === "loading" || accountLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f8efe2", fontFamily: "'Lora', Georgia, serif" }}>
-        <p style={{ fontSize: "18px", color: "#7b1f2c", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>Loading your circle...</p>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f8efe2" }}>
+        <ThemeLoader text={lang === "en" ? "Loading your circle..." : "Cargando tu círculo..."} size="large" />
       </div>
     );
   }
@@ -486,8 +487,14 @@ export default function AccountPage() {
                             </div>
                           )}
 
-                          <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.7)", marginTop: "6px" }}>
-                            {dateFormatted} - {timeFormatted}
+                          <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.75)", marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: "rgba(57,41,42,0.6)", flexShrink: 0 }}>
+                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                              <line x1="16" y1="2" x2="16" y2="6"></line>
+                              <line x1="8" y1="2" x2="8" y2="6"></line>
+                              <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <span>{dateFormatted} {timeFormatted && `· ${timeFormatted}`}</span>
                           </div>
 
                           <div style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.65)", marginTop: "3px", display: "flex", alignItems: "center", gap: "6px" }}>
@@ -1281,7 +1288,7 @@ export default function AccountPage() {
                     <input
                       type="tel"
                       value={detailsForm.phone}
-                      onChange={(e) => setDetailsForm({ ...detailsForm, phone: e.target.value })}
+                      onChange={(e) => setDetailsForm({ ...detailsForm, phone: e.target.value.replace(/[^\d+ ]/g, "") })}
                       style={{ width: "100%", boxSizing: "border-box", minHeight: "46px", padding: "11px 14px", fontSize: "15px", fontFamily: "'Lora', Georgia, serif", color: "#39292a", background: "#fff", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", outline: "none" }}
                     />
                   </div>

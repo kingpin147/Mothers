@@ -83,7 +83,7 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
         </div>
 
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {[...dynamicFaqs, ...processedList].map((faq, idx) => {
+          {allFaqs.map((faq, idx) => {
             const isOpen = openIdx === idx;
             return (
               <div
