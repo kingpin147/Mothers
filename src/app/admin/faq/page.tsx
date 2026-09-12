@@ -266,7 +266,7 @@ export default function AdminFaqPage() {
                     const rowBg = isDraft ? 'rgba(57,41,42,0.03)' : hasMissingEs ? 'rgba(168,117,44,0.04)' : 'transparent';
 
                     return (
-                      <div key={f.id} style={{ borderBottom: idx < g.items.length - 1 ? "1px solid rgba(57,41,42,0.1)" : "none", padding: "15px 18px", background: rowBg }}>
+                      <div key={f.id} style={{ borderBottom: idx < shown.length - 1 ? "1px solid rgba(57,41,42,0.1)" : "none", padding: "15px 18px", background: rowBg }}>
                         {/* Question row */}
                         <div style={{ display: "flex", gap: "16px", justifyContent: "space-between", flexWrap: "wrap", alignItems: "flex-start" }}>
                           {/* Left: question content */}

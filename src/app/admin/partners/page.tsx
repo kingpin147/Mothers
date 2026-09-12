@@ -26,6 +26,13 @@ export default function AdminPartnersPage() {
   const [editDiscountCode, setEditDiscountCode] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [editingPartnerFullId, setEditingPartnerFullId] = useState<string | null>(null);
+  const [editPartnerFullDraft, setEditPartnerFullDraft] = useState({
+    name: "",
+    specialty: "",
+    umbrella: "Wellness & Movement",
+    exclusive: false,
+  });
 
   // Filters & Sorting
   const [query, setQuery] = useState("");
@@ -152,6 +159,28 @@ export default function AdminPartnersPage() {
     if (res.success) {
       setEditingId(null);
       loadPartners();
+    }
+  };
+
+  const handleSaveFullPartner = async () => {
+    if (!editingPartnerFullId) return;
+    const p = partners.find((x) => x.id === editingPartnerFullId);
+    if (!p) return;
+    const res = await savePartner({
+      id: p.id,
+      name: editPartnerFullDraft.name.trim() || p.name,
+      specialty: editPartnerFullDraft.specialty.trim() || p.specialty,
+      umbrella: editPartnerFullDraft.umbrella,
+      offerForMembers: p.offerForMembers || p.offer || "",
+      discountCode: p.discountCode || undefined,
+      exclusive: editPartnerFullDraft.exclusive,
+      status: p.status,
+    });
+    if (res.success) {
+      setEditingPartnerFullId(null);
+      loadPartners();
+    } else {
+      alert(res.error || "Failed to update partner");
     }
   };
 
@@ -524,6 +553,81 @@ export default function AdminPartnersPage() {
             </div>
           </div>
         </div>
+
+        {/* EDIT PARTNER MODAL */}
+        {editingPartnerFullId && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(57,41,42,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "20px" }}>
+            <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", maxWidth: "480px", width: "100%", padding: "24px", boxShadow: "0 12px 36px rgba(0,0,0,0.15)" }}>
+              <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", margin: "0 0 16px" }}>Edit Partner Details</h3>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.04em", color: "rgba(57,41,42,0.65)", marginBottom: "4px" }}>Partner Name</label>
+                  <input
+                    type="text"
+                    value={editPartnerFullDraft.name}
+                    onChange={(e) => setEditPartnerFullDraft({ ...editPartnerFullDraft, name: e.target.value })}
+                    style={{ width: "100%", padding: "8px 10px", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", fontSize: "14px", background: "#fff" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.04em", color: "rgba(57,41,42,0.65)", marginBottom: "4px" }}>Specialty</label>
+                  <input
+                    type="text"
+                    value={editPartnerFullDraft.specialty}
+                    onChange={(e) => setEditPartnerFullDraft({ ...editPartnerFullDraft, specialty: e.target.value })}
+                    style={{ width: "100%", padding: "8px 10px", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", fontSize: "14px", background: "#fff" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.04em", color: "rgba(57,41,42,0.65)", marginBottom: "4px" }}>Umbrella Category</label>
+                  <select
+                    value={editPartnerFullDraft.umbrella}
+                    onChange={(e) => setEditPartnerFullDraft({ ...editPartnerFullDraft, umbrella: e.target.value })}
+                    style={{ width: "100%", padding: "8px 10px", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", fontSize: "14px", background: "#fff" }}
+                  >
+                    <option value="Wellness & Movement">Wellness & Movement</option>
+                    <option value="Expert Care & Support">Expert Care & Support</option>
+                    <option value="Baby & Child Activities">Baby & Child Activities</option>
+                    <option value="Places & Hospitality">Places & Hospitality</option>
+                    <option value="Brands & Retail">Brands & Retail</option>
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                  <input
+                    type="checkbox"
+                    id="edit_exclusive"
+                    checked={editPartnerFullDraft.exclusive}
+                    onChange={(e) => setEditPartnerFullDraft({ ...editPartnerFullDraft, exclusive: e.target.checked })}
+                  />
+                  <label htmlFor="edit_exclusive" style={{ fontSize: "13px", color: "rgba(57,41,42,0.85)" }}>
+                    Exclusive partner for this category
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingPartnerFullId(null)}
+                  style={{ padding: "8px 14px", background: "transparent", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", fontSize: "13px", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveFullPartner}
+                  style={{ padding: "8px 16px", background: "#7b1f2c", color: "#fff", border: "none", borderRadius: "4px", fontSize: "13px", cursor: "pointer", fontWeight: 600 }}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

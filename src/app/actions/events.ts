@@ -272,7 +272,6 @@ export async function deleteEvent(eventId: string) {
 
   // Delete related non-financial records
   await db.delete(eventWaitlist).where(eq(eventWaitlist.eventId, eventId));
-  await db.delete(eventHistory).where(eq(eventHistory.eventId, eventId));
   
   // Note: guestRsvp and eventStage have ON DELETE CASCADE in the schema.
   await db.delete(event).where(eq(event.id, eventId));
