@@ -1,53 +1,66 @@
 import { db } from "@/db";
 import { journalPost, mediaAsset } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, lte, or, isNull, sql } from "drizzle-orm";
 import JournalClient from "./JournalClient";
+import { normalizeCategoryId } from "@/lib/journalCategories";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const TOPIC_CAT: Record<string, string> = {
-  Pregnancy: "pregnancy",
-  "The early months": "postpartum",
-  "Family life": "family",
-  Barcelona: "city",
-  "From the members": "friendship",
-};
-
 export default async function JournalPage() {
+  const now = new Date();
+
+  // Fetch only published articles whose scheduled date has passed (or is null)
   const published = await db
     .select({
       post: journalPost,
       image: mediaAsset.publicUrl,
+      imageAlt: mediaAsset.altText,
     })
     .from(journalPost)
     .leftJoin(mediaAsset, eq(journalPost.heroImageId, mediaAsset.id))
-    .where(eq(journalPost.status, "published"))
-    .orderBy(desc(journalPost.publishedAt));
+    .where(
+      and(
+        eq(journalPost.status, "published"),
+        or(isNull(journalPost.publishedAt), lte(journalPost.publishedAt, now))
+      )
+    )
+    .orderBy(desc(journalPost.publishedAt), desc(journalPost.createdAt));
 
   const dynamicArticles = published.map((row) => {
     const a = row.post;
-    const wordCount = a.body ? a.body.split(/\s+/).length : 0;
-    const readTime = Math.max(1, Math.round(wordCount / 200));
+    const wordCountEn = a.body ? a.body.split(/\s+/).filter(Boolean).length : 0;
+    const wordCountEs = a.bodyEs ? a.bodyEs.split(/\s+/).filter(Boolean).length : wordCountEn;
     
-    // Attempt to map category, default to family
-    const cat = TOPIC_CAT[a.title] || "family"; // Note: title is used since topic column is missing, actually tm-store used a.topic but schema has no topic. We'll default to 'family' as a fallback, or map based on tags if added later.
+    const readTimeEn = Math.max(1, Math.round(wordCountEn / 200));
+    const readTimeEs = Math.max(1, Math.round(wordCountEs / 200));
+
+    const pubDate = a.publishedAt ? new Date(a.publishedAt) : new Date(a.createdAt);
 
     return {
       id: a.slug || a.id,
-      cat: cat,
-      dateEn: a.publishedAt ? new Date(a.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",
-      dateEs: a.publishedAt ? new Date(a.publishedAt).toLocaleDateString("es-ES", { month: "short", day: "numeric", year: "numeric" }) : "",
-      readEn: `${readTime} min read`,
-      readEs: `${readTime} min de lectura`,
+      slug: a.slug,
+      cat: normalizeCategoryId(a.category),
+      dateEn: pubDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      dateEs: pubDate.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }),
+      readEn: `${readTimeEn} min read`,
+      readEs: `${readTimeEs} min de lectura`,
       author: a.author || "The Mothers",
-      roleEn: "",
-      roleEs: "",
+      roleEn: a.authorRoleEn || "",
+      roleEs: a.authorRoleEs || "",
       titleEn: a.title,
-      titleEs: a.title,
+      titleEs: a.titleEs || a.title,
       dekEn: a.excerpt,
-      dekEs: a.excerpt,
-      image: row.image || "/assets/journal-doula.jpg", // fallback image
+      dekEs: a.excerptEs || a.excerpt,
+      quoteEn: a.quoteEn || "",
+      quoteEs: a.quoteEs || "",
+      bodyEn: a.body,
+      bodyEs: a.bodyEs || a.body,
+      bylineEn: a.bylineEn || "",
+      bylineEs: a.bylineEs || "",
+      image: row.image || "",
+      imageAlt: row.imageAlt || a.title,
+      audience: a.audience || "public",
     };
   });
 

@@ -5,11 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Locale } from "@/lib/i18n";
 import { subscribeToLetter } from "@/app/actions/publicWindow";
+import { JOURNAL_CATEGORIES, getCategoryLabel, normalizeCategoryId } from "@/lib/journalCategories";
 
-/* ─── Article data ─────────────────────────────────────────── */
+/* ─── Article Data Model ──────────────────────────────────── */
 
-interface Article {
+export interface PublicArticle {
   id: string;
+  slug?: string;
   cat: string;
   dateEn: string;
   dateEs: string;
@@ -22,12 +24,15 @@ interface Article {
   titleEs: string;
   dekEn: string;
   dekEs: string;
-  image: string;
+  image?: string;
+  imageAlt?: string;
+  audience?: string;
 }
 
-const ARTICLES: Article[] = [
+const STATIC_FALLBACKS: PublicArticle[] = [
   {
     id: "doula",
+    slug: "doula",
     cat: "postpartum",
     dateEn: "Aug 4, 2026",
     dateEs: "4 ago 2026",
@@ -44,6 +49,7 @@ const ARTICLES: Article[] = [
   },
   {
     id: "friends",
+    slug: "friends",
     cat: "friendship",
     dateEn: "Jul 28, 2026",
     dateEs: "28 jul 2026",
@@ -60,6 +66,7 @@ const ARTICLES: Article[] = [
   },
   {
     id: "sleep",
+    slug: "sleep",
     cat: "sleep",
     dateEn: "Jul 19, 2026",
     dateEs: "19 jul 2026",
@@ -76,6 +83,7 @@ const ARTICLES: Article[] = [
   },
   {
     id: "feeding",
+    slug: "feeding",
     cat: "feeding",
     dateEn: "Jul 8, 2026",
     dateEs: "8 jul 2026",
@@ -92,6 +100,7 @@ const ARTICLES: Article[] = [
   },
   {
     id: "yoga",
+    slug: "yoga",
     cat: "body",
     dateEn: "Jun 30, 2026",
     dateEs: "30 jun 2026",
@@ -108,6 +117,7 @@ const ARTICLES: Article[] = [
   },
   {
     id: "work",
+    slug: "work",
     cat: "work",
     dateEn: "Jun 17, 2026",
     dateEs: "17 jun 2026",
@@ -124,20 +134,17 @@ const ARTICLES: Article[] = [
   },
 ];
 
-/* ─── Categories matching Journal.dc.html exactly ────────── */
-
-const CATEGORIES = [
-  { id: "all", labelEn: "Everything", labelEs: "Todo" },
-  { id: "postpartum", labelEn: "Postpartum", labelEs: "Posparto" },
-  { id: "feeding", labelEn: "Feeding", labelEs: "Lactancia" },
-  { id: "sleep", labelEn: "Sleep", labelEs: "Sueño" },
-  { id: "body", labelEn: "Body & pregnancy", labelEs: "Cuerpo y embarazo" },
-  { id: "friendship", labelEn: "Friendship", labelEs: "Amistad" },
-  { id: "work", labelEn: "Work", labelEs: "Trabajo" },
+const DEFAULT_IMAGES = [
+  "/assets/journal-doula.jpg",
+  "/assets/journal-friends.jpg",
+  "/assets/journal-sleep.jpg",
+  "/assets/journal-feeding.jpg",
+  "/assets/journal-yoga.jpg",
+  "/assets/journal-work.jpg",
 ];
 
 interface JournalClientProps {
-  dynamicArticles: Article[];
+  dynamicArticles?: PublicArticle[];
 }
 
 export default function JournalClient({ dynamicArticles = [] }: JournalClientProps) {
@@ -179,19 +186,30 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
     }
   };
 
-  // Filter articles
-  const allArticles = [...dynamicArticles, ...ARTICLES];
-  const filtered =
-    selectedCat === "all" ? allArticles : allArticles.filter((a) => a.cat === selectedCat);
+  // Merge dynamic articles with static fallbacks
+  // Dynamic articles from DB take priority; avoid slug duplicates
+  const dynamicSlugs = new Set(dynamicArticles.map((a) => a.slug || a.id));
+  const remainingFallbacks = STATIC_FALLBACKS.filter((f) => !dynamicSlugs.has(f.slug || f.id));
+  const allArticles: PublicArticle[] = [...dynamicArticles, ...remainingFallbacks];
 
-  // Featured = first, grid = rest
+  // Category filter
+  const filtered =
+    selectedCat === "all"
+      ? allArticles
+      : allArticles.filter((a) => normalizeCategoryId(a.cat) === normalizeCategoryId(selectedCat));
+
   const featured = filtered.length > 0 ? filtered[0] : null;
   const gridArticles = filtered.length > 1 ? filtered.slice(1) : [];
 
-  const getCatLabel = (catId: string) => {
-    const cat = CATEGORIES.find((c) => c.id === catId);
-    return cat ? (lang === "en" ? cat.labelEn : cat.labelEs) : catId;
-  };
+  // Category Chips
+  const categoryChips = [
+    { id: "all", labelEn: "Everything", labelEs: "Todo" },
+    ...JOURNAL_CATEGORIES.map((c) => ({
+      id: c.id,
+      labelEn: c.labelEn,
+      labelEs: c.labelEs,
+    })),
+  ];
 
   return (
     <div
@@ -202,7 +220,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
         minHeight: "100vh",
       }}
     >
-      {/* ─── Hero ──────────────────────────────────────── */}
+      {/* ─── Hero Section ──────────────────────────────────── */}
       <section
         style={{
           maxWidth: "1160px",
@@ -240,11 +258,12 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
         </h1>
         <p
           style={{
-            fontSize: "19px",
-            lineHeight: 1.65,
-            color: "rgba(57, 41, 42, 0.78)",
+            fontSize: "17px",
+            lineHeight: 1.7,
+            color: "rgba(57, 41, 42, 0.72)",
             maxWidth: "44em",
             margin: 0,
+            textWrap: "pretty",
           }}
         >
           {lang === "en"
@@ -253,7 +272,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
         </p>
       </section>
 
-      {/* ─── Category Chips ────────────────────────────── */}
+      {/* ─── Category Chips ────────────────────────────────── */}
       <section
         style={{
           maxWidth: "1160px",
@@ -262,35 +281,36 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
         }}
       >
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-          {CATEGORIES.map((cat) => {
-            const isActive = selectedCat === cat.id;
+          {categoryChips.map((chip) => {
+            const isSelected = selectedCat === chip.id;
             return (
               <button
-                key={cat.id}
+                key={chip.id}
                 type="button"
-                onClick={() => setSelectedCat(cat.id)}
+                onClick={() => setSelectedCat(chip.id)}
                 style={{
-                  border: `1px solid ${isActive ? "#7b1f2c" : "rgba(57,41,42,0.25)"}`,
-                  color: isActive ? "#7b1f2c" : "#39292a",
-                  background: isActive ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                  border: isSelected
+                    ? "1px solid #7b1f2c"
+                    : "1px solid rgba(57, 41, 42, 0.22)",
+                  color: isSelected ? "#f8efe2" : "#39292a",
+                  backgroundColor: isSelected ? "#7b1f2c" : "transparent",
                   padding: "7px 16px",
                   borderRadius: "20px",
                   fontSize: "12.5px",
                   fontFamily: "'Lora', Georgia, serif",
                   cursor: "pointer",
                   whiteSpace: "nowrap",
-                  outline: "none",
-                  transition: "all 0.2s ease-in-out",
+                  transition: "all 0.15s ease",
                 }}
               >
-                {lang === "en" ? cat.labelEn : cat.labelEs}
+                {lang === "en" ? chip.labelEn : chip.labelEs}
               </button>
             );
           })}
         </div>
       </section>
 
-      {/* ─── Articles ──────────────────────────────────── */}
+      {/* ─── Articles Listing ──────────────────────────────── */}
       <section
         style={{
           maxWidth: "1160px",
@@ -298,268 +318,254 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
           padding: "clamp(20px, 3vw, 32px) clamp(24px, 5vw, 64px) clamp(48px, 6vw, 72px)",
         }}
       >
-        {/* Featured Post */}
-        {featured ? (
-          <article
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "clamp(24px, 4vw, 48px)",
-              alignItems: "stretch",
-              borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
-              paddingBottom: "clamp(32px, 4vw, 48px)",
-              marginBottom: "clamp(32px, 4vw, 48px)",
-            }}
-          >
-            {/* Image */}
-            <div
-              style={{
-                flex: "1 1 380px",
-                minWidth: "280px",
-                position: "relative",
-                borderRadius: "6px",
-                overflow: "hidden",
-                minHeight: "clamp(240px, 28vw, 340px)",
-              }}
-            >
-              <Image
-                src={featured.image}
-                alt={lang === "en" ? featured.titleEn : featured.titleEs}
-                fill
-                style={{ objectFit: "cover" }}
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
-            </div>
-
-            {/* Text */}
-            <div
-              style={{
-                flex: "1 1 380px",
-                minWidth: "280px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "10px",
-                  alignItems: "center",
-                  marginBottom: "14px",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "11px",
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    color: "#7b1f2c",
-                    border: "1px solid rgba(123,31,44,0.35)",
-                    borderRadius: "12px",
-                    padding: "4px 11px",
-                  }}
-                >
-                  {getCatLabel(featured.cat)}
-                </span>
-                <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.5)" }}>
-                  {lang === "en" ? featured.readEn : featured.readEs}
-                </span>
-              </div>
-              <h2
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 500,
-                  fontSize: "clamp(28px, 3.4vw, 40px)",
-                  lineHeight: 1.12,
-                  margin: "0 0 14px",
-                }}
-              >
-                <Link
-                  href={`/journal/${featured.id}`}
-                  style={{ color: "inherit", textDecoration: "none" }}
-                >
-                  {lang === "en" ? featured.titleEn : featured.titleEs}
-                </Link>
-              </h2>
-              <p
-                style={{
-                  fontSize: "16px",
-                  lineHeight: 1.7,
-                  color: "rgba(57, 41, 42, 0.72)",
-                  margin: "0 0 22px",
-                  maxWidth: "34em",
-                }}
-              >
-                {lang === "en" ? featured.dekEn : featured.dekEs}
-              </p>
-              <Link
-                href={`/journal/${featured.id}`}
-                style={{
-                  alignSelf: "flex-start",
-                  border: "1px solid #7b1f2c",
-                  color: "#7b1f2c",
-                  background: "transparent",
-                  padding: "12px 24px",
-                  borderRadius: "4px",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  textDecoration: "none",
-                  transition: "background 0.15s ease",
-                }}
-                onMouseEnter={(e) =>
-                  ((e.target as HTMLElement).style.background = "rgba(123,31,44,0.1)")
-                }
-                onMouseLeave={(e) =>
-                  ((e.target as HTMLElement).style.background = "transparent")
-                }
-              >
-                {lang === "en" ? "Read" : "Leer"}
-              </Link>
-            </div>
-          </article>
-        ) : (
-          <p style={{ fontSize: "15px", color: "rgba(57,41,42,0.6)", margin: 0 }}>
+        {filtered.length === 0 ? (
+          <p style={{ fontSize: "15px", color: "rgba(57, 41, 42, 0.6)", margin: "40px 0" }}>
             {lang === "en"
               ? "Nothing here yet — try another category."
               : "Aquí todavía no hay nada — prueba otra categoría."}
           </p>
-        )}
-
-        {/* Grid */}
-        {gridArticles.length > 0 && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-              gap: "clamp(24px, 3vw, 40px)",
-            }}
-          >
-            {gridArticles.map((art) => (
+        ) : (
+          <>
+            {/* ─── Featured Article ─── */}
+            {featured && (
               <article
-                key={art.id}
-                style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "clamp(24px, 4vw, 48px)",
+                  alignItems: "stretch",
+                  borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
+                  paddingBottom: "clamp(32px, 4vw, 48px)",
+                  marginBottom: "clamp(32px, 4vw, 48px)",
+                }}
               >
-                {/* Image */}
                 <div
                   style={{
-                    width: "100%",
-                    height: "200px",
+                    flex: "1 1 380px",
+                    minWidth: "280px",
                     position: "relative",
                     borderRadius: "6px",
                     overflow: "hidden",
+                    height: "clamp(240px, 28vw, 340px)",
+                    backgroundColor: "rgba(57, 41, 42, 0.08)",
                   }}
                 >
-                  <Image
-                    src={art.image}
-                    alt={lang === "en" ? art.titleEn : art.titleEs}
-                    fill
-                    style={{ objectFit: "cover" }}
-                    sizes="(max-width: 768px) 100vw, 33vw"
+                  <img
+                    src={featured.image || DEFAULT_IMAGES[0]}
+                    alt={featured.imageAlt || (lang === "en" ? featured.titleEn : featured.titleEs)}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
                   />
                 </div>
 
-                {/* Category & read time */}
                 <div
                   style={{
+                    flex: "1 1 380px",
+                    minWidth: "280px",
                     display: "flex",
-                    flexWrap: "wrap",
-                    gap: "10px",
-                    alignItems: "center",
+                    flexDirection: "column",
+                    justifyContent: "center",
                   }}
                 >
-                  <span
+                  <div
                     style={{
-                      fontSize: "11px",
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: "#7b1f2c",
-                      fontWeight: 600,
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "10px",
+                      alignItems: "center",
+                      marginBottom: "14px",
                     }}
                   >
-                    {getCatLabel(art.cat)}
-                  </span>
-                  <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.5)" }}>
-                    {lang === "en" ? art.readEn : art.readEs}
-                  </span>
-                </div>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        color: "#7b1f2c",
+                        border: "1px solid rgba(123, 31, 44, 0.35)",
+                        borderRadius: "12px",
+                        padding: "4px 11px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {getCategoryLabel(featured.cat, lang)}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.5)" }}>
+                      {lang === "en" ? featured.readEn : featured.readEs}
+                    </span>
+                  </div>
 
-                {/* Title */}
-                <h3
-                  style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "23px",
-                    lineHeight: 1.2,
-                    margin: 0,
-                  }}
-                >
+                  <h2
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 500,
+                      fontSize: "clamp(28px, 3.4vw, 40px)",
+                      lineHeight: 1.12,
+                      margin: "0 0 14px",
+                      textWrap: "pretty",
+                    }}
+                  >
+                    {lang === "en" ? featured.titleEn : featured.titleEs}
+                  </h2>
+
+                  <p
+                    style={{
+                      fontSize: "16px",
+                      lineHeight: 1.7,
+                      color: "rgba(57, 41, 42, 0.72)",
+                      margin: "0 0 22px",
+                      maxWidth: "34em",
+                      textWrap: "pretty",
+                    }}
+                  >
+                    {lang === "en" ? featured.dekEn : featured.dekEs}
+                  </p>
+
                   <Link
-                    href={`/journal/${art.id}`}
-                    style={{ color: "inherit", textDecoration: "none" }}
+                    href={`/journal/${featured.slug || featured.id}`}
+                    style={{
+                      alignSelf: "flex-start",
+                      border: "1px solid #7b1f2c",
+                      color: "#7b1f2c",
+                      backgroundColor: "transparent",
+                      padding: "12px 24px",
+                      borderRadius: "4px",
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "15px",
+                      textDecoration: "none",
+                      display: "inline-block",
+                    }}
                   >
-                    {lang === "en" ? art.titleEn : art.titleEs}
+                    {lang === "en" ? "Read" : "Leer"}
                   </Link>
-                </h3>
-
-                {/* Dek */}
-                <p
-                  style={{
-                    fontSize: "14.5px",
-                    lineHeight: 1.65,
-                    color: "rgba(57,41,42,0.7)",
-                    margin: 0,
-                  }}
-                >
-                  {lang === "en" ? art.dekEn : art.dekEs}
-                </p>
-
-                {/* Read CTA */}
-                <Link
-                  href={`/journal/${art.id}`}
-                  style={{
-                    alignSelf: "flex-start",
-                    border: "none",
-                    background: "transparent",
-                    color: "#7b1f2c",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "14.5px",
-                    textDecoration: "none",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "7px",
-                    padding: 0,
-                    transition: "color 0.15s ease",
-                  }}
-                >
-                  {lang === "en" ? "Read" : "Leer"}
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    width="14"
-                    height="14"
-                  >
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
-                </Link>
+                </div>
               </article>
-            ))}
-          </div>
+            )}
+
+            {/* ─── Grid Articles ─── */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                gap: "clamp(24px, 3vw, 40px)",
+              }}
+            >
+              {gridArticles.map((p, idx) => (
+                <article
+                  key={p.id || idx}
+                  style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "200px",
+                      borderRadius: "4px",
+                      overflow: "hidden",
+                      backgroundColor: "rgba(57, 41, 42, 0.08)",
+                    }}
+                  >
+                    <img
+                      src={p.image || DEFAULT_IMAGES[(idx + 1) % DEFAULT_IMAGES.length]}
+                      alt={p.imageAlt || (lang === "en" ? p.titleEn : p.titleEs)}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        color: "#7b1f2c",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {getCategoryLabel(p.cat, lang)}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.5)" }}>
+                      {lang === "en" ? p.readEn : p.readEs}
+                    </span>
+                  </div>
+
+                  <h3
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "23px",
+                      lineHeight: 1.2,
+                      margin: 0,
+                      textWrap: "pretty",
+                    }}
+                  >
+                    {lang === "en" ? p.titleEn : p.titleEs}
+                  </h3>
+
+                  <p
+                    style={{
+                      fontSize: "14.5px",
+                      lineHeight: 1.65,
+                      color: "rgba(57, 41, 42, 0.7)",
+                      margin: 0,
+                      textWrap: "pretty",
+                    }}
+                  >
+                    {lang === "en" ? p.dekEn : p.dekEs}
+                  </p>
+
+                  <Link
+                    href={`/journal/${p.slug || p.id}`}
+                    style={{
+                      alignSelf: "flex-start",
+                      color: "#7b1f2c",
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "14.5px",
+                      padding: 0,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "7px",
+                      textDecoration: "none",
+                    }}
+                  >
+                    <span>{lang === "en" ? "Read" : "Leer"}</span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      width="14"
+                      height="14"
+                    >
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </Link>
+                </article>
+              ))}
+            </div>
+          </>
         )}
       </section>
 
-      {/* ─── Newsletter "One letter a month" ───────────── */}
+      {/* ─── Newsletter Signup (The Letter) ─────────────────── */}
       <section
         style={{
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-          background: "#f8efe2",
+          backgroundColor: "#f8efe2",
         }}
       >
         <div
@@ -574,7 +580,6 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
             justifyContent: "space-between",
           }}
         >
-          {/* Left copy */}
           <div style={{ flex: "1 1 380px", minWidth: "280px" }}>
             <div
               style={{
@@ -615,18 +620,33 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
             </p>
           </div>
 
-          {/* Right form */}
           <div style={{ flex: "1 1 320px", minWidth: "280px" }}>
-            {!signupDone ? (
-              <>
+            {signupDone ? (
+              <div
+                style={{
+                  border: "1px solid rgba(86, 139, 5, 0.4)",
+                  backgroundColor: "rgba(86, 139, 5, 0.08)",
+                  borderRadius: "5px",
+                  padding: "16px 18px",
+                  display: "flex",
+                  gap: "10px",
+                  alignItems: "flex-start",
+                }}
+              >
+                <span style={{ color: "#568b05", flex: "none", marginTop: "1px" }}>✓</span>
+                <span style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.78)" }}>
+                  {lang === "en"
+                    ? "You're on the list — the next letter comes at the start of the month."
+                    : "Ya estás en la lista — la próxima carta sale a principios de mes."}
+                </span>
+              </div>
+            ) : (
+              <div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
                   <input
                     type="email"
                     value={signupEmail}
-                    onChange={(e) => {
-                      setSignupEmail(e.target.value);
-                      setSignupError(false);
-                    }}
+                    onChange={(e) => setSignupEmail(e.target.value)}
                     placeholder={lang === "en" ? "you@email.com" : "tu@email.com"}
                     style={{
                       flex: "1 1 200px",
@@ -635,25 +655,18 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                       fontSize: "15px",
                       fontFamily: "'Lora', Georgia, serif",
                       color: "#39292a",
-                      background: "#f8efe2",
-                      border: "1px solid rgba(57,41,42,0.25)",
+                      backgroundColor: "#f8efe2",
+                      border: "1px solid rgba(57, 41, 42, 0.25)",
                       borderRadius: "5px",
                       boxSizing: "border-box",
-                      outline: "none",
                     }}
-                    onFocus={(e) =>
-                      (e.target.style.borderColor = "#7b1f2c")
-                    }
-                    onBlur={(e) =>
-                      (e.target.style.borderColor = "rgba(57,41,42,0.25)")
-                    }
                   />
                   <button
                     type="button"
                     onClick={handleSignup}
                     style={{
                       border: "1px solid #7b1f2c",
-                      background: "#7b1f2c",
+                      backgroundColor: "#7b1f2c",
                       color: "#f8efe2",
                       padding: "13px 24px",
                       borderRadius: "5px",
@@ -662,14 +675,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                       fontSize: "15px",
                       cursor: "pointer",
                       whiteSpace: "nowrap",
-                      transition: "background 0.15s ease",
                     }}
-                    onMouseEnter={(e) =>
-                      ((e.target as HTMLElement).style.background = "#5e1621")
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.target as HTMLElement).style.background = "#7b1f2c")
-                    }
                   >
                     {lang === "en" ? "Sign up" : "Apuntarme"}
                   </button>
@@ -685,7 +691,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                   style={{
                     fontSize: "12px",
                     lineHeight: 1.6,
-                    color: "rgba(57,41,42,0.5)",
+                    color: "rgba(57, 41, 42, 0.5)",
                     margin: "12px 0 0",
                   }}
                 >
@@ -693,46 +699,6 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                     ? "We only use it for the letter. Unsubscribe in one click."
                     : "Solo lo usamos para la carta. Puedes darte de baja en un clic."}
                 </p>
-              </>
-            ) : (
-              <div
-                style={{
-                  border: "1px solid rgba(86,139,5,0.4)",
-                  background: "rgba(86,139,5,0.08)",
-                  borderRadius: "5px",
-                  padding: "16px 18px",
-                  display: "flex",
-                  gap: "10px",
-                  alignItems: "flex-start",
-                }}
-              >
-                <span
-                  style={{ color: "#568b05", flex: "none", marginTop: "1px" }}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    width="17"
-                    height="17"
-                  >
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                </span>
-                <span
-                  style={{
-                    fontSize: "14.5px",
-                    lineHeight: 1.6,
-                    color: "rgba(57,41,42,0.78)",
-                  }}
-                >
-                  {lang === "en"
-                    ? "You're on the list — the next letter comes at the start of the month."
-                    : "Ya estás en la lista — la próxima carta sale a principios de mes."}
-                </span>
               </div>
             )}
           </div>

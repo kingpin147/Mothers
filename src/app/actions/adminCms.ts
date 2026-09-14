@@ -18,13 +18,14 @@ import {
   adminUser,
   faqItem,
   journalPost,
+  mediaAsset,
   booking,
   event,
   auditLog,
   godmotherReferral,
   emailLog
 } from "@/db/schema";
-import { eq, desc, and, sql, ne, asc } from "drizzle-orm";
+import { eq, desc, and, or, sql, ne, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
 async function verifyAdminRole() {
@@ -765,8 +766,41 @@ export async function getAdminJournalPosts() {
   await verifyAdminRole();
 
   const posts = await db
-    .select()
+    .select({
+      id: journalPost.id,
+      title: journalPost.title,
+      titleEs: journalPost.titleEs,
+      slug: journalPost.slug,
+      category: journalPost.category,
+      excerpt: journalPost.excerpt,
+      excerptEs: journalPost.excerptEs,
+      body: journalPost.body,
+      bodyEs: journalPost.bodyEs,
+      quoteEn: journalPost.quoteEn,
+      quoteEs: journalPost.quoteEs,
+      author: journalPost.author,
+      authorRoleEn: journalPost.authorRoleEn,
+      authorRoleEs: journalPost.authorRoleEs,
+      bylineEn: journalPost.bylineEn,
+      bylineEs: journalPost.bylineEs,
+      reviewedNoteEn: journalPost.reviewedNoteEn,
+      reviewedNoteEs: journalPost.reviewedNoteEs,
+      heroImageId: journalPost.heroImageId,
+      heroImageUrl: mediaAsset.publicUrl,
+      heroImageAlt: mediaAsset.altText,
+      audience: journalPost.audience,
+      status: journalPost.status,
+      publishedAt: journalPost.publishedAt,
+      seoTitle: journalPost.seoTitle,
+      seoTitleEs: journalPost.seoTitleEs,
+      seoDescription: journalPost.seoDescription,
+      seoDescriptionEs: journalPost.seoDescriptionEs,
+      views: journalPost.views,
+      createdAt: journalPost.createdAt,
+      updatedAt: journalPost.updatedAt,
+    })
     .from(journalPost)
+    .leftJoin(mediaAsset, eq(journalPost.heroImageId, mediaAsset.id))
     .orderBy(desc(journalPost.createdAt));
 
   return { success: true, posts };
@@ -775,71 +809,178 @@ export async function getAdminJournalPosts() {
 export async function saveJournalPost(data: {
   id?: string;
   title: string;
+  titleEs?: string;
+  slug?: string;
+  category?: string;
   excerpt: string;
+  excerptEs?: string;
   body: string;
+  bodyEs?: string;
+  quoteEn?: string;
+  quoteEs?: string;
   author?: string;
-  status?: string; // 'published' | 'draft' | 'unpublished'
+  authorRoleEn?: string;
+  authorRoleEs?: string;
+  bylineEn?: string;
+  bylineEs?: string;
+  reviewedNoteEn?: string;
+  reviewedNoteEs?: string;
+  heroImageId?: string | null;
+  status?: string; // 'published' | 'scheduled' | 'draft' | 'unpublished'
   published?: boolean;
   publishedAt?: Date | null;
-  audience?: string;
-}): Promise<{ success: boolean; error?: string }> {
+  audience?: string; // 'public' | 'members_only'
+  seoTitle?: string;
+  seoTitleEs?: string;
+  seoDescription?: string;
+  seoDescriptionEs?: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    await verifyAdminRole();
-    const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-${Date.now().toString().slice(-4)}`;
+    const { adminId } = await verifyAdminRole();
 
-    const computedStatus = data.status || (data.published ? "published" : "draft");
+    const now = new Date();
+    let computedStatus = data.status || (data.published ? "published" : "draft");
+    let computedPublishedAt = data.publishedAt;
+
+    if (data.published && !data.publishedAt) {
+      computedPublishedAt = now;
+      computedStatus = "published";
+    }
+
+    if (computedPublishedAt && new Date(computedPublishedAt) > now && computedStatus !== "draft" && computedStatus !== "unpublished") {
+      computedStatus = "scheduled";
+    } else if (computedPublishedAt && new Date(computedPublishedAt) <= now && computedStatus === "scheduled") {
+      computedStatus = "published";
+    }
+
+    const payload = {
+      title: data.title.trim(),
+      titleEs: data.titleEs?.trim() || null,
+      category: data.category || "postpartum",
+      excerpt: data.excerpt.trim(),
+      excerptEs: data.excerptEs?.trim() || null,
+      body: data.body.trim(),
+      bodyEs: data.bodyEs?.trim() || null,
+      quoteEn: data.quoteEn?.trim() || null,
+      quoteEs: data.quoteEs?.trim() || null,
+      author: data.author?.trim() || "The Mothers",
+      authorRoleEn: data.authorRoleEn?.trim() || null,
+      authorRoleEs: data.authorRoleEs?.trim() || null,
+      bylineEn: data.bylineEn?.trim() || null,
+      bylineEs: data.bylineEs?.trim() || null,
+      reviewedNoteEn: data.reviewedNoteEn?.trim() || null,
+      reviewedNoteEs: data.reviewedNoteEs?.trim() || null,
+      heroImageId: data.heroImageId || null,
+      audience: data.audience || "public",
+      status: computedStatus,
+      publishedAt: computedPublishedAt,
+      seoTitle: data.seoTitle?.trim() || null,
+      seoTitleEs: data.seoTitleEs?.trim() || null,
+      seoDescription: data.seoDescription?.trim() || null,
+      seoDescriptionEs: data.seoDescriptionEs?.trim() || null,
+      updatedAt: now,
+    };
 
     if (data.id) {
       await db
         .update(journalPost)
-        .set({
-          title: data.title,
-          excerpt: data.excerpt,
-          body: data.body,
-          audience: data.audience || "public",
-          status: computedStatus,
-          publishedAt: data.publishedAt !== undefined ? data.publishedAt : (computedStatus === "published" ? new Date() : null),
-          updatedAt: new Date(),
-        })
+        .set(payload)
         .where(eq(journalPost.id, data.id));
-    } else {
-      await db.insert(journalPost).values({
-        slug,
-        title: data.title,
-        excerpt: data.excerpt,
-        body: data.body,
-        author: data.author || "The Mothers Editorial",
-        audience: data.audience || "public",
-        status: computedStatus,
-        publishedAt: data.publishedAt !== undefined ? data.publishedAt : (computedStatus === "published" ? new Date() : null),
-      });
-    }
 
-    return { success: true };
+      await db.insert(auditLog).values({
+        actorId: adminId,
+        actorType: "admin",
+        action: "update_journal_post",
+        entity: "journal_post",
+        entityId: data.id,
+        after: payload,
+      });
+
+      return { success: true, id: data.id };
+    } else {
+      const generatedSlug = (data.slug?.trim() || data.title)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 50) || `article-${Date.now().toString().slice(-4)}`;
+
+      // Ensure slug uniqueness
+      let finalSlug = generatedSlug;
+      const existingSlug = await db.select({ id: journalPost.id }).from(journalPost).where(eq(journalPost.slug, finalSlug)).limit(1);
+      if (existingSlug.length > 0) {
+        finalSlug = `${generatedSlug}-${Date.now().toString().slice(-4)}`;
+      }
+
+      const inserted = await db.insert(journalPost).values({
+        ...payload,
+        slug: finalSlug,
+      }).returning({ id: journalPost.id });
+
+      const newId = inserted[0]?.id;
+
+      await db.insert(auditLog).values({
+        actorId: adminId,
+        actorType: "admin",
+        action: "create_journal_post",
+        entity: "journal_post",
+        entityId: newId,
+        after: { ...payload, slug: finalSlug },
+      });
+
+      return { success: true, id: newId };
+    }
   } catch (error: any) {
+    console.error("Save journal post error:", error);
     return { success: false, error: error?.message || "SAVE_JOURNAL_FAILED" };
   }
 }
 
 export async function duplicateJournalPost(id: string): Promise<{ success: boolean; error?: string }> {
   try {
-    await verifyAdminRole();
+    const { adminId } = await verifyAdminRole();
     const existing = await db.select().from(journalPost).where(eq(journalPost.id, id)).limit(1);
     if (!existing.length) return { success: false, error: "POST_NOT_FOUND" };
 
     const orig = existing[0];
     const newTitle = `${orig.title} (Draft)`;
-    const newSlug = `${orig.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-draft-${Date.now().toString().slice(-4)}`;
+    const baseSlug = orig.slug.replace(/-draft-\d+$/, "").slice(0, 40);
+    const newSlug = `${baseSlug}-draft-${Date.now().toString().slice(-4)}`;
 
-    await db.insert(journalPost).values({
+    const inserted = await db.insert(journalPost).values({
       title: newTitle,
+      titleEs: orig.titleEs ? `${orig.titleEs} (Borrador)` : null,
       slug: newSlug,
+      category: orig.category,
       excerpt: orig.excerpt,
+      excerptEs: orig.excerptEs,
       body: orig.body,
+      bodyEs: orig.bodyEs,
+      quoteEn: orig.quoteEn,
+      quoteEs: orig.quoteEs,
       author: orig.author,
+      authorRoleEn: orig.authorRoleEn,
+      authorRoleEs: orig.authorRoleEs,
+      bylineEn: orig.bylineEn,
+      bylineEs: orig.bylineEs,
+      reviewedNoteEn: orig.reviewedNoteEn,
+      reviewedNoteEs: orig.reviewedNoteEs,
+      heroImageId: orig.heroImageId,
       audience: orig.audience,
       status: "draft",
       publishedAt: null,
+      seoTitle: orig.seoTitle,
+      seoTitleEs: orig.seoTitleEs,
+      seoDescription: orig.seoDescription,
+      seoDescriptionEs: orig.seoDescriptionEs,
+    }).returning({ id: journalPost.id });
+
+    await db.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "duplicate_journal_post",
+      entity: "journal_post",
+      entityId: inserted[0]?.id,
+      after: { sourceId: id, newTitle, newSlug },
     });
 
     return { success: true };
@@ -850,18 +991,178 @@ export async function duplicateJournalPost(id: string): Promise<{ success: boole
 
 export async function updateJournalPostSlug(id: string, newSlug: string): Promise<{ success: boolean; error?: string }> {
   try {
-    await verifyAdminRole();
-    const cleanSlug = newSlug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const { adminId } = await verifyAdminRole();
+    const cleanSlug = newSlug
+      .toLowerCase()
+      .replace(/^https?:\/\/[^\/]+\/journal\//, "")
+      .replace(/^\/journal\//, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
     if (!cleanSlug) return { success: false, error: "INVALID_SLUG" };
+
+    const conflict = await db
+      .select({ id: journalPost.id })
+      .from(journalPost)
+      .where(and(eq(journalPost.slug, cleanSlug), ne(journalPost.id, id)))
+      .limit(1);
+
+    if (conflict.length > 0) {
+      return { success: false, error: "SLUG_ALREADY_IN_USE" };
+    }
 
     await db
       .update(journalPost)
       .set({ slug: cleanSlug, updatedAt: new Date() })
       .where(eq(journalPost.id, id));
 
+    await db.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "update_journal_slug",
+      entity: "journal_post",
+      entityId: id,
+      after: { newSlug: cleanSlug },
+    });
+
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "UPDATE_SLUG_FAILED" };
   }
 }
+
+export async function toggleJournalPostStatus(id: string, action: "publish" | "unpublish" | "restore" | "draft"): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { adminId } = await verifyAdminRole();
+    const now = new Date();
+
+    let newStatus = "draft";
+    let newPublishedAt: Date | null = null;
+
+    if (action === "publish") {
+      newStatus = "published";
+      newPublishedAt = now;
+    } else if (action === "unpublish") {
+      newStatus = "unpublished";
+      newPublishedAt = null;
+    } else if (action === "restore") {
+      newStatus = "published";
+      newPublishedAt = now;
+    } else if (action === "draft") {
+      newStatus = "draft";
+      newPublishedAt = null;
+    }
+
+    await db
+      .update(journalPost)
+      .set({
+        status: newStatus,
+        publishedAt: newPublishedAt,
+        updatedAt: now,
+      })
+      .where(eq(journalPost.id, id));
+
+    await db.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: `journal_status_${action}`,
+      entity: "journal_post",
+      entityId: id,
+      after: { status: newStatus, publishedAt: newPublishedAt },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "STATUS_CHANGE_FAILED" };
+  }
+}
+
+export async function incrementJournalPostViews(slug: string): Promise<void> {
+  try {
+    await db
+      .update(journalPost)
+      .set({ views: sql`${journalPost.views} + 1` })
+      .where(or(eq(journalPost.slug, slug), eq(journalPost.id, slug)));
+  } catch (e) {
+    // Non-blocking view tracking
+    console.error("View increment error:", e);
+  }
+}
+
+export async function getPublicJournalArticle(slug: string) {
+  try {
+    const clean = slug.toLowerCase().replace(/^\/journal\//, "").replace(/\/$/, "");
+
+    const post = await db
+      .select({
+        id: journalPost.id,
+        title: journalPost.title,
+        titleEs: journalPost.titleEs,
+        slug: journalPost.slug,
+        category: journalPost.category,
+        excerpt: journalPost.excerpt,
+        excerptEs: journalPost.excerptEs,
+        body: journalPost.body,
+        bodyEs: journalPost.bodyEs,
+        quoteEn: journalPost.quoteEn,
+        quoteEs: journalPost.quoteEs,
+        author: journalPost.author,
+        authorRoleEn: journalPost.authorRoleEn,
+        authorRoleEs: journalPost.authorRoleEs,
+        bylineEn: journalPost.bylineEn,
+        bylineEs: journalPost.bylineEs,
+        reviewedNoteEn: journalPost.reviewedNoteEn,
+        reviewedNoteEs: journalPost.reviewedNoteEs,
+        heroImageId: journalPost.heroImageId,
+        heroImageUrl: mediaAsset.publicUrl,
+        heroImageAlt: mediaAsset.altText,
+        audience: journalPost.audience,
+        status: journalPost.status,
+        publishedAt: journalPost.publishedAt,
+        views: journalPost.views,
+        createdAt: journalPost.createdAt,
+      })
+      .from(journalPost)
+      .leftJoin(mediaAsset, eq(journalPost.heroImageId, mediaAsset.id))
+      .where(
+        and(
+          eq(journalPost.status, "published"),
+          or(eq(journalPost.slug, clean), eq(journalPost.id, clean))
+        )
+      )
+      .limit(1);
+
+    if (!post.length) return null;
+
+    const current = post[0];
+
+    // Fetch related articles in the same category
+    const related = await db
+      .select({
+        id: journalPost.id,
+        slug: journalPost.slug,
+        title: journalPost.title,
+        titleEs: journalPost.titleEs,
+        category: journalPost.category,
+        excerpt: journalPost.excerpt,
+        excerptEs: journalPost.excerptEs,
+        publishedAt: journalPost.publishedAt,
+      })
+      .from(journalPost)
+      .where(
+        and(
+          eq(journalPost.status, "published"),
+          ne(journalPost.slug, current.slug),
+          eq(journalPost.category, current.category)
+        )
+      )
+      .limit(2);
+
+    return { post: current, related };
+  } catch (error) {
+    console.error("Error fetching public journal article:", error);
+    return null;
+  }
+}
+
 
