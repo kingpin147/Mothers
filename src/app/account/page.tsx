@@ -194,6 +194,9 @@ export default function AccountPage() {
   // Perks revealed codes state
   const [revealedPerks, setRevealedPerks] = useState<Record<string, boolean>>({});
 
+  // Cancel reservation state
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+
   useEffect(() => {
     const saved = localStorage.getItem("tm_lang");
     if (saved === "es" || saved === "en") setLang(saved as Locale);
@@ -305,8 +308,6 @@ export default function AccountPage() {
       setTopUpLoading(false);
     }
   };
-
-  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
 
   const handleCancelBooking = async (bookingId: string) => {
     const promptMsg = lang === "en"
