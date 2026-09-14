@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { application, window, waitlistEntry, person, setting } from "@/db/schema";
+import { application, window, waitlistEntry, person, setting, subscriber } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 export async function getPublicMembershipWindow() {
@@ -57,6 +57,20 @@ export async function subscribeToLetter(email: string) {
   if (!email || !email.includes("@")) return { success: false, error: "INVALID_EMAIL" };
   const cleanEmail = email.toLowerCase().trim();
   try {
+    // 1. Record in subscriber table
+    const existingSub = await db.query.subscriber.findFirst({
+      where: and(eq(subscriber.email, cleanEmail), eq(subscriber.list, "letter")),
+    });
+    if (!existingSub) {
+      await db.insert(subscriber).values({
+        email: cleanEmail,
+        list: "letter",
+        source: "journal",
+        marketingConsent: true,
+      });
+    }
+
+    // 2. Record in person & waitlistEntry
     let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
     if (!personRecord) {
       const [p] = await db.insert(person).values({ firstName: "", lastName: "", email: cleanEmail, source: "letter" }).returning();
@@ -65,6 +79,40 @@ export async function subscribeToLetter(email: string) {
     const existing = await db.query.waitlistEntry.findFirst({ where: eq(waitlistEntry.personId, personRecord.id) });
     if (!existing) {
       await db.insert(waitlistEntry).values({ personId: personRecord.id, source: "letter" });
+    }
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message };
+  }
+}
+
+export async function subscribeToComingSoon(email: string, name?: string) {
+  if (!email || !email.includes("@")) return { success: false, error: "INVALID_EMAIL" };
+  const cleanEmail = email.toLowerCase().trim();
+  try {
+    // 1. Record in subscriber table
+    const existingSub = await db.query.subscriber.findFirst({
+      where: and(eq(subscriber.email, cleanEmail), eq(subscriber.list, "letter")),
+    });
+    if (!existingSub) {
+      await db.insert(subscriber).values({
+        name: name?.trim() || null,
+        email: cleanEmail,
+        list: "letter",
+        source: "coming_soon",
+        marketingConsent: true,
+      });
+    }
+
+    // 2. Record in person & waitlistEntry
+    let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
+    if (!personRecord) {
+      const [p] = await db.insert(person).values({ firstName: name?.trim() || "", lastName: "", email: cleanEmail, source: "coming_soon" }).returning();
+      personRecord = p;
+    }
+    const existing = await db.query.waitlistEntry.findFirst({ where: eq(waitlistEntry.personId, personRecord.id) });
+    if (!existing) {
+      await db.insert(waitlistEntry).values({ personId: personRecord.id, source: "coming_soon" });
     }
     return { success: true };
   } catch (e: any) {
