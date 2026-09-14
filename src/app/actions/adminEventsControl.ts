@@ -16,6 +16,7 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import crypto from "crypto";
 import { z } from "zod";
+import { getAppUrl } from "@/lib/urls";
 
 async function verifyAdmin() {
   const session = await auth();
@@ -353,7 +354,7 @@ export async function adminIssueGuestPass(data: {
   return {
     success: true,
     ticketToken,
-    ticketUrl: `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/ticket/${ticketToken}`,
+    ticketUrl: `${getAppUrl()}/ticket/${ticketToken}`,
   };
 }
 
@@ -400,10 +401,8 @@ export async function adminUpdateMemberStatus(
   return { success: true };
 }
 
-import { adjustCredits } from "@/lib/ledger";
-
 const adjustCreditsSchema = z.object({
-  memberId: z.string().uuid(),
+  memberId: z.string().min(1),
   amount: z.number(),
   reason: z.string().min(1).trim(),
 });
@@ -420,6 +419,7 @@ export async function adjustCreditsAction(data: {
   const { adminId } = await verifyAdmin();
 
   try {
+    const { adjustCredits } = await import("@/lib/ledger");
     const result = await adjustCredits({
       memberId: validData.memberId,
       amount: validData.amount,
@@ -431,7 +431,6 @@ export async function adjustCreditsAction(data: {
     return { success: false, error: error?.message || "ADJUSTMENT_FAILED" };
   }
 }
-
 
 export async function adminCancelMemberBooking(bookingId: string) {
   const { adminId } = await verifyAdmin();

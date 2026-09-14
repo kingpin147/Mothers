@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { member, person, creditEntry, booking, event, eventCategory, eventPass, partner, partnerPerk, perkCodePool, perkReveal } from "@/db/schema";
 import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { getAppUrl } from "@/lib/urls";
 
 export async function getAccountData() {
   const session = await auth();
@@ -118,7 +119,7 @@ export async function getAccountData() {
         .limit(10),
       db
         .select({
-          totalCreditsEarned: sql<number>`COALESCE(SUM(CASE WHEN type = 'godmother' THEN amount ELSE 0 END), 0)`,
+          totalCreditsEarned: sql<number>`COALESCE(SUM(CASE WHEN type IN ('godmother', 'godmother_bonus', 'referral') OR (type = 'grant' AND source_type = 'referral') OR (type = 'adjustment' AND source_type = 'godmother') THEN amount ELSE 0 END), 0)`,
         })
         .from(creditEntry)
         .where(eq(creditEntry.memberId, memberId)),
@@ -327,7 +328,7 @@ export async function getStripePortalUrl() {
     const { stripe } = await import("@/lib/stripe");
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: memberRecord.stripeCustomerId,
-      return_url: `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/account`,
+      return_url: `${getAppUrl()}/account`,
     });
 
     return { success: true, url: portalSession.url };

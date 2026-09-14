@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { canBook, canRelease, canBuyPass, canRsvp } from "@/lib/access";
 import { spendCredits, returnCredits } from "@/lib/ledger";
 import { queueAndSendEmail } from "@/lib/brevo";
+import { getAppUrl } from "@/lib/urls";
 import crypto from "crypto";
 import { z } from "zod";
 
@@ -238,6 +239,11 @@ export async function bookEvent(eventId: string) {
           ? `Reserva Confirmada: ${result.eventTitle} — The Mothers`
           : `Booking Confirmed: ${result.eventTitle} — The Mothers`;
 
+      const origin = getAppUrl();
+      const accountUrl = `${origin}/account`;
+      const eventDateFormatted = new Date(result.startsAt).toLocaleDateString(personRecord.locale === "es" ? "es-ES" : "en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+      const eventTimeFormatted = new Date(result.startsAt).toLocaleTimeString(personRecord.locale === "es" ? "es-ES" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+
       const htmlContent = `\n<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -257,7 +263,7 @@ export async function bookEvent(eventId: string) {
 </style>
 </head>
 <body style="margin:0;padding:0;background-color:#efeae1;">
-<span style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Your place is booked — this email carries the meeting point. Credits have come off your balance.</span>
+<span style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Your place is booked — this email carries the meeting point.</span>
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
 <tr>
@@ -282,8 +288,8 @@ export async function bookEvent(eventId: string) {
 <tr>
 <td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
 <p style="margin:0 0 16px;">Hello <span style="color:#7b1f2c;">${personRecord.firstName}</span>,</p>
-<p style="margin:0 0 16px;">You're in. <strong style="font-weight:normal;color:#7b1f2c;">[Event title]</strong> — the details are below, and this email is the only thing you need to bring.</p>
-<p style="margin:0;">If plans change, release your place from your account and the credits come straight back, up to [24 hours] before. After that they don't, because the table is already laid.</p>
+<p style="margin:0 0 16px;">You're in. <strong style="font-weight:normal;color:#7b1f2c;">${result.eventTitle}</strong> — the details are below, and this email is the only thing you need to bring.</p>
+<p style="margin:0;">If plans change, release your place from your account and the credits come straight back, up to 24 hours before. After that they don't, because the table is already laid.</p>
 </td>
 </tr>
 
@@ -295,23 +301,15 @@ export async function bookEvent(eventId: string) {
 </tr>
 <tr>
 <td style="padding:0 24px 22px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
-<div style="font-size:20px;line-height:28px;mso-line-height-rule:exactly;padding-bottom:12px;">[Event title]</div>
+<div style="font-size:20px;line-height:28px;mso-line-height-rule:exactly;padding-bottom:12px;">${result.eventTitle}</div>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
 <tr>
 <td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Date</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Day, date] · [time]</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">${eventDateFormatted} · ${eventTimeFormatted}</td>
 </tr>
 <tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Meeting point</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[Street and number]<br><span style="color:#8a807a;font-size:14px;">[Neighbourhood]</span></td>
-</tr>
-<tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Spent</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;"><strong style="font-weight:normal;color:#7b1f2c;">[N] credits</strong></td>
-</tr>
-<tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Balance</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">[N] credits left this month</td>
+<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Venue</td>
+<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">${result.venueName || "See meeting point in account"}</td>
 </tr>
 </table>
 </td>
@@ -325,7 +323,7 @@ export async function bookEvent(eventId: string) {
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td bgcolor="#7b1f2c" style="border-radius:4px;">
-<a href="Account.dc.html" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">View or release my place</a>
+<a href="${accountUrl}" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">View or release my place</a>
 </td>
 </tr>
 </table>
@@ -339,15 +337,11 @@ export async function bookEvent(eventId: string) {
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
 <tr>
 <td width="26" valign="top" style="width:26px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">01</td>
-<td valign="top" style="">Release before [24 hours] and your credits return in full. After that they stay spent — the numbers have gone to the host by then.</td>
+<td valign="top" style="">Release before 24 hours and your credits return in full. After that they stay spent — the numbers have gone to the host by then.</td>
 </tr>
 <tr>
 <td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">02</td>
-<td valign="top" style="padding-top:10px;">If we cancel for any reason, your credits come back automatically and we email you a week ahead where we can.</td>
-</tr>
-<tr>
-<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">03</td>
-<td valign="top" style="padding-top:10px;">Bringing your baby? [Say which events are baby-in-arms and which are not — she should not have to guess.]</td>
+<td valign="top" style="padding-top:10px;">If we cancel for any reason, your credits come back automatically and we email you ahead of time.</td>
 </tr>
 </table>
 </td>
@@ -569,7 +563,7 @@ export async function releaseBooking(bookingId: string) {
         where: eq(person.id, result.offeredPersonId)
       });
       if (offeredPerson) {
-        const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+        const origin = getAppUrl();
         await queueAndSendEmail({
           personId: result.offeredPersonId,
           toEmail: offeredPerson.email,
@@ -604,7 +598,7 @@ export async function releaseBooking(bookingId: string) {
 // ─── 3. GUEST PASS PURCHASE WITH 32-BYTE TOKEN (§9) ─────────────────────────
 
 const buyGuestPassSchema = z.object({
-  eventId: z.string().uuid(),
+  eventId: z.string().min(1),
   firstName: z.string().min(1).trim(),
   lastName: z.string().trim().default(""),
   email: z.string().email().toLowerCase().trim(),
@@ -741,7 +735,7 @@ export async function buyGuestPass(params: {
     // 5. Generate Stripe Checkout Session for Guest Pass
     // We import Stripe locally to avoid server startup issues if not configured
     const { stripe } = await import("@/lib/stripe");
-    const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const origin = getAppUrl();
 
     const stripeSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -809,7 +803,7 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
 
   try {
     const { stripe } = await import("@/lib/stripe");
-    const origin = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const origin = getAppUrl();
 
     const personRecord = await db.query.person.findFirst({ where: eq(person.id, memberRecord.personId) });
 
@@ -911,7 +905,12 @@ export async function claimWaitlistOffer(waitlistId: string) {
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
 
   const personId = (session.user as any).personId || session.user.id;
-  const memberId = (session.user as any).memberId;
+  let memberId = (session.user as any).memberId;
+
+  if (!memberId && personId) {
+    const mem = await db.query.member.findFirst({ where: eq(member.personId, personId) });
+    if (mem) memberId = mem.id;
+  }
 
   try {
     const result = await db.transaction(async (tx) => {

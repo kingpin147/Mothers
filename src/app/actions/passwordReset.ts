@@ -6,6 +6,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { queueAndSendEmail } from "@/lib/brevo";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { getAppUrl } from "@/lib/urls";
 
 // ─── 1. REQUEST PASSWORD RESET (PREVENTS ENUMERATION) ───────────────────────
 
@@ -52,7 +53,7 @@ export async function requestPasswordReset(email: string, locale: "en" | "es" = 
     }
 
     // Send Brevo Email - Password Reset.html
-    const resetUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/account/reset-password/${rawToken}`;
+    const resetUrl = `${getAppUrl()}/account/reset-password/${rawToken}`;
     const userLocale = personRecord.locale || locale;
 
     const subject =

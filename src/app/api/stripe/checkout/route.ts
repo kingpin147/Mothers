@@ -4,12 +4,13 @@ import { db } from "@/db";
 import { event, member, window, application, eventPass, person } from "@/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { auth } from "@/lib/auth"; 
+import { getAppUrl } from "@/lib/urls"; 
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { type, eventId, memberId, token, amount } = body;
-    const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const origin = req.headers.get("origin") || getAppUrl();
 
     if (type === "guest_pass") {
       const session = await auth();

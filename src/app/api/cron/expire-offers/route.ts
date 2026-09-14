@@ -11,6 +11,7 @@ import {
 import { eq, and, sql, asc } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { queueAndSendEmail } from "@/lib/brevo";
+import { getAppUrl } from "@/lib/urls";
 
 /**
  * Expire Offers Cron (§7.4, §4.2, §8)
@@ -162,7 +163,7 @@ export async function GET(req: NextRequest) {
       );
 
     for (const app of appsNeedingReminder) {
-      const activationUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/membership/activate/${app.paymentLinkToken}`;
+      const activationUrl = `${getAppUrl()}/membership/activate/${app.paymentLinkToken}`;
       const subject =
         app.locale === "es"
           ? "Recordatorio: Tu plaza caduca en 48h — The Mothers"

@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import { queueAndSendEmail } from "@/lib/brevo";
 import { headers } from "next/headers";
+import { getAppUrl } from "@/lib/urls";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -117,7 +118,7 @@ async function handleGuestPassPurchase(personId: string, eventId: string, amount
     });
 
     // Send email
-    const ticketUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/ticket/${rawToken}`;
+    const ticketUrl = `${getAppUrl()}/ticket/${rawToken}`;
     const subject = `Your Ticket: ${eventRecord.title} — The Mothers`;
 
     const htmlContent = `
@@ -238,7 +239,7 @@ async function handleGuestPassPurchase(personId: string, eventId: string, amount
 <tr>
 <td style="padding:22px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#5c534e;">
 <p style="margin:0 0 14px;">If this turns out to be your kind of room, <strong style="font-weight:normal;color:#7b1f2c;">we waive the joining fee</strong> when you join within 30 days of the event, so your first payment is just the month itself. Membership is €39 a month, or €99 every three months, and it covers the whole calendar rather than one table.</p>
-<a href="${process.env.NEXTAUTH_URL || "http://localhost:3000"}/membership" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;color:#7b1f2c;text-decoration:underline;">See what membership includes</a>
+<a href="${getAppUrl()}/membership" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;color:#7b1f2c;text-decoration:underline;">See what membership includes</a>
 </td>
 </tr>
 </table>

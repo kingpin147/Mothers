@@ -4,6 +4,7 @@ import { event, booking, person, member, jobRun, auditLog } from "@/db/schema";
 import { eq, and, lt, inArray } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { queueAndSendEmail } from "@/lib/brevo";
+import { getAppUrl } from "@/lib/urls";
 
 /**
  * Complete Events Cron (§4.3, §8)
@@ -168,7 +169,7 @@ export async function GET(req: NextRequest) {
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td bgcolor="#7b1f2c" style="border-radius:4px;">
-<a href="${process.env.NEXTAUTH_URL || "http://localhost:3000"}/membership" style="display:block;padding:14px 30px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">Join The Mothers</a>
+<a href="${getAppUrl()}/membership" style="display:block;padding:14px 30px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">Join The Mothers</a>
 </td>
 </tr>
 </table>

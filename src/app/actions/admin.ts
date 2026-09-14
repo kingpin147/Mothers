@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { queueAndSendEmail } from "@/lib/brevo";
 import crypto from "crypto";
 import { z } from "zod";
+import { getAppUrl } from "@/lib/urls";
 
 // List applications for admin review queue
 export async function getApplicationsForAdmin(statusFilter?: "submitted" | "accepted" | "declined" | "all") {
@@ -45,7 +46,7 @@ export async function getApplicationsForAdmin(statusFilter?: "submitted" | "acce
   return { success: true, applications: allApps.filter((a) => a.status === statusFilter) };
 }
 
-const acceptAppSchema = z.object({ applicationId: z.string().uuid() });
+const acceptAppSchema = z.object({ applicationId: z.string().min(1) });
 
 // Accept an application: Generates 72-hour signed payment link and sends Email - Accepted.html (§19, §20.1)
 export async function acceptApplication(applicationId: string) {
@@ -202,7 +203,7 @@ export async function acceptApplication(applicationId: string) {
   }
 
   // Send Email - Accepted.html
-  const activationUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/membership/activate/${paymentLinkToken}`;
+  const activationUrl = `${getAppUrl()}/membership/activate/${paymentLinkToken}`;
   const subject =
     personRecord.locale === "es"
       ? "Tu plaza en The Mothers está lista — Enlace de activación (72h)"
@@ -365,7 +366,7 @@ You're receiving this because you applied to join The Mothers.<br>
 }
 
 const declineAppSchema = z.object({
-  applicationId: z.string().uuid(),
+  applicationId: z.string().min(1),
   reasonCode: z.string().optional(),
   declineNote: z.string().optional(),
 });
