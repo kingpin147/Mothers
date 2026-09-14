@@ -159,7 +159,7 @@ export function canBuyPass(
   
   if (!event.guestOpenAt && !event.guestCloseAt) {
     const daysUntil = Math.round((new Date(event.startsAt).getTime() - at.getTime()) / 86400000);
-    if (daysUntil < 2 || daysUntil > 7) {
+    if (daysUntil < 2 || daysUntil > 14) {
       return { allowed: false, reasonCode: "GUEST_WINDOW_NOT_OPEN" };
     }
   }

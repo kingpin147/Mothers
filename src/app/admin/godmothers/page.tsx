@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getGodmotherLeaderboard, payoutGodmotherReward } from "@/app/actions/adminCms";
+import { BackArrow } from "@/components/Icons";
 
 export default function AdminGodmothersPage() {
   const [referrals, setReferrals] = useState<any[]>([]);
@@ -48,7 +49,7 @@ export default function AdminGodmothersPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "24px" }}>
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "6px" }}>
-              <Link href="/admin" style={{ color: "#7b1f2c", textDecoration: "none" }}>← Back to Dashboard</Link>
+              <Link href="/admin" style={{ color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}><BackArrow /> Back to Dashboard</Link>
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(28px, 3.8vw, 38px)", lineHeight: 1.1, margin: "0 0 6px" }}>
               Godmother Referrals & Rewards

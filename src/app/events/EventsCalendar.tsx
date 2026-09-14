@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { buyGuestPass, buyExtraCredits, bookEvent } from "@/app/actions/booking";
 import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 import { useLanguage } from "@/components/LanguageProvider";
+import { ForwardArrow } from "@/components/Icons";
 
 export type Lang = "en" | "es";
 
@@ -50,7 +51,9 @@ export interface PublicEvent {
   capacityRemaining?: number | null;
   placesTaken?: number;
   bookedMember?: number;
+  bookedGuest?: number;
   isFull?: boolean;
+  isGuestFull?: boolean;
   minToConfirm?: number | null;
   guestPriceCents?: number | null;
   showEventPassCta?: boolean | null;
@@ -193,6 +196,7 @@ function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
   if (ev.creditCost === 0 || ev.isFreeWalk) return false;
   if (ev.isSignature || ev.creditCost > 18) return false;
   if (ev.status === "cancelled" || ev.status === "completed") return false;
+  if (ev.isFull || ev.isGuestFull) return false;
 
   // If explicitly activated by admin in the backend:
   if (ev.showEventPassCta) return true;
@@ -1468,6 +1472,7 @@ function EventCard({
   const isPending = ev.status === "published_pending" || ev.status === "pending";
   // Use server-computed isFull value
   const isFull = ev.isFull || false;
+  const isOpenList = !ev.capacityTotal || ev.isFreeWalk || ev.creditCost === 0;
 
   const handleBookClick = () => {
     if (ev.isFreeWalk || ev.creditCost === 0) {
@@ -1675,7 +1680,7 @@ function EventCard({
         ) : null}
 
         {/* Free Unlimited / Open list */}
-        {(!ev.capacityTotal || ev.isFreeWalk || ev.creditCost === 0) && !isCancelled && !isPast && !isFull && (
+        {isOpenList && !isCancelled && !isPast && (
           <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)", marginBottom: "4px" }}>
             {lang === "en"
               ? `Open list — no limit on places${(ev.placesTaken || 0) > 0 ? ` · ${ev.placesTaken} mother${ev.placesTaken === 1 ? "" : "s"} coming` : ""}`
@@ -1683,22 +1688,22 @@ function EventCard({
           </div>
         )}
 
-        {/* Scarcity indicator: show when spaces are running low (3 or fewer) but not full */}
-        {!isFull && ev.capacityRemaining && ev.capacityRemaining > 0 && ev.capacityRemaining <= 3 && !isCancelled && !isPast && !ev.userStatus?.isBooked && (
+        {/* Scarcity indicator: show when spaces are running low (3 or fewer) but not full, NOT on open list events */}
+        {!isOpenList && !isFull && ev.capacityRemaining && ev.capacityRemaining > 0 && ev.capacityRemaining <= 3 && !isCancelled && !isPast && !ev.userStatus?.isBooked && (
           <div style={{ fontSize: "13.5px", color: "#8a6116", fontWeight: 500, marginBottom: "4px" }}>
             {lang === "en" ? `${ev.capacityRemaining} ${ev.capacityRemaining === 1 ? 'place' : 'places'} left` : `${ev.capacityRemaining} ${ev.capacityRemaining === 1 ? 'plaza' : 'plazas'} libre${ev.capacityRemaining === 1 ? '' : 's'}`}
           </div>
         )}
 
         {/* Full state label */}
-        {isFull && !isPast && !isCancelled && (
+        {!isOpenList && isFull && !isPast && !isCancelled && (
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", color: "#39292a" }}>
             {lang === "en" ? "Full" : "Completo"}
           </div>
         )}
 
-        {/* Capped events: 2-line Room for / Still free (when NOT inside minToConfirm block, not cancelled, not past, not already booked) */}
-        {!(isPending && !isPast && !isCancelled && ev.minToConfirm) && !isCancelled && !isPast && !ev.userStatus?.isBooked && (ev.capacityTotal ?? 0) > 0 && (
+        {/* Capped events: 2-line Room for / Still free (when NOT inside minToConfirm block, not cancelled, not past, not already booked, and NOT open list) */}
+        {!isOpenList && !(isPending && !isPast && !isCancelled && ev.minToConfirm) && !isCancelled && !isPast && !ev.userStatus?.isBooked && (ev.capacityTotal ?? 0) > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "10px" }}>
               <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "12.5px", color: "#39292a" }}>
@@ -1745,8 +1750,8 @@ function EventCard({
         {ev.isSignature && !isMember && !isCancelled && !isPast && (
           <div style={{ fontSize: "13.5px", lineHeight: "1.55", color: "#39292a" }}>
             {lang === "en" ? "This one is for members. " : "Este evento es para socias. "}
-            <Link href="/membership" style={{ color: "#7b1f2c", textDecoration: "underline" }}>
-              {lang === "en" ? "See the membership →" : "Ver la membresía →"}
+            <Link href="/membership" style={{ color: "#7b1f2c", textDecoration: "underline", display: "inline-flex", alignItems: "center" }}>
+              {lang === "en" ? <>See the membership <ForwardArrow /></> : <>Ver la membresía <ForwardArrow /></>}
             </Link>
           </div>
         )}
@@ -1886,9 +1891,11 @@ function EventCard({
                       style={{
                         color: "#7b1f2c",
                         textDecoration: "underline",
+                        display: "inline-flex",
+                        alignItems: "center",
                       }}
                     >
-                      {lang === "en" ? "See the membership →" : "Ver la membresía →"}
+                      {lang === "en" ? <>See the membership <ForwardArrow /></> : <>Ver la membresía <ForwardArrow /></>}
                     </Link>
                   </div>
                 )
@@ -2198,8 +2205,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           </h1>
           <p style={{ fontSize: "19px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.78)", margin: "0 auto", maxWidth: "680px" }}>
             {lang === "en"
-              ? "Walks, workshops, dinners, and seasonal moments \u2014 browse what's coming up and book your place."
-              : "Paseos, talleres, cenas y momentos de temporada \u2014 mira lo que se viene y reserva tu lugar."}
+              ? "Walks, workshops, dinners, and seasonal moments — browse what's coming up and book your place."
+              : "Paseos, talleres, cenas y momentos de temporada — mira lo que se viene y reserva tu lugar."}
           </p>
         </div>
 

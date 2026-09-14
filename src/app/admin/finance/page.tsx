@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAdminFinance } from "@/app/actions/adminCms";
+import { BackArrow, ForwardArrow } from "@/components/Icons";
 
 const WINE = "#7b1f2c",
   AMBER = "#a8752c",
@@ -159,7 +160,7 @@ export default function AdminFinancePage() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "22px" }}>
           <div style={{ flex: "1 1 400px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
-              <Link href="/admin">← Dashboard</Link> · Finance
+              <Link href="/admin" style={{ color: "#7b1f2c", display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link> · Finance
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 400, fontSize: "clamp(30px,4vw,42px)", lineHeight: 1.1, margin: "0 0 9px" }}>
               Money in, money back
@@ -199,9 +200,11 @@ export default function AdminFinancePage() {
                 fontSize: "13.5px",
                 whiteSpace: "nowrap",
                 textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
-              ← Dashboard
+              <BackArrow /> Dashboard
             </Link>
           </div>
         </div>
@@ -226,8 +229,8 @@ export default function AdminFinancePage() {
         <div style={{ border: "1px solid rgba(123,31,44,0.4)", borderRadius: "8px", background: "#fdf6f2", padding: "clamp(18px,2.4vw,24px)", marginBottom: "18px" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", marginBottom: "14px" }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0, color: "#7b1f2c" }}>Needs you today</h2>
-            <Link href="/admin/members" style={{ fontSize: "13.5px" }}>
-              Member records →
+            <Link href="/admin/members" style={{ fontSize: "13.5px", display: "inline-flex", alignItems: "center" }}>
+              Member records <ForwardArrow />
             </Link>
           </div>
           <div>
@@ -241,8 +244,8 @@ export default function AdminFinancePage() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
                   <span style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontSize: "15px", fontVariantNumeric: "tabular-nums", color: a.color, whiteSpace: "nowrap" }}>{a.amount}</span>
-                  <Link href={a.who.includes("Bonanova") ? "/admin/partners" : `/admin/members/${a.id}`} style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
-                    {a.action} →
+                  <Link href={a.who.includes("Bonanova") ? "/admin/partners" : `/admin/members/${a.id}`} style={{ fontSize: "13px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+                    {a.action} <ForwardArrow />
                   </Link>
                 </div>
               </div>

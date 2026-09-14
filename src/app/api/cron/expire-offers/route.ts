@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
           </p>
           <div style="text-align: center; margin: 28px 0;">
             <a href="${activationUrl}" style="background-color: #7b1f2c; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 4px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 16px; display: inline-block;">
-              ${app.locale === "es" ? "Completar mi Membresía →" : "Complete My Membership →"}
+              ${app.locale === "es" ? "Completar mi Membresía &rarr;" : "Complete My Membership &rarr;"}
             </a>
           </div>
           <p style="font-size: 13px; color: rgba(57,41,42,0.6);">

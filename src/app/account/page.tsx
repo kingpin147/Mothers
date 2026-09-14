@@ -8,6 +8,7 @@ import { Locale } from "@/lib/i18n";
 import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, getStripePortalUrl } from "@/app/actions/memberAccount";
 import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
 import ThemeLoader from "@/components/ThemeLoader";
+import { ForwardArrow } from "@/components/Icons";
 
 type AccountTab = "overview" | "credits" | "perks" | "membership";
 
@@ -141,6 +142,17 @@ const STAGES_KEYS = [
   { key: "children610", labelEn: "Big kids", labelEs: "Niños grandes", whatsapp: "https://chat.whatsapp.com/DaOQgBCeZPoB6Z5fXTzXMo" },
 ];
 
+const normalizeStageKey = (raw: string): string => {
+  if (!raw) return "";
+  const s = raw.toLowerCase().trim();
+  if (s.includes("preg") || s.includes("expect") || s.includes("embaraz")) return "expecting";
+  if (s.includes("baby") || s.includes("babies") || s.includes("postpartum") || s.includes("posparto") || s.includes("0–12") || s.includes("0-12")) return "babies";
+  if (s.includes("toddler") || s.includes("peque") || s.includes("1–3") || s.includes("1-3")) return "toddlers";
+  if (s.includes("3–6") || s.includes("3-6") || s.includes("children36") || (s.includes("child") && !s.includes("610") && !s.includes("big"))) return "children36";
+  if (s.includes("6–10") || s.includes("6-10") || s.includes("children610") || s.includes("big")) return "children610";
+  return raw;
+};
+
 export default function AccountPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -212,8 +224,8 @@ export default function AccountPage() {
               neighbourhood: res.member?.neighbourhood || "",
             });
             // Parse stages
-            const currentStages = res.member?.stage
-              ? res.member.stage.split(",").map((s: string) => s.trim())
+            const currentStages = typeof res.member?.stage === "string"
+              ? res.member.stage.split(",").map((s: string) => normalizeStageKey(s.trim())).filter(Boolean)
               : [];
             setSelectedStages(currentStages);
           } else {
@@ -585,7 +597,6 @@ export default function AccountPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                      display: "inline-block",
                       border: "1px solid #568b05",
                       color: "#456f04",
                       backgroundColor: "#fffdfa",
@@ -594,10 +605,11 @@ export default function AccountPage() {
                       fontFamily: "'Cormorant Garamond', serif",
                       fontWeight: 600,
                       fontSize: "14.5px",
-                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
                     }}
                   >
-                    {lang === "en" ? "Open WhatsApp thread →" : "Abrir el hilo de WhatsApp →"}
+                    {lang === "en" ? <>Open WhatsApp thread <ForwardArrow /></> : <>Abrir el hilo de WhatsApp <ForwardArrow /></>}
                   </a>
                 </div>
               );

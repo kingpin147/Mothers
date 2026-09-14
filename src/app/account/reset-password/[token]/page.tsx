@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { verifyResetToken, completePasswordReset } from "@/app/actions/passwordReset";
+import { ForwardArrow } from "@/components/Icons";
 
 export default function ResetPasswordPage() {
   const params = useParams();
@@ -117,8 +118,8 @@ export default function ResetPasswordPage() {
             ? "You can now sign in to your member account with your new credentials."
             : "Ya puedes iniciar sesión en tu cuenta de socia con tu nueva contraseña."}
         </p>
-        <Link href="/account/login" className="btn btn-primary" style={{ padding: "12px 28px" }}>
-          {lang === "en" ? "Sign In to Account →" : "Iniciar Sesión →"}
+        <Link href="/account/login" className="btn btn-primary" style={{ padding: "12px 28px", display: "inline-flex", alignItems: "center" }}>
+          {lang === "en" ? <>Sign In to Account <ForwardArrow /></> : <>Iniciar Sesión <ForwardArrow /></>}
         </Link>
       </div>
     );
@@ -203,11 +204,11 @@ export default function ResetPasswordPage() {
             type="submit"
             disabled={submitting}
             className="btn btn-primary"
-            style={{ width: "100%", padding: "12px", marginTop: "8px", fontSize: "15px" }}
+            style={{ width: "100%", padding: "12px", marginTop: "8px", fontSize: "15px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
           >
             {submitting
               ? lang === "en" ? "Updating..." : "Actualizando..."
-              : lang === "en" ? "Update Password →" : "Actualizar Contraseña →"}
+              : lang === "en" ? <>Update Password <ForwardArrow /></> : <>Actualizar Contraseña <ForwardArrow /></>}
           </button>
         </form>
       </div>

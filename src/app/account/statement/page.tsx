@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Locale } from "@/lib/i18n";
 import { getAccountData } from "@/app/actions/memberAccount";
+import { BackArrow } from "@/components/Icons";
 
 function groupByMonth(entries: any[]) {
   const map: Record<string, any[]> = {};
@@ -95,8 +96,8 @@ export default function ActivityStatementPage() {
 
         {/* Nav */}
         <div className="no-print" style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Link href="/account" style={{ color: "rgba(57,41,42,0.6)", fontSize: "14px", textDecoration: "none" }}>
-            ← {lang === "en" ? "Back to Member Account" : "Volver a Mi Cuenta"}
+          <Link href="/account" style={{ color: "rgba(57,41,42,0.6)", fontSize: "14px", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+            <BackArrow /> {lang === "en" ? "Back to Member Account" : "Volver a Mi Cuenta"}
           </Link>
           <button type="button" onClick={handlePrint} style={{ border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#f8efe2", padding: "8px 18px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
             {lang === "en" ? "Print / Download PDF" : "Imprimir / Guardar PDF"}

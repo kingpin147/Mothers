@@ -1,4 +1,4 @@
-﻿export type Locale = "en" | "es";
+export type Locale = "en" | "es";
 
 export const DICTIONARIES = {
   en: {
@@ -30,7 +30,7 @@ export const DICTIONARIES = {
     },
     why: {
       kicker: "Why The Mothers",
-      heading: "Being a mom is a part of it, not all of it.",
+      heading: "Being a mother is a part of it, not all of it.",
       body: "Modern motherhood can be isolating — especially if you've just moved to the city, had your first baby, or don't have family nearby. The Mothers offers a space for mothers to connect and build long-lasting friendships. It sits in between: curated, safe, and social.",
       pillars: [
         {
@@ -59,7 +59,7 @@ export const DICTIONARIES = {
         {
           n: "02",
           title: "Come along",
-          body: "Book a walk, a play date, or a MoM's date near you — small rooms, so talking is easy.",
+          body: "Book a walk, a play date, or a Mother's date near you — small rooms, so talking is easy.",
         },
         {
           n: "03",
@@ -195,7 +195,7 @@ export const DICTIONARIES = {
         {
           n: "02",
           title: "Ven a un encuentro",
-          body: "Reserva un paseo, un play date o un MoM's date cerca de ti — grupos pequeños, para que hablar sea fácil.",
+          body: "Reserva un paseo, un play date o un Mother's date cerca de ti — grupos pequeños, para que hablar sea fácil.",
         },
         {
           n: "03",

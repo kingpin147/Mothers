@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -85,7 +85,7 @@ export default function MembershipClient({
           {isEn ? "One membership. Everything you need to build your circle." : "Una sola membresía. Todo lo que necesitas para construir tu círculo."}
         </h1>
         <p style={{ fontSize: "19px", lineHeight: "1.65", color: "rgba(57, 41, 42, 0.78)", margin: 0 }}>
-          {isEn ? "Create long-lasting relationships with fellow Mothers." : "Crea relaciones duraderas con otras Mothers."}
+          {isEn ? "Create long-lasting relationships with fellow Mothers." : "Crea relaciones duraderas con otras madres."}
         </p>
       </section>
 
@@ -282,7 +282,7 @@ export default function MembershipClient({
             {([
               { icon: "flame", en: ["Easy connection","Mostly included","Walks, park socials & hosted meetups. The walks and park socials are usually included in the plan but can cost few credit depending on the parters involved."], es: ["Paseos y encuentros","Casi siempre incluido","Paseos, encuentros en el parque y quedadas con anfitriona. Los paseos son gratis; los cafés con anfitriona cuestan 2 créditos."], green: true },
               { icon: "cluster", en: ["Play date","Credits","Yoga, massage, music — your child right beside you."], es: ["Play date","Créditos","Yoga, masaje, música — con tu hijo/a a tu lado."], green: false },
-              { icon: "cup", en: ["MoM's date","Credits","Dinners, wellness, culture — a woman first."], es: ["MoM's date","Créditos","Cenas, bienestar, cultura — una mujer primero."], green: false },
+              { icon: "cup", en: ["Mother's date","Credits","Dinners, wellness, culture — a woman first."], es: ["Mother's date","Créditos","Cenas, bienestar, cultura — una mujer primero."], green: false },
               { icon: "edu", en: ["Learn & Grow","Credits","Expert talks, workshops, and masterclasses."], es: ["Aprender y crecer","Créditos","Charlas de expertas, talleres y masterclasses."], green: false },
               { icon: "star", en: ["Signature moments","Credits","Seasonal moments and 1:1 expert sessions."], es: ["Momentos únicos","Créditos","Momentos de temporada y sesiones 1:1 con expertas."], green: false },
             ] as const).map((f, i) => {

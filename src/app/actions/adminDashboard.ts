@@ -306,9 +306,9 @@ export async function getAdminDashboardMetrics() {
         } else if (titleLower.includes("yoga") || titleLower.includes("pregnancy") || titleLower.includes("expecting")) {
           group = "Pregnant / Bump";
         } else if (titleLower.includes("work") || titleLower.includes("career")) {
-          group = "Working MoMs";
+          group = "Working Mothers";
         } else if (titleLower.includes("dinner") || titleLower.includes("vermut") || titleLower.includes("date")) {
-          group = "Moms only";
+          group = "Mothers only";
         }
 
         const startsDate = e.startsAt ? new Date(e.startsAt) : now;

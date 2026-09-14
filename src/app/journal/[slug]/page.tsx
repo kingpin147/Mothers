@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Locale } from "@/lib/i18n";
 import { getPublicJournalArticle, incrementJournalPostViews } from "@/app/actions/adminCms";
 import { getCategoryLabel } from "@/lib/journalCategories";
+import { BackArrow } from "@/components/Icons";
 
 interface ArticleData {
   id: string;
@@ -271,9 +272,11 @@ export default function JournalSlugPage() {
             fontFamily: "'Cormorant Garamond', serif",
             fontWeight: 600,
             textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
           }}
         >
-          {lang === "en" ? "← Return to Journal" : "← Volver al Diario"}
+          <BackArrow /> {lang === "en" ? "Return to Journal" : "Volver al Diario"}
         </Link>
       </div>
     );

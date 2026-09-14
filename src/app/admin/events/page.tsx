@@ -7,6 +7,7 @@ import { getAdminEvents, confirmEventDecision, cancelEventDecision, duplicateAdm
 import { deleteEvent } from "@/app/actions/events";
 import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember, adminCancelMemberBooking } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
+import { BackArrow, ForwardArrow } from "@/components/Icons";
 
 const WINE = "#7b1f2c";
 const AMBER = "#a8752c";
@@ -428,7 +429,7 @@ export default function AdminEventsPage() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
           <div style={{ flex: "1 1 400px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
-              <Link href="/admin" style={{ color: WINE, textDecoration: "none" }}>â† Dashboard</Link> · Events · <Link href="/admin/members" style={{ color: WINE, textDecoration: "none" }}>Members</Link>
+              <Link href="/admin" style={{ color: WINE, textDecoration: "none", display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link> · Events · <Link href="/admin/members" style={{ color: WINE, textDecoration: "none" }}>Members</Link>
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(30px, 4vw, 42px)", lineHeight: 1.1, margin: "0 0 9px" }}>
               The calendar
@@ -944,13 +945,15 @@ export default function AdminEventsPage() {
                           </Link>
                           {(() => {
                             const isPast = r.displayState === "completed" || r.displayState === "past";
-                            const hasFinancials = r.totalHistoricalBookings > 0 || r.totalPasses > 0;
-                            const disableArchive = isPast || hasFinancials;
+                            const activeBookings = r.bookingsCount || 0;
 
-                            if (disableArchive) {
+                            if (!isPast && activeBookings > 0) {
                               return (
-                                <div style={{ padding: "6px 13px", fontSize: "12px", color: "rgba(57,41,42,0.45)" }}>
-                                  Archive — unavailable, {hasFinancials ? "financial history exists" : "event is in the past"}
+                                <div
+                                  title="Active bookings exist. Cancel the event and refund attendees first."
+                                  style={{ padding: "6px 13px", fontSize: "12px", color: "rgba(57,41,42,0.45)", cursor: "not-allowed" }}
+                                >
+                                  Archive — unavailable, bookings exist
                                 </div>
                               );
                             }
@@ -958,7 +961,15 @@ export default function AdminEventsPage() {
                             return (
                               <button
                                 onClick={() => { handleDelete(r.id, r.title); setOpenActionMenuId(null); }}
-                                style={{ padding: "6px 13px", fontSize: "12.5px", color: "#39292a", border: "none", background: "none", textAlign: "left", cursor: "pointer" }}
+                                style={{
+                                  padding: "6px 13px",
+                                  fontSize: "12.5px",
+                                  color: isPast ? "rgba(57,41,42,0.6)" : "#39292a",
+                                  border: "none",
+                                  background: "none",
+                                  textAlign: "left",
+                                  cursor: "pointer",
+                                }}
                               >
                                 Archive
                               </button>
@@ -1040,8 +1051,12 @@ export default function AdminEventsPage() {
                   Event Attendee Roster &amp; Ticketing Desk
                 </div>
                 <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", margin: "4px 0 2px" }}>{activeEventRoster.title}</h2>
-                <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.7)" }}>
-                  ðŸ“ Meeting Point: <strong>{activeEventRoster.meetingPoint}</strong>
+                <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.7)", display: "flex", alignItems: "center", gap: "5px", marginTop: "2px" }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, color: WINE }}>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <span>Meeting Point: <strong>{activeEventRoster.meetingPoint || "To be confirmed"}</strong></span>
                 </div>
               </div>
               <button onClick={() => setActiveEventRoster(null)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#39292a" }}>✕</button>
@@ -1069,7 +1084,7 @@ export default function AdminEventsPage() {
                           <th style={{ padding: "8px 12px" }}>Member</th>
                           <th style={{ padding: "8px 12px" }}>Credits</th>
                           <th style={{ padding: "8px 12px" }}>Status</th>
-                          <th style={{ padding: "8px 12px", textAlign: "right" }}>Attendance</th>
+                          <th style={{ padding: "8px 12px", textAlign: "right" }}>Attendance &amp; Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1094,29 +1109,28 @@ export default function AdminEventsPage() {
                               </span>
                             </td>
                             <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                              <div style={{ display: "inline-flex", gap: "6px" }}>
-                                {b.status === "confirmed" && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCancelMemberBooking(b.id)}
-                                    style={{ backgroundColor: "#fef2f2", color: "#b91c1c", border: "1px solid #fecdd3", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                                  >
-                                    ✕ Remove
-                                  </button>
-                                )}
+                              <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                                 <button
                                   type="button"
                                   onClick={() => handleMarkAttendance("member", b.id, "attended")}
-                                  style={{ backgroundColor: "#eef8f0", color: "#1e6833", border: "1px solid #bbf7d0", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                  style={{ backgroundColor: "#eef8f0", color: "#1e6833", border: "1px solid #bbf7d0", borderRadius: "3px", padding: "4px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
                                 >
-                                  âœ“ Check-In
+                                  ✓ Check-In
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleMarkAttendance("member", b.id, "no_show")}
-                                  style={{ backgroundColor: "#fef2f2", color: "#b91c1c", border: "1px solid #fecdd3", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                  style={{ backgroundColor: "#fff8f8", color: "#b91c1c", border: "1px solid #fecdd3", borderRadius: "3px", padding: "4px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
                                 >
                                   ✕ No-Show
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancelMemberBooking(b.id)}
+                                  title="Cancel booking and refund member credits"
+                                  style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                >
+                                  ✕ Delete Member
                                 </button>
                               </div>
                             </td>
@@ -1158,12 +1172,12 @@ export default function AdminEventsPage() {
                             <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
                             <td style={{ padding: "10px 12px" }}>
                               <a
-                                href={`/ticket/${gp.ticketToken}`}
+                                href={gp.ticketUrl}
                                 target="_blank"
                                 rel="noreferrer"
-                                style={{ color: WINE, fontSize: "12px", textDecoration: "underline" }}
+                                style={{ color: WINE, fontSize: "12px", textDecoration: "underline", display: "inline-flex", alignItems: "center" }}
                               >
-                                Open Guest Ticket →
+                                Open Guest Ticket <ForwardArrow />
                               </a>
                             </td>
                             <td style={{ padding: "10px 12px", textAlign: "right" }}>
@@ -1238,14 +1252,14 @@ export default function AdminEventsPage() {
                         required
                         style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
                       />
-                      <button type="submit" disabled={issuingPass} style={{ backgroundColor: "#fff", color: WINE, border: `1px solid ${WINE}`, borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-                        {issuingPass ? "Generating..." : "Generate Guest Ticket →"}
+                      <button type="submit" disabled={issuingPass} style={{ backgroundColor: "#fff", color: WINE, border: `1px solid ${WINE}`, borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                        {issuingPass ? "Generating..." : <>Generate Guest Ticket <ForwardArrow /></>}
                       </button>
                     </form>
 
                     {generatedTicketUrl && (
                       <div style={{ marginTop: "10px", padding: "8px 12px", backgroundColor: "#eef8f0", border: "1px solid #bbf7d0", borderRadius: "4px", fontSize: "12px" }}>
-                        âœ“ Ticket Created! <a href={generatedTicketUrl} target="_blank" rel="noreferrer" style={{ fontWeight: 600, color: "#1e6833", textDecoration: "underline" }}>View Ticket Link</a>
+                        ✓ Ticket Created! <a href={generatedTicketUrl} target="_blank" rel="noreferrer" style={{ fontWeight: 600, color: "#1e6833", textDecoration: "underline" }}>View Ticket Link</a>
                       </div>
                     )}
                   </div>

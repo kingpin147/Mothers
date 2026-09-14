@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { ForwardArrow } from "@/components/Icons";
 import { useSession, signOut } from "next-auth/react";
 import { getAdminDashboardMetrics, runManualCron, resetTestData } from "@/app/actions/adminDashboard";
 import { confirmEventDecision, cancelEventDecision } from "@/app/actions/adminEvents";
@@ -204,7 +205,7 @@ export default function AdminDashboardPage() {
               <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>01</span>
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0, color: "#7b1f2c" }}>Decisions due — {decisions.length} events at T-7</h2>
             </div>
-            <Link href="/admin/events" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none" }}>Manage all events →</Link>
+            <Link href="/admin/events" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Manage all events <ForwardArrow /></Link>
           </div>
           <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "72ch", textWrap: "pretty" }}>Starting within seven days and still unconfirmed. Confirming charges nothing new; cancelling returns every credit held, automatically.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: "11px" }}>
@@ -250,9 +251,9 @@ export default function AdminDashboardPage() {
                   <button 
                     type="button" 
                     onClick={() => { setActiveDraftWarning(w); setCopiedDraft(false); }}
-                    style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "8px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap" }}
+                    style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "8px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}
                   >
-                    Draft the message →
+                    Draft the message <ForwardArrow />
                   </button>
                 </div>
               </div>
@@ -325,7 +326,7 @@ export default function AdminDashboardPage() {
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>03</span>
                 <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: 0 }}>Applications waiting — {applications.length}</h2>
               </div>
-              <Link href="/admin/applications" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none" }}>Review queue →</Link>
+              <Link href="/admin/applications" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Review queue <ForwardArrow /></Link>
             </div>
             <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 15px", textWrap: "pretty" }}>Oldest first, against our 72-hour promise. Amber past 48 hours, wine past 72.</p>
             <div style={{ display: "flex", flexDirection: "column" }}>
@@ -338,7 +339,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", color: a.color, border: `1px solid ${a.color}`, borderRadius: "4px", padding: "4px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{a.remaining}</span>
-                    <Link href={`/admin/applications`} style={{ fontSize: "13px", whiteSpace: "nowrap", color: "#7b1f2c", textDecoration: "none" }}>Read →</Link>
+                    <Link href={`/admin/applications`} style={{ fontSize: "13px", whiteSpace: "nowrap", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Read <ForwardArrow /></Link>
                   </div>
                 </div>
               ))}
@@ -351,7 +352,7 @@ export default function AdminDashboardPage() {
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>04</span>
                 <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: 0 }}>Money needing attention</h2>
               </div>
-              <Link href="/admin/members" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none" }}>Member records →</Link>
+              <Link href="/admin/members" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Member records <ForwardArrow /></Link>
             </div>
             <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 15px", textWrap: "pretty" }}>Failed renewals, cards about to expire, payment holds running out, partner agreements ending within thirty days.</p>
             <div style={{ display: "flex", flexDirection: "column" }}>
@@ -363,7 +364,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                     <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", fontVariantNumeric: "tabular-nums", color: m.color, whiteSpace: "nowrap" }}>{m.amount}</span>
-                    <Link href="/admin/members" style={{ fontSize: "13px", whiteSpace: "nowrap", color: "#7b1f2c", textDecoration: "none" }}>{m.action} →</Link>
+                    <Link href="/admin/members" style={{ fontSize: "13px", whiteSpace: "nowrap", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>{m.action} <ForwardArrow /></Link>
                   </div>
                 </div>
               ))}
@@ -379,7 +380,7 @@ export default function AdminDashboardPage() {
               <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>05</span>
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0 }}>This week</h2>
             </div>
-            <Link href="/admin/events" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none" }}>Events calendar →</Link>
+            <Link href="/admin/events" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Events calendar <ForwardArrow /></Link>
           </div>
           <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "72ch", textWrap: "pretty" }}>The next seven days, with final headcounts, the meeting point, and a list you can print or send to the host.</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,250px),1fr))", gap: "14px" }}>
@@ -393,7 +394,7 @@ export default function AdminDashboardPage() {
                   <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", fontVariantNumeric: "tabular-nums" }}>{e.headcount}</span>
                   <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.62)" }}>{e.headcountLabel}</span>
                 </div>
-                <Link href={`/admin/events/${e.id}/roster`} style={{ fontSize: "13px", marginTop: "auto", color: "#7b1f2c", textDecoration: "none" }}>Attendee list →</Link>
+                <Link href={`/admin/events/${e.id}/roster`} style={{ fontSize: "13px", marginTop: "auto", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Attendee list <ForwardArrow /></Link>
               </div>
             ))}
           </div>
@@ -408,7 +409,7 @@ export default function AdminDashboardPage() {
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)" }}>{q.kicker}</div>
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.25 }}>{q.title}</div>
               <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 6px", textWrap: "pretty" }}>{q.body}</p>
-              <Link href={q.href} style={{ marginTop: "auto", border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "9px 14px", textAlign: "center", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", textDecoration: "none" }}>{q.cta} →</Link>
+              <Link href={q.href} style={{ marginTop: "auto", border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "9px 14px", textAlign: "center", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{q.cta} <ForwardArrow /></Link>
             </div>
           ))}
         </div>
@@ -420,7 +421,7 @@ export default function AdminDashboardPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
               {cms.map((c: any, idx: number) => (
                 <Link key={idx} href={c.href} style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "5px", padding: "12px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                  <span>{c.label}</span><span style={{ color: "rgba(57,41,42,0.45)" }}>→</span>
+                  <span>{c.label}</span><span style={{ color: "rgba(57,41,42,0.45)", display: "inline-flex", alignItems: "center" }}><ForwardArrow /></span>
                 </Link>
               ))}
             </div>

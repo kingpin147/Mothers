@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { requestPasswordReset } from "@/app/actions/passwordReset";
+import { BackArrow, ForwardArrow } from "@/components/Icons";
 
 export default function ForgotPasswordPage() {
   const [lang, setLang] = useState<"en" | "es">("en");
@@ -84,8 +85,8 @@ export default function ForgotPasswordPage() {
                 ? `If an account exists for ${email}, a reset link has been sent. Please check your inbox and spam folder.`
                 : `Si existe una cuenta asociada a ${email}, te hemos enviado un enlace. Por favor revisa tu bandeja de entrada.`}
             </div>
-            <Link href="/account/login" className="btn btn-outline" style={{ width: "100%", textAlign: "center", fontSize: "14px" }}>
-              ← {lang === "en" ? "Return to Sign In" : "Volver a Iniciar Sesión"}
+            <Link href="/account/login" className="btn btn-outline" style={{ width: "100%", textAlign: "center", fontSize: "14px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <BackArrow /> {lang === "en" ? "Return to Sign In" : "Volver a Iniciar Sesión"}
             </Link>
           </div>
         ) : (
@@ -121,16 +122,16 @@ export default function ForgotPasswordPage() {
               type="submit"
               disabled={loading}
               className="btn btn-primary"
-              style={{ width: "100%", padding: "12px", marginTop: "6px", fontSize: "15px" }}
+              style={{ width: "100%", padding: "12px", marginTop: "6px", fontSize: "15px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             >
               {loading
                 ? lang === "en" ? "Sending link..." : "Enviando enlace..."
-                : lang === "en" ? "Send Reset Link →" : "Enviar Enlace de Recuperación →"}
+                : lang === "en" ? <>Send Reset Link <ForwardArrow /></> : <>Enviar Enlace de Recuperación <ForwardArrow /></>}
             </button>
 
             <div style={{ textAlign: "center", marginTop: "12px" }}>
-              <Link href="/account/login" style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>
-                ← {lang === "en" ? "Back to Sign In" : "Volver al acceso de socias"}
+              <Link href="/account/login" style={{ fontSize: "13px", color: "var(--color-text-muted)", display: "inline-flex", alignItems: "center" }}>
+                <BackArrow /> {lang === "en" ? "Back to Sign In" : "Volver al acceso de socias"}
               </Link>
             </div>
           </form>

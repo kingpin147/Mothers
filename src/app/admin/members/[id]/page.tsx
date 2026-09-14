@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { getAdminMemberDetail, contactMember, pauseMember, resumeMember, cancelMember, adjustMemberCredits } from "@/app/actions/adminCms";
+import { BackArrow } from "@/components/Icons";
 
 const WINE = "#7b1f2c";
 const AMBER = "#a8752c";
@@ -185,7 +186,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "20px" }}>
           <div style={{ flex: "1 1 380px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
-              <Link href="/admin/members">← Members</Link> · Record
+              <Link href="/admin/members" style={{ color: "#7b1f2c", display: "inline-flex", alignItems: "center" }}><BackArrow /> Members</Link> · Record
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(28px,3.8vw,38px)", lineHeight: 1.12, margin: "0 0 8px" }}>
               {member.firstName} {member.lastName}

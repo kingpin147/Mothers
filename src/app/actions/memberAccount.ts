@@ -45,10 +45,20 @@ export async function getAccountData() {
       }
     }
 
-    if (!personRecord && personId) {
-      personRecord = await db.query.person.findFirst({
-        where: eq(person.id, personId),
-      });
+    if (!personRecord) {
+      if (memberRecord?.personId) {
+        personRecord = await db.query.person.findFirst({
+          where: eq(person.id, memberRecord.personId),
+        });
+      } else if (personId) {
+        personRecord = await db.query.person.findFirst({
+          where: eq(person.id, personId),
+        });
+      } else if (userEmail) {
+        personRecord = await db.query.person.findFirst({
+          where: eq(person.email, userEmail),
+        });
+      }
     }
 
     if (!memberRecord || !memberId) {
@@ -120,31 +130,39 @@ export async function getAccountData() {
 
     const currentBalance = Number(creditRows[0]?.total || 0);
 
+    const safeBookings = (upcomingBookings || []).map((b: any) => ({
+      ...b,
+      eventDate: b.eventDate ? new Date(b.eventDate).toISOString() : null,
+      eventEndDate: b.eventEndDate ? new Date(b.eventEndDate).toISOString() : null,
+      confirmedCount: Number(b.confirmedCount ?? b.confirmed_count ?? 0),
+    }));
+
     return {
       success: true,
       member: {
         id: memberRecord.id,
         firstName: personRecord?.firstName || "",
         lastName: personRecord?.lastName || "",
+        email: personRecord?.email || userEmail || "",
         phone: personRecord?.phoneE164 || "",
-        status: memberRecord.status,
-        stage: memberRecord.stage,
-        neighbourhood: memberRecord.neighbourhood,
-        monthlyPriceCents: memberRecord.monthlyPriceCents,
-        joiningFeePaidCents: memberRecord.joiningFeePaidCents,
-        pausedUntil: memberRecord.pausedUntil ? memberRecord.pausedUntil.toISOString() : null,
-        cancelAtPeriodEnd: memberRecord.cancelAtPeriodEnd,
-        currentPeriodEnd: memberRecord.currentPeriodEnd ? memberRecord.currentPeriodEnd.toISOString() : null,
+        status: memberRecord.status || "active",
+        stage: memberRecord.stage || "",
+        neighbourhood: memberRecord.neighbourhood || "",
+        monthlyPriceCents: memberRecord.monthlyPriceCents || 0,
+        joiningFeePaidCents: memberRecord.joiningFeePaidCents || 0,
+        pausedUntil: memberRecord.pausedUntil ? new Date(memberRecord.pausedUntil).toISOString() : null,
+        cancelAtPeriodEnd: !!memberRecord.cancelAtPeriodEnd,
+        currentPeriodEnd: memberRecord.currentPeriodEnd ? new Date(memberRecord.currentPeriodEnd).toISOString() : null,
       },
       credits: {
         available: Math.max(0, currentBalance),
-        ledger: ledger,
+        ledger: ledger || [],
       },
-      bookings: upcomingBookings,
+      bookings: safeBookings,
       godmother: {
         totalCreditsEarned: Number(godmotherStats[0]?.totalCreditsEarned || 0),
       },
-      partners: activePartners,
+      partners: activePartners || [],
     };
   } catch (error: any) {
     console.error("getAccountData error:", error);

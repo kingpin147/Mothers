@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { BackArrow } from "@/components/Icons";
 
 const WINE = "#7b1f2c";
 const AMBER = "#a8752c";
@@ -241,7 +242,7 @@ export default function AdminEmailsPage() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "28px" }}>
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
-              <Link href="/admin" style={{ color: WINE }}>← Dashboard</Link> · Emails
+              <Link href="/admin" style={{ color: WINE, display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link> · Emails
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 400, fontSize: "clamp(30px,4vw,42px)", lineHeight: 1.1, margin: "0 0 9px" }}>Email previews</h1>
             <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "70ch" }}>

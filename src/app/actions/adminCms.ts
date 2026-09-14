@@ -760,6 +760,29 @@ export async function saveFaq(data: {
   }
 }
 
+export async function toggleFaqActive(id: string, active: boolean) {
+  try {
+    await verifyAdminRole();
+    await db
+      .update(faqItem)
+      .set({ active, updatedAt: new Date() })
+      .where(eq(faqItem.id, id));
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "TOGGLE_FAQ_FAILED" };
+  }
+}
+
+export async function deleteFaq(id: string) {
+  try {
+    await verifyAdminRole();
+    await db.delete(faqItem).where(eq(faqItem.id, id));
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "DELETE_FAQ_FAILED" };
+  }
+}
+
 // ─── 5. JOURNAL CMS ─────────────────────────────────────────────────────────
 
 export async function getAdminJournalPosts() {
@@ -1068,12 +1091,29 @@ export async function toggleJournalPostStatus(id: string, action: "publish" | "u
       action: `journal_status_${action}`,
       entity: "journal_post",
       entityId: id,
-      after: { status: newStatus, publishedAt: newPublishedAt },
+      after: { status: newStatus },
     });
 
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error?.message || "STATUS_CHANGE_FAILED" };
+    return { success: false, error: error?.message || "TOGGLE_STATUS_FAILED" };
+  }
+}
+
+export async function deleteJournalPost(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { adminId } = await verifyAdminRole();
+    await db.delete(journalPost).where(eq(journalPost.id, id));
+    await db.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "delete_journal_post",
+      entity: "journal_post",
+      entityId: id,
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "DELETE_POST_FAILED" };
   }
 }
 

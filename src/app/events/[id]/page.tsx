@@ -9,6 +9,7 @@ import { getPublicEventById } from "@/app/actions/events";
 import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 import { getAccountData } from "@/app/actions/memberAccount";
 import ThemeLoader from "@/components/ThemeLoader";
+import { BackArrow } from "@/components/Icons";
 
 const getLanguageLabel = (code: string, currentLang: "en" | "es") => {
   const mapping: Record<string, { en: string; es: string }> = {
@@ -36,6 +37,11 @@ interface EventDetail {
   guestPriceCents: number | null;
   capacityMember: number;
   capacityGuest: number | null;
+  capacityTotal?: number | null;
+  capacityRemaining?: number | null;
+  placesTaken?: number;
+  isFull?: boolean;
+  isGuestFull?: boolean;
   minToConfirm: number | null;
   isSignature: boolean;
   isFreeWalk: boolean;
@@ -218,8 +224,8 @@ export default function EventDetailPage() {
         <p style={{ fontSize: "14.5px", color: "var(--color-text-muted)", marginBottom: "24px" }}>
           {fetchError || (lang === "en" ? "This event doesn't exist or is no longer available." : "Este evento no existe o ya no está disponible.")}
         </p>
-        <Link href="/events" style={{ backgroundColor: "var(--color-accent)", color: "#f8efe2", padding: "12px 24px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", textDecoration: "none" }}>
-          ← {lang === "en" ? "Back to Events" : "Volver a Eventos"}
+        <Link href="/events" style={{ backgroundColor: "var(--color-accent)", color: "#f8efe2", padding: "12px 24px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+          <BackArrow /> {lang === "en" ? "Back to Events" : "Volver a Eventos"}
         </Link>
       </div>
     );
@@ -241,8 +247,8 @@ export default function EventDetailPage() {
       <div style={{ maxWidth: "840px", margin: "0 auto" }}>
         {/* Back */}
         <div style={{ marginBottom: "24px" }}>
-          <Link href="/events" style={{ color: "var(--color-text-muted)", fontSize: "14px", textDecoration: "none" }}>
-            ← {lang === "en" ? "Back to Events Calendar" : "Volver al Calendario"}
+          <Link href="/events" style={{ color: "var(--color-text-muted)", fontSize: "14px", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+            <BackArrow /> {lang === "en" ? "Back to Events Calendar" : "Volver al Calendario"}
           </Link>
         </div>
 
@@ -320,17 +326,19 @@ export default function EventDetailPage() {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Member spots" : "Plazas socias"}</div>
-              <div style={{ fontWeight: 600, color: ev.capacityMember === 0 ? "#568b05" : ev.spotsRemaining === 0 ? "#993842" : "var(--color-accent-2)" }}>
-                {ev.capacityMember === 0
+              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Places" : "Plazas"}</div>
+              <div style={{ fontWeight: 600, color: (ev.capacityTotal === null || ev.capacityTotal === 0) ? "#568b05" : ev.spotsRemaining === 0 ? "#993842" : "var(--color-accent-2)" }}>
+                {ev.capacityTotal === null || ev.capacityTotal === 0
                   ? (lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas")
                   : ev.spotsRemaining > 0
-                  ? `${ev.spotsRemaining} ${lang === "en" ? "remaining" : "disponibles"}`
+                  ? `${ev.spotsRemaining} ${lang === "en" ? "free" : "libres"} (Room for ${ev.capacityTotal})`
                   : (lang === "en" ? "Full" : "Completo")}
                 {(() => {
                   const now = new Date();
                   const isGuestWindowClosed = !isMember && ev.guestPassEligible && ev.guestCloseAt && now > new Date(ev.guestCloseAt);
-                  return isGuestWindowClosed ? (lang === "en" ? " · guest places have closed" : " · las plazas de invitada se han cerrado") : "";
+                  if (isGuestWindowClosed) return lang === "en" ? " · guest places have closed" : " · las plazas de invitada se han cerrado";
+                  if (ev.isGuestFull && !isMember && ev.capacityGuest && ev.capacityGuest > 0) return lang === "en" ? " · guest places full" : " · plazas de invitada completas";
+                  return "";
                 })()}
               </div>
             </div>

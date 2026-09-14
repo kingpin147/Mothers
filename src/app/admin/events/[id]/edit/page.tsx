@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { updateAdminEvent, getEventRoster } from "@/app/actions/adminEvents";
+import { BackArrow, ForwardArrow } from "@/components/Icons";
 
 export default function AdminEditEventPage() {
   const router = useRouter();
@@ -135,6 +136,18 @@ export default function AdminEditEventPage() {
     }
 
     setLoadingAction(status);
+
+    const parsedMember = memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces);
+    const parsedGuest = membersOnly ? 0 : (parseInt(guestPlaces) || 0);
+    const totalCap = parsedMember === 0 ? 0 : (parsedMember + parsedGuest);
+    const parsedMin = minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0);
+
+    if (totalCap > 0 && parsedMin > totalCap) {
+      alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Room Capacity (${totalCap} = ${parsedMember} members + ${parsedGuest} guests).`);
+      setLoadingAction(null);
+      return;
+    }
+
     const start = new Date(startsAt);
     
     const res = await updateAdminEvent(eventId, {
@@ -194,7 +207,7 @@ export default function AdminEditEventPage() {
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(26px,3.5vw,36px)", lineHeight: 1.15, margin: 0 }}>Edit event</h1>
           </div>
-          <Link href="/admin/events" style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", padding: "6px 0" }}>← Close</Link>
+          <Link href="/admin/events" style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", padding: "6px 0", display: "inline-flex", alignItems: "center" }}><BackArrow />Close</Link>
         </div>
 
         {bookingCount > 0 && (
@@ -347,6 +360,44 @@ export default function AdminEditEventPage() {
               <input type="checkbox" checked={freeEvent} onChange={(e) => setFreeEvent(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
               <span>Free event — an RSVP list, no credits taken</span>
             </label>
+
+            {/* Total Room Capacity Summary & Validation */}
+            {(() => {
+              const parsedMemberCap = memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces);
+              const parsedGuestCap = membersOnly ? 0 : (parseInt(guestPlaces) || 0);
+              const totalRoomCap = parsedMemberCap === 0 ? 0 : (parsedMemberCap + parsedGuestCap);
+              const parsedMinToConfirm = minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0);
+              const hasMinExceedingCap = totalRoomCap > 0 && parsedMinToConfirm > totalRoomCap;
+
+              return (
+                <div style={{
+                  marginTop: "16px",
+                  padding: "14px 18px",
+                  borderRadius: "6px",
+                  border: hasMinExceedingCap ? "1px solid #e05252" : "1px solid rgba(57,41,42,0.18)",
+                  background: hasMinExceedingCap ? "#fdf2f2" : "#fdfbf7",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "14.5px", color: hasMinExceedingCap ? "#a82020" : "#39292a" }}>
+                      Total Room Capacity (Room for): {parsedMemberCap === 0 ? "Unlimited (Open list)" : `${totalRoomCap} places`}
+                    </div>
+                    {totalRoomCap > 0 && (
+                      <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)" }}>
+                        {parsedMemberCap} member places + {parsedGuestCap} guest places
+                      </div>
+                    )}
+                  </div>
+                  {hasMinExceedingCap && (
+                    <div style={{ fontSize: "12.5px", color: "#a82020", lineHeight: 1.4, fontWeight: 500 }}>
+                      ⚠️ Minimum to confirm ({parsedMinToConfirm}) exceeds the Total Room Capacity ({totalRoomCap}). Please increase member places or lower the minimum to run.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
@@ -456,7 +507,7 @@ export default function AdminEditEventPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {loadingAction === "published_pending" ? "Publishing..." : "Publish to the calendar →"}
+                  {loadingAction === "published_pending" ? "Publishing..." : <>Publish to the calendar <ForwardArrow /></>}
                 </button>
               </>
             ) : (

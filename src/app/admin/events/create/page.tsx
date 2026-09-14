@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createAdminEvent } from "@/app/actions/adminEvents";
+import { ForwardArrow } from "@/components/Icons";
 
 export default function AdminCreateEventPage() {
   const router = useRouter();
@@ -107,6 +108,17 @@ export default function AdminCreateEventPage() {
     }
 
     setLoadingAction(status);
+    
+    const parsedMember = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
+    const parsedGuest = membersOnly ? 0 : (noCeiling ? 0 : (parseInt(guestPlaces) || 0));
+    const totalCap = noCeiling ? 0 : (parsedMember + parsedGuest);
+    const parsedMin = noMinimum ? 0 : (parseInt(minToConfirm) || 0);
+
+    if (!noCeiling && totalCap > 0 && parsedMin > totalCap) {
+      alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Room Capacity (${totalCap} = ${parsedMember} members + ${parsedGuest} guests).`);
+      setLoadingAction(null);
+      return;
+    }
 
     const start = new Date(startsAt);
     
@@ -355,6 +367,44 @@ export default function AdminCreateEventPage() {
                 <span>Free event — an RSVP list, no credits taken</span>
               </label>
             </div>
+
+            {/* Total Room Capacity Summary & Validation */}
+            {(() => {
+              const parsedMemberCap = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
+              const parsedGuestCap = membersOnly ? 0 : (noCeiling ? 0 : (parseInt(guestPlaces) || 0));
+              const totalRoomCap = noCeiling ? 0 : (parsedMemberCap + parsedGuestCap);
+              const parsedMinToConfirm = noMinimum ? 0 : (parseInt(minToConfirm) || 0);
+              const hasMinExceedingCap = !noCeiling && totalRoomCap > 0 && parsedMinToConfirm > totalRoomCap;
+
+              return (
+                <div style={{
+                  marginTop: "16px",
+                  padding: "14px 18px",
+                  borderRadius: "6px",
+                  border: hasMinExceedingCap ? "1px solid #e05252" : "1px solid rgba(57,41,42,0.18)",
+                  background: hasMinExceedingCap ? "#fdf2f2" : "#fdfbf7",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "14.5px", color: hasMinExceedingCap ? "#a82020" : "#39292a" }}>
+                      Total Room Capacity (Room for): {noCeiling ? "Unlimited (Open list)" : `${totalRoomCap} places`}
+                    </div>
+                    {!noCeiling && totalRoomCap > 0 && (
+                      <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)" }}>
+                        {parsedMemberCap} member places + {parsedGuestCap} guest places
+                      </div>
+                    )}
+                  </div>
+                  {hasMinExceedingCap && (
+                    <div style={{ fontSize: "12.5px", color: "#a82020", lineHeight: 1.4, fontWeight: 500 }}>
+                      ⚠️ Minimum to confirm ({parsedMinToConfirm}) exceeds the Total Room Capacity ({totalRoomCap}). Please increase member places or lower the minimum to run.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
@@ -432,7 +482,7 @@ export default function AdminCreateEventPage() {
               {loadingAction === "draft" ? "Saving..." : "Save as draft"}
             </button>
             <button type="button" onClick={() => handleSave("published_pending")} disabled={!!loadingAction} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
-              {loadingAction === "published_pending" ? "Publishing..." : "Publish to the calendar →"}
+              {loadingAction === "published_pending" ? "Publishing..." : <>Publish to the calendar <ForwardArrow /></>}
             </button>
           </div>
         </div>

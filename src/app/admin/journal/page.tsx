@@ -7,9 +7,11 @@ import {
   duplicateJournalPost,
   updateJournalPostSlug,
   toggleJournalPostStatus,
+  deleteJournalPost,
 } from "@/app/actions/adminCms";
 import { JOURNAL_CATEGORIES, getCategoryLabel } from "@/lib/journalCategories";
 import JournalEditorModal, { JournalPostData } from "./JournalEditorModal";
+import { BackArrow } from "@/components/Icons";
 
 const WINE = "#7b1f2c";
 const AMBER = "#a8752c";
@@ -185,6 +187,17 @@ export default function AdminJournalPage() {
     }
   };
 
+  const handleDeletePost = async (id: string, title: string) => {
+    setMenuOpenId(null);
+    if (!confirm(`Are you sure you want to delete "${title}"? This cannot be undone.`)) return;
+    const res = await deleteJournalPost(id);
+    if (res.success) {
+      fetchPosts();
+    } else {
+      alert(res.error || "Failed to delete article.");
+    }
+  };
+
   const formatDateLabel = (p: any) => {
     const isScheduled =
       p.status === "scheduled" ||
@@ -277,8 +290,8 @@ export default function AdminJournalPage() {
                 marginBottom: "9px",
               }}
             >
-              <Link href="/admin" style={{ color: WINE }}>
-                ← Dashboard
+              <Link href="/admin" style={{ color: WINE, display: "inline-flex", alignItems: "center" }}>
+                <BackArrow /> Dashboard
               </Link>{" "}
               · Content · Journal
             </div>
@@ -1094,6 +1107,25 @@ export default function AdminJournalPage() {
                                   ✏️ Change slug
                                 </button>
                               )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePost(p.id, p.title)}
+                                style={{
+                                  width: "100%",
+                                  textAlign: "left",
+                                  padding: "7px 14px",
+                                  border: "none",
+                                  borderTop: "1px solid rgba(57,41,42,0.08)",
+                                  background: "transparent",
+                                  fontSize: "13px",
+                                  color: "#993842",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                ✕ Delete article
+                              </button>
                             </div>
                           )}
                         </div>

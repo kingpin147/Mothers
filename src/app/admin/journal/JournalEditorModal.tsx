@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { JOURNAL_CATEGORIES, getCategoryLabel } from "@/lib/journalCategories";
-import { saveJournalPost } from "@/app/actions/adminCms";
+import { saveJournalPost, deleteJournalPost } from "@/app/actions/adminCms";
 
 const WINE = "#7b1f2c";
 const GREEN = "#3f6604";
@@ -305,6 +305,22 @@ export default function JournalEditorModal({
       onClose();
     } else {
       setFormError(res.error || "Failed to save article.");
+    }
+  };
+
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!post?.id) return;
+    if (!confirm(`Are you sure you want to delete "${post.title || title}"? This action cannot be undone.`)) return;
+    setDeleting(true);
+    const res = await deleteJournalPost(post.id);
+    setDeleting(false);
+    if (res.success) {
+      onSaved();
+      onClose();
+    } else {
+      setFormError(res.error || "Failed to delete article.");
     }
   };
 
@@ -1107,11 +1123,33 @@ export default function JournalEditorModal({
             />
           </div>
 
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
+            {post?.id && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || saving}
+                style={{
+                  border: "1px solid rgba(153, 56, 66, 0.4)",
+                  backgroundColor: "#fdf2f2",
+                  color: "#993842",
+                  borderRadius: "4px",
+                  padding: "10px 16px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: deleting ? "wait" : "pointer",
+                  marginRight: "auto",
+                }}
+              >
+                {deleting ? "Deleting..." : "✕ Delete Article"}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onClose}
-              disabled={saving}
+              disabled={saving || deleting}
               style={{
                 border: "1px solid rgba(57, 41, 42, 0.25)",
                 backgroundColor: "transparent",

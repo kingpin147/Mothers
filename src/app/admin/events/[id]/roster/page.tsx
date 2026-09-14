@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { getEventRoster, markAttendance } from "@/app/actions/adminEvents";
+import { BackArrow } from "@/components/Icons";
 
 const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
 
@@ -77,7 +78,7 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "22px" }}>
           <div style={{ flex: "1 1 400px" }}>
             <div className="no-print" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
-              <Link href="/admin" style={{ color: "#7b1f2c" }}>← Dashboard</Link> · Events · Roster
+              <Link href="/admin" style={{ color: "#7b1f2c", display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link> · Events · Roster
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(30px, 4vw, 42px)", lineHeight: 1.1, margin: "0 0 9px" }}>{ev.title} — {ev.neighbourhood}</h1>
             <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 4px 0", maxWidth: "70ch" }}>
@@ -91,8 +92,8 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
             <button type="button" onClick={handlePrint} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer", whiteSpace: "nowrap" }}>
               Print this sheet
             </button>
-            <Link href="/admin/events" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap" }}>
-              ← Calendar
+            <Link href="/admin/events" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+              <BackArrow /> Calendar
             </Link>
           </div>
         </div>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { submitApplication, checkEmailExists, ApplicationFormData } from "@/app/actions/application";
+import { BackArrow } from "@/components/Icons";
 
 const STORAGE_KEY = "tm_apply_form";
 
@@ -374,7 +375,7 @@ export function ApplyModal({
         {/* Header */}
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "16px", marginBottom: "6px" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c" }}>
-            {lang === "en" ? "BECOME A MOM" : "BECOME A MOM"}
+            {lang === "en" ? "BECOME A MEMBER" : "HAZTE SOCIA"}
           </div>
           <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.55)", whiteSpace: "nowrap" }}>
             {lang === "en" ? `Question ${step + 1} of ${totalSteps}` : `Pregunta ${step + 1} de ${totalSteps}`}
@@ -778,10 +779,11 @@ export function ApplyModal({
                 fontFamily: "var(--font-body)",
                 fontSize: "14px",
                 cursor: "pointer",
-                padding: "8px 4px",
+                display: "inline-flex",
+                alignItems: "center",
               }}
             >
-              {lang === "en" ? "← Back" : "← Atrás"}
+              <BackArrow /> {lang === "en" ? "Back" : "Atrás"}
             </button>
           ) : (
             <div />

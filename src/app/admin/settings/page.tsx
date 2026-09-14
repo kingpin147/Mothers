@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getClubSettings, updateClubSettings, getMembershipWindows, createMembershipWindow, setMembershipWindowStatus } from "@/app/actions/adminSettings";
+import { BackArrow, ForwardArrow } from "@/components/Icons";
 
 const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
 
@@ -220,7 +221,7 @@ export default function AdminSettingsPage() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "40px" }}>
           <div style={{ flex: "1 1 500px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
-              ← Dashboard · Configuration
+              <Link href="/admin" style={{ color: WINE, display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link> · Configuration
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(34px, 4.5vw, 48px)", lineHeight: 1.1, margin: "0 0 12px", color: "#39292a" }}>
               Club & credit policy
@@ -230,8 +231,8 @@ export default function AdminSettingsPage() {
             </p>
           </div>
           <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
-            <Link href="/admin" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap" }}>
-              ← Dashboard
+            <Link href="/admin" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+              <BackArrow /> Dashboard
             </Link>
           </div>
         </div>
@@ -261,7 +262,7 @@ export default function AdminSettingsPage() {
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                      <Link href="/admin/applications" style={{ color: WINE, fontSize: "13.5px" }}>Review queue →</Link>
+                      <Link href="/admin/applications" style={{ color: WINE, fontSize: "13.5px", display: "inline-flex", alignItems: "center" }}>Review queue <ForwardArrow /></Link>
                       <button 
                         onClick={() => handleWindowStatus(w.id, w.status === 'open' ? 'closed' : 'open')}
                         style={{ border: "1px solid rgba(57,41,42,0.25)", background: "transparent", borderRadius: "4px", padding: "8px 14px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", cursor: "pointer", color: "#39292a" }}
@@ -401,9 +402,9 @@ export default function AdminSettingsPage() {
                   type="button" 
                   onClick={handleSave} 
                   disabled={saving}
-                  style={{ border: `1px solid ${WINE}`, background: "transparent", color: WINE, borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}
+                  style={{ border: `1px solid ${WINE}`, background: "transparent", color: WINE, borderRadius: "4px", padding: "11px 20px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer", display: "inline-flex", alignItems: "center" }}
                 >
-                  {saving ? "Saving..." : "Review and save →"}
+                  {saving ? "Saving..." : <>Review and save <ForwardArrow /></>}
                 </button>
               </div>
             </div>
