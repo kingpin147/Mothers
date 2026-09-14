@@ -17,9 +17,8 @@ const lora = Lora({
   variable: "--font-body",
   display: "swap",
 });
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
 import { SessionProviderWrapper } from "@/components/SessionProviderWrapper";
+import ConditionalShell from "@/components/ConditionalShell";
 
 import { LanguageProvider } from "@/components/LanguageProvider";
 
@@ -42,11 +41,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <SessionProviderWrapper>
           <LanguageProvider>
-            <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-              <Navigation />
-              <main style={{ flex: 1 }}>{children}</main>
-              <Footer />
-            </div>
+            <ConditionalShell>{children}</ConditionalShell>
           </LanguageProvider>
         </SessionProviderWrapper>
       </body>
