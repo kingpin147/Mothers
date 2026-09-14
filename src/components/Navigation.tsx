@@ -13,11 +13,24 @@ export function Navigation() {
   const { language: lang, setLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [memberCredits, setMemberCredits] = useState<number | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   // Close mobile drawer on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return;
+
+    const updateHeaderHeight = () => setHeaderHeight(header.getBoundingClientRect().height);
+    updateHeaderHeight();
+
+    const observer = new ResizeObserver(updateHeaderHeight);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
 
   // Fetch credit balance for logged-in members (not admins)
   useEffect(() => {
@@ -224,7 +237,7 @@ export function Navigation() {
         <div
           style={{
             position: "fixed",
-            top: "81px",
+            top: `${headerHeight}px`,
             left: 0,
             right: 0,
             bottom: 0,
