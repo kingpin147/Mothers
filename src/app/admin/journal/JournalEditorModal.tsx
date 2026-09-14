@@ -96,6 +96,7 @@ export default function JournalEditorModal({
 
   // Form handling
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [formError, setFormError] = useState("");
   const [showSeo, setShowSeo] = useState(false);
 
@@ -172,8 +173,6 @@ export default function JournalEditorModal({
     setImageError("");
     setActiveLang("en");
   }, [post, isOpen]);
-
-  if (!isOpen) return null;
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -308,8 +307,6 @@ export default function JournalEditorModal({
     }
   };
 
-  const [deleting, setDeleting] = useState(false);
-
   const handleDelete = async () => {
     if (!post?.id) return;
     if (!confirm(`Are you sure you want to delete "${post.title || title}"? This action cannot be undone.`)) return;
@@ -328,6 +325,8 @@ export default function JournalEditorModal({
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+
+  if (!isOpen) return null;
 
   return (
     <div

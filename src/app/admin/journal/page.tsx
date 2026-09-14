@@ -1286,12 +1286,14 @@ export default function AdminJournalPage() {
       </div>
 
       {/* ─── Full Bilingual Journal Editor Modal ─────────────── */}
-      <JournalEditorModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        post={selectedPost}
-        onSaved={fetchPosts}
-      />
+      {modalOpen && (
+        <JournalEditorModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          post={selectedPost}
+          onSaved={fetchPosts}
+        />
+      )}
     </div>
   );
 }
