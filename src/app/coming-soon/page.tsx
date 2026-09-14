@@ -1,6 +1,5 @@
-import React from "react";
-import ComingSoonClient from "./coming-soon/ComingSoonClient";
 import { Metadata } from "next";
+import ComingSoonClient from "./ComingSoonClient";
 
 export const metadata: Metadata = {
   title: "The Mothers — Coming Soon",
@@ -23,6 +22,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
+export default function ComingSoonPage() {
   return <ComingSoonClient />;
 }
