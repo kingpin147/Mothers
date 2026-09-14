@@ -74,10 +74,11 @@ export async function subscribeToLetter(email: string) {
 
 export async function getPublicPartners() {
   const { partner } = await import("@/db/schema");
+  const { or, eq, inArray } = await import("drizzle-orm");
   const partners = await db
     .select()
     .from(partner)
-    .where(eq(partner.status, "active"))
+    .where(inArray(partner.status, ["active", "Live", "live", "Ending soon"]))
     .orderBy(desc(partner.createdAt));
 
   return { success: true, partners };

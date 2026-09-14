@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
-import { person, eventPass, booking, event, member, creditEntry, auditLog, application } from "@/db/schema";
+import { person, eventPass, booking, event, member, creditEntry, auditLog, application, payment } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import { queueAndSendEmail } from "@/lib/brevo";
@@ -32,13 +32,16 @@ export async function POST(req: Request) {
     if (stripeEvent.type === "checkout.session.completed") {
       const type = eventData.metadata?.type;
       const personId = eventData.metadata?.personId;
-      const eventId = eventData.metadata?.eventId; // Guest pass
-      const memberId = eventData.metadata?.memberId; // Membership
+      const eventId = eventData.metadata?.eventId; // Guest pass or auto-booked event
+      const memberId = eventData.metadata?.memberId; // Membership or extra credits
+      const creditAmount = eventData.metadata?.creditAmount; // Extra credits
 
       if (type === "guest_pass" && personId && eventId) {
         await handleGuestPassPurchase(personId, eventId, eventData.amount_total);
       } else if (type === "membership" && memberId) {
         await handleMembershipActivation(memberId, eventData.customer, eventData.subscription);
+      } else if ((type === "extra_credits" || type === "credit_topup") && memberId) {
+        await handleExtraCreditsPurchase(memberId, personId, creditAmount, eventId, eventData);
       }
     }
 
@@ -410,6 +413,132 @@ async function handleSubscriptionStatusChange(subscriptionId: string, stripeStat
         entityId: mem.id,
         before: { status: mem.status },
         after: { status: newStatus, stripeStatus },
+      });
+    }
+  });
+}
+
+async function handleExtraCreditsPurchase(
+  memberId: string,
+  personId: string | undefined,
+  creditAmountStr: string | undefined,
+  eventId: string | undefined,
+  session: any
+) {
+  const creditAmount = parseInt(creditAmountStr || "10", 10);
+  if (isNaN(creditAmount) || creditAmount <= 0) return;
+
+  const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000); // 6 months
+
+  await db.transaction(async (tx) => {
+    // 1. Grant credits
+    await tx.insert(creditEntry).values({
+      memberId,
+      amount: creditAmount,
+      type: "grant",
+      sourceType: "extra_purchase",
+      sourceId: session.id,
+      reason: `Extra credits purchase (${creditAmount} × €1)`,
+      expiresAt,
+    });
+
+    // 2. Track in payment ledger
+    if (personId) {
+      await tx.insert(payment).values({
+        personId,
+        purpose: "extra_credits",
+        amountCents: session.amount_total || (creditAmount * 100),
+        currency: (session.currency || "eur").toUpperCase(),
+        status: "succeeded",
+        stripeInvoiceId: session.invoice as string | null,
+        stripePaymentIntentId: session.payment_intent as string | null,
+      }).onConflictDoNothing();
+    }
+
+    // 3. Auto-book event if eventId is passed
+    if (eventId) {
+      const ev = await tx.query.event.findFirst({
+        where: eq(event.id, eventId),
+      });
+
+      if (ev && personId) {
+        // Deduct credits for the booking if required
+        if (ev.creditCost > 0) {
+          const { spendCredits } = await import("@/lib/ledger");
+          await spendCredits(
+            memberId,
+            ev.creditCost,
+            "booking",
+            eventId,
+            `Booking for ${ev.title}`,
+            tx
+          );
+        }
+
+        const initialStatus = ev.status === "confirmed" ? "confirmed" : "held";
+        const insertedBooking = await tx.insert(booking).values({
+          eventId,
+          personId,
+          memberId,
+          kind: "member",
+          status: initialStatus,
+          creditsCharged: ev.creditCost,
+          bookedAt: new Date(),
+        }).returning({ id: booking.id });
+
+        // Send booking confirmation email
+        const personRecord = await tx.query.person.findFirst({
+          where: eq(person.id, personId),
+        });
+
+        if (personRecord) {
+          const subject =
+            personRecord.locale === "es"
+              ? `Reserva Confirmada: ${ev.title} — The Mothers`
+              : `Booking Confirmed: ${ev.title} — The Mothers`;
+
+          const htmlContent = `
+            <div style="font-family: 'Lora', Georgia, serif; color: #39292a; max-width: 600px; margin: 0 auto; padding: 32px; background: #fdf9f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 8px;">
+              <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; margin: 0 0 16px;">
+                ${personRecord.locale === "es" ? "Plaza Reservada" : "Place Confirmed"}
+              </h2>
+              <p style="font-size: 15px; line-height: 1.6;">
+                ${
+                  personRecord.locale === "es"
+                    ? `Hola ${personRecord.firstName}, tienes tu plaza confirmada para <strong>${ev.title}</strong>.`
+                    : `Hi ${personRecord.firstName}, your place is confirmed for <strong>${ev.title}</strong>.`
+                }
+              </p>
+              <div style="background: #fff; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px; padding: 16px; margin: 20px 0; font-size: 14px;">
+                <div>📅 <strong>${new Date(ev.startsAt).toLocaleDateString()}</strong></div>
+                <div>📍 <strong>${ev.venueName || ev.meetingPoint || ev.neighbourhood}</strong></div>
+              </div>
+            </div>
+          `;
+
+          await queueAndSendEmail({
+            personId,
+            toEmail: personRecord.email,
+            toName: `${personRecord.firstName} ${personRecord.lastName}`,
+            templateKey: "booking_confirmed",
+            dedupeKey: `booking_confirmed_${insertedBooking[0].id}`,
+            subject,
+            htmlContent,
+            isTransactional: true,
+          });
+        }
+      }
+    }
+
+    // 4. Audit Log
+    if (personId) {
+      await tx.insert(auditLog).values({
+        actorId: personId,
+        actorType: "member",
+        action: "buy_extra_credits",
+        entity: "credit_entry",
+        entityId: memberId,
+        after: { creditAmount, eventId: eventId || null, sessionId: session.id, expiresAt: expiresAt.toISOString() },
       });
     }
   });

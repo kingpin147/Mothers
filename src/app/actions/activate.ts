@@ -30,6 +30,10 @@ export async function getActivationDetails(token: string) {
     where: eq(window.id, appRecord.windowId),
   });
 
+  const credRecord = personRecord ? await db.query.memberCredential.findFirst({
+    where: eq(memberCredential.personId, personRecord.id),
+  }) : null;
+
   return {
     success: true,
     application: appRecord,
@@ -38,6 +42,7 @@ export async function getActivationDetails(token: string) {
     window: windowRecord,
     monthlyPriceCents: windowRecord?.monthlyPriceCents || 3900,
     joiningFeeCents: windowRecord?.joiningFeeCents || 1900,
+    hasPasswordSet: !!credRecord,
   };
 }
 

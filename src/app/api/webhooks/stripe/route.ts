@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/db";
-import { stripeEvent, member, payment, person, auditLog, creditEntry, event as eventTable, booking, eventPass } from "@/db/schema";
+import { stripeEvent, member, payment, person, auditLog, creditEntry, event as eventTable, booking, eventPass, application } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { grantMonthlySubscriptionCredits } from "@/lib/ledger";
 import { queueAndSendEmail } from "@/lib/brevo";
@@ -410,6 +410,60 @@ export async function POST(req: NextRequest) {
                 });
               }
             }
+          });
+        }
+
+        if (meta.type === "membership" && meta.memberId) {
+          const memberId = meta.memberId;
+          const customerId = session.customer as string;
+          const subscriptionId = session.subscription as string;
+
+          await db.transaction(async (tx) => {
+            const mem = await tx.query.member.findFirst({ where: eq(member.id, memberId) });
+            if (!mem) return;
+
+            // Activate member
+            await tx.update(member).set({
+              status: "active",
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId,
+              updatedAt: new Date()
+            }).where(eq(member.id, memberId));
+
+            // Mark application paid
+            const recentApp = await tx.query.application.findFirst({
+              where: eq(application.personId, mem.personId),
+              orderBy: (application, { desc }) => [desc(application.decidedAt)]
+            });
+
+            if (recentApp && !recentApp.isPaid) {
+              await tx.update(application).set({
+                isPaid: true,
+                updatedAt: new Date()
+              }).where(eq(application.id, recentApp.id));
+            }
+
+            // Grant initial 20 credits
+            const expiresAt = new Date();
+            expiresAt.setMonth(expiresAt.getMonth() + 6);
+
+            await tx.insert(creditEntry).values({
+              memberId,
+              amount: 20,
+              type: "grant",
+              reason: "Initial Membership Grant",
+              sourceType: "subscription_monthly",
+              expiresAt,
+            });
+
+            await tx.insert(auditLog).values({
+              actorId: mem.personId,
+              actorType: "system",
+              action: "membership_activated",
+              entity: "member",
+              entityId: memberId,
+              after: { status: "active", subscriptionId },
+            });
           });
         }
         break;

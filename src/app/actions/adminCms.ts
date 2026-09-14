@@ -382,7 +382,7 @@ export async function savePartner(data: {
       const activeIncumbent = await db.query.partner.findFirst({
         where: and(
           eq(partner.specialty, data.specialty),
-          eq(partner.status, "active"),
+          or(eq(partner.status, "active"), eq(partner.status, "Live"), eq(partner.status, "live")),
           sql`exclusive_until IS NOT NULL AND exclusive_until > NOW()`,
           data.id ? ne(partner.id, data.id) : sql`1=1`
         ),
@@ -409,7 +409,7 @@ export async function savePartner(data: {
           description: data.description || "Curated club partner",
           offerForMembers: data.offerForMembers,
           discountCode: data.discountCode || null,
-          status: data.status || "active",
+          status: data.status || "Live",
           exclusiveFrom: isExclusive ? new Date() : null,
           exclusiveUntil: isExclusive ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
           updatedAt: new Date(),
@@ -423,7 +423,7 @@ export async function savePartner(data: {
         description: data.description || "Curated club partner",
         offerForMembers: data.offerForMembers,
         discountCode: data.discountCode || null,
-        status: data.status || "active",
+        status: data.status || "Live",
         exclusiveFrom: isExclusive ? new Date() : null,
         exclusiveUntil: isExclusive ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
       });

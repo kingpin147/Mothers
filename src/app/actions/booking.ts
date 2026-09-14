@@ -752,8 +752,8 @@ export async function buyGuestPass(params: {
           price_data: {
             currency: "eur",
             product_data: {
-              name: `Guest Pass: ${result.eventTitle}`,
-              description: `Single guest pass for ${new Date(result.startsAt).toLocaleDateString()}`,
+              name: `THE Mothers — Guest Pass: ${result.eventTitle}`,
+              description: `Single guest pass for ${new Date(result.startsAt).toLocaleDateString()} · THE Mothers Barcelona`,
             },
             unit_amount: result.guestPriceCents,
           },
@@ -764,6 +764,12 @@ export async function buyGuestPass(params: {
         type: "guest_pass",
         eventId,
         personId: result.personId,
+        company: "THE Mothers",
+      },
+      custom_text: {
+        submit: {
+          message: "Official checkout for THE Mothers Barcelona.",
+        },
       },
       success_url: `${origin}/events?guest_pass_success=true`,
       cancel_url: `${origin}/events?guest_pass_canceled=true`,
@@ -786,7 +792,14 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
 
-  const memberId = (session.user as any).memberId;
+  let memberId = (session.user as any).memberId;
+  const personId = (session.user as any).personId || session.user.id;
+
+  if (!memberId && personId) {
+    const mem = await db.query.member.findFirst({ where: eq(member.personId, personId) });
+    if (mem) memberId = mem.id;
+  }
+
   if (!memberId) return { success: false, error: "MEMBER_ACCOUNT_REQUIRED" };
 
   const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
@@ -809,8 +822,8 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
           price_data: {
             currency: "eur",
             product_data: {
-              name: `${amount} Extra Credits — The Mothers`,
-              description: `€1/credit · 6-month expiry · FIFO`,
+              name: `THE Mothers — ${amount} Extra Event Credits`,
+              description: `€1/credit · 6-month validity · THE Mothers Barcelona`,
             },
             unit_amount: amount * 100, // €1 per credit in cents
           },
@@ -823,6 +836,12 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
         personId: memberRecord.personId,
         creditAmount: String(amount),
         eventId: eventId || "",
+        company: "THE Mothers",
+      },
+      custom_text: {
+        submit: {
+          message: "Official checkout for THE Mothers Barcelona.",
+        },
       },
       success_url: eventId
         ? `${origin}/events/${eventId}?booking_success=true`

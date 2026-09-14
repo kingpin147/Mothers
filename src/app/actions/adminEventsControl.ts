@@ -50,7 +50,12 @@ export async function getEventAttendees(eventId: string) {
     .from(booking)
     .innerJoin(member, eq(booking.memberId, member.id))
     .innerJoin(person, eq(member.personId, person.id))
-    .where(eq(booking.eventId, eventId))
+    .where(
+      and(
+        eq(booking.eventId, eventId),
+        sql`${booking.status} IN ('held', 'confirmed', 'attended', 'no_show')`
+      )
+    )
     .orderBy(desc(booking.createdAt));
 
   // 2. Fetch Guest Event Passes
@@ -67,7 +72,12 @@ export async function getEventAttendees(eventId: string) {
     })
     .from(eventPass)
     .innerJoin(person, eq(eventPass.personId, person.id))
-    .where(eq(eventPass.eventId, eventId))
+    .where(
+      and(
+        eq(eventPass.eventId, eventId),
+        sql`${eventPass.status} IN ('paid', 'used')`
+      )
+    )
     .orderBy(desc(eventPass.purchasedAt));
 
   return {
@@ -108,7 +118,12 @@ export async function getEventRosterDetail(eventId: string) {
     .from(booking)
     .innerJoin(member, eq(booking.memberId, member.id))
     .innerJoin(person, eq(member.personId, person.id))
-    .where(eq(booking.eventId, eventId))
+    .where(
+      and(
+        eq(booking.eventId, eventId),
+        sql`${booking.status} IN ('held', 'confirmed', 'attended', 'no_show')`
+      )
+    )
     .orderBy(desc(booking.createdAt));
 
   const guestPasses = await db
@@ -123,7 +138,12 @@ export async function getEventRosterDetail(eventId: string) {
     })
     .from(eventPass)
     .innerJoin(person, eq(eventPass.personId, person.id))
-    .where(eq(eventPass.eventId, eventId))
+    .where(
+      and(
+        eq(eventPass.eventId, eventId),
+        sql`${eventPass.status} IN ('paid', 'used')`
+      )
+    )
     .orderBy(desc(eventPass.purchasedAt));
 
   const waitlist = await db
@@ -446,6 +466,12 @@ export async function adminCancelMemberBooking(bookingId: string) {
         entityId: b.id,
       });
     });
+
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/admin/events");
+    revalidatePath("/events");
+    revalidatePath("/account");
+
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "CANCEL_FAILED" };

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { getEventRoster, markAttendance } from "@/app/actions/adminEvents";
+import { adminCancelMemberBooking } from "@/app/actions/adminEventsControl";
 import { BackArrow } from "@/components/Icons";
 
 const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
@@ -36,6 +37,16 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
     const res = await markAttendance(bookingId, !currentlyAttended);
     if (res.success) {
       fetchRoster(); // refresh
+    }
+  };
+
+  const handleCancelMember = async (bookingId: string) => {
+    if (!confirm("Are you sure you want to remove this member from the event and refund their credits?")) return;
+    const res = await adminCancelMemberBooking(bookingId);
+    if (res.success) {
+      fetchRoster();
+    } else {
+      alert(res.error || "Failed to remove member.");
     }
   };
 
@@ -171,7 +182,7 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
                     {b.person.notesInternal || "—"}
                   </div>
 
-                  <div style={{ textAlign: "right" }}>
+                  <div className="no-print" style={{ textAlign: "right", display: "inline-flex", gap: "8px", alignItems: "center", justifyContent: "flex-end" }}>
                     <button 
                       type="button" 
                       onClick={() => handleMark(b.booking.id, isAttended)}
@@ -189,6 +200,25 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
                         transition: "all 0.2s"
                       }}>
                       {isAttended ? 'Arrived ✓' : 'Mark'}
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => handleCancelMember(b.booking.id)}
+                      title="Remove member and refund credits"
+                      style={{ 
+                        border: "1px solid rgba(123,31,44,0.35)", 
+                        background: "#fff8f8", 
+                        color: WINE, 
+                        borderRadius: "4px", 
+                        padding: "7px 12px", 
+                        fontFamily: "'Cormorant Garamond', serif", 
+                        fontWeight: 600, 
+                        fontSize: "13.5px", 
+                        cursor: "pointer", 
+                        whiteSpace: "nowrap",
+                        transition: "all 0.2s"
+                      }}>
+                      ✕ Remove
                     </button>
                   </div>
                 </div>

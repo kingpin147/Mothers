@@ -128,7 +128,7 @@ export default function AdminEventsPage() {
   };
 
   const handleCancelMemberBooking = async (bookingId: string) => {
-    if (!confirm("Are you sure you want to cancel this booking and refund the member?")) return;
+    if (!confirm("Are you sure you want to remove this member from the event and refund their credits?")) return;
     const res = await adminCancelMemberBooking(bookingId);
     if (res.success && activeEventRoster) {
       const refreshed = await getEventAttendees(activeEventRoster.id);
@@ -136,7 +136,7 @@ export default function AdminEventsPage() {
         setMemberBookings(refreshed.memberBookings || []);
       }
     } else {
-      alert(res.error || "Failed to cancel booking.");
+      alert(res.error || "Failed to remove member.");
     }
   };
 
@@ -1127,10 +1127,10 @@ export default function AdminEventsPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleCancelMemberBooking(b.id)}
-                                  title="Cancel booking and refund member credits"
+                                  title="Remove member and refund credits"
                                   style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
                                 >
-                                  ✕ Delete Member
+                                  ✕ Remove
                                 </button>
                               </div>
                             </td>

@@ -1,53 +1,89 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
-import { member, application, window } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { member, application, window, person, eventPass } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth"; 
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await req.json();
-    const { type, memberId } = body;
+    const { type, memberId, token } = body;
 
     if (type !== "membership") {
       return NextResponse.json({ error: "Only membership payment intents are supported" }, { status: 400 });
     }
     if (!memberId) return NextResponse.json({ error: "Missing memberId" }, { status: 400 });
 
+    let personId: string | null = null;
+    let personEmail: string | null = null;
+    let personRecord: any = null;
+
+    if (token) {
+      const appRecord = await db.query.application.findFirst({
+        where: eq(application.paymentLinkToken, token),
+      });
+
+      if (!appRecord || appRecord.status !== "accepted") {
+        return NextResponse.json({ error: "Invalid activation token" }, { status: 403 });
+      }
+
+      if (appRecord.acceptExpiresAt && new Date() > new Date(appRecord.acceptExpiresAt)) {
+        return NextResponse.json({ error: "Activation token expired" }, { status: 403 });
+      }
+
+      personId = appRecord.personId;
+    } else {
+      const session = await auth();
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      personId = (session.user as any).personId || session.user.id;
+      personEmail = session.user.email || null;
+    }
+
+    if (!personId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const memberRecord = await db.query.member.findFirst({
       where: eq(member.id, memberId),
     });
 
-    if (!memberRecord) {
+    if (!memberRecord || memberRecord.personId !== personId) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    }
+
+    personRecord = await db.query.person.findFirst({
+      where: eq(person.id, personId),
+    });
+
+    if (personRecord?.email) {
+      personEmail = personRecord.email;
     }
 
     const appRecord = await db.query.application.findFirst({
       where: eq(application.personId, memberRecord.personId),
+      orderBy: (app, { desc }) => [desc(app.submittedAt)],
     });
 
-    if (!appRecord || !appRecord.windowId) {
-      return NextResponse.json({ error: "Application or Window not found" }, { status: 404 });
+    let windowRecord = null;
+    if (appRecord?.windowId) {
+      windowRecord = await db.query.window.findFirst({
+        where: eq(window.id, appRecord.windowId),
+      });
     }
 
-    const windowRecord = await db.query.window.findFirst({
-      where: eq(window.id, appRecord.windowId),
-    });
-
-    if (!windowRecord) return NextResponse.json({ error: "Application window not found" }, { status: 404 });
+    const defaultMonthlyPrice = windowRecord?.monthlyPriceCents || 3900;
+    const defaultJoiningFee = windowRecord?.joiningFeeCents || 1900;
 
     // Ensure customer exists in Stripe
-    let customerId = (session.user as any).stripeCustomerId;
+    let customerId = memberRecord.stripeCustomerId;
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: session.user.email || undefined,
-        metadata: { personId: session.user.id },
+        email: personEmail || undefined,
+        name: personRecord ? `${personRecord.firstName} ${personRecord.lastName}` : undefined,
+        metadata: { personId, memberId },
       });
       customerId = customer.id;
     }
@@ -63,21 +99,28 @@ export async function POST(req: Request) {
     const isQuarterly = memberRecord.billingFrequency === "quarterly";
     const amountCents = memberRecord.priceCents > 0 
       ? memberRecord.priceCents 
-      : (isQuarterly ? windowRecord.monthlyPriceCents * 3 - 800 : windowRecord.monthlyPriceCents); // fallback
+      : (isQuarterly ? 9900 : defaultMonthlyPrice);
 
-    const { eventPass } = await import("@/db/schema");
-    const pastPasses = await db.query.eventPass.findMany({
-      where: eq(eventPass.personId, session.user.id),
-    });
+    const [totalAcceptedCount, pastPasses] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(member).where(sql`status IN ('active', 'accepted_awaiting_payment')`),
+      db.query.eventPass.findMany({
+        where: and(
+          eq(eventPass.personId, personId),
+          sql`purchased_at >= NOW() - INTERVAL '30 days'`
+        ),
+      }),
+    ]);
     
-    // Calculate joining fee discount
-    // We cap the discount at the joining fee amount to avoid negative fees,
-    // although they should only have up to 2 passes.
-    const passDiscountCents = Math.min(
-      pastPasses.length * 3500,
-      windowRecord.joiningFeeCents
-    );
-    const finalJoiningFee = windowRecord.joiningFeeCents - passDiscountCents;
+    // Check joining fee waiver rules:
+    // 1. Founding members (first 50) get fee waived
+    // 2. Member who attended an event in last 30 days gets fee credited
+    const isFirst50 = Number(totalAcceptedCount[0]?.count || 0) <= 50;
+    const hasRecentPass = pastPasses.length > 0;
+
+    let finalJoiningFee = defaultJoiningFee;
+    if (isFirst50 || hasRecentPass) {
+      finalJoiningFee = 0;
+    }
 
     // Create the subscription as incomplete
     const subscription = await stripe.subscriptions.create({
@@ -106,7 +149,7 @@ export async function POST(req: Request) {
       metadata: {
         type: "membership",
         memberId,
-        personId: session.user.id,
+        personId,
       },
     });
 

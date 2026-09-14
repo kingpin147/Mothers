@@ -72,7 +72,7 @@ export default function AdminPartnersPage() {
     setTimeout(() => setCopiedCode(null), 2500);
   };
 
-  const handleSaveDraft = async () => {
+  const handleSavePartner = async (status: "Draft" | "Live" = "Live") => {
     if (!draft.name.trim() || !draft.offer.trim()) {
       setFormError("Name and member offer are required.");
       return;
@@ -83,7 +83,7 @@ export default function AdminPartnersPage() {
       const existingExclusive = partners.find(
         (p) =>
           p.exclusive &&
-          (p.status || "Live") === "Live" &&
+          (p.status || "Live").toLowerCase() === "live" &&
           p.specialty.toLowerCase() === draft.specialty.trim().toLowerCase() &&
           p.name.toLowerCase() !== draft.name.trim().toLowerCase()
       );
@@ -106,6 +106,7 @@ export default function AdminPartnersPage() {
       discountCode: draft.code.trim() || undefined,
       offerForMembers: draft.offer.trim(),
       exclusive: draft.exclusive,
+      status,
     });
 
     if (res.success) {
@@ -122,6 +123,17 @@ export default function AdminPartnersPage() {
       loadPartners();
     } else {
       alert(res.error || "Failed to save partner.");
+    }
+  };
+
+  const handleDeletePartner = async (id: string, name: string) => {
+    setMenuOpenId(null);
+    if (!confirm(`Are you sure you want to permanently delete partner "${name}"?`)) return;
+    const res = await deletePartner(id);
+    if (res.success) {
+      loadPartners();
+    } else {
+      alert(res.error || "Failed to delete partner.");
     }
   };
 
@@ -317,8 +329,11 @@ export default function AdminPartnersPage() {
             </div>
             {formError && <div style={{ color: WINE, fontSize: "13px", marginBottom: "10px" }}>{formError}</div>}
             <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", alignItems: "center" }}>
-              <button type="button" onClick={handleSaveDraft} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>
-                Save as a draft
+              <button type="button" onClick={() => handleSavePartner("Live")} style={{ border: "1px solid #7b1f2c", background: "#7b1f2c", color: "#fff", borderRadius: "4px", padding: "10px 18px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>
+                Publish partner (Set Live)
+              </button>
+              <button type="button" onClick={() => handleSavePartner("Draft")} style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>
+                Save as draft
               </button>
               <button type="button" onClick={() => setComposing(false)} style={{ border: "1px solid rgba(57,41,42,0.28)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "10px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>
                 Cancel
@@ -507,11 +522,18 @@ export default function AdminPartnersPage() {
                         <button type="button" onClick={() => handleUpdateStatus(p.id, "Live")} style={{ display: "block", width: "100%", textAlign: "left", border: "none", background: "transparent", padding: "6px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", color: GREEN, cursor: "pointer" }}>
                           Set Live
                         </button>
+                        <button type="button" onClick={() => handleUpdateStatus(p.id, "Draft")} style={{ display: "block", width: "100%", textAlign: "left", border: "none", background: "transparent", padding: "6px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", color: GREY, cursor: "pointer" }}>
+                          Set as Draft
+                        </button>
                         <button type="button" onClick={() => handleUpdateStatus(p.id, "Paused")} style={{ display: "block", width: "100%", textAlign: "left", border: "none", background: "transparent", padding: "6px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", color: AMBER, cursor: "pointer" }}>
                           Pause agreement
                         </button>
                         <button type="button" onClick={() => handleUpdateStatus(p.id, "Ended")} style={{ display: "block", width: "100%", textAlign: "left", border: "none", background: "transparent", padding: "6px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", color: GREY, cursor: "pointer" }}>
                           End agreement
+                        </button>
+                        <div style={{ borderTop: "1px solid rgba(57,41,42,0.1)", margin: "4px 0" }} />
+                        <button type="button" onClick={() => handleDeletePartner(p.id, p.name)} style={{ display: "block", width: "100%", textAlign: "left", border: "none", background: "transparent", padding: "6px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", color: WINE, cursor: "pointer" }}>
+                          Delete partner
                         </button>
                       </div>
                     )}

@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { member, person, creditEntry, booking, event, eventCategory, eventPass, partner, partnerPerk, perkCodePool, perkReveal } from "@/db/schema";
-import { eq, desc, and, sql, asc } from "drizzle-orm";
+import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
 export async function getAccountData() {
@@ -125,7 +125,7 @@ export async function getAccountData() {
       db
         .select()
         .from(partner)
-        .where(eq(partner.status, "active")),
+        .where(inArray(partner.status, ["active", "Live", "live", "Ending soon"])),
     ]);
 
     const currentBalance = Number(creditRows[0]?.total || 0);
