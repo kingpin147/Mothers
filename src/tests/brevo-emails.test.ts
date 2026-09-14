@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { BREVO_TEMPLATES } from '@/lib/brevo';
+import { BREVO_TEMPLATES, generateJournalPostEmailHtml } from '@/lib/brevo';
 
 describe('Brevo Transactional Emails & Templates', () => {
-  it('Verifies all 18 core transactional email templates are defined', () => {
+  it('Verifies all 19 core email templates are defined', () => {
     expect(BREVO_TEMPLATES.WELCOME_CONFIRMATION).toBeDefined();
     expect(BREVO_TEMPLATES.APPLICATION_RECEIVED).toBeDefined();
     expect(BREVO_TEMPLATES.APPLICATION_ACCEPTED).toBeDefined();
@@ -21,6 +21,7 @@ describe('Brevo Transactional Emails & Templates', () => {
     expect(BREVO_TEMPLATES.MEMBERSHIP_CANCELLED).toBeDefined();
     expect(BREVO_TEMPLATES.TIER_UPGRADE).toBeDefined();
     expect(BREVO_TEMPLATES.GODMOTHER_BONUS_EARNED).toBeDefined();
+    expect(BREVO_TEMPLATES.JOURNAL_POST_NOTIFICATION).toBeDefined();
   });
 
   it('Template substitution produces clean HTML/parameter mapping', () => {
@@ -35,5 +36,23 @@ describe('Brevo Transactional Emails & Templates', () => {
     expect(preview).toContain('Elena');
     expect(preview).toContain('Autumn rooftop brunch');
     expect(preview).toContain('tok_123');
+  });
+
+  it('Generates branded Journal Post newsletter HTML with theme colors and logo', () => {
+    const html = generateJournalPostEmailHtml({
+      title: 'Navigating the Fourth Trimester in Barcelona',
+      excerpt: 'Practical notes on recovery, postpartum doulas, and slow mornings.',
+      slug: 'navigating-fourth-trimester',
+      category: 'postpartum',
+      author: 'Maria Garcia',
+      toEmail: 'subscriber@example.com',
+    });
+
+    expect(html).toContain('The Mothers');
+    expect(html).toContain('Navigating the Fourth Trimester in Barcelona');
+    expect(html).toContain('#7b1f2c');
+    expect(html).toContain('#efeae1');
+    expect(html).toContain('https://themothers.cc/journal/navigating-fourth-trimester');
+    expect(html).toContain('https://themothers.cc/unsubscribe?email=subscriber%40example.com');
   });
 });

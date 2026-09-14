@@ -99,6 +99,7 @@ export default function JournalEditorModal({
   const [deleting, setDeleting] = useState(false);
   const [formError, setFormError] = useState("");
   const [showSeo, setShowSeo] = useState(false);
+  const [notifySubscribers, setNotifySubscribers] = useState(true);
 
   useEffect(() => {
     if (post) {
@@ -288,6 +289,7 @@ export default function JournalEditorModal({
       reviewedNoteEn: reviewedNoteEn.trim() || undefined,
       reviewedNoteEs: reviewedNoteEs.trim() || undefined,
       heroImageId,
+      heroImageUrl,
       audience,
       status: targetStatus,
       publishedAt: targetPublishedAt,
@@ -295,6 +297,7 @@ export default function JournalEditorModal({
       seoTitleEs: seoTitleEs.trim() || undefined,
       seoDescription: seoDescription.trim() || undefined,
       seoDescriptionEs: seoDescriptionEs.trim() || undefined,
+      notifySubscribers: targetPublishMode === "publish" ? notifySubscribers : false,
     });
 
     setSaving(false);
@@ -1103,23 +1106,49 @@ export default function JournalEditorModal({
             gap: "14px",
           }}
         >
-          {/* Scheduling date input */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>
-              Schedule date:
-            </span>
-            <input
-              type="datetime-local"
-              value={scheduleDate}
-              onChange={(e) => setScheduleDate(e.target.value)}
+          {/* Scheduling date & Notify Subscribers toggle */}
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>
+                Schedule date:
+              </span>
+              <input
+                type="datetime-local"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                style={{
+                  padding: "7px 10px",
+                  borderRadius: "4px",
+                  border: "1px solid rgba(57, 41, 42, 0.25)",
+                  fontSize: "13px",
+                  fontFamily: "'Lora', Georgia, serif",
+                }}
+              />
+            </div>
+
+            <label
               style={{
-                padding: "8px 10px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                cursor: "pointer",
+                padding: "6px 12px",
+                backgroundColor: notifySubscribers ? "rgba(123, 31, 44, 0.08)" : "transparent",
                 borderRadius: "4px",
-                border: "1px solid rgba(57, 41, 42, 0.25)",
-                fontSize: "13px",
-                fontFamily: "'Lora', Georgia, serif",
+                border: `1px solid ${notifySubscribers ? "rgba(123, 31, 44, 0.3)" : "rgba(57, 41, 42, 0.18)"}`,
+                transition: "all 0.2s ease",
               }}
-            />
+            >
+              <input
+                type="checkbox"
+                checked={notifySubscribers}
+                onChange={(e) => setNotifySubscribers(e.target.checked)}
+                style={{ accentColor: WINE, width: "15px", height: "15px", cursor: "pointer" }}
+              />
+              <span style={{ fontSize: "13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, color: notifySubscribers ? WINE : "rgba(57, 41, 42, 0.8)" }}>
+                ✉ Notify Subscribers (The Letter)
+              </span>
+            </label>
           </div>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>

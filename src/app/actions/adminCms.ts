@@ -849,6 +849,7 @@ export async function saveJournalPost(data: {
   reviewedNoteEn?: string;
   reviewedNoteEs?: string;
   heroImageId?: string | null;
+  heroImageUrl?: string | null;
   status?: string; // 'published' | 'scheduled' | 'draft' | 'unpublished'
   published?: boolean;
   publishedAt?: Date | null;
@@ -857,7 +858,8 @@ export async function saveJournalPost(data: {
   seoTitleEs?: string;
   seoDescription?: string;
   seoDescriptionEs?: string;
-}): Promise<{ success: boolean; id?: string; error?: string }> {
+  notifySubscribers?: boolean;
+}): Promise<{ success: boolean; id?: string; error?: string; notifiedCount?: number }> {
   try {
     const { adminId } = await verifyAdminRole();
 
@@ -904,11 +906,19 @@ export async function saveJournalPost(data: {
       updatedAt: now,
     };
 
+    let targetId = data.id;
+    let targetSlug = data.slug?.trim() || "";
+
     if (data.id) {
       await db
         .update(journalPost)
         .set(payload)
         .where(eq(journalPost.id, data.id));
+
+      if (!targetSlug) {
+        const existing = await db.select({ slug: journalPost.slug }).from(journalPost).where(eq(journalPost.id, data.id)).limit(1);
+        targetSlug = existing[0]?.slug || "article";
+      }
 
       await db.insert(auditLog).values({
         actorId: adminId,
@@ -918,8 +928,6 @@ export async function saveJournalPost(data: {
         entityId: data.id,
         after: payload,
       });
-
-      return { success: true, id: data.id };
     } else {
       const generatedSlug = (data.slug?.trim() || data.title)
         .toLowerCase()
@@ -934,12 +942,15 @@ export async function saveJournalPost(data: {
         finalSlug = `${generatedSlug}-${Date.now().toString().slice(-4)}`;
       }
 
+      targetSlug = finalSlug;
+
       const inserted = await db.insert(journalPost).values({
         ...payload,
         slug: finalSlug,
       }).returning({ id: journalPost.id });
 
       const newId = inserted[0]?.id;
+      targetId = newId;
 
       await db.insert(auditLog).values({
         actorId: adminId,
@@ -949,9 +960,78 @@ export async function saveJournalPost(data: {
         entityId: newId,
         after: { ...payload, slug: finalSlug },
       });
-
-      return { success: true, id: newId };
     }
+
+    // ── Automated email notification broadcast to subscribers ──
+    let notifiedCount = 0;
+    if (data.notifySubscribers && computedStatus === "published" && targetId) {
+      try {
+        const { isNull } = await import("drizzle-orm");
+        const { queueAndSendEmail, generateJournalPostEmailHtml, BREVO_TEMPLATES } = await import("@/lib/brevo");
+
+        // Fetch active subscribers
+        const activeSubscribers = await db
+          .select()
+          .from(subscriber)
+          .where(and(eq(subscriber.list, "letter"), isNull(subscriber.unsubscribedAt)));
+
+        let postHeroUrl = data.heroImageUrl || null;
+        if (!postHeroUrl && data.heroImageId) {
+          const asset = await db.select().from(mediaAsset).where(eq(mediaAsset.id, data.heroImageId)).limit(1);
+          if (asset.length > 0 && asset[0].publicUrl) {
+            postHeroUrl = asset[0].publicUrl;
+          }
+        }
+
+        for (const sub of activeSubscribers) {
+          if (!sub.email || !sub.email.includes("@")) continue;
+
+          const cleanEmail = sub.email.toLowerCase().trim();
+
+          // Ensure Person record exists for foreign key constraint in emailLog
+          let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
+          if (!personRecord) {
+            const [p] = await db.insert(person).values({
+              firstName: sub.name || "Subscriber",
+              lastName: "",
+              email: cleanEmail,
+              source: "subscriber",
+            }).returning();
+            personRecord = p;
+          }
+
+          const htmlContent = generateJournalPostEmailHtml({
+            title: data.title,
+            excerpt: data.excerpt,
+            slug: targetSlug,
+            category: data.category,
+            author: data.author || "The Mothers",
+            heroImageUrl: postHeroUrl,
+            toEmail: cleanEmail,
+          });
+
+          const sendRes = await queueAndSendEmail({
+            personId: personRecord.id,
+            toEmail: cleanEmail,
+            toName: sub.name || "Subscriber",
+            templateKey: BREVO_TEMPLATES.JOURNAL_POST_NOTIFICATION,
+            dedupeKey: `journal_${targetId}_${cleanEmail}`,
+            subject: `The Letter · ${data.title}`,
+            htmlContent,
+            isTransactional: false,
+            marketingOptIn: sub.marketingConsent ?? true,
+          });
+
+          if (sendRes.success) {
+            notifiedCount++;
+          }
+        }
+      } catch (broadcastErr) {
+        console.error("Journal subscriber broadcast error:", broadcastErr);
+      }
+    }
+
+    return { success: true, id: targetId, notifiedCount };
   } catch (error: any) {
     console.error("Save journal post error:", error);
     return { success: false, error: error?.message || "SAVE_JOURNAL_FAILED" };
