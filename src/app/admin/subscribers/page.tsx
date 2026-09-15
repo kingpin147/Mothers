@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getSubscribersList, createSubscriber } from "@/app/actions/adminCms";
+import { getSubscribersList, createSubscriber, deleteSubscriber } from "@/app/actions/adminCms";
 import { BackArrow } from "@/components/Icons";
 
 export default function AdminSubscribersPage() {
@@ -14,8 +14,10 @@ export default function AdminSubscribersPage() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newSource, setNewSource] = useState("");
+  const [modalError, setModalError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [exportNotice, setExportNotice] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadSubscribers = async () => {
     setLoading(true);
@@ -32,12 +34,13 @@ export default function AdminSubscribersPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setModalError("");
     if (!newEmail.trim()) return;
     setIsSubmitting(true);
     const res = await createSubscriber({
       name: newName.trim() || undefined,
       email: newEmail.trim(),
-      list: listType,
+      list: listType === "all" ? "letter" : listType,
       source: newSource.trim() || "admin_manual",
     });
     setIsSubmitting(false);
@@ -46,9 +49,22 @@ export default function AdminSubscribersPage() {
       setNewName("");
       setNewEmail("");
       setNewSource("");
+      setModalError("");
       loadSubscribers();
     } else {
-      alert(res.error || "Failed to add subscriber");
+      setModalError(res.error || "Failed to add subscriber");
+    }
+  };
+
+  const handleDelete = async (id: string, email: string) => {
+    if (!confirm(`Are you sure you want to remove "${email}" from this list?`)) return;
+    setDeletingId(id);
+    const res = await deleteSubscriber(id);
+    setDeletingId(null);
+    if (res.success) {
+      loadSubscribers();
+    } else {
+      alert(res.error || "Failed to remove subscriber");
     }
   };
 
@@ -60,8 +76,8 @@ export default function AdminSubscribersPage() {
       s.list,
       s.source || "web",
       s.marketingConsent ? "Yes" : "No",
-      new Date(s.marketingConsentAt).toISOString(),
-      new Date(s.createdAt).toISOString(),
+      s.marketingConsentAt ? new Date(s.marketingConsentAt).toISOString() : "",
+      s.createdAt ? new Date(s.createdAt).toISOString() : "",
     ]);
 
     const csvContent = [headers.join(","), ...rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
@@ -82,7 +98,7 @@ export default function AdminSubscribersPage() {
   const filteredSubscribers = subscribers.filter((s) => {
     const q = search.toLowerCase().trim();
     if (!q) return true;
-    return (s.name || "").toLowerCase().includes(q) || s.email.toLowerCase().includes(q);
+    return (s.name || "").toLowerCase().includes(q) || (s.email || "").toLowerCase().includes(q) || (s.source || "").toLowerCase().includes(q);
   });
 
   return (
@@ -98,7 +114,7 @@ export default function AdminSubscribersPage() {
               The Letter & Subscribers
             </h1>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0 }}>
-              Dedicated marketing newsletter list with timestamped opt-in consent (§13). Kept strictly separate from the membership waitlist.
+              Marketing newsletter subscribers and coming soon waitlist signups with timestamped opt-in consent (§13).
             </p>
           </div>
 
@@ -112,7 +128,7 @@ export default function AdminSubscribersPage() {
             </button>
             <button
               type="button"
-              onClick={() => setShowAddModal(true)}
+              onClick={() => { setShowAddModal(true); setModalError(""); }}
               style={{ border: "1px solid #7b1f2c", background: "#7b1f2c", color: "#fff", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}
             >
               + Add Subscriber
@@ -122,57 +138,84 @@ export default function AdminSubscribersPage() {
 
         {/* Tab Controls & Search */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "18px" }}>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             <button
               type="button"
               onClick={() => setListType("letter")}
               style={{ border: listType === "letter" ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.2)", background: listType === "letter" ? "rgba(123,31,44,0.08)" : "#fff", color: listType === "letter" ? "#7b1f2c" : "#39292a", borderRadius: "4px", padding: "7px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}
             >
-              The Letter ({subscribers.length})
+              The Letter {listType === "letter" ? `(${subscribers.length})` : ""}
             </button>
             <button
               type="button"
               onClick={() => setListType("waitlist")}
               style={{ border: listType === "waitlist" ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.2)", background: listType === "waitlist" ? "rgba(123,31,44,0.08)" : "#fff", color: listType === "waitlist" ? "#7b1f2c" : "#39292a", borderRadius: "4px", padding: "7px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}
             >
-              Waitlist Subscribers
+              Waitlist Subscribers {listType === "waitlist" ? `(${subscribers.length})` : ""}
+            </button>
+            <button
+              type="button"
+              onClick={() => setListType("all")}
+              style={{ border: listType === "all" ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.2)", background: listType === "all" ? "rgba(123,31,44,0.08)" : "#fff", color: listType === "all" ? "#7b1f2c" : "#39292a", borderRadius: "4px", padding: "7px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}
+            >
+              All Subscribers {listType === "all" ? `(${subscribers.length})` : ""}
             </button>
           </div>
 
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Search by name, email or source..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: "260px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "8px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", background: "#fff" }}
+            style={{ width: "280px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "8px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", background: "#fff" }}
           />
         </div>
 
         {/* Subscribers Table */}
         <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.5fr 2fr 1fr 1.2fr 1.2fr", gap: "12px", padding: "12px 18px", borderBottom: "1px solid rgba(57,41,42,0.12)", background: "rgba(57,41,42,0.03)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.6)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 2fr 1fr 1.2fr 1fr 0.6fr", gap: "12px", padding: "12px 18px", borderBottom: "1px solid rgba(57,41,42,0.12)", background: "rgba(57,41,42,0.03)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.6)" }}>
             <div>Name</div>
             <div>Email</div>
-            <div>Source</div>
+            <div>Source / List</div>
             <div>Consent Timestamp</div>
             <div>Joined</div>
+            <div style={{ textAlign: "right" }}>Action</div>
           </div>
 
           {loading ? (
             <div style={{ padding: "30px", textAlign: "center", color: "rgba(57,41,42,0.6)" }}>Loading subscribers...</div>
           ) : filteredSubscribers.length === 0 ? (
-            <div style={{ padding: "30px", textAlign: "center", color: "rgba(57,41,42,0.6)" }}>No subscribers found on this list.</div>
+            <div style={{ padding: "30px", textAlign: "center", color: "rgba(57,41,42,0.6)" }}>No subscribers found.</div>
           ) : (
             filteredSubscribers.map((s) => (
-              <div key={s.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 2fr 1fr 1.2fr 1.2fr", gap: "12px", padding: "14px 18px", borderBottom: "1px solid rgba(57,41,42,0.08)", alignItems: "center", fontSize: "13px" }}>
+              <div key={s.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 2fr 1fr 1.2fr 1fr 0.6fr", gap: "12px", padding: "14px 18px", borderBottom: "1px solid rgba(57,41,42,0.08)", alignItems: "center", fontSize: "13px" }}>
                 <div style={{ fontWeight: 600, fontFamily: "'Cormorant Garamond', serif", fontSize: "15px" }}>{s.name || "—"}</div>
-                <div style={{ color: "#7b1f2c" }}>{s.email}</div>
-                <div style={{ color: "rgba(57,41,42,0.7)" }}>{s.source || "website"}</div>
+                <div style={{ color: "#7b1f2c", wordBreak: "break-all" }}>{s.email}</div>
+                <div>
+                  <span style={{ fontSize: "11px", background: "rgba(123,31,44,0.08)", color: "#7b1f2c", padding: "2px 7px", borderRadius: "3px", textTransform: "uppercase", letterSpacing: "0.05em", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>
+                    {s.source || "web"}
+                  </span>
+                  {listType === "all" && (
+                    <span style={{ fontSize: "10.5px", color: "rgba(57,41,42,0.55)", display: "block", marginTop: "2px" }}>
+                      List: {s.list}
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>
                   {s.marketingConsentAt ? new Date(s.marketingConsentAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
                 </div>
                 <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>
-                  {new Date(s.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  {s.createdAt ? new Date(s.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(s.id, s.email)}
+                    disabled={deletingId === s.id}
+                    style={{ background: "transparent", border: "none", color: "#993842", cursor: "pointer", fontSize: "12.5px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, padding: "4px 6px" }}
+                  >
+                    {deletingId === s.id ? "..." : "Delete"}
+                  </button>
                 </div>
               </div>
             ))
@@ -184,8 +227,13 @@ export default function AdminSubscribersPage() {
           <div style={{ position: "fixed", inset: 0, background: "rgba(57,41,42,0.45)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "20px" }}>
             <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "8px", maxWidth: "460px", width: "100%", padding: "24px", boxSizing: "border-box" }}>
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", margin: "0 0 12px", color: "#7b1f2c" }}>
-                Add to {listType === "letter" ? "The Letter" : "Waitlist"}
+                Add to {listType === "waitlist" ? "Waitlist" : "The Letter"}
               </h2>
+              {modalError && (
+                <div style={{ padding: "8px 12px", background: "#fef2f2", border: "1px solid #f87171", borderRadius: "4px", color: "#991b1b", fontSize: "13px", marginBottom: "12px" }}>
+                  {modalError}
+                </div>
+              )}
               <form onSubmit={handleCreate}>
                 <div style={{ marginBottom: "12px" }}>
                   <label style={{ display: "block", fontSize: "12.5px", marginBottom: "4px", color: "rgba(57,41,42,0.8)" }}>Full Name</label>
@@ -221,7 +269,7 @@ export default function AdminSubscribersPage() {
                 <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
                   <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
+                    onClick={() => { setShowAddModal(false); setModalError(""); }}
                     style={{ border: "1px solid rgba(57,41,42,0.25)", background: "#fff", color: "#39292a", borderRadius: "4px", padding: "8px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}
                   >
                     Cancel

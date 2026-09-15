@@ -12,7 +12,8 @@ import {
   window,
   booking,
   partner,
-  eventPass
+  eventPass,
+  subscriber
 } from "@/db/schema";
 import { eq, desc, and, sql, gte, lte, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -55,6 +56,7 @@ export async function getAdminDashboardMetrics() {
       creditStats,
       expiringPartners,
       guestPassesList,
+      subscribersTotal,
     ] = await Promise.all([
       // 1. Member stats
       safeQuery(
@@ -225,6 +227,12 @@ export async function getAdminDashboardMetrics() {
           .leftJoin(member, eq(member.personId, person.id))
           .limit(100),
         []
+      ),
+
+      // 13. Total Subscribers (The Letter / Waitlist)
+      safeQuery(
+        () => db.select({ count: sql<number>`count(*)::int` }).from(subscriber),
+        [{ count: 0 }]
       ),
     ]);
 
@@ -424,6 +432,7 @@ export async function getAdminDashboardMetrics() {
     const stats = [
       { value: `${Math.min(activeMembersCount, placesOffered)} of ${placesOffered}`, label: "Joining-fee-free places taken" },
       { value: `${activeMembersCount}`, label: "Active members" },
+      { value: `${subscribersTotal?.[0]?.count || 0}`, label: "The Letter & subscribers" },
       { value: `${(creditStats?.[0]?.issued || (activeMembersCount * 20)).toLocaleString("en-GB")}`, label: `Credits issued in ${currentMonthName}` },
       { value: `${(creditStats?.[0]?.spent || 0).toLocaleString("en-GB")}`, label: `Credits spent in ${currentMonthName}` },
       { value: `€${(revenueCents / 100).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, label: `Revenue in ${currentMonthName}` },

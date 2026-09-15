@@ -61,14 +61,21 @@ export async function subscribeToLetter(email: string) {
     const existingSub = await db.query.subscriber.findFirst({
       where: and(eq(subscriber.email, cleanEmail), eq(subscriber.list, "letter")),
     });
-    if (!existingSub) {
-      await db.insert(subscriber).values({
-        email: cleanEmail,
-        list: "letter",
-        source: "journal",
-        marketingConsent: true,
-      });
+    if (existingSub) {
+      return {
+        success: true,
+        alreadySubscribed: true,
+        message: "You are already subscribed with this email.",
+      };
     }
+
+    await db.insert(subscriber).values({
+      email: cleanEmail,
+      list: "letter",
+      source: "journal",
+      marketingConsent: true,
+      marketingConsentAt: new Date(),
+    });
 
     // 2. Record in person & waitlistEntry
     let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
@@ -80,7 +87,7 @@ export async function subscribeToLetter(email: string) {
     if (!existing) {
       await db.insert(waitlistEntry).values({ personId: personRecord.id, source: "letter" });
     }
-    return { success: true };
+    return { success: true, alreadySubscribed: false };
   } catch (e: any) {
     return { success: false, error: e?.message };
   }
@@ -94,15 +101,22 @@ export async function subscribeToComingSoon(email: string, name?: string) {
     const existingSub = await db.query.subscriber.findFirst({
       where: and(eq(subscriber.email, cleanEmail), eq(subscriber.list, "letter")),
     });
-    if (!existingSub) {
-      await db.insert(subscriber).values({
-        name: name?.trim() || null,
-        email: cleanEmail,
-        list: "letter",
-        source: "coming_soon",
-        marketingConsent: true,
-      });
+    if (existingSub) {
+      return {
+        success: true,
+        alreadySubscribed: true,
+        message: "You are already subscribed with this email.",
+      };
     }
+
+    await db.insert(subscriber).values({
+      name: name?.trim() || null,
+      email: cleanEmail,
+      list: "letter",
+      source: "coming_soon",
+      marketingConsent: true,
+      marketingConsentAt: new Date(),
+    });
 
     // 2. Record in person & waitlistEntry
     let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
@@ -114,7 +128,7 @@ export async function subscribeToComingSoon(email: string, name?: string) {
     if (!existing) {
       await db.insert(waitlistEntry).values({ personId: personRecord.id, source: "coming_soon" });
     }
-    return { success: true };
+    return { success: true, alreadySubscribed: false };
   } catch (e: any) {
     return { success: false, error: e?.message };
   }

@@ -8,6 +8,7 @@ export default function ComingSoonClient() {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [alreadySubscribed, setAlreadySubscribed] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export default function ComingSoonClient() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+    setAlreadySubscribed(false);
 
     if (!email || !email.includes("@")) {
       setErrorMessage("Please enter a valid email address.");
@@ -27,8 +29,12 @@ export default function ComingSoonClient() {
     try {
       const res = await subscribeToComingSoon(email);
       if (res.success) {
-        setIsSuccess(true);
-        setEmail("");
+        if (res.alreadySubscribed) {
+          setAlreadySubscribed(true);
+        } else {
+          setIsSuccess(true);
+          setEmail("");
+        }
       } else {
         setErrorMessage(res.error || "Failed to join list. Please try again.");
       }
@@ -279,7 +285,11 @@ export default function ComingSoonClient() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setAlreadySubscribed(false);
+                    setErrorMessage("");
+                  }}
                   placeholder="Enter your email address"
                   required
                   disabled={isSubmitting}
@@ -336,6 +346,44 @@ export default function ComingSoonClient() {
                   {isSubmitting ? "Joining..." : "Join the List"}
                 </button>
               </div>
+
+              {alreadySubscribed && (
+                <div
+                  style={{
+                    border: "1px solid rgba(168, 117, 44, 0.4)",
+                    backgroundColor: "rgba(168, 117, 44, 0.08)",
+                    borderRadius: "6px",
+                    padding: "12px 16px",
+                    display: "flex",
+                    gap: "10px",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    margin: "14px 0 0",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: "#a8752c",
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      flex: "none",
+                    }}
+                  >
+                    ℹ
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      lineHeight: 1.45,
+                      color: "#39292a",
+                      fontFamily: "'Lora', Georgia, serif",
+                      textAlign: "left",
+                    }}
+                  >
+                    You are already subscribed with this email. We have your spot reserved and will invite you when doors open.
+                  </span>
+                </div>
+              )}
 
               {errorMessage && (
                 <p

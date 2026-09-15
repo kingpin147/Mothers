@@ -601,10 +601,11 @@ export async function saveInternalNote(data: {
 
 export async function getSubscribersList(listType: string = "letter") {
   await verifyAdminRole();
+  const whereClause = listType === "all" ? undefined : eq(subscriber.list, listType);
   const subscribers = await db
     .select()
     .from(subscriber)
-    .where(eq(subscriber.list, listType))
+    .where(whereClause)
     .orderBy(desc(subscriber.createdAt));
 
   return { success: true, subscribers };
@@ -617,13 +618,23 @@ export async function createSubscriber(data: {
   source?: string;
 }) {
   try {
+    await verifyAdminRole();
     const cleanEmail = data.email.toLowerCase().trim();
+    const targetList = data.list || "letter";
+
+    const existing = await db.query.subscriber.findFirst({
+      where: and(eq(subscriber.email, cleanEmail), eq(subscriber.list, targetList)),
+    });
+    if (existing) {
+      return { success: false, error: "This email is already subscribed to this list." };
+    }
+
     await db
       .insert(subscriber)
       .values({
         name: data.name || null,
         email: cleanEmail,
-        list: data.list || "letter",
+        list: targetList,
         source: data.source || "admin_manual",
         marketingConsent: true,
         marketingConsentAt: new Date(),
@@ -631,6 +642,16 @@ export async function createSubscriber(data: {
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e?.message || "SUBSCRIBE_FAILED" };
+  }
+}
+
+export async function deleteSubscriber(id: string) {
+  try {
+    await verifyAdminRole();
+    await db.delete(subscriber).where(eq(subscriber.id, id));
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "DELETE_SUBSCRIBER_FAILED" };
   }
 }
 

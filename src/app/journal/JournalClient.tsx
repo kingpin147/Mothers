@@ -155,6 +155,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
   const [signupEmail, setSignupEmail] = useState("");
   const [signupError, setSignupError] = useState(false);
   const [signupDone, setSignupDone] = useState(false);
+  const [alreadySubscribed, setAlreadySubscribed] = useState(false);
 
   useEffect(() => {
     const updateLang = () => {
@@ -173,11 +174,16 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
       return;
     }
     setSignupError(false);
+    setAlreadySubscribed(false);
     try {
       const res = await subscribeToLetter(email);
       if (res.success) {
-        setSignupDone(true);
-        setSignupEmail("");
+        if (res.alreadySubscribed) {
+          setAlreadySubscribed(true);
+        } else {
+          setSignupDone(true);
+          setSignupEmail("");
+        }
       } else {
         setSignupError(true);
       }
@@ -646,7 +652,11 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                   <input
                     type="email"
                     value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
+                    onChange={(e) => {
+                      setSignupEmail(e.target.value);
+                      setAlreadySubscribed(false);
+                      setSignupError(false);
+                    }}
                     placeholder={lang === "en" ? "you@email.com" : "tu@email.com"}
                     style={{
                       flex: "1 1 200px",
@@ -680,6 +690,13 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                     {lang === "en" ? "Sign up" : "Apuntarme"}
                   </button>
                 </div>
+                {alreadySubscribed && (
+                  <p style={{ fontSize: "13.5px", color: "#a8752c", margin: "10px 0 0" }}>
+                    {lang === "en"
+                      ? "You are already subscribed to The Letter with this email."
+                      : "Ya estás suscrita a La Carta con este email."}
+                  </p>
+                )}
                 {signupError && (
                   <p style={{ fontSize: "13px", color: "#993842", margin: "10px 0 0" }}>
                     {lang === "en"
