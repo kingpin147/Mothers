@@ -9,7 +9,7 @@ export async function publishAdminEvent(eventId: string) {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -138,7 +138,7 @@ export async function createAdminEvent(data: {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -245,13 +245,14 @@ export async function updateAdminEvent(eventId: string, data: {
   isSignature?: boolean;
   showEventPassCta?: boolean;
   languages?: string[];
+  targetStages?: string[];
   changeNote?: string;
   status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
 }) {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -315,6 +316,27 @@ export async function updateAdminEvent(eventId: string, data: {
       updatedAt: new Date(),
     })
     .where(eq(event.id, eventId));
+
+  if (data.targetStages !== undefined) {
+    await db.delete(eventStage).where(eq(eventStage.eventId, eventId));
+    if (data.targetStages.length > 0) {
+      const allStages = await db.select().from(stage);
+      const stagesToInsert = [];
+      for (const sName of data.targetStages) {
+        const found = allStages.find(
+          (st) =>
+            st.labelEn.toLowerCase().includes(sName.toLowerCase()) ||
+            st.key.toLowerCase().includes(sName.toLowerCase())
+        );
+        if (found) {
+          stagesToInsert.push({ eventId, stageId: found.id });
+        }
+      }
+      if (stagesToInsert.length > 0) {
+        await db.insert(eventStage).values(stagesToInsert);
+      }
+    }
+  }
 
   await db.insert(auditLog).values({
     actorId: adminId,
@@ -394,7 +416,7 @@ export async function confirmEventDecision(eventId: string) {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -438,7 +460,7 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -862,9 +884,21 @@ export async function getEventRoster(eventId: string) {
     .where(eq(eventWaitlist.eventId, eventId))
     .orderBy(eventWaitlist.createdAt);
 
+  // Get target stages
+  const stageRows = await db
+    .select({
+      labelEn: stage.labelEn,
+      key: stage.key,
+    })
+    .from(eventStage)
+    .innerJoin(stage, eq(eventStage.stageId, stage.id))
+    .where(eq(eventStage.eventId, eventId));
+
+  const targetStages = stageRows.map((s) => s.labelEn);
+
   return { 
     success: true, 
-    event: ev, 
+    event: { ...ev, targetStages }, 
     bookings: bookingsWithPerson, 
     released: releasedBookings, 
     waitlist 

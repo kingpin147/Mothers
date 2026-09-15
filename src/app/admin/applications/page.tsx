@@ -28,15 +28,23 @@ export default function AdminApplicationsPage() {
     fetchApps();
   }, []);
 
+  const totalApps = apps.length;
   const waitingApps = apps.filter(a => a.status === 'submitted');
   const awaitingPaymentApps = apps.filter(a => a.status === 'accepted' && !a.isPaid);
+  const paidApps = apps.filter(a => a.status === 'paid' || (a.status === 'accepted' && a.isPaid));
+  const acceptedTotal = apps.filter(a => a.status === 'accepted' || a.status === 'paid');
   const declinedApps = apps.filter(a => a.status === 'declined');
 
-  const currentApp = waitingApps[currentIndex];
+  const placesOffered = 50;
+  const placesRemaining = Math.max(0, placesOffered - (paidApps.length + awaitingPaymentApps.length));
+
+  const safeIndex = waitingApps.length > 0 ? Math.min(currentIndex, waitingApps.length - 1) : 0;
+  const currentApp = waitingApps[safeIndex];
 
   const handleSkip = () => {
-    if (currentIndex < waitingApps.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    if (waitingApps.length <= 1) return;
+    if (safeIndex < waitingApps.length - 1) {
+      setCurrentIndex(safeIndex + 1);
     } else {
       setCurrentIndex(0);
     }
@@ -121,13 +129,13 @@ export default function AdminApplicationsPage() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "12px" }}>
             {[
-              { val: "50", label: "PLACES OFFERED" },
-              { val: "20", label: "APPLICATIONS IN" },
-              { val: "11", label: "ACCEPTED" },
-              { val: "2", label: "AWAITING PAYMENT" },
-              { val: "9", label: "PAID" },
-              { val: "6", label: "DECLINED", muted: true },
-              { val: "39", label: "PLACES REMAINING", highlight: true }
+              { val: placesOffered.toString(), label: "PLACES OFFERED" },
+              { val: totalApps.toString(), label: "APPLICATIONS IN" },
+              { val: acceptedTotal.length.toString(), label: "ACCEPTED" },
+              { val: awaitingPaymentApps.length.toString(), label: "AWAITING PAYMENT" },
+              { val: paidApps.length.toString(), label: "PAID" },
+              { val: declinedApps.length.toString(), label: "DECLINED", muted: true },
+              { val: placesRemaining.toString(), label: "PLACES REMAINING", highlight: true }
             ].map((s, i) => (
               <div key={i} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "4px", padding: "12px 14px" }}>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "22px", lineHeight: 1, color: s.highlight ? WINE : s.muted ? "rgba(57,41,42,0.4)" : "#39292a", marginBottom: "6px" }}>{s.val}</div>
@@ -179,7 +187,7 @@ export default function AdminApplicationsPage() {
               <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "32px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                   <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)" }}>
-                    READING {currentIndex + 1} OF {waitingApps.length} WAITING
+                    READING {safeIndex + 1} OF {waitingApps.length} WAITING
                   </div>
                   <div style={{ fontSize: "12px", color: WINE, fontWeight: 500 }}>
                     {(() => {
@@ -299,10 +307,10 @@ export default function AdminApplicationsPage() {
                     PLACES LEFT IN THIS WINDOW
                   </div>
                   <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "32px", color: WINE, lineHeight: 1, marginBottom: "8px" }}>
-                    39
+                    {placesRemaining}
                   </div>
                   <p style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", margin: 0, textWrap: "pretty" }}>
-                    Of 50 offered, with 11 accepted. Accepting holds a place for 72 hours; it returns here if she does not pay.
+                    Of {placesOffered} offered, with {acceptedTotal.length} accepted. Accepting holds a place for 72 hours; it returns here if she does not pay.
                   </p>
                 </div>
               </div>

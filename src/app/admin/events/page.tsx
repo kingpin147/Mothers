@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MoreHorizontal, Users, CheckCircle, Edit2, Copy, Printer, X, Eye } from "lucide-react";
 import { getAdminEvents, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, publishAdminEvent } from "@/app/actions/adminEvents";
 import { deleteEvent } from "@/app/actions/events";
-import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember, adminCancelMemberBooking } from "@/app/actions/adminEventsControl";
+import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember, adminCancelMemberBooking, adminCancelGuestPass } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
 
@@ -128,15 +128,30 @@ export default function AdminEventsPage() {
   };
 
   const handleCancelMemberBooking = async (bookingId: string) => {
-    if (!confirm("Are you sure you want to remove this member from the event and refund their credits?")) return;
+    if (!confirm("Are you sure you want to remove this member from the event? Any credits charged will be automatically refunded back to their balance.")) return;
     const res = await adminCancelMemberBooking(bookingId);
     if (res.success && activeEventRoster) {
       const refreshed = await getEventAttendees(activeEventRoster.id);
       if (refreshed.success) {
         setMemberBookings(refreshed.memberBookings || []);
       }
+      loadData();
     } else {
       alert(res.error || "Failed to remove member.");
+    }
+  };
+
+  const handleCancelGuestPass = async (passId: string) => {
+    if (!confirm("Are you sure you want to remove this guest and mark their pass as refunded?")) return;
+    const res = await adminCancelGuestPass(passId);
+    if (res.success && activeEventRoster) {
+      const refreshed = await getEventAttendees(activeEventRoster.id);
+      if (refreshed.success) {
+        setGuestPasses(refreshed.guestPasses || []);
+      }
+      loadData();
+    } else {
+      alert(res.error || "Failed to cancel guest pass.");
     }
   };
 
@@ -943,11 +958,19 @@ export default function AdminEventsPage() {
                           >
                             Export / Print sheet
                           </Link>
+                          {r.displayState !== "cancelled" && r.displayState !== "completed" && r.displayState !== "past" && r.displayState !== "draft" && (
+                            <button
+                              onClick={() => { handleOpenCancel(r); setOpenActionMenuId(null); }}
+                              style={{ padding: "6px 13px", fontSize: "12.5px", color: WINE, border: "none", background: "none", textAlign: "left", cursor: "pointer", fontWeight: 600 }}
+                            >
+                              Cancel event &amp; refund
+                            </button>
+                          )}
                           {(() => {
-                            const isPast = r.displayState === "completed" || r.displayState === "past";
+                            const isCancelledOrPastOrDraft = ["cancelled", "completed", "past", "draft"].includes(r.displayState);
                             const activeBookings = r.bookingsCount || 0;
 
-                            if (!isPast && activeBookings > 0) {
+                            if (!isCancelledOrPastOrDraft && activeBookings > 0) {
                               return (
                                 <div
                                   title="Active bookings exist. Cancel the event and refund attendees first."
@@ -964,7 +987,7 @@ export default function AdminEventsPage() {
                                 style={{
                                   padding: "6px 13px",
                                   fontSize: "12.5px",
-                                  color: isPast ? "rgba(57,41,42,0.6)" : "#39292a",
+                                  color: r.displayState === "cancelled" ? WINE : isCancelledOrPastOrDraft ? "rgba(57,41,42,0.7)" : "#39292a",
                                   border: "none",
                                   background: "none",
                                   textAlign: "left",
@@ -1172,7 +1195,7 @@ export default function AdminEventsPage() {
                             <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
                             <td style={{ padding: "10px 12px" }}>
                               <a
-                                href={gp.ticketUrl}
+                                href={gp.ticketUrl || `/ticket/${gp.id}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 style={{ color: WINE, fontSize: "12px", textDecoration: "underline", display: "inline-flex", alignItems: "center" }}
@@ -1181,9 +1204,29 @@ export default function AdminEventsPage() {
                               </a>
                             </td>
                             <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                              <span style={{ padding: "2px 6px", borderRadius: "3px", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", backgroundColor: "#eef8f0", color: "#1e6833" }}>
-                                {gp.status}
-                              </span>
+                              <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                                <span style={{
+                                  padding: "2px 6px",
+                                  borderRadius: "3px",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                  backgroundColor: gp.status === "refunded" ? "#fef2f2" : "#eef8f0",
+                                  color: gp.status === "refunded" ? "#b91c1c" : "#1e6833"
+                                }}>
+                                  {gp.status}
+                                </span>
+                                {gp.status !== "refunded" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCancelGuestPass(gp.id)}
+                                    title="Remove guest and mark pass refunded"
+                                    style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                  >
+                                    ✕ Remove &amp; Refund
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}

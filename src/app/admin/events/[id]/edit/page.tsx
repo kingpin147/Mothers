@@ -75,8 +75,13 @@ export default function AdminEditEventPage() {
         if (ev.creditCost === 0) {
           setFreeEvent(true);
         }
-        if (ev.capacityGuest === 0) {
+        if (ev.targetStages && Array.isArray(ev.targetStages) && ev.targetStages.length > 0) {
+          setStages(ev.targetStages);
+        }
+        if (ev.isSignature) {
           setMembersOnly(true);
+        } else {
+          setMembersOnly(false);
         }
       } else {
         alert("Failed to load event.");
@@ -168,6 +173,7 @@ export default function AdminEditEventPage() {
       minToConfirm: minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
       description,
       languages: langs,
+      targetStages: stages,
       showEventPassCta: passCta,
       changeNote: changeNote.trim() || undefined,
       status: status as any,

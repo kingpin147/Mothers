@@ -57,7 +57,7 @@ export async function acceptApplication(applicationId: string) {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin"];
 
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
@@ -380,7 +380,7 @@ export async function declineApplication(applicationId: string, reasonCode?: str
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin"];
 
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
@@ -575,7 +575,7 @@ You're receiving this because you applied to join The Mothers.<br>
 export async function extendApplicationPayment(applicationId: string) {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin"];
   if (!role || !allowed.includes(role)) return { success: false, error: "UNAUTHORIZED_ADMIN" };
 
   const appRecord = await db.query.application.findFirst({
@@ -598,20 +598,20 @@ export async function extendApplicationPayment(applicationId: string) {
   await db.insert(auditLog).values({
     actorId: session?.user?.id,
     actorType: "admin",
-    action: "extend_application",
+    action: "extend_payment_window",
     entity: "application",
     entityId: applicationId,
     after: { acceptExpiresAt: newExpiresAt.toISOString() },
   });
 
-  return { success: true };
+  return { success: true, expiresAt: newExpiresAt };
 }
 
-// Release the place (cancel application and member awaiting payment)
+// Release application place (admin manual action or 72h cron expiry) (§4.1, §19)
 export async function releaseApplicationPlace(applicationId: string) {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
+  const allowed = ["owner", "manager", "host", "super_admin"];
   if (!role || !allowed.includes(role)) return { success: false, error: "UNAUTHORIZED_ADMIN" };
 
   const appRecord = await db.query.application.findFirst({

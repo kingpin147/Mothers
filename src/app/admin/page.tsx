@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ForwardArrow } from "@/components/Icons";
 import { useSession, signOut } from "next-auth/react";
-import { getAdminDashboardMetrics, runManualCron, resetTestData } from "@/app/actions/adminDashboard";
+import { getAdminDashboardMetrics, runManualCron } from "@/app/actions/adminDashboard";
 import { confirmEventDecision, cancelEventDecision } from "@/app/actions/adminEvents";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
@@ -25,8 +25,6 @@ export default function AdminDashboardPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [cronRunning, setCronRunning] = useState<string | null>(null);
   const [actionRunning, setActionRunning] = useState<string | null>(null);
-  const [clearing, setClearing] = useState(false);
-  const [cleared, setCleared] = useState(false);
 
   const [activeDraftWarning, setActiveDraftWarning] = useState<any | null>(null);
   const [copiedDraft, setCopiedDraft] = useState(false);
@@ -125,24 +123,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleResetTestData = async () => {
-    if (!confirm("Clear test data and reset metrics?")) return;
-    setClearing(true);
-    try {
-      const res = await resetTestData();
-      if (res.success) {
-        setCleared(true);
-        fetchMetrics();
-        setTimeout(() => setCleared(false), 2200);
-      } else {
-        alert(res.error || "Failed to reset test data.");
-      }
-    } catch (e: any) {
-      alert(e?.message || "Failed to reset test data.");
-    } finally {
-      setClearing(false);
-    }
-  };
+
 
   const roleLabel = `Role · ${data?.role ?? 'Owner'}`;
   const decisions = data?.decisions || [];
@@ -485,20 +466,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* TEST DATA FOOTER */}
-        <div style={{ border: "1px dashed rgba(57,41,42,0.28)", borderRadius: "6px", padding: "18px 24px", marginTop: "40px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
-          <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.65)", margin: 0, maxWidth: "66ch", textWrap: "pretty" }}>
-            <strong style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", fontSize: "11px" }}>While you are testing</strong> — events you create, applications sent from the site, bookings, credits and the audit log are all held in this browser. Clearing puts every page back to its seeded state.
-          </p>
-          <button
-            type="button"
-            onClick={handleResetTestData}
-            disabled={clearing}
-            style={{ border: "1px solid rgba(57,41,42,0.25)", color: cleared ? "#3f6604" : "#39292a", background: "transparent", borderRadius: "4px", padding: "9px 18px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", cursor: clearing ? "wait" : "pointer" }}
-          >
-            {cleared ? "Cleared" : clearing ? "Clearing..." : "Clear the test data"}
-          </button>
-        </div>
+
 
       </div>
     </>

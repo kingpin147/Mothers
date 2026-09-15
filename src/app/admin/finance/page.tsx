@@ -34,12 +34,7 @@ export default function AdminFinancePage() {
     load();
   }, []);
 
-  const SEED_ATTENTION = [
-    { id: "cm0s8q1f0000008jla7z7b6a1", who: "Elena Prats", what: "renewal failed twice", meta: "Declined 28 and 30 Aug · membership pauses in 2 days", amount: "€29", color: WINE, action: "Retry or write" },
-    { id: "cm0s8q1f0000008jla7z7b6a1", who: "Sofia Marín", what: "payment hold running out", meta: "Accepted 28 Aug · 11h of the 72 remaining", amount: "€48", color: WINE, action: "Extend" },
-    { id: "cm0s8q1f0000008jla7z7b6a1", who: "Lina Djedir", what: "card declined, now past due", meta: "Failed 24 Aug · no card on file since", amount: "€29", color: AMBER, action: "Ask for a new card" },
-    { id: "cm0s8q1f0000008jla7z7b6a1", who: "Clínica Bonanova", what: "partner agreement ends in 21 days", meta: "Perk live in 34 accounts", amount: "21 days", color: AMBER, action: "Renew" },
-  ];
+
 
   // Helper functions
   const eur = (n: number) => "€" + Math.round(n).toLocaleString("en-GB");
@@ -234,22 +229,43 @@ export default function AdminFinancePage() {
             </Link>
           </div>
           <div>
-            {SEED_ATTENTION.map((a, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", padding: "12px 0", borderBottom: i === SEED_ATTENTION.length - 1 ? "none" : "1px solid rgba(57,41,42,0.12)" }}>
-                <div style={{ flex: "1 1 300px" }}>
-                  <div style={{ fontSize: "14.5px", lineHeight: 1.5, marginBottom: "3px" }}>
-                    <strong style={{ fontWeight: 600 }}>{a.who}</strong> — {a.what}
+            {(() => {
+              const attentionItems = failed.map((fp) => ({
+                id: fp.id,
+                who: `${fp.personFirstName || ""} ${fp.personLastName || ""}`.trim() || fp.personEmail || "Member",
+                what: `${(fp.purpose || "payment").replace(/_/g, " ")} failed`,
+                meta: `Declined ${new Date(fp.occurredAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · Card declined`,
+                amount: `€${((fp.amountCents || 0) / 100).toFixed(0)}`,
+                color: WINE,
+                action: "Review member",
+                href: "/admin/members",
+              }));
+
+              if (attentionItems.length === 0) {
+                return (
+                  <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.65)", padding: "8px 0" }}>
+                    All collections are current. No failed transactions or overdue items needing attention.
                   </div>
-                  <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.65)" }}>{a.meta}</div>
+                );
+              }
+
+              return attentionItems.map((a, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", padding: "12px 0", borderBottom: i === attentionItems.length - 1 ? "none" : "1px solid rgba(57,41,42,0.12)" }}>
+                  <div style={{ flex: "1 1 300px" }}>
+                    <div style={{ fontSize: "14.5px", lineHeight: 1.5, marginBottom: "3px" }}>
+                      <strong style={{ fontWeight: 600 }}>{a.who}</strong> — {a.what}
+                    </div>
+                    <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.65)" }}>{a.meta}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontSize: "15px", fontVariantNumeric: "tabular-nums", color: a.color, whiteSpace: "nowrap" }}>{a.amount}</span>
+                    <Link href={a.href} style={{ fontSize: "13px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+                      {a.action} <ForwardArrow />
+                    </Link>
+                  </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontSize: "15px", fontVariantNumeric: "tabular-nums", color: a.color, whiteSpace: "nowrap" }}>{a.amount}</span>
-                  <Link href={a.who.includes("Bonanova") ? "/admin/partners" : `/admin/members/${a.id}`} style={{ fontSize: "13px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
-                    {a.action} <ForwardArrow />
-                  </Link>
-                </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </div>
 

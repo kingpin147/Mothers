@@ -60,7 +60,7 @@ export async function getEventAttendees(eventId: string) {
     .orderBy(desc(booking.createdAt));
 
   // 2. Fetch Guest Event Passes
-  const guestPasses = await db
+  const guestPassesRaw = await db
     .select({
       id: eventPass.id,
       status: eventPass.status,
@@ -80,6 +80,11 @@ export async function getEventAttendees(eventId: string) {
       )
     )
     .orderBy(desc(eventPass.purchasedAt));
+
+  const guestPasses = guestPassesRaw.map((gp) => ({
+    ...gp,
+    ticketUrl: `/ticket/${gp.id}`,
+  }));
 
   return {
     success: true,
@@ -474,5 +479,55 @@ export async function adminCancelMemberBooking(bookingId: string) {
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "CANCEL_FAILED" };
+  }
+}
+
+export async function adminCancelGuestPass(passId: string) {
+  const { adminId } = await verifyAdmin();
+  if (!passId) return { success: false, error: "INVALID_INPUT" };
+
+  try {
+    await db.transaction(async (tx) => {
+      const pass = await tx.query.eventPass.findFirst({
+        where: eq(eventPass.id, passId),
+      });
+      if (!pass) throw new Error("Guest pass not found");
+      if (pass.status === "refunded" || pass.status === "released") throw new Error("Pass already cancelled or refunded");
+
+      const now = new Date();
+      await tx
+        .update(eventPass)
+        .set({ status: "refunded", refundedAt: now, updatedAt: now })
+        .where(eq(eventPass.id, passId));
+
+      // Release any matching booking
+      await tx
+        .update(booking)
+        .set({ status: "released", releasedAt: now, updatedAt: now })
+        .where(
+          and(
+            eq(booking.eventId, pass.eventId),
+            eq(booking.personId, pass.personId),
+            sql`${booking.status} IN ('held', 'confirmed')`
+          )
+        );
+
+      await tx.insert(auditLog).values({
+        actorId: adminId,
+        actorType: "admin",
+        action: "guest_pass_refunded",
+        entity: "event_pass",
+        entityId: pass.id,
+        after: { status: "refunded", refundedAt: now },
+      });
+    });
+
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/admin/events");
+    revalidatePath("/events");
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "REFUND_FAILED" };
   }
 }
