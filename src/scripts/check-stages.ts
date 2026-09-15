@@ -11,17 +11,47 @@ async function main() {
   const client = postgres(process.env.DATABASE_URL!, { prepare: false });
   const db = drizzle(client, { schema });
 
-  // Update existing event to have a valid future decisionAt (e.g. 19 Sept 2026)
-  await db.update(schema.event)
-    .set({
-      decisionAt: new Date("2026-09-19T07:00:00.000Z"),
-      guestOpenAt: new Date("2026-09-15T07:39:22.711Z"),
-      guestCloseAt: new Date("2026-09-19T07:00:00.000Z"),
-    })
-    .where(eq(schema.event.id, "b6ba5998-a25a-47ab-b93c-15b7d6868d6a"));
+  const { sql } = await import("drizzle-orm");
+  const now = new Date();
+  const t7Date = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const t10Date = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
 
-  const events = await db.select().from(schema.event);
-  console.log("Updated events:", events.map(e => ({ id: e.id, title: e.title, status: e.status, startsAt: e.startsAt, decisionAt: e.decisionAt })));
+  console.log("Now:", now.toISOString());
+  console.log("t7Date:", t7Date.toISOString());
+  console.log("t10Date:", t10Date.toISOString());
+
+  const { or, isNotNull } = await import("drizzle-orm");
+  const t7RawEvents = await db.select({
+    id: schema.event.id,
+    title: schema.event.title,
+    startsAt: schema.event.startsAt,
+    minToConfirm: schema.event.minToConfirm,
+    decisionAt: schema.event.decisionAt,
+  }).from(schema.event)
+    .where(
+      and(
+        eq(schema.event.status, "published_pending"),
+        gte(schema.event.startsAt, now),
+        or(
+          lte(schema.event.startsAt, t7Date),
+          and(isNotNull(schema.event.decisionAt), lte(schema.event.decisionAt, t7Date))
+        )
+      )
+    )
+    .orderBy(schema.event.startsAt);
+
+  console.log("t7RawEvents count:", t7RawEvents.length, t7RawEvents);
+
+  const t10RawEvents = await db.select({
+    id: schema.event.id,
+    title: schema.event.title,
+    startsAt: schema.event.startsAt,
+    minToConfirm: schema.event.minToConfirm,
+  }).from(schema.event)
+    .where(and(eq(schema.event.status, "published_pending"), lte(schema.event.startsAt, t10Date), gte(schema.event.startsAt, now)))
+    .orderBy(schema.event.startsAt);
+
+  console.log("t10RawEvents count:", t10RawEvents.length, t10RawEvents);
 
   await client.end();
   process.exit(0);

@@ -15,7 +15,7 @@ import {
   eventPass,
   subscriber
 } from "@/db/schema";
-import { eq, desc, and, sql, gte, lte, inArray } from "drizzle-orm";
+import { eq, desc, and, or, isNotNull, sql, gte, lte, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
 async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
@@ -93,7 +93,10 @@ export async function getAdminDashboardMetrics() {
             and(
               eq(event.status, "published_pending"),
               gte(event.startsAt, now),
-              sql`(${event.decisionAt} IS NOT NULL AND ${event.decisionAt} <= ${t7Date}) OR (${event.startsAt} <= ${t7Date})`
+              or(
+                lte(event.startsAt, t7Date),
+                and(isNotNull(event.decisionAt), lte(event.decisionAt, t7Date))
+              )
             )
           )
           .orderBy(event.startsAt),
