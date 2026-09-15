@@ -13,14 +13,15 @@ export const client =
   globalThis._postgresClient ||
   postgres(connectionString, {
     prepare: false,
-    max: 10,
+    max: process.env.DB_MAX_CONNECTIONS ? parseInt(process.env.DB_MAX_CONNECTIONS, 10) : (process.env.NODE_ENV === "production" ? 5 : 10),
     idle_timeout: 20,
     connect_timeout: 10,
+    // Enable TCP keepalive to prevent stale/dropped connections
+    keep_alive: 10,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalThis._postgresClient = client;
-}
+// Always cache client on globalThis to prevent connection pool leaks across module evaluations
+globalThis._postgresClient = client;
 
 export const db = drizzle(client, { schema });
 

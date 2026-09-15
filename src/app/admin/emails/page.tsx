@@ -241,8 +241,10 @@ export default function AdminEmailsPage() {
         {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "28px" }}>
           <div>
-            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
-              <Link href="/admin" style={{ color: WINE, display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link> · Emails
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond',serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
+              <Link href="/admin" style={{ color: WINE, textDecoration: "none", display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link>
+              <span>·</span>
+              <span>Emails</span>
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontWeight: 400, fontSize: "clamp(30px,4vw,42px)", lineHeight: 1.1, margin: "0 0 9px" }}>Email previews</h1>
             <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "70ch" }}>

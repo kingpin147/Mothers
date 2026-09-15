@@ -136,48 +136,52 @@ export async function getAdminMemberDetail(memberId: string) {
     return { success: false, error: "MEMBER_NOT_FOUND" };
   }
 
-  // 2. Credits Ledger
-  const ledgerEntries = await db
-    .select()
-    .from(creditEntry)
-    .where(eq(creditEntry.memberId, memberId))
-    .orderBy(desc(creditEntry.createdAt));
+  // 2. Fetch Ledger, Godmother Stats, Attendance, Contact History concurrently
+  const [ledgerEntries, godmotherStats, attendance, contactHistory] = await Promise.all([
+    // Credits Ledger
+    db
+      .select()
+      .from(creditEntry)
+      .where(eq(creditEntry.memberId, memberId))
+      .orderBy(desc(creditEntry.createdAt)),
+
+    // Godmother Referral Stats
+    db
+      .select()
+      .from(godmotherReferral)
+      .where(eq(godmotherReferral.referrerMemberId, memberId)),
+
+    // Attendance History
+    db
+      .select({
+        id: booking.id,
+        status: booking.status,
+        creditsCharged: booking.creditsCharged,
+        bookedAt: booking.bookedAt,
+        releasedAt: booking.releasedAt,
+        eventTitle: event.title,
+        eventStartsAt: event.startsAt,
+        isFreeWalk: event.isFreeWalk,
+      })
+      .from(booking)
+      .innerJoin(event, eq(booking.eventId, event.id))
+      .where(eq(booking.memberId, memberId))
+      .orderBy(desc(event.startsAt)),
+
+    // Contact History (Emails)
+    db
+      .select({
+        id: emailLog.id,
+        templateKey: emailLog.templateKey,
+        sentAt: emailLog.sentAt,
+        status: emailLog.status,
+      })
+      .from(emailLog)
+      .where(eq(emailLog.personId, memberData.personId))
+      .orderBy(desc(emailLog.sentAt)),
+  ]);
+
   const totalBalance = ledgerEntries.reduce((sum, e) => sum + e.amount, 0);
-
-  // 3. Godmother Referral Stats
-  const godmotherStats = await db
-    .select()
-    .from(godmotherReferral)
-    .where(eq(godmotherReferral.referrerMemberId, memberId));
-
-  // 4. Attendance History
-  const attendance = await db
-    .select({
-      id: booking.id,
-      status: booking.status,
-      creditsCharged: booking.creditsCharged,
-      bookedAt: booking.bookedAt,
-      releasedAt: booking.releasedAt,
-      eventTitle: event.title,
-      eventStartsAt: event.startsAt,
-      isFreeWalk: event.isFreeWalk,
-    })
-    .from(booking)
-    .innerJoin(event, eq(booking.eventId, event.id))
-    .where(eq(booking.memberId, memberId))
-    .orderBy(desc(event.startsAt));
-
-  // 5. Contact History (Emails)
-  const contactHistory = await db
-    .select({
-      id: emailLog.id,
-      templateKey: emailLog.templateKey,
-      sentAt: emailLog.sentAt,
-      status: emailLog.status,
-    })
-    .from(emailLog)
-    .where(eq(emailLog.personId, memberData.personId))
-    .orderBy(desc(emailLog.sentAt));
 
   return {
     success: true,

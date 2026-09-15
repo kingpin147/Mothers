@@ -15,7 +15,9 @@ export function BackArrow({ size = 13, style, className }: { size?: number; styl
       style={{
         display: "inline-block",
         marginRight: "5px",
-        verticalAlign: "-1px",
+        verticalAlign: "-2px",
+        position: "relative",
+        top: "0.5px",
         flexShrink: 0,
         ...style,
       }}
@@ -42,7 +44,9 @@ export function ForwardArrow({ size = 13, style, className }: { size?: number; s
       style={{
         display: "inline-block",
         marginLeft: "5px",
-        verticalAlign: "-1px",
+        verticalAlign: "-2px",
+        position: "relative",
+        top: "0.5px",
         flexShrink: 0,
         ...style,
       }}

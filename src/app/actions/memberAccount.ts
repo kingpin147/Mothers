@@ -259,19 +259,61 @@ export async function resumeMembership() {
 export async function updatePersonDetails(data: { firstName: string; lastName: string; phone?: string; stage?: string; neighbourhood?: string }) {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
-  const personId = (session.user as any).personId || session.user.id;
-  const memberId = (session.user as any).memberId;
+
+  const userEmail = session.user.email?.toLowerCase().trim();
+  let personId = (session.user as any).personId || session.user.id;
+  let memberId = (session.user as any).memberId;
+
   try {
-    await db.update(person)
-      .set({ firstName: data.firstName, lastName: data.lastName, phoneE164: data.phone || null, updatedAt: new Date() })
-      .where(eq(person.id, personId));
-    if (memberId && data.stage !== undefined) {
-      await db.update(member)
-        .set({ stage: data.stage, neighbourhood: data.neighbourhood || null, updatedAt: new Date() })
-        .where(eq(member.id, memberId));
+    // If personId or memberId is missing from session token, look them up by email
+    if ((!personId || !memberId) && userEmail) {
+      const personRec = await db.query.person.findFirst({
+        where: eq(person.email, userEmail),
+      });
+      if (personRec) {
+        personId = personRec.id;
+        if (!memberId) {
+          const memberRec = await db.query.member.findFirst({
+            where: eq(member.personId, personRec.id),
+          });
+          if (memberRec) memberId = memberRec.id;
+        }
+      }
     }
+
+    if (!personId) {
+      return { success: false, error: "PERSON_NOT_FOUND" };
+    }
+
+    const updates: Promise<any>[] = [
+      db
+        .update(person)
+        .set({
+          firstName: data.firstName.trim(),
+          lastName: data.lastName.trim(),
+          phoneE164: data.phone?.trim() || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(person.id, personId)),
+    ];
+
+    if (memberId) {
+      updates.push(
+        db
+          .update(member)
+          .set({
+            stage: data.stage !== undefined ? data.stage : undefined,
+            neighbourhood: data.neighbourhood || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(member.id, memberId))
+      );
+    }
+
+    await Promise.all(updates);
     return { success: true };
   } catch (e: any) {
+    console.error("updatePersonDetails error:", e);
     return { success: false, error: e?.message || "UPDATE_FAILED" };
   }
 }

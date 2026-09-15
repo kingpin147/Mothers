@@ -263,6 +263,10 @@ export default function AdminFaqPage() {
           <div style={{ flex: "1 1 400px" }}>
             <div
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                flexWrap: "wrap",
                 fontFamily: "'Cormorant Garamond', serif",
                 fontWeight: 600,
                 fontSize: "12px",
@@ -272,10 +276,13 @@ export default function AdminFaqPage() {
                 marginBottom: "9px",
               }}
             >
-              <Link href="/admin" style={{ color: "#7b1f2c", display: "inline-flex", alignItems: "center" }}>
+              <Link href="/admin" style={{ color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
                 <BackArrow /> Dashboard
-              </Link>{" "}
-              · Content · FAQ
+              </Link>
+              <span>·</span>
+              <span>Content</span>
+              <span>·</span>
+              <span>FAQ</span>
             </div>
             <h1
               style={{

@@ -98,8 +98,10 @@ export default function AdminApplicationsPage() {
         {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "22px" }}>
           <div style={{ flex: "1 1 400px" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
-              <Link href="/admin" style={{ color: "#7b1f2c", display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link> · Applications
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
+              <Link href="/admin" style={{ color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link>
+              <span>·</span>
+              <span>Applications</span>
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(30px, 4vw, 42px)", lineHeight: 1.1, margin: "0 0 9px" }}>
               Reading the applications
@@ -109,7 +111,7 @@ export default function AdminApplicationsPage() {
             </p>
           </div>
           <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
-            <Link href="/admin" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+            <Link href="/admin" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
               <BackArrow /> Dashboard
             </Link>
           </div>

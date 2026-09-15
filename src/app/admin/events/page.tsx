@@ -443,8 +443,12 @@ export default function AdminEventsPage() {
         
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "24px" }}>
           <div style={{ flex: "1 1 400px" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
-              <Link href="/admin" style={{ color: WINE, textDecoration: "none", display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link> · Events · <Link href="/admin/members" style={{ color: WINE, textDecoration: "none" }}>Members</Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
+              <Link href="/admin" style={{ color: WINE, textDecoration: "none", display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link>
+              <span>·</span>
+              <span>Events</span>
+              <span>·</span>
+              <Link href="/admin/members" style={{ color: WINE, textDecoration: "none" }}>Members</Link>
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(30px, 4vw, 42px)", lineHeight: 1.1, margin: "0 0 9px" }}>
               The calendar

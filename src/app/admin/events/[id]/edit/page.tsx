@@ -308,7 +308,7 @@ export default function AdminEditEventPage() {
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(26px,3.5vw,36px)", lineHeight: 1.15, margin: 0 }}>Edit event</h1>
           </div>
-          <Link href="/admin/events" style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", padding: "6px 0", display: "inline-flex", alignItems: "center" }}><BackArrow />Close</Link>
+          <Link href="/admin/events" style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", textDecoration: "none", padding: "6px 0", display: "inline-flex", alignItems: "center" }}><BackArrow />Close</Link>
         </div>
 
         {bookingCount > 0 && (

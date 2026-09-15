@@ -220,8 +220,10 @@ export default function AdminSettingsPage() {
         
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "40px" }}>
           <div style={{ flex: "1 1 500px" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
-              <Link href="/admin" style={{ color: WINE, display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link> · Configuration
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: WINE, marginBottom: "9px" }}>
+              <Link href="/admin" style={{ color: WINE, textDecoration: "none", display: "inline-flex", alignItems: "center" }}><BackArrow /> Dashboard</Link>
+              <span>·</span>
+              <span>Configuration</span>
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(34px, 4.5vw, 48px)", lineHeight: 1.1, margin: "0 0 12px", color: "#39292a" }}>
               Club & credit policy
@@ -231,7 +233,7 @@ export default function AdminSettingsPage() {
             </p>
           </div>
           <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
-            <Link href="/admin" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}>
+            <Link href="/admin" style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", whiteSpace: "nowrap", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
               <BackArrow /> Dashboard
             </Link>
           </div>

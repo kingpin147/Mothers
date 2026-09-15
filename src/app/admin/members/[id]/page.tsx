@@ -185,8 +185,10 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
         {/* Top Header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "20px" }}>
           <div style={{ flex: "1 1 380px" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
-              <Link href="/admin/members" style={{ color: "#7b1f2c", display: "inline-flex", alignItems: "center" }}><BackArrow /> Members</Link> · Record
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
+              <Link href="/admin/members" style={{ color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}><BackArrow /> Members</Link>
+              <span>·</span>
+              <span>Record</span>
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(28px,3.8vw,38px)", lineHeight: 1.12, margin: "0 0 8px" }}>
               {member.firstName} {member.lastName}
