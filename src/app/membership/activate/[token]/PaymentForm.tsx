@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useStripe, useElements, CardNumberElement, CardExpiryElement, CardCvcElement } from "@stripe/react-stripe-js";
 import { saveMemberPassword } from "@/app/actions/activate";
+import { Eye, EyeOff } from "lucide-react";
 
 const STRINGS = {
   en: {
@@ -40,6 +41,8 @@ export function PaymentForm({ details, token, clientSecret }: { details: any; to
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [cardName, setCardName] = useState("");
   const [billingName, setBillingName] = useState("");
   const [billingAddress, setBillingAddress] = useState("");
@@ -142,11 +145,55 @@ export function PaymentForm({ details, token, clientSecret }: { details: any; to
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
             <label style={{ display: "block", flex: "1 1 180px" }}>
               <span style={{ display: "block", fontSize: "12.5px", letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(57,41,42,0.6)", marginBottom: "6px" }}>{t.passwordLabel}</span>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t.passwordPlaceholder} style={inputStyle} />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder={t.passwordPlaceholder} style={{ ...inputStyle, paddingRight: "40px", width: "100%" }} />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    background: "none",
+                    border: "none",
+                    padding: "4px",
+                    cursor: "pointer",
+                    color: "rgba(57, 41, 42, 0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </label>
             <label style={{ display: "block", flex: "1 1 180px" }}>
               <span style={{ display: "block", fontSize: "12.5px", letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(57,41,42,0.6)", marginBottom: "6px" }}>{t.confirmLabel}</span>
-              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder={t.passwordPlaceholder} style={inputStyle} />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder={t.passwordPlaceholder} style={{ ...inputStyle, paddingRight: "40px", width: "100%" }} />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  title={showConfirmPassword ? "Hide password" : "Show password"}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    background: "none",
+                    border: "none",
+                    padding: "4px",
+                    cursor: "pointer",
+                    color: "rgba(57, 41, 42, 0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </label>
           </div>
         </div>

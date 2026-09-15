@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { verifyResetToken, completePasswordReset } from "@/app/actions/passwordReset";
 import { ForwardArrow } from "@/components/Icons";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function ResetPasswordPage() {
   const params = useParams();
@@ -16,6 +17,8 @@ export default function ResetPasswordPage() {
   const [memberInfo, setMemberInfo] = useState<{ email: string; firstName: string } | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -173,31 +176,81 @@ export default function ResetPasswordPage() {
             <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
               {lang === "en" ? "New Password (min. 8 characters)" : "Nueva Contraseña (mín. 8 caracteres)"}
             </label>
-            <input
-              type="password"
-              className="input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={8}
-              autoFocus
-            />
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                className="input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={8}
+                autoFocus
+                style={{ paddingRight: "40px", width: "100%" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? (lang === "en" ? "Hide password" : "Ocultar contraseña") : (lang === "en" ? "Show password" : "Ver contraseña")}
+                title={showPassword ? (lang === "en" ? "Hide password" : "Ocultar contraseña") : (lang === "en" ? "Show password" : "Ver contraseña")}
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  padding: "4px",
+                  cursor: "pointer",
+                  color: "rgba(57, 41, 42, 0.5)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {showPassword ? <EyeOff size={18} strokeWidth={1.75} /> : <Eye size={18} strokeWidth={1.75} />}
+              </button>
+            </div>
           </div>
 
           <div>
             <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
               {lang === "en" ? "Confirm New Password" : "Confirmar Nueva Contraseña"}
             </label>
-            <input
-              type="password"
-              className="input"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={8}
-            />
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                className="input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={8}
+                style={{ paddingRight: "40px", width: "100%" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? (lang === "en" ? "Hide password" : "Ocultar contraseña") : (lang === "en" ? "Show password" : "Ver contraseña")}
+                title={showConfirmPassword ? (lang === "en" ? "Hide password" : "Ocultar contraseña") : (lang === "en" ? "Show password" : "Ver contraseña")}
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  padding: "4px",
+                  cursor: "pointer",
+                  color: "rgba(57, 41, 42, 0.5)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {showConfirmPassword ? <EyeOff size={18} strokeWidth={1.75} /> : <Eye size={18} strokeWidth={1.75} />}
+              </button>
+            </div>
           </div>
 
           <button

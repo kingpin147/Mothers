@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -25,6 +26,7 @@ function LoginForm() {
   const [lang, setLang] = useState<"en" | "es">("en");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -268,15 +270,70 @@ function LoginForm() {
                   {lang === "en" ? "Forgot password?" : "¿Olvidaste la contraseña?"}
                 </Link>
               </div>
-              <input
-                id="login-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                style={inputStyle}
-              />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  style={{
+                    ...inputStyle,
+                    paddingRight: "44px",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={
+                    showPassword
+                      ? lang === "en"
+                        ? "Hide password"
+                        : "Ocultar contraseña"
+                      : lang === "en"
+                      ? "Show password"
+                      : "Ver contraseña"
+                  }
+                  title={
+                    showPassword
+                      ? lang === "en"
+                        ? "Hide password"
+                        : "Ocultar contraseña"
+                      : lang === "en"
+                      ? "Show password"
+                      : "Ver contraseña"
+                  }
+                  style={{
+                    position: "absolute",
+                    right: "10px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    padding: "6px",
+                    cursor: "pointer",
+                    color: "rgba(57, 41, 42, 0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "4px",
+                    transition: "color 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#39292a";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "rgba(57, 41, 42, 0.5)";
+                  }}
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} strokeWidth={1.75} />
+                  ) : (
+                    <Eye size={18} strokeWidth={1.75} />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Submit */}

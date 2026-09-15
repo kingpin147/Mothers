@@ -21,7 +21,7 @@ export function ApplyModal({
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [alreadySubmitted, setAlreadySubmitted] = useState<boolean>(false);
   const [showError, setShowError] = useState<boolean>(false);
-  const [existingMemberEmail, setExistingMemberEmail] = useState<boolean>(false);
+  const [emailCheckError, setEmailCheckError] = useState<"ACTIVE_MEMBER" | "ALREADY_APPLIED" | "ALREADY_ACCEPTED" | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [answers, setAnswers] = useState<ApplicationFormData & { referralCode?: string }>({
@@ -151,7 +151,7 @@ export function ApplyModal({
 
   const handleNext = async () => {
     setShowError(false);
-    setExistingMemberEmail(false);
+    setEmailCheckError(null);
     if (step === 0 && !(answers.firstName || "").trim()) {
       setShowError(true);
       return;
@@ -162,13 +162,21 @@ export function ApplyModal({
         setShowError(true);
         return;
       }
-      // Check if this email already has an account
+      // Check if this email already exists in DB
       setLoading(true);
       const emailCheck = await checkEmailExists(cleanEmail);
       setLoading(false);
       if (emailCheck.exists) {
-        setExistingMemberEmail(true);
-        return;
+        if (emailCheck.status === "active_member") {
+          setEmailCheckError("ACTIVE_MEMBER");
+          return;
+        } else if (emailCheck.status === "application_under_review") {
+          setEmailCheckError("ALREADY_APPLIED");
+          return;
+        } else if (emailCheck.status === "application_accepted") {
+          setEmailCheckError("ALREADY_ACCEPTED");
+          return;
+        }
       }
     }
     if (step === 2) {
@@ -237,7 +245,7 @@ export function ApplyModal({
       localStorage.removeItem(STORAGE_KEY);
       setSubmitted(true);
     } else if (res.error === "EXISTING_MEMBER") {
-      setExistingMemberEmail(true);
+      setEmailCheckError("ACTIVE_MEMBER");
       setStep(1); // go back to email step
     } else {
       setSubmitError(
@@ -436,11 +444,12 @@ export function ApplyModal({
               onChange={(e) => {
                 setAnswers({ ...answers, email: e.target.value });
                 if (showError) setShowError(false);
+                if (emailCheckError) setEmailCheckError(null);
               }}
               placeholder="you@email.com"
               style={{
                 ...inputStyle,
-                border: showError && (!(answers.email || "").trim() || !EMAIL_REGEX.test((answers.email || "").trim())) ? "1px solid #993842" : inputStyle.border,
+                border: (showError && (!(answers.email || "").trim() || !EMAIL_REGEX.test((answers.email || "").trim()))) || emailCheckError ? "1px solid #993842" : inputStyle.border,
               }}
               autoFocus
             />
@@ -448,6 +457,88 @@ export function ApplyModal({
               <p style={{ fontSize: "13px", color: "#993842", margin: "6px 0 0" }}>
                 {lang === "en" ? "Please enter a valid email address." : "Por favor, introduce un correo electrónico válido."}
               </p>
+            )}
+
+            {emailCheckError === "ACTIVE_MEMBER" && (
+              <div style={{
+                marginTop: "14px",
+                padding: "14px 16px",
+                borderRadius: "6px",
+                backgroundColor: "rgba(123, 31, 44, 0.08)",
+                border: "1px solid rgba(123, 31, 44, 0.25)",
+                color: "#7b1f2c",
+                fontSize: "13.5px",
+                lineHeight: "1.5",
+                textAlign: "left"
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                  {lang === "en" ? "Member account already exists" : "Ya tienes una cuenta de socia"}
+                </div>
+                <p style={{ margin: "0 0 10px", color: "rgba(57,41,42,0.85)" }}>
+                  {lang === "en"
+                    ? "This email is already associated with an active member account. You don't need to apply again."
+                    : "Este correo electrónico ya está asociado a una cuenta de socia activa. No necesitas volver a postularte."}
+                </p>
+                <Link
+                  href="/account/login"
+                  style={{
+                    display: "inline-block",
+                    color: "#7b1f2c",
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                    textUnderlineOffset: "2px",
+                    fontSize: "13.5px"
+                  }}
+                >
+                  {lang === "en" ? "Log in to your account →" : "Inicia sesión en tu cuenta →"}
+                </Link>
+              </div>
+            )}
+
+            {emailCheckError === "ALREADY_APPLIED" && (
+              <div style={{
+                marginTop: "14px",
+                padding: "14px 16px",
+                borderRadius: "6px",
+                backgroundColor: "rgba(168, 117, 44, 0.1)",
+                border: "1px solid rgba(168, 117, 44, 0.3)",
+                color: "#a8752c",
+                fontSize: "13.5px",
+                lineHeight: "1.5",
+                textAlign: "left"
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                  {lang === "en" ? "Application already under review" : "Solicitud en proceso de revisión"}
+                </div>
+                <p style={{ margin: 0, color: "rgba(57,41,42,0.85)" }}>
+                  {lang === "en"
+                    ? "We already have an application under review for this email. We review every application personally and will get back to you within 72 hours of the window closing."
+                    : "Ya tenemos una solicitud en revisión para este correo. Las leemos todas personalmente y te responderemos en 72 horas desde el cierre de la ventana."}
+                </p>
+              </div>
+            )}
+
+            {emailCheckError === "ALREADY_ACCEPTED" && (
+              <div style={{
+                marginTop: "14px",
+                padding: "14px 16px",
+                borderRadius: "6px",
+                backgroundColor: "rgba(63, 102, 4, 0.08)",
+                border: "1px solid rgba(63, 102, 4, 0.25)",
+                color: "#3f6604",
+                fontSize: "13.5px",
+                lineHeight: "1.5",
+                textAlign: "left"
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: "4px" }}>
+                  {lang === "en" ? "Application already accepted!" : "¡Solicitud aceptada!"}
+                </div>
+                <p style={{ margin: 0, color: "rgba(57,41,42,0.85)" }}>
+                  {lang === "en"
+                    ? "Your application has already been accepted! Please check your inbox for your 72-hour membership payment link."
+                    : "Tu solicitud ya ha sido aceptada. Por favor revisa tu bandeja de entrada para acceder a tu enlace de pago de 72 horas."}
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -732,30 +823,7 @@ export function ApplyModal({
         )}
 
         {/* Error messages */}
-        {existingMemberEmail && (
-          <p style={{ fontSize: "13.5px", color: "#993842", margin: "10px 0 0", lineHeight: 1.5 }}>
-            {lang === "en" ? (
-              <>
-                You already have an account with us.{" "}
-                <Link href="/account/login" style={{ color: "#7b1f2c", fontWeight: 600, textDecoration: "underline" }}>
-                  Log in
-                </Link>
-                {" "}
-                to access your account or book events.
-              </>
-            ) : (
-              <>
-                Ya tienes una cuenta con nosotras.{" "}
-                <Link href="/account/login" style={{ color: "#7b1f2c", fontWeight: 600, textDecoration: "underline" }}>
-                  Inicia sesión
-                </Link>
-                {" "}
-                para acceder a tu cuenta o reservar eventos.
-              </>
-            )}
-          </p>
-        )}
-        {showError && !existingMemberEmail && (
+        {showError && !emailCheckError && (
           <p style={{ fontSize: "13px", color: "#993842", margin: "10px 0 0" }}>
             {lang === "en" ? "Please answer this question to continue." : "Responde esta pregunta para continuar."}
           </p>

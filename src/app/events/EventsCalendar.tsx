@@ -38,6 +38,7 @@ export interface PublicEvent {
   categorySlug?: string | null;
   categoryId?: string | null;
   stage?: string | null;
+  targetStages?: string[] | null;
   status: string;
   creditCost: number;
   isFreeWalk?: boolean | null;
@@ -87,14 +88,54 @@ interface Props {
 // Normalise raw DB stage value → canonical display label
 function getStageLabel(raw: string | null | undefined, lang: Lang): string {
   if (!raw) return "";
-  const s = raw.toLowerCase();
-  if (s.includes("pregnant") || s.includes("embaraz")) return lang === "en" ? "Pregnant" : "Embarazada";
-  if (s.includes("postpartum") || s.includes("posparto") || s.includes("0") || s.includes("babies") || s.includes("baby") || s.includes("0–12") || s.includes("0-12")) return lang === "en" ? "Babies" : "Bebés";
+  const s = raw.toLowerCase().trim();
+  if (s.includes("pregnant") || s.includes("embaraz") || s.includes("expecting")) return lang === "en" ? "Pregnant" : "Embarazo";
+  if (s.includes("postpartum") || s.includes("posparto") || s.includes("babies") || s.includes("baby") || s.includes("0–12") || s.includes("0-12") || s === "0") return lang === "en" ? "Babies" : "Bebés";
   if (s.includes("toddler") || s.includes("peque") || s.includes("1–3") || s.includes("1-3") || s.includes("primera infancia")) return lang === "en" ? "Toddlers" : "Peques";
-  if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10") || s.includes("6+")) return lang === "en" ? "Big kids" : "Niños grandes";
-  if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-") || s.includes("niño")) return lang === "en" ? "Children" : "Niños";
-  if (s.includes("mom") || s.includes("madre") || s.includes("kid") || s.includes("peque") || s.includes("adult") || s.includes("welcome") || s.includes("bienvenido")) return "";
+  if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10") || s.includes("6+") || s.includes("children610")) return lang === "en" ? "Big kids" : "Niños mayores";
+  if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-") || s.includes("niño") || s.includes("children36")) return lang === "en" ? "Children" : "Niños";
+  if (s.includes("all") || s.includes("todo") || s.includes("toda") || s.includes("open") || s.includes("abierto")) return lang === "en" ? "Open to every stage" : "Abierto a todas las etapas";
+  if (s.includes("mom") || s.includes("madre") || s.includes("adult") || s.includes("welcome") || s.includes("bienvenido")) return "";
   return raw; // fallback: show as-is
+}
+
+function getEventStageDisplay(ev: PublicEvent, lang: Lang): { isAllStages: boolean; stages: string[]; displayLabel: string } {
+  const totalCanonicalStages = 5; // Pregnant, Babies, Toddlers, Children, Big kids
+
+  if (ev.targetStages && Array.isArray(ev.targetStages) && ev.targetStages.length > 0) {
+    if (ev.targetStages.length >= totalCanonicalStages) {
+      return {
+        isAllStages: true,
+        stages: [],
+        displayLabel: lang === "en" ? "Open to every stage" : "Abierto a todas las etapas",
+      };
+    }
+    const mapped = ev.targetStages.map((s) => getStageLabel(s, lang)).filter(Boolean);
+    if (mapped.length > 0) {
+      return {
+        isAllStages: false,
+        stages: mapped,
+        displayLabel: mapped.join(" · "),
+      };
+    }
+  }
+
+  if (ev.stage && ev.stage !== "All Stages") {
+    const label = getStageLabel(ev.stage, lang);
+    if (label && label !== (lang === "en" ? "Open to every stage" : "Abierto a todas las etapas")) {
+      return {
+        isAllStages: false,
+        stages: [label],
+        displayLabel: label,
+      };
+    }
+  }
+
+  return {
+    isAllStages: true,
+    stages: [],
+    displayLabel: lang === "en" ? "Open to every stage" : "Abierto a todas las etapas",
+  };
 }
 
 const EVENT_I18N: Record<string, { esTitle: string; esDesc: string }> = {
@@ -1564,13 +1605,19 @@ function EventCard({
         {/* Row 2: Stage & Online */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
           {(() => {
-            const stageLabel = ev.stage && ev.stage !== "All Stages" ? getStageLabel(ev.stage, lang) : "";
-            const displayStage = stageLabel || (lang === "en" ? "Open to every stage" : "Abierto a todas las etapas");
-            return (
-              <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
-                {displayStage}
+            const stageInfo = getEventStageDisplay(ev, lang);
+            if (stageInfo.isAllStages || stageInfo.stages.length === 0) {
+              return (
+                <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
+                  {stageInfo.displayLabel}
+                </span>
+              );
+            }
+            return stageInfo.stages.map((stg, sIdx) => (
+              <span key={sIdx} style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.72)", border: "1px solid rgba(57,41,42,0.25)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
+                {stg}
               </span>
-            );
+            ));
           })()}
           {ev.audienceType && (
             <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57,41,42,0.62)", border: "1px solid rgba(57,41,42,0.22)", background: "rgba(255,255,255,0.6)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
@@ -2132,19 +2179,35 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
 
     // 2. Stage match
     if (activeStage !== "all") {
-      const rawStage = (ev.stage || "").toLowerCase();
-      if (activeStage === "big_kids" || activeStage === "big kids") {
-        if (!rawStage.includes("big") && !rawStage.includes("grande") && !rawStage.includes("10+") && !rawStage.includes("6–10") && !rawStage.includes("6-10") && !rawStage.includes("6+")) return false;
-      } else if (activeStage === "babies") {
-        if (!rawStage.includes("bab") && !rawStage.includes("0–12") && !rawStage.includes("0-12") && !rawStage.includes("postpartum") && !rawStage.includes("posparto")) return false;
-      } else if (activeStage === "toddlers") {
-        if (!rawStage.includes("toddler") && !rawStage.includes("peque") && !rawStage.includes("1–3") && !rawStage.includes("1-3")) return false;
-      } else if (activeStage === "children") {
-        if (!rawStage.includes("child") && !rawStage.includes("niño") && !rawStage.includes("3–6") && !rawStage.includes("3-6") && !rawStage.includes("3y+")) return false;
-      } else if (activeStage === "pregnant") {
-        if (!rawStage.includes("pregnant") && !rawStage.includes("embaraz")) return false;
-      } else {
-        if (!rawStage.includes(activeStage)) return false;
+      const stageInfo = getEventStageDisplay(ev, "en");
+      if (!stageInfo.isAllStages) {
+        const stageKeys = (ev.targetStages || []).map(s => s.toLowerCase());
+        const hasMatch = stageKeys.some(sk => {
+          if (activeStage === "big_kids" || activeStage === "big kids") return sk.includes("big") || sk.includes("grande") || sk.includes("10+") || sk.includes("6–10") || sk.includes("6-10") || sk.includes("6+") || sk.includes("children610");
+          if (activeStage === "babies") return sk.includes("bab") || sk.includes("0–12") || sk.includes("0-12") || sk.includes("postpartum") || sk.includes("posparto");
+          if (activeStage === "toddlers") return sk.includes("toddler") || sk.includes("peque") || sk.includes("1–3") || sk.includes("1-3");
+          if (activeStage === "children") return sk.includes("child") || sk.includes("niño") || sk.includes("3–6") || sk.includes("3-6") || sk.includes("3y+") || sk.includes("children36");
+          if (activeStage === "pregnant") return sk.includes("pregnant") || sk.includes("embaraz") || sk.includes("expecting");
+          return sk.includes(activeStage);
+        });
+        if (!hasMatch) {
+          const rawStage = (ev.stage || "").toLowerCase();
+          let fallbackMatch = false;
+          if (activeStage === "big_kids" || activeStage === "big kids") {
+            fallbackMatch = rawStage.includes("big") || rawStage.includes("grande") || rawStage.includes("10+") || rawStage.includes("6–10") || rawStage.includes("6-10") || rawStage.includes("6+");
+          } else if (activeStage === "babies") {
+            fallbackMatch = rawStage.includes("bab") || rawStage.includes("0–12") || rawStage.includes("0-12") || rawStage.includes("postpartum") || rawStage.includes("posparto");
+          } else if (activeStage === "toddlers") {
+            fallbackMatch = rawStage.includes("toddler") || rawStage.includes("peque") || rawStage.includes("1–3") || rawStage.includes("1-3");
+          } else if (activeStage === "children") {
+            fallbackMatch = rawStage.includes("child") || rawStage.includes("niño") || rawStage.includes("3–6") || rawStage.includes("3-6") || rawStage.includes("3y+");
+          } else if (activeStage === "pregnant") {
+            fallbackMatch = rawStage.includes("pregnant") || rawStage.includes("embaraz");
+          } else {
+            fallbackMatch = rawStage.includes(activeStage);
+          }
+          if (!fallbackMatch) return false;
+        }
       }
     }
 

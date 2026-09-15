@@ -3,11 +3,13 @@
 import React, { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SuperAdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -102,21 +104,44 @@ export default function SuperAdminLoginPage() {
             <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
               Password
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              style={{
-                width: "100%",
-                padding: "10px",
-                backgroundColor: "#333",
-                border: "1px solid #444",
-                borderRadius: "4px",
-                color: "#fff",
-                boxSizing: "border-box"
-              }}
-            />
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  paddingRight: "40px",
+                  backgroundColor: "#333",
+                  border: "1px solid #444",
+                  borderRadius: "4px",
+                  color: "#fff",
+                  boxSizing: "border-box"
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                title={showPassword ? "Hide password" : "Show password"}
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  background: "none",
+                  border: "none",
+                  padding: "4px",
+                  cursor: "pointer",
+                  color: "#888",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <button

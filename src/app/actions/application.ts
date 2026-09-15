@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { person, application, consentRecord, window, memberCredential } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { person, application, consentRecord, window, memberCredential, member } from "@/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { queueAndSendEmail } from "@/lib/brevo";
 
 import { z } from "zod";
@@ -45,19 +45,55 @@ const applicationSchema = z.object({
   locale: z.enum(["en", "es"]).default("es"),
 });
 
+export type EmailCheckResult = {
+  exists: boolean;
+  status?: "active_member" | "application_under_review" | "application_accepted";
+  message?: string;
+};
+
 // ─── CHECK EMAIL EXISTS (for early duplicate detection) ──────────────────────
-export async function checkEmailExists(email: string): Promise<{ exists: boolean }> {
+export async function checkEmailExists(email: string): Promise<EmailCheckResult> {
   try {
     const normalised = email.toLowerCase().trim();
     const existingPerson = await db.query.person.findFirst({
       where: eq(person.email, normalised),
     });
     if (!existingPerson) return { exists: false };
+
+    // 1. Check if person has member credentials (active login)
     const credential = await db.query.memberCredential.findFirst({
       where: eq(memberCredential.personId, existingPerson.id),
     });
-    return { exists: !!credential };
-  } catch {
+    if (credential) {
+      return { exists: true, status: "active_member", message: "ACTIVE_MEMBER" };
+    }
+
+    // 2. Check if person has an active member record
+    const memberRecord = await db.query.member.findFirst({
+      where: eq(member.personId, existingPerson.id),
+    });
+    if (memberRecord && (memberRecord.status === "active" || memberRecord.status === "paused")) {
+      return { exists: true, status: "active_member", message: "ACTIVE_MEMBER" };
+    }
+
+    // 3. Check for any pending or accepted application
+    const activeApp = await db.query.application.findFirst({
+      where: eq(application.personId, existingPerson.id),
+      orderBy: [desc(application.submittedAt)],
+    });
+
+    if (activeApp) {
+      if (activeApp.status === "submitted") {
+        return { exists: true, status: "application_under_review", message: "APPLICATION_UNDER_REVIEW" };
+      }
+      if (activeApp.status === "accepted" && !activeApp.isPaid) {
+        return { exists: true, status: "application_accepted", message: "APPLICATION_ACCEPTED" };
+      }
+    }
+
+    return { exists: false };
+  } catch (err) {
+    console.error("Error in checkEmailExists:", err);
     return { exists: false };
   }
 }
@@ -141,43 +177,92 @@ export async function submitApplication(data: ApplicationFormData) {
       version: "v1.0",
     });
 
-    // 4. Check for existing active application in this window
+    // 4. Check for existing application in this window
     const existingApp = await db.query.application.findFirst({
       where: and(
         eq(application.windowId, currentWindow.id),
         eq(application.personId, personRecord.id)
       ),
+      orderBy: [desc(application.submittedAt)],
     });
 
-    if (existingApp) {
-      return { success: true, message: "ALREADY_SUBMITTED", applicationId: existingApp.id };
-    }
+    let targetApplicationId = "";
 
-    // 5. Create application
-    const insertedApp = await db
-      .insert(application)
-      .values({
-        windowId: currentWindow.id,
-        personId: personRecord.id,
-        answers: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          stage: data.stage,
-          childrenAge: data.childrenAge,
-          neighbourhood: data.neighbourhood,
-          hopingToFind: data.hopingToFind,
-          freeTimes: data.freeTimes,
-          referralSource: data.referralSource,
-          referralCode: data.referralCode,
-          socialPlatform: data.socialPlatform,
-          socialHandle: data.socialHandle,
-          motivation: data.motivation,
-          billingPreference: data.billingPreference,
-        },
-        status: "submitted",
-      })
-      .returning();
+    if (existingApp) {
+      if (existingApp.status === "submitted") {
+        return { success: true, message: "ALREADY_SUBMITTED", applicationId: existingApp.id };
+      }
+      if (existingApp.status === "accepted" && !existingApp.isPaid) {
+        return { success: true, message: "ALREADY_ACCEPTED", applicationId: existingApp.id };
+      }
+      if (existingApp.status === "paid") {
+        return { success: false, error: "EXISTING_MEMBER" };
+      }
+
+      // If existingApp was expired, declined, or other past state, update it so it is newly 'submitted'
+      const [updatedApp] = await db
+        .update(application)
+        .set({
+          status: "submitted",
+          submittedAt: new Date(),
+          answers: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            stage: data.stage,
+            childrenAge: data.childrenAge,
+            neighbourhood: data.neighbourhood,
+            hopingToFind: data.hopingToFind,
+            freeTimes: data.freeTimes,
+            referralSource: data.referralSource,
+            referralCode: data.referralCode,
+            socialPlatform: data.socialPlatform,
+            socialHandle: data.socialHandle,
+            motivation: data.motivation,
+            billingPreference: data.billingPreference,
+          },
+          decidedAt: null,
+          decidedByAdminId: null,
+          declineReasonCode: null,
+          declineNote: null,
+          acceptExpiresAt: null,
+          paymentLinkToken: null,
+          isPaid: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(application.id, existingApp.id))
+        .returning();
+
+      targetApplicationId = updatedApp.id;
+    } else {
+      // 5. Create application
+      const insertedApp = await db
+        .insert(application)
+        .values({
+          windowId: currentWindow.id,
+          personId: personRecord.id,
+          answers: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            stage: data.stage,
+            childrenAge: data.childrenAge,
+            neighbourhood: data.neighbourhood,
+            hopingToFind: data.hopingToFind,
+            freeTimes: data.freeTimes,
+            referralSource: data.referralSource,
+            referralCode: data.referralCode,
+            socialPlatform: data.socialPlatform,
+            socialHandle: data.socialHandle,
+            motivation: data.motivation,
+            billingPreference: data.billingPreference,
+          },
+          status: "submitted",
+        })
+        .returning();
+
+      targetApplicationId = insertedApp[0].id;
+    }
 
     // 6. Queue confirmation email (Email - Application Received.html)
     const subject =
@@ -321,7 +406,7 @@ You're receiving this because you applied to join The Mothers.<br>
         toEmail: personRecord.email,
         toName: `${personRecord.firstName} ${personRecord.lastName}`,
         templateKey: "application_received",
-        dedupeKey: `app_received_${insertedApp[0].id}`,
+        dedupeKey: `app_received_${targetApplicationId}`,
         subject,
         htmlContent,
         isTransactional: true,
@@ -330,7 +415,7 @@ You're receiving this because you applied to join The Mothers.<br>
       console.warn("Could not dispatch confirmation email:", emailErr);
     }
 
-    return { success: true, applicationId: insertedApp[0].id };
+    return { success: true, applicationId: targetApplicationId };
   } catch (error: any) {
     console.error("submitApplication error:", error);
     return { success: false, error: error?.message || "SUBMIT_FAILED" };
