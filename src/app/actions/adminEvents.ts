@@ -95,6 +95,20 @@ export async function getAdminEvents() {
     .groupBy(event.id, eventCategory.name)
     .orderBy(desc(event.startsAt));
 
+  const stageLinks = await db
+    .select({
+      eventId: eventStage.eventId,
+      labelEn: stage.labelEn,
+    })
+    .from(eventStage)
+    .innerJoin(stage, eq(eventStage.stageId, stage.id));
+
+  const stagesMap: Record<string, string[]> = {};
+  for (const sl of stageLinks) {
+    if (!stagesMap[sl.eventId]) stagesMap[sl.eventId] = [];
+    stagesMap[sl.eventId].push(sl.labelEn);
+  }
+
   const events = eventsData.map(e => ({
     ...e.event,
     categoryName: e.categoryName,
@@ -103,6 +117,7 @@ export async function getAdminEvents() {
     guestBookingsCount: e.guestBookingsCount,
     totalHistoricalBookings: e.totalHistoricalBookings,
     totalPasses: e.totalPasses,
+    targetStages: stagesMap[e.event.id] || [],
   }));
 
   return { success: true, events };

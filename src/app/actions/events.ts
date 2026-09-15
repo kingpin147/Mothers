@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, eventPass, guestRsvp, eventStage } from "@/db/schema";
+import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, eventPass, guestRsvp, eventStage, stage } from "@/db/schema";
 import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
@@ -14,7 +14,7 @@ export async function getPublicEvents() {
     let creditBalance = 0;
     
     // Run independent database queries in parallel for high performance
-    const [categories, events, bookingsCount, userBookings, userWaitlists, memberRec] = await Promise.all([
+    const [categories, events, bookingsCount, userBookings, userWaitlists, memberRec, stageLinks] = await Promise.all([
       db.select().from(eventCategory).orderBy(asc(eventCategory.sortOrder)),
       db
         .select({
@@ -92,7 +92,20 @@ export async function getPublicEvents() {
             where: eq(member.personId, personId),
           })
         : Promise.resolve(null),
+      db
+        .select({
+          eventId: eventStage.eventId,
+          labelEn: stage.labelEn,
+        })
+        .from(eventStage)
+        .innerJoin(stage, eq(eventStage.stageId, stage.id)),
     ]);
+
+    const stagesMap = new Map<string, string[]>();
+    for (const sl of stageLinks) {
+      if (!stagesMap.has(sl.eventId)) stagesMap.set(sl.eventId, []);
+      stagesMap.get(sl.eventId)!.push(sl.labelEn);
+    }
 
     const memberBookingsMap = new Map<string, number>();
     const guestBookingsMap = new Map<string, number>();
@@ -201,6 +214,7 @@ export async function getPublicEvents() {
         isGuestFull,
         audienceType,
         languages: ev.languages || ["es", "en"],
+        targetStages: stagesMap.get(ev.id) || [],
         userStatus,
       };
     });
