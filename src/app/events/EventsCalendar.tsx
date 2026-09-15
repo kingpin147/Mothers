@@ -61,6 +61,7 @@ export interface PublicEvent {
   whatsappGroupUrl?: string | null;
   guestOpenAt?: string | Date | null;
   guestCloseAt?: string | Date | null;
+  decisionAt?: string | Date | null;
   childcare?: string | null;
   cancelReason?: string | null;
   userStatus?: {
@@ -276,13 +277,41 @@ function getCardBorder(ev: PublicEvent, isPast?: boolean): string {
   return "rgba(57, 41, 42, 0.2)";
 }
 
-function formatDecideByDate(startsAt: string | Date, lang: Lang): string {
-  const d = new Date(startsAt);
-  d.setDate(d.getDate() - 7);
-  if (lang === "en") {
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+function formatDecideByDate(startsAt: string | Date, lang: Lang, decisionAt?: string | Date | null): string {
+  const start = new Date(startsAt);
+  const now = new Date();
+  
+  let targetDate: Date;
+
+  if (decisionAt) {
+    const d = new Date(decisionAt);
+    if (!isNaN(d.getTime())) {
+      targetDate = d;
+    } else {
+      targetDate = new Date(start.getTime() - 7 * 86400000);
+    }
   } else {
-    return d.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+    // Default is 7 days before event start
+    targetDate = new Date(start.getTime() - 7 * 86400000);
+  }
+
+  // GUARANTEE: Never display a confirmation date in the past or before event creation
+  // If targetDate is already past (e.g. standard T-7 on a short-notice event):
+  if (targetDate.getTime() <= now.getTime()) {
+    const daysUntilStart = (start.getTime() - now.getTime()) / 86400000;
+    if (daysUntilStart > 2) {
+      targetDate = new Date(start.getTime() - 2 * 86400000); // 2 days before event
+    } else if (daysUntilStart > 0.5) {
+      targetDate = new Date(start.getTime() - 24 * 3600000); // 24h before event
+    } else {
+      targetDate = new Date(Math.max(now.getTime() + 3600000, start.getTime() - 2 * 3600000)); // 2h before event
+    }
+  }
+
+  if (lang === "en") {
+    return targetDate.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+  } else {
+    return targetDate.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
   }
 }
 
@@ -990,7 +1019,7 @@ function BookingSuccessModal({
     (ev.status === "pending" || ev.status === "published_pending") &&
     (ev.minToConfirm ?? 0) > 0;
   const moreNeeded = Math.max(0, (ev.minToConfirm ?? 0) - (ev.bookedMember ?? 0));
-  const decideBy = isGathering ? formatDecideByDate(ev.startsAt, lang) : "";
+  const decideBy = isGathering ? formatDecideByDate(ev.startsAt, lang, ev.decisionAt) : "";
 
   // ── Modal 02: Gathering / To be confirmed ───────────────────────────
   if (isGathering) {
@@ -1670,11 +1699,11 @@ function EventCard({
             <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
               {lang === "en"
                 ? (ev.userStatus?.isBooked
-                    ? `Your ${ev.creditCost} credits are held, not spent. Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang)}.`
-                    : `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang)}. Credits are only taken if it goes ahead.`)
+                    ? `Your ${ev.creditCost} credits are held, not spent. Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                    : `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Credits are only taken if it goes ahead.`)
                 : (ev.userStatus?.isBooked
-                    ? `Tus ${ev.creditCost} créditos están retenidos, no gastados. Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}.`
-                    : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang)}. Los créditos solo se cobran si se confirma.`)}
+                    ? `Tus ${ev.creditCost} créditos están retenidos, no gastados. Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                    : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Los créditos solo se cobran si se confirma.`)}
             </div>
           </div>
         ) : null}

@@ -80,15 +80,22 @@ export async function getAdminDashboardMetrics() {
         []
       ),
 
-      // 4. Decisions Due (T-7) events
+      // 4. Decisions Due (T-7 / Confirmation Deadline) events
       safeQuery(
         () => db.select({
           id: event.id,
           title: event.title,
           startsAt: event.startsAt,
           minToConfirm: event.minToConfirm,
+          decisionAt: event.decisionAt,
         }).from(event)
-          .where(and(eq(event.status, "published_pending"), lte(event.startsAt, t7Date), gte(event.startsAt, now)))
+          .where(
+            and(
+              eq(event.status, "published_pending"),
+              gte(event.startsAt, now),
+              sql`(${event.decisionAt} IS NOT NULL AND ${event.decisionAt} <= ${t7Date}) OR (${event.startsAt} <= ${t7Date})`
+            )
+          )
           .orderBy(event.startsAt),
         []
       ),
@@ -286,10 +293,19 @@ export async function getAdminDashboardMetrics() {
       const isMet = stats.bookingsCount >= minToConfirm;
       const startsDate = e.startsAt ? new Date(e.startsAt) : now;
       const daysUntil = Math.ceil((startsDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let decisionInfo = "";
+      if (e.decisionAt) {
+        const decDate = new Date(e.decisionAt);
+        const decFormatted = decDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+        const decDays = Math.ceil((decDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        decisionInfo = decDays <= 0 ? ` · Decide TODAY (${decFormatted})` : ` · Decide by ${decFormatted}`;
+      }
+
       return {
         id: e.id,
         title: e.title,
-        meta: `${startsDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${startsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Starts in ${daysUntil} days`,
+        meta: `${startsDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${startsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Starts in ${daysUntil} days${decisionInfo}`,
         count: `${stats.bookingsCount} / ${minToConfirm}`,
         countColor: isMet ? "#3f6604" : "#a8752c",
         isMet,

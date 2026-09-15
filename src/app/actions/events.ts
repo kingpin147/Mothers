@@ -47,6 +47,7 @@ export async function getPublicEvents() {
           showEventPassCta: event.showEventPassCta,
           guestOpenAt: event.guestOpenAt,
           guestCloseAt: event.guestCloseAt,
+          decisionAt: event.decisionAt,
           cancelReason: event.cancelReason,
         })
         .from(event)
@@ -366,6 +367,7 @@ export async function getPublicEventById(id: string) {
         stageAffinity: eventCategory.stageAffinity,
         guestOpenAt: event.guestOpenAt,
         guestCloseAt: event.guestCloseAt,
+        decisionAt: event.decisionAt,
         childcare: event.childcare,
         languages: event.languages,
       })

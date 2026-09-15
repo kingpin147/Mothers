@@ -44,8 +44,12 @@ export async function publishAdminEvent(eventId: string) {
 
   // Compute T-schedule defaults if not already present
   const starts = new Date(ev.startsAt);
-  const guestOpenAt = ev.guestOpenAt || new Date(starts.getTime() - 14 * 86400000);
-  const decisionAt = ev.decisionAt || new Date(starts.getTime() - 7 * 86400000);
+  const guestOpenAt = ev.guestOpenAt || (new Date(starts.getTime() - 14 * 86400000) > now ? new Date(starts.getTime() - 14 * 86400000) : now);
+  let decisionAt = ev.decisionAt;
+  if (!decisionAt) {
+    const t7Default = new Date(starts.getTime() - 7 * 86400000);
+    decisionAt = t7Default > now ? t7Default : new Date(Math.min(starts.getTime() - 3600000, Math.max(now.getTime() + 3600000, starts.getTime() - 2 * 86400000)));
+  }
   const guestCloseAt = ev.guestCloseAt || new Date(starts.getTime() - 2 * 86400000);
 
   await db.update(event).set({
@@ -176,37 +180,44 @@ export async function createAdminEvent(data: {
 
   const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-${Date.now().toString().slice(-4)}`;
 
-  const inserted = await db
-    .insert(event)
-    .values({
-      title: data.title,
-      slug,
-      categoryId: resolvedCategoryId,
-      description: data.description || "A curated club gathering for mothers in Barcelona.",
-      neighbourhood: data.neighbourhood || "Barcelona",
-      venueName: data.venueName,
-      meetingPoint: data.meetingPoint,
-      startsAt: data.startsAt,
-      endsAt: data.endsAt,
-      creditCost: data.creditCost,
-      capacityMember: data.capacityMember,
-      capacityGuest: data.capacityGuest,
-      capacityGuestGathering: data.capacityGuestGathering,
-      minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 0,
-      isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
-      isFreeWalk: data.creditCost === 0,
-      showEventPassCta: !!data.showEventPassCta,
-      partnerId: data.partnerId || data.host || null,
-      status: data.status === "draft" ? "draft" : (data.minToConfirm === 0 ? "confirmed" : "published_pending"),
-      languages: data.languages || [],
-      guestOpenAt: data.guestOpenAt,
-      guestCloseAt: data.guestCloseAt,
-      decisionAt: data.decisionAt,
-      publishedAt: data.status === "draft" ? undefined : new Date(),
-      confirmedAt: data.status !== "draft" && data.minToConfirm === 0 ? new Date() : undefined,
-      hostAdminId: adminId,
-    })
-    .returning();
+    const now = new Date();
+    let safeDecisionAt = data.decisionAt;
+    if (!safeDecisionAt && data.minToConfirm && data.minToConfirm > 0 && data.status !== "draft") {
+      const t7 = new Date(data.startsAt.getTime() - 7 * 86400000);
+      safeDecisionAt = t7 > now ? t7 : new Date(Math.min(data.startsAt.getTime() - 3600000, Math.max(now.getTime() + 3600000, data.startsAt.getTime() - 2 * 86400000)));
+    }
+
+    const inserted = await db
+      .insert(event)
+      .values({
+        title: data.title,
+        slug,
+        categoryId: resolvedCategoryId,
+        description: data.description || "A curated club gathering for mothers in Barcelona.",
+        neighbourhood: data.neighbourhood || "Barcelona",
+        venueName: data.venueName,
+        meetingPoint: data.meetingPoint,
+        startsAt: data.startsAt,
+        endsAt: data.endsAt,
+        creditCost: data.creditCost,
+        capacityMember: data.capacityMember,
+        capacityGuest: data.capacityGuest,
+        capacityGuestGathering: data.capacityGuestGathering,
+        minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 0,
+        isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
+        isFreeWalk: data.creditCost === 0,
+        showEventPassCta: !!data.showEventPassCta,
+        partnerId: data.partnerId || data.host || null,
+        status: data.status === "draft" ? "draft" : (data.minToConfirm === 0 ? "confirmed" : "published_pending"),
+        languages: data.languages || [],
+        guestOpenAt: data.guestOpenAt,
+        guestCloseAt: data.guestCloseAt,
+        decisionAt: safeDecisionAt,
+        publishedAt: data.status === "draft" ? undefined : new Date(),
+        confirmedAt: data.status !== "draft" && data.minToConfirm === 0 ? new Date() : undefined,
+        hostAdminId: adminId,
+      })
+      .returning();
 
   const newEventId = inserted[0].id;
 
@@ -261,6 +272,9 @@ export async function updateAdminEvent(eventId: string, data: {
   showEventPassCta?: boolean;
   languages?: string[];
   targetStages?: string[];
+  guestOpenAt?: Date | null;
+  guestCloseAt?: Date | null;
+  decisionAt?: Date | null;
   changeNote?: string;
   status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
 }) {
@@ -324,6 +338,9 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.showEventPassCta !== undefined && { showEventPassCta: !!data.showEventPassCta }),
       ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
       ...(data.languages !== undefined && { languages: data.languages }),
+      ...(data.guestOpenAt !== undefined && { guestOpenAt: data.guestOpenAt }),
+      ...(data.guestCloseAt !== undefined && { guestCloseAt: data.guestCloseAt }),
+      ...(data.decisionAt !== undefined && { decisionAt: data.decisionAt }),
       ...(data.status !== undefined && {
         status: data.status,
         ...(data.status !== "draft" && !existing.publishedAt && { publishedAt: new Date() }),

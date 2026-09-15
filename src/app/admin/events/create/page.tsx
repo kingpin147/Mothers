@@ -85,20 +85,64 @@ export default function AdminCreateEventPage() {
 
   // Helper to parse T-X schedule into Dates
   const calculateDate = (startD: string, expr: string) => {
-    if (!startD) return undefined;
+    if (!startD || !expr) return undefined;
     const d = new Date(startD);
     if (isNaN(d.getTime())) return undefined;
-    if (expr.startsWith("T-")) {
-      const days = parseInt(expr.replace("T-", ""), 10);
+    const trimmed = expr.trim();
+    if (trimmed.startsWith("T-")) {
+      const days = parseFloat(trimmed.replace("T-", ""));
       if (!isNaN(days)) {
-        d.setDate(d.getDate() - days);
+        d.setTime(d.getTime() - days * 24 * 60 * 60 * 1000);
+        return d;
+      }
+    }
+    if (trimmed.endsWith("h")) {
+      const hours = parseFloat(trimmed.replace("h", ""));
+      if (!isNaN(hours)) {
+        d.setTime(d.getTime() - hours * 60 * 60 * 1000);
         return d;
       }
     }
     // If they typed an explicit date string (fallback)
-    const exact = new Date(expr);
+    const exact = new Date(trimmed);
     if (!isNaN(exact.getTime())) return exact;
     return undefined;
+  };
+
+  const now = new Date();
+  const daysUntilStart = startsAt ? (new Date(startsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24) : null;
+  const isShortNotice = daysUntilStart !== null && daysUntilStart <= 7.5 && daysUntilStart > 0;
+
+  const handleStartsAtChange = (val: string) => {
+    setStartsAt(val);
+    if (val) {
+      const startD = new Date(val);
+      if (!isNaN(startD.getTime())) {
+        const days = (startD.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+        if (days <= 7.5 && days > 0) {
+          if (schDecision === "T-7") {
+            if (days >= 3) setSchDecision("T-2");
+            else if (days >= 1.5) setSchDecision("T-1");
+            else setSchDecision("12h");
+          }
+          if (schGuestsOpen === "T-14") {
+            setSchGuestsOpen("T-0");
+          }
+        }
+      }
+    }
+  };
+
+  const formatSchedulePreview = (date?: Date) => {
+    if (!date || isNaN(date.getTime())) return null;
+    const isPast = date.getTime() <= Date.now();
+    const formatted = date.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return { formatted, isPast };
   };
 
   const handleSave = async (status: "draft" | "published_pending") => {
@@ -121,6 +165,22 @@ export default function AdminCreateEventPage() {
     }
 
     const start = new Date(startsAt);
+    const resolvedDecisionAt = calculateDate(startsAt, schDecision);
+    const resolvedGuestOpenAt = calculateDate(startsAt, schGuestsOpen);
+    const resolvedGuestCloseAt = calculateDate(startsAt, schGuestsClose);
+
+    if (status === "published_pending" && parsedMin > 0) {
+      if (resolvedDecisionAt && resolvedDecisionAt.getTime() <= Date.now()) {
+        alert("The confirmation decision deadline (" + resolvedDecisionAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + ") is in the past. Please set a decision deadline before the event starts (e.g. T-2, T-1, or 24h).");
+        setLoadingAction(null);
+        return;
+      }
+      if (resolvedDecisionAt && resolvedDecisionAt.getTime() >= start.getTime()) {
+        alert("The confirmation decision deadline must be before the event starts.");
+        setLoadingAction(null);
+        return;
+      }
+    }
     
     const res = await createAdminEvent({
       title,
@@ -144,9 +204,9 @@ export default function AdminCreateEventPage() {
       languages: langs,
       targetStages: stages,
       showEventPassCta: passCta,
-      guestOpenAt: calculateDate(startsAt, schGuestsOpen),
-      guestCloseAt: calculateDate(startsAt, schGuestsClose),
-      decisionAt: calculateDate(startsAt, schDecision),
+      guestOpenAt: resolvedGuestOpenAt,
+      guestCloseAt: resolvedGuestCloseAt,
+      decisionAt: resolvedDecisionAt,
       publishedAt: status === "published_pending" ? new Date() : undefined,
     });
 
@@ -256,7 +316,7 @@ export default function AdminCreateEventPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Starts <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                <input type="datetime-local" value={startsAt} onChange={(e) => handleStartsAtChange(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Pick a date and the T-schedule counts back from it.</div>
               </div>
               <div>
@@ -439,27 +499,82 @@ export default function AdminCreateEventPage() {
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "6px" }}>The schedule</div>
             <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: "0 0 12px", maxWidth: "70ch", textWrap: "pretty" }}>Our standing schedule, filled in for you from settings. Change it here when a partner will only hold the room until a different date.</p>
+
+            {isShortNotice && (
+              <div style={{ background: "#fffbeb", border: "1px solid #f59e0b", borderRadius: "6px", padding: "12px 16px", marginBottom: "16px", fontSize: "13.5px", lineHeight: 1.6, color: "#92400e" }}>
+                <strong style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontSize: "15.5px", marginBottom: "3px" }}>⚠️ Short-notice event (starts in {daysUntilStart ? daysUntilStart.toFixed(1) : ""} days)</strong>
+                Because this event starts in less than a week, the standard <strong>T-7 decision point</strong> would be in the past. We have suggested <strong>{schDecision}</strong> below, or you can set a custom relative deadline (e.g. <code>T-2</code>, <code>T-1</code>, <code>24h</code>) or exact date.
+              </div>
+            )}
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: "12px" }}>
-              <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Members book from</div>
-                <input type="text" value={schMembers} onChange={(e) => setSchMembers(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
-                <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Announced in the chosen threads</div>
-              </div>
-              <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Guests open</div>
-                <input type="text" value={schGuestsOpen} onChange={(e) => setSchGuestsOpen(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
-                <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Every event, no exception</div>
-              </div>
-              <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Decision point</div>
-                <input type="text" value={schDecision} onChange={(e) => setSchDecision(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
-                <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Confirm or cancel by this date</div>
-              </div>
-              <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Guests close</div>
-                <input type="text" value={schGuestsClose} onChange={(e) => setSchGuestsClose(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
-                <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Members keep booking to the start</div>
-              </div>
+              {/* Members book from */}
+              {(() => {
+                const preview = formatSchedulePreview(calculateDate(startsAt, schMembers));
+                return (
+                  <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Members book from</div>
+                    <input type="text" value={schMembers} onChange={(e) => setSchMembers(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Announced in chosen threads</div>
+                    {preview && (
+                      <div style={{ fontSize: "11px", marginTop: "6px", color: preview.isPast ? "#b45309" : "#3f6604", fontWeight: 500 }}>
+                        {preview.isPast ? "↳ Opens immediately (T past)" : `↳ ${preview.formatted}`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Guests open */}
+              {(() => {
+                const preview = formatSchedulePreview(calculateDate(startsAt, schGuestsOpen));
+                return (
+                  <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Guests open</div>
+                    <input type="text" value={schGuestsOpen} onChange={(e) => setSchGuestsOpen(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Every event, no exception</div>
+                    {preview && (
+                      <div style={{ fontSize: "11px", marginTop: "6px", color: preview.isPast ? "#b45309" : "#3f6604", fontWeight: 500 }}>
+                        {preview.isPast ? "↳ Opens now (immediate)" : `↳ ${preview.formatted}`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Decision point */}
+              {(() => {
+                const preview = formatSchedulePreview(calculateDate(startsAt, schDecision));
+                return (
+                  <div style={{ border: preview?.isPast ? "1px solid #dc2626" : "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: preview?.isPast ? "#fef2f2" : "#fff" }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px", color: preview?.isPast ? "#991b1b" : "#39292a" }}>Decision point <span style={{ color: "#7b1f2c" }}>*</span></div>
+                    <input type="text" value={schDecision} onChange={(e) => setSchDecision(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: preview?.isPast ? "1px solid #dc2626" : "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Confirm or cancel by this date</div>
+                    {preview && (
+                      <div style={{ fontSize: "11.5px", marginTop: "6px", color: preview.isPast ? "#dc2626" : "#3f6604", fontWeight: 600 }}>
+                        {preview.isPast ? `⚠️ In past: ${preview.formatted}` : `↳ ${preview.formatted}`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Guests close */}
+              {(() => {
+                const preview = formatSchedulePreview(calculateDate(startsAt, schGuestsClose));
+                return (
+                  <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Guests close</div>
+                    <input type="text" value={schGuestsClose} onChange={(e) => setSchGuestsClose(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Members keep booking</div>
+                    {preview && (
+                      <div style={{ fontSize: "11px", marginTop: "6px", color: preview.isPast ? "#b45309" : "#3f6604", fontWeight: 500 }}>
+                        {preview.isPast ? "↳ Closes at start" : `↳ ${preview.formatted}`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
