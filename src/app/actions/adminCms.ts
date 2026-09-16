@@ -41,32 +41,37 @@ async function verifyAdminRole() {
 // ─── 1. MEMBERS & AT-RISK MANAGEMENT (§19, §20.7) ───────────────────────────
 
 export async function getAdminMembers() {
-  await verifyAdminRole();
+  try {
+    await verifyAdminRole();
 
-  const members = await db
-    .select({
-      id: member.id,
-      personId: member.personId,
-      status: member.status,
-      stage: member.stage,
-      neighbourhood: member.neighbourhood,
-      children: member.children,
-      joinedAt: member.joinedAt,
-      monthlyPriceCents: member.monthlyPriceCents,
-      currentPeriodEnd: member.currentPeriodEnd,
-      atRiskSince: member.atRiskSince,
-      firstName: person.firstName,
-      lastName: person.lastName,
-      email: person.email,
-      credits: sql<number>`(SELECT COALESCE(SUM(amount), 0) FROM ${creditEntry} WHERE member_id = ${member.id})::int`.as('credits'),
-      attended: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended' AND e.starts_at >= NOW() - INTERVAL '90 days')`.as('attended'),
-      lastSeenDate: sql<Date>`(SELECT MAX(e.starts_at) FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended')`.as('last_seen_date'),
-    })
-    .from(member)
-    .innerJoin(person, eq(member.personId, person.id))
-    .orderBy(desc(member.joinedAt));
+    const members = await db
+      .select({
+        id: member.id,
+        personId: member.personId,
+        status: member.status,
+        stage: member.stage,
+        neighbourhood: member.neighbourhood,
+        children: member.children,
+        joinedAt: member.joinedAt,
+        monthlyPriceCents: member.monthlyPriceCents,
+        currentPeriodEnd: member.currentPeriodEnd,
+        atRiskSince: member.atRiskSince,
+        firstName: person.firstName,
+        lastName: person.lastName,
+        email: person.email,
+        credits: sql<number>`(SELECT COALESCE(SUM(amount), 0) FROM ${creditEntry} WHERE member_id = ${member.id})::int`.as('credits'),
+        attended: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended' AND e.starts_at >= NOW() - INTERVAL '90 days')`.as('attended'),
+        lastSeenDate: sql<Date>`(SELECT MAX(e.starts_at) FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended')`.as('last_seen_date'),
+      })
+      .from(member)
+      .innerJoin(person, eq(member.personId, person.id))
+      .orderBy(desc(member.joinedAt));
 
-  return { success: true, members };
+    return { success: true, members };
+  } catch (err: any) {
+    console.error("getAdminMembers error:", err?.message || err);
+    return { success: false, error: err?.message || "UNAUTHORIZED_ADMIN", members: [] };
+  }
 }
 
 export async function adjustMemberCredits(data: {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ForwardArrow } from "@/components/Icons";
 import { useSession, signOut } from "next-auth/react";
@@ -8,11 +8,17 @@ import { getAdminDashboardMetrics, runManualCron } from "@/app/actions/adminDash
 import { confirmEventDecision, cancelEventDecision } from "@/app/actions/adminEvents";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import ThemeLoader from "@/components/ThemeLoader";
 
 export default function AdminDashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated" && !isLoggingOut) {
@@ -42,8 +48,9 @@ export default function AdminDashboardPage() {
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || "An unexpected error occurred while fetching metrics.");
+    } finally {
+      if (!isBackground) setLoading(false);
     }
-    if (!isBackground) setLoading(false);
   };
 
   useEffect(() => {
@@ -53,7 +60,12 @@ export default function AdminDashboardPage() {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
     
     if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      });
       
       const channel = supabase
         .channel('admin-dashboard-changes')
@@ -166,13 +178,21 @@ export default function AdminDashboardPage() {
           <div style={{ flex: "1 1 420px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>The Mothers · Admin</div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(32px,4.4vw,44px)", lineHeight: 1.1, margin: "0 0 9px" }}>What needs you today</h1>
-            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "64ch", textWrap: "pretty" }}>{new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}. Everything below has a deadline, a payment or a mother waiting behind it. The counts sit at the bottom.</p>
+            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "64ch", textWrap: "pretty" }} suppressHydrationWarning>
+              {mounted ? `${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}. ` : ""}Everything below has a deadline, a payment or a mother waiting behind it. The counts sit at the bottom.
+            </p>
           </div>
           <div style={{ display: "flex", gap: "9px", alignItems: "center" }}>
             <span style={{ border: "1px solid rgba(123,31,44,0.5)", color: "#7b1f2c", borderRadius: "4px", padding: "7px 13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{roleLabel}</span>
             <button onClick={async () => { setIsLoggingOut(true); await signOut({ redirect: false }); window.location.href = "/"; }} style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", background: "transparent", borderRadius: "4px", padding: "7px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", whiteSpace: "nowrap", cursor: "pointer" }}>Sign out</button>
           </div>
         </div>
+
+        {loading && !data && (
+          <div style={{ padding: "64px 20px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <ThemeLoader text="Loading dashboard metrics..." size="large" />
+          </div>
+        )}
 
         {errorMsg && (
           <div style={{ padding: "16px", background: "#fef2f2", color: "#991b1b", border: "1px solid #f87171", borderRadius: "6px", marginBottom: "24px" }}>

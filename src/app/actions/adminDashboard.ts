@@ -88,11 +88,15 @@ export async function getAdminDashboardMetrics() {
           startsAt: event.startsAt,
           minToConfirm: event.minToConfirm,
           decisionAt: event.decisionAt,
+          status: event.status,
         }).from(event)
           .where(
             and(
-              eq(event.status, "published_pending"),
-              gte(event.startsAt, now),
+              or(
+                eq(event.status, "published_pending"),
+                sql`${event.status}::text = 'gathering'`
+              ),
+              gte(event.startsAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
               or(
                 lte(event.startsAt, t7Date),
                 and(isNotNull(event.decisionAt), lte(event.decisionAt, t7Date))
@@ -110,8 +114,18 @@ export async function getAdminDashboardMetrics() {
           title: event.title,
           startsAt: event.startsAt,
           minToConfirm: event.minToConfirm,
+          status: event.status,
         }).from(event)
-          .where(and(eq(event.status, "published_pending"), lte(event.startsAt, t10Date), gte(event.startsAt, now)))
+          .where(
+            and(
+              or(
+                eq(event.status, "published_pending"),
+                sql`${event.status}::text = 'gathering'`
+              ),
+              lte(event.startsAt, t10Date),
+              gte(event.startsAt, new Date(now.getTime() - 24 * 60 * 60 * 1000))
+            )
+          )
           .orderBy(event.startsAt),
         []
       ),
@@ -160,7 +174,13 @@ export async function getAdminDashboardMetrics() {
           creditCost: event.creditCost,
           capacityMember: event.capacityMember,
         }).from(event)
-          .where(and(eq(event.status, "confirmed"), lte(event.startsAt, t7Date), gte(event.startsAt, now)))
+          .where(
+            and(
+              eq(event.status, "confirmed"),
+              lte(event.startsAt, t7Date),
+              gte(event.startsAt, new Date(now.getTime() - 24 * 60 * 60 * 1000))
+            )
+          )
           .orderBy(event.startsAt)
           .limit(20),
         []

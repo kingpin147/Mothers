@@ -8,6 +8,7 @@ import { deleteEvent } from "@/app/actions/events";
 import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember, adminCancelMemberBooking, adminCancelGuestPass } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
+import ThemeLoader from "@/components/ThemeLoader";
 
 const WINE = "#7b1f2c";
 const AMBER = "#a8752c";
@@ -44,6 +45,7 @@ export default function AdminEventsPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Filters & Sorting
@@ -76,20 +78,31 @@ export default function AdminEventsPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const [eventsRes, membersRes] = await Promise.all([
-      getAdminEvents(),
-      getAdminMembers(),
-    ]);
-    setLoading(false);
+    setErrorMsg(null);
+    try {
+      const [eventsRes, membersRes] = await Promise.all([
+        getAdminEvents(),
+        getAdminMembers(),
+      ]);
 
-    if (eventsRes.success && eventsRes.events) {
-      setEvents(eventsRes.events);
-    }
-    if (membersRes.success && membersRes.members) {
-      setAllMembers(membersRes.members);
-      if (membersRes.members.length > 0) {
-        setSelectedMemberId(membersRes.members[0].id);
+      if (eventsRes?.success && eventsRes.events) {
+        setEvents(eventsRes.events);
+      } else if (eventsRes?.error) {
+        console.warn("getAdminEvents returned error:", eventsRes.error);
+        setErrorMsg(eventsRes.error);
       }
+
+      if (membersRes?.success && membersRes.members) {
+        setAllMembers(membersRes.members);
+        if (membersRes.members.length > 0) {
+          setSelectedMemberId(membersRes.members[0].id);
+        }
+      }
+    } catch (err: any) {
+      console.error("loadData error:", err);
+      setErrorMsg(err?.message || "An unexpected error occurred while loading events.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -645,8 +658,31 @@ export default function AdminEventsPage() {
 
             {/* Loading / Empty / Rows */}
             {loading ? (
-              <div style={{ padding: "40px 18px", textAlign: "center", color: MUTED, fontSize: "14px" }}>
-                Loading events from calendar...
+              <div style={{ padding: "52px 18px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <ThemeLoader text="Loading events from calendar..." size="medium" />
+              </div>
+            ) : errorMsg ? (
+              <div style={{ padding: "36px 18px", textAlign: "center" }}>
+                <p style={{ color: WINE, fontSize: "14.5px", marginBottom: "12px", fontFamily: "'Lora', Georgia, serif" }}>
+                  {errorMsg}
+                </p>
+                <button
+                  type="button"
+                  onClick={loadData}
+                  style={{
+                    border: `1px solid ${WINE}`,
+                    color: WINE,
+                    backgroundColor: "#fffdfa",
+                    borderRadius: "4px",
+                    padding: "8px 16px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Retry loading
+                </button>
               </div>
             ) : filteredEvents.length === 0 ? (
               <div style={{ padding: "32px 18px", fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>

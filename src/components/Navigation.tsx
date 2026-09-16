@@ -41,7 +41,7 @@ export function Navigation() {
     } else {
       setMemberCredits(null);
     }
-  }, [session]);
+  }, [session?.user?.id, (session?.user as any)?.role]);
 
   const switchLang = (newLang: "en" | "es") => {
     setLanguage(newLang);
