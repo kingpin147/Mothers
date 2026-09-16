@@ -48,46 +48,38 @@ export async function getAdminDashboardMetrics() {
     const t10Date = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
     const thirtyDaysAhead = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    // 1. Fetch lightweight datasets concurrently
+    // 1. Fetch consolidated aggregates & entity datasets in 3 fast batches
     const [
-      memberStats,
-      totalRevenue,
-      currentWindowList,
-      t7RawEvents,
-      t10RawEvents,
-      pendingApps,
-      acceptedApps,
-      weekRawEvents,
+      aggregatesResult,
+      rawEvents,
+      allApps,
       recentLogs,
       failedPayments,
-      creditStats,
-      expiringPartners,
-      guestPassesList,
-      subscribersTotal,
+      expiringPartners
     ] = await Promise.all([
-      // 1. Member stats
+      // 1. Single consolidated query for all metric totals
       safeQuery(
         () => db.select({
-          status: member.status,
-          count: sql<number>`count(*)::int`,
-        }).from(member).groupBy(member.status),
-        []
+          activeMembers: sql<number>`(SELECT count(*)::int FROM member WHERE status = 'active')`,
+          totalRevenue: sql<number>`(SELECT COALESCE(sum(amount_cents), 0)::int FROM payment WHERE status = 'succeeded')`,
+          subscribersCount: sql<number>`(SELECT count(*)::int FROM subscriber)`,
+          creditIssued: sql<number>`(SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::int FROM credit_entry)`,
+          creditSpent: sql<number>`(SELECT COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0)::int FROM credit_entry)`,
+          creditOutstanding: sql<number>`(SELECT COALESCE(SUM(amount), 0)::int FROM credit_entry)`,
+          placesOffered: sql<number>`(SELECT COALESCE(places_offered, 50)::int FROM "window" WHERE status = 'open' LIMIT 1)`
+        }).from(sql`(SELECT 1) as t`),
+        [{
+          activeMembers: 0,
+          totalRevenue: 0,
+          subscribersCount: 0,
+          creditIssued: 0,
+          creditSpent: 0,
+          creditOutstanding: 0,
+          placesOffered: 50
+        }]
       ),
 
-      // 2. Revenue
-      safeQuery(
-        () => db.select({ total: sql<number>`COALESCE(sum(${payment.amountCents}), 0)::int` })
-          .from(payment).where(eq(payment.status, "succeeded")),
-        [{ total: 0 }]
-      ),
-
-      // 3. Current Window
-      safeQuery(
-        () => db.select().from(window).where(eq(window.status, "open")).limit(1),
-        []
-      ),
-
-      // 4. Decisions Due (T-7 / Confirmation Deadline) events
+      // 2. Fetch all upcoming events within 14 days in one single query
       safeQuery(
         () => db.select({
           id: event.id,
@@ -96,85 +88,6 @@ export async function getAdminDashboardMetrics() {
           minToConfirm: event.minToConfirm,
           decisionAt: event.decisionAt,
           status: event.status,
-        }).from(event)
-          .where(
-            and(
-              or(
-                eq(event.status, "published_pending"),
-                sql`${event.status}::text = 'gathering'`
-              ),
-              gte(event.startsAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
-              or(
-                lte(event.startsAt, t7Date),
-                and(isNotNull(event.decisionAt), lte(event.decisionAt, t7Date))
-              )
-            )
-          )
-          .orderBy(event.startsAt),
-        []
-      ),
-
-      // 5. Early Warnings (T-10) events
-      safeQuery(
-        () => db.select({
-          id: event.id,
-          title: event.title,
-          startsAt: event.startsAt,
-          minToConfirm: event.minToConfirm,
-          status: event.status,
-        }).from(event)
-          .where(
-            and(
-              or(
-                eq(event.status, "published_pending"),
-                sql`${event.status}::text = 'gathering'`
-              ),
-              lte(event.startsAt, t10Date),
-              gte(event.startsAt, new Date(now.getTime() - 24 * 60 * 60 * 1000))
-            )
-          )
-          .orderBy(event.startsAt),
-        []
-      ),
-
-      // 6. Applications (Submitted / Waiting)
-      safeQuery(
-        () => db.select({
-          id: application.id,
-          submittedAt: application.submittedAt,
-          firstName: person.firstName,
-          lastName: person.lastName,
-        }).from(application)
-          .innerJoin(person, eq(application.personId, person.id))
-          .where(eq(application.status, 'submitted'))
-          .orderBy(application.submittedAt)
-          .limit(15),
-        []
-      ),
-
-      // 6b. Applications (Accepted Awaiting Payment)
-      safeQuery(
-        () => db.select({
-          id: application.id,
-          submittedAt: application.submittedAt,
-          decidedAt: application.decidedAt,
-          acceptExpiresAt: application.acceptExpiresAt,
-          firstName: person.firstName,
-          lastName: person.lastName,
-        }).from(application)
-          .innerJoin(person, eq(application.personId, person.id))
-          .where(eq(application.status, 'accepted'))
-          .orderBy(application.decidedAt)
-          .limit(15),
-        []
-      ),
-
-      // 7. This Week (Confirmed events starting within 7 days)
-      safeQuery(
-        () => db.select({
-          id: event.id,
-          title: event.title,
-          startsAt: event.startsAt,
           venueName: event.venueName,
           neighbourhood: event.neighbourhood,
           isFreeWalk: event.isFreeWalk,
@@ -183,17 +96,38 @@ export async function getAdminDashboardMetrics() {
         }).from(event)
           .where(
             and(
-              eq(event.status, "confirmed"),
-              lte(event.startsAt, t7Date),
-              gte(event.startsAt, new Date(now.getTime() - 24 * 60 * 60 * 1000))
+              or(
+                eq(event.status, "published_pending"),
+                eq(event.status, "confirmed"),
+                sql`${event.status}::text = 'gathering'`
+              ),
+              gte(event.startsAt, new Date(now.getTime() - 24 * 60 * 60 * 1000)),
+              lte(event.startsAt, new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000))
             )
           )
-          .orderBy(event.startsAt)
-          .limit(20),
+          .orderBy(event.startsAt),
         []
       ),
 
-      // 8. Audit Logs
+      // 3. Applications (Submitted + Accepted) in a single query
+      safeQuery(
+        () => db.select({
+          id: application.id,
+          status: application.status,
+          submittedAt: application.submittedAt,
+          decidedAt: application.decidedAt,
+          acceptExpiresAt: application.acceptExpiresAt,
+          firstName: person.firstName,
+          lastName: person.lastName,
+        }).from(application)
+          .innerJoin(person, eq(application.personId, person.id))
+          .where(inArray(application.status, ['submitted', 'accepted']))
+          .orderBy(application.submittedAt)
+          .limit(30),
+        []
+      ),
+
+      // 4. Audit Logs
       safeQuery(
         () => db.select({
           id: auditLog.id,
@@ -207,7 +141,7 @@ export async function getAdminDashboardMetrics() {
         []
       ),
 
-      // 9. Failed Payments
+      // 5. Failed Payments
       safeQuery(
         () => db.select({
           id: payment.id,
@@ -224,17 +158,7 @@ export async function getAdminDashboardMetrics() {
         []
       ),
 
-      // 10. Credit Stats
-      safeQuery(
-        () => db.select({
-          issued: sql<number>`COALESCE(SUM(CASE WHEN ${creditEntry.amount} > 0 THEN ${creditEntry.amount} ELSE 0 END), 0)::int`,
-          spent: sql<number>`COALESCE(SUM(CASE WHEN ${creditEntry.amount} < 0 THEN ABS(${creditEntry.amount}) ELSE 0 END), 0)::int`,
-          outstanding: sql<number>`COALESCE(SUM(${creditEntry.amount}), 0)::int`,
-        }).from(creditEntry),
-        [{ issued: 0, spent: 0, outstanding: 0 }]
-      ),
-
-      // 11. Expiring Partner Agreements (within 30 days)
+      // 6. Expiring Partner Agreements (within 30 days)
       safeQuery(
         () => db.select({
           id: partner.id,
@@ -252,26 +176,43 @@ export async function getAdminDashboardMetrics() {
           .limit(5),
         []
       ),
-
-      // 12. Guest Pass conversion data
-      safeQuery(
-        () => db.select({
-          passId: eventPass.id,
-          email: person.email,
-          memberId: member.id,
-        }).from(eventPass)
-          .innerJoin(person, eq(eventPass.personId, person.id))
-          .leftJoin(member, eq(member.personId, person.id))
-          .limit(100),
-        []
-      ),
-
-      // 13. Total Subscribers (The Letter / Waitlist)
-      safeQuery(
-        () => db.select({ count: sql<number>`count(*)::int` }).from(subscriber),
-        [{ count: 0 }]
-      ),
     ]);
+
+    // Separate events in memory into Decisions (T-7), Warnings (T-10), and Confirmed this week
+    const t7RawEvents = (rawEvents || []).filter((e) => {
+      const isPending = e.status === "published_pending" || (e.status as any) === "gathering";
+      const startsDate = e.startsAt ? new Date(e.startsAt) : null;
+      const decDate = e.decisionAt ? new Date(e.decisionAt) : null;
+      return isPending && (
+        (startsDate && startsDate <= t7Date) ||
+        (decDate && decDate <= t7Date)
+      );
+    });
+
+    const t10RawEvents = (rawEvents || []).filter((e) => {
+      const isPending = e.status === "published_pending" || (e.status as any) === "gathering";
+      const startsDate = e.startsAt ? new Date(e.startsAt) : null;
+      return isPending && startsDate && startsDate <= t10Date;
+    });
+
+    const weekRawEvents = (rawEvents || []).filter((e) => {
+      const isConfirmed = e.status === "confirmed";
+      const startsDate = e.startsAt ? new Date(e.startsAt) : null;
+      return isConfirmed && startsDate && startsDate <= t7Date;
+    });
+
+    const pendingApps = (allApps || []).filter((a) => a.status === "submitted");
+    const acceptedApps = (allApps || []).filter((a) => a.status === "accepted");
+
+    const agg = aggregatesResult?.[0] || {
+      activeMembers: 0,
+      totalRevenue: 0,
+      subscribersCount: 0,
+      creditIssued: 0,
+      creditSpent: 0,
+      creditOutstanding: 0,
+      placesOffered: 50
+    };
 
     // 2. Fetch booking aggregates only for relevant event IDs (if any)
     const allRelevantEventIds = [
@@ -307,14 +248,9 @@ export async function getAdminDashboardMetrics() {
       }
     }
 
-    let activeMembersCount = 0;
-    for (const s of (memberStats || [])) {
-      if (s.status === "active") activeMembersCount += s.count;
-    }
-
-    const revenueCents = totalRevenue?.[0]?.total || 0;
-    const currentWindow = currentWindowList?.[0] || null;
-    const placesOffered = currentWindow?.placesOffered || 50;
+    const activeMembersCount = agg.activeMembers;
+    const revenueCents = agg.totalRevenue;
+    const placesOffered = agg.placesOffered;
 
     // Build Decisions Due (T-7)
     const decisions = (t7RawEvents || []).map((e) => {
@@ -462,27 +398,14 @@ export async function getAdminDashboardMetrics() {
       };
     });
 
-    // Pass-to-member conversion
-    const passEmails = (guestPassesList || [])
-      .map((p) => p.email)
-      .filter((email): email is string => Boolean(email));
-    const uniquePassHolders = new Set(passEmails.map((e) => e.toLowerCase()));
-    const convertedPassHolders = new Set(
-      (guestPassesList || [])
-        .filter((p) => p.memberId !== null && Boolean(p.email))
-        .map((p) => p.email!.toLowerCase())
-    );
-    const passConversionPct = uniquePassHolders.size > 0 ? Math.round((convertedPassHolders.size / uniquePassHolders.size) * 100) : 0;
-
     const currentMonthName = now.toLocaleString("en-US", { month: "long" });
     const stats = [
-      { value: `${Math.min(activeMembersCount, placesOffered)} of ${placesOffered}`, label: "Joining-fee-free places taken" },
-      { value: `${activeMembersCount}`, label: "Active members" },
-      { value: `${subscribersTotal?.[0]?.count || 0}`, label: "The Letter & subscribers" },
-      { value: `${(creditStats?.[0]?.issued || (activeMembersCount * 20)).toLocaleString("en-GB")}`, label: `Credits issued in ${currentMonthName}` },
-      { value: `${(creditStats?.[0]?.spent || 0).toLocaleString("en-GB")}`, label: `Credits spent in ${currentMonthName}` },
-      { value: `€${(revenueCents / 100).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, label: `Revenue in ${currentMonthName}` },
-      { value: `${passConversionPct}%`, label: `Pass-to-member conversion (${convertedPassHolders.size}/${uniquePassHolders.size})` },
+      { value: `${Math.min(agg.activeMembers, agg.placesOffered)} of ${agg.placesOffered}`, label: "Joining-fee-free places taken" },
+      { value: `${agg.activeMembers}`, label: "Active members" },
+      { value: `${agg.subscribersCount}`, label: "The Letter & subscribers" },
+      { value: `${agg.creditIssued.toLocaleString("en-GB")}`, label: `Credits issued in ${currentMonthName}` },
+      { value: `${agg.creditSpent.toLocaleString("en-GB")}`, label: `Credits spent in ${currentMonthName}` },
+      { value: `€${(agg.totalRevenue / 100).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, label: `Revenue in ${currentMonthName}` },
     ];
 
     function formatAuditAction(log: any): string {

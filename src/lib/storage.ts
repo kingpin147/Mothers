@@ -11,14 +11,14 @@ import { eq } from "drizzle-orm";
 // - Type and size checked, images re-encoded, served from storage
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Server-side client with service role (bypasses RLS for storage operations)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // Client-side anon client for public URL generation
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 export const supabasePublic = createClient(supabaseUrl, supabaseAnonKey);
 
 // Storage buckets
