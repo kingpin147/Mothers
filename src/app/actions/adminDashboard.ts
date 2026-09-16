@@ -18,10 +18,17 @@ import {
 import { eq, desc, and, or, isNotNull, sql, gte, lte, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
-async function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+async function safeQuery<T>(fn: () => Promise<T>, fallback: T, timeoutMs = 4000): Promise<T> {
+  let timer: NodeJS.Timeout | null = null;
   try {
-    return await fn();
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error("Query timed out")), timeoutMs);
+    });
+    const result = await Promise.race([fn(), timeoutPromise]);
+    if (timer) clearTimeout(timer);
+    return result;
   } catch (e: any) {
+    if (timer) clearTimeout(timer);
     console.warn("Dashboard safeQuery fallback:", e?.message || e);
     return fallback;
   }

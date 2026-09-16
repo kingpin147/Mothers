@@ -38,7 +38,10 @@ export default function AdminDashboardPage() {
   const fetchMetrics = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
-      const res = await getAdminDashboardMetrics();
+      const timeoutPromise = new Promise<{ success: false; error: string }>((resolve) =>
+        setTimeout(() => resolve({ success: false, error: "Request timed out. Please refresh or check connection." }), 8000)
+      );
+      const res: any = await Promise.race([getAdminDashboardMetrics(), timeoutPromise]);
       if (res.success) {
         setData(res);
         setErrorMsg(null);
