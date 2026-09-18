@@ -3,20 +3,21 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getApplicationsForAdmin, acceptApplication, declineApplication, extendApplicationPayment, releaseApplicationPlace } from "@/app/actions/admin";
-import { BackArrow } from "@/components/Icons";
+import { BackArrow, ForwardArrow } from "@/components/Icons";
 
 const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
 
 export default function AdminApplicationsPage() {
   const [apps, setApps] = useState<any[]>([]);
   const [filter, setFilter] = useState<"Waiting" | "Awaiting payment" | "Declined" | "All">("Waiting");
+  const [viewMode, setViewMode] = useState<"reader" | "table">("reader");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [confirmModal, setConfirmModal] = useState<{ type: "accept" | "decline"; app: any; declineReason?: string } | null>(null);
 
   const fetchApps = async () => {
     setLoading(true);
-    // Note: getApplicationsForAdmin is called with 'all' so we can sort them client-side
     const res = await getApplicationsForAdmin('all');
     setLoading(false);
     if (res.success && res.applications) {
@@ -41,7 +42,7 @@ export default function AdminApplicationsPage() {
   const safeIndex = waitingApps.length > 0 ? Math.min(currentIndex, waitingApps.length - 1) : 0;
   const currentApp = waitingApps[safeIndex];
 
-  const handleSkip = () => {
+  const handleNext = () => {
     if (waitingApps.length <= 1) return;
     if (safeIndex < waitingApps.length - 1) {
       setCurrentIndex(safeIndex + 1);
@@ -50,9 +51,18 @@ export default function AdminApplicationsPage() {
     }
   };
 
-  const handleAccept = async (appId: string) => {
-    if (!confirm("Confirm acceptance? This will generate a 72-hour payment link and email the applicant.")) return;
+  const handlePrev = () => {
+    if (waitingApps.length <= 1) return;
+    if (safeIndex > 0) {
+      setCurrentIndex(safeIndex - 1);
+    } else {
+      setCurrentIndex(waitingApps.length - 1);
+    }
+  };
+
+  const handleExecuteAccept = async (appId: string) => {
     setActionLoading(appId);
+    setConfirmModal(null);
     const res = await acceptApplication(appId);
     setActionLoading(null);
     if (res.success) {
@@ -63,14 +73,13 @@ export default function AdminApplicationsPage() {
     }
   };
 
-  const handleDecline = async (appId: string) => {
-    const reason = prompt("Enter optional decline reason code:", "CAPACITY_REACHED");
-    if (reason === null) return;
+  const handleExecuteDecline = async (appId: string, reason?: string) => {
     setActionLoading(appId);
-    const res = await declineApplication(appId, reason);
+    setConfirmModal(null);
+    const res = await declineApplication(appId, reason || "CAPACITY_REACHED");
     setActionLoading(null);
     if (res.success) {
-      alert("Application declined. Waitlist notification sent.");
+      alert("Application declined. Notification sent.");
       fetchApps();
     } else {
       alert(res.error || "Failed to decline application");
@@ -79,17 +88,17 @@ export default function AdminApplicationsPage() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
       if (document.activeElement?.tagName === "INPUT" || document.activeElement?.tagName === "TEXTAREA") return;
-      if (filter !== "Waiting" || !currentApp || actionLoading) return;
+      if (filter !== "Waiting" || !currentApp || actionLoading || confirmModal) return;
 
-      if (e.key.toLowerCase() === 'a') handleAccept(currentApp.id);
-      if (e.key.toLowerCase() === 'd') handleDecline(currentApp.id);
-      if (e.key.toLowerCase() === 's') handleSkip();
+      if (e.key.toLowerCase() === 'a') setConfirmModal({ type: "accept", app: currentApp });
+      if (e.key.toLowerCase() === 'd') setConfirmModal({ type: "decline", app: currentApp, declineReason: "CAPACITY_REACHED" });
+      if (e.key.toLowerCase() === 's' || e.key === 'ArrowRight') handleNext();
+      if (e.key === 'ArrowLeft') handlePrev();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [filter, currentApp, actionLoading, currentIndex, waitingApps.length]);
+  }, [filter, currentApp, actionLoading, confirmModal, currentIndex, waitingApps.length]);
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8efe2" }}>
@@ -107,7 +116,7 @@ export default function AdminApplicationsPage() {
               Reading the applications
             </h1>
             <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "70ch", textWrap: "pretty" }}>
-              One at a time, in full, oldest first. Accept, decline or skip with the keyboard — A, D, S.
+              Review submitted applications. Accept, decline or navigate through the queue using keyboard shortcuts (A, D, S, Left/Right arrows) or buttons.
             </p>
           </div>
           <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
@@ -147,49 +156,115 @@ export default function AdminApplicationsPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "24px" }}>
-          {(["Waiting", "Awaiting payment", "Declined", "All"] as const).map((f) => {
-            const on = filter === f;
-            let count = "";
-            if (f === "Waiting") count = ` (${waitingApps.length})`;
-            if (f === "Awaiting payment") count = ` (${awaitingPaymentApps.length})`;
-            if (f === "Declined") count = ` (${declinedApps.length})`;
+        {/* Filter & View Mode Bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "24px" }}>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            {(["Waiting", "Awaiting payment", "Declined", "All"] as const).map((f) => {
+              const on = filter === f;
+              let count = "";
+              if (f === "Waiting") count = ` (${waitingApps.length})`;
+              if (f === "Awaiting payment") count = ` (${awaitingPaymentApps.length})`;
+              if (f === "Declined") count = ` (${declinedApps.length})`;
+              if (f === "All") count = ` (${totalApps})`;
 
-            return (
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  style={{
+                    border: `1px solid ${on ? WINE : "rgba(57,41,42,0.25)"}`,
+                    background: on ? "rgba(123,31,44,0.06)" : "transparent",
+                    color: on ? WINE : "#39292a",
+                    borderRadius: "20px",
+                    padding: "8px 16px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "13.5px",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {f}{count}
+                </button>
+              )
+            })}
+          </div>
+
+          {filter === "Waiting" && waitingApps.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "#fffdfa", border: "1px solid rgba(57,41,42,0.15)", borderRadius: "6px", padding: "4px" }}>
               <button
-                key={f}
-                onClick={() => setFilter(f)}
+                onClick={() => setViewMode("reader")}
                 style={{
-                  border: `1px solid ${on ? WINE : "rgba(57,41,42,0.25)"}`,
-                  background: on ? "rgba(123,31,44,0.06)" : "transparent",
-                  color: on ? WINE : "#39292a",
-                  borderRadius: "20px",
-                  padding: "8px 16px",
-                  fontFamily: "'Cormorant Garamond', serif",
+                  border: "none",
+                  backgroundColor: viewMode === "reader" ? WINE : "transparent",
+                  color: viewMode === "reader" ? "#fff" : "#39292a",
+                  borderRadius: "4px",
+                  padding: "5px 10px",
+                  fontSize: "12px",
                   fontWeight: 600,
-                  fontSize: "13.5px",
                   cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  transition: "all 0.2s"
+                  fontFamily: "'Lora', Georgia, serif"
                 }}
               >
-                {f}{count}
+                📖 Reader Card
               </button>
-            )
-          })}
+              <button
+                onClick={() => setViewMode("table")}
+                style={{
+                  border: "none",
+                  backgroundColor: viewMode === "table" ? WINE : "transparent",
+                  color: viewMode === "table" ? "#fff" : "#39292a",
+                  borderRadius: "4px",
+                  padding: "5px 10px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  fontFamily: "'Lora', Georgia, serif"
+                }}
+              >
+                📋 Table View ({waitingApps.length})
+              </button>
+            </div>
+          )}
         </div>
 
         {loading ? (
           <div style={{ padding: "40px", textAlign: "center", color: "rgba(57,41,42,0.6)" }}>Loading applications...</div>
         ) : filter === "Waiting" ? (
-          /* SINGLE APPLICATION VIEW */
-          currentApp ? (
+          waitingApps.length === 0 ? (
+            <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>
+              No applications waiting for review!
+            </div>
+          ) : viewMode === "reader" ? (
+            /* SINGLE APPLICATION VIEW (READER) */
             <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "24px", alignItems: "start" }}>
               <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "32px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)" }}>
-                    READING {safeIndex + 1} OF {waitingApps.length} WAITING
+                
+                {/* Reader Header & Navigation */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.6)" }}>
+                      READING {safeIndex + 1} OF {waitingApps.length} WAITING
+                    </div>
+                    {waitingApps.length > 1 && (
+                      <div style={{ display: "flex", gap: "4px" }}>
+                        <button
+                          onClick={handlePrev}
+                          title="Previous applicant (Arrow Left)"
+                          style={{ border: "1px solid rgba(57,41,42,0.2)", backgroundColor: "#fff", borderRadius: "3px", padding: "2px 7px", fontSize: "11px", cursor: "pointer", color: "#39292a" }}
+                        >
+                          ← Prev
+                        </button>
+                        <button
+                          onClick={handleNext}
+                          title="Next applicant (Arrow Right or S)"
+                          style={{ border: "1px solid rgba(57,41,42,0.2)", backgroundColor: "#fff", borderRadius: "3px", padding: "2px 7px", fontSize: "11px", cursor: "pointer", color: "#39292a" }}
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div style={{ fontSize: "12px", color: WINE, fontWeight: 500 }}>
                     {(() => {
@@ -207,15 +282,6 @@ export default function AdminApplicationsPage() {
                   {currentApp.personEmail} · {currentApp.answers?.phone || "+34 600 000 000"} · applied {new Date(currentApp.submittedAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 </div>
 
-                <div style={{ display: "flex", gap: "10px", marginBottom: "28px" }}>
-                  <span style={{ border: "1px solid rgba(63,102,4,0.4)", color: GREEN, borderRadius: "4px", padding: "5px 10px", fontSize: "12px", fontWeight: 500 }}>
-                    Came to an event on a pass - June
-                  </span>
-                  <span style={{ border: "1px solid rgba(168,117,44,0.4)", color: AMBER, borderRadius: "4px", padding: "5px 10px", fontSize: "12px", fontWeight: 500 }}>
-                    Phone already known — waitlist, Feb
-                  </span>
-                </div>
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "32px", borderTop: "1px solid rgba(57,41,42,0.1)", borderBottom: "1px solid rgba(57,41,42,0.1)", padding: "20px 0" }}>
                   <div>
                     <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>STAGE</div>
@@ -231,41 +297,45 @@ export default function AdminApplicationsPage() {
                   </div>
                   <div>
                     <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>LANGUAGES</div>
-                    <div style={{ fontSize: "14px", color: "#39292a" }}>Spanish, English</div>
+                    <div style={{ fontSize: "14px", color: "#39292a" }}>{currentApp.personLocale === "es" ? "Spanish" : "English"}</div>
                   </div>
                   <div>
                     <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>FOUND US</div>
-                    <div style={{ fontSize: "14px", color: "#39292a" }}>{currentApp.answers?.referralSource || "A friend who is already a member"}</div>
+                    <div style={{ fontSize: "14px", color: "#39292a" }}>{currentApp.answers?.referralSource || "Website"}</div>
                   </div>
                   <div>
                     <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "4px" }}>GODMOTHER CODE</div>
-                    <div style={{ fontSize: "14px", color: "#39292a" }}>ANDREA-M - Andrea Vidal</div>
+                    <div style={{ fontSize: "14px", color: "#39292a" }}>{currentApp.answers?.referralCode || "None"}</div>
                   </div>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
                   <div>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>Why now?</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>Why now? / Motivation</div>
                     <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
-                      {currentApp.answers?.motivation || "I moved back to Barcelona in March and everyone I knew here has scattered. I would rather find people before the baby comes than try to do it with a newborn in my arms."}
+                      {currentApp.answers?.motivation || "No specific note provided."}
                     </p>
                   </div>
                   <div>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>What would you like from us?</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>What are you hoping to find?</div>
                     <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
-                      A small group of women at the same point. I have plenty of advice and no company.
+                      {Array.isArray(currentApp.answers?.hopingToFind)
+                        ? currentApp.answers.hopingToFind.join(", ")
+                        : (currentApp.answers?.hopingToFind || "Friendships nearby, Community")}
                     </p>
                   </div>
                   <div>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>What kind of gatherings suit you?</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>When are you usually free?</div>
                     <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
-                      Walks, the pregnancy workshops, and dinners once I can manage a late evening again.
+                      {Array.isArray(currentApp.answers?.freeTimes)
+                        ? currentApp.answers.freeTimes.join(", ")
+                        : (currentApp.answers?.freeTimes || "Flexible")}
                     </p>
                   </div>
                   <div>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>Anything we should know?</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "17px", color: WINE, marginBottom: "6px" }}>Plan &amp; Preference</div>
                     <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
-                      A caesarean is planned, so from November I will be slow for a while.
+                      {currentApp.answers?.billingPreference === "quarterly" ? "Quarterly Membership (€99 / 3 months)" : "Monthly Membership (€39 / month)"}
                     </p>
                   </div>
                 </div>
@@ -278,29 +348,29 @@ export default function AdminApplicationsPage() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
                     <button 
-                      onClick={() => handleAccept(currentApp.id)}
+                      onClick={() => setConfirmModal({ type: "accept", app: currentApp })}
                       disabled={!!actionLoading}
-                      style={{ background: "transparent", border: `1px solid ${GREEN}`, borderRadius: "4px", padding: "12px", textAlign: "left", cursor: "pointer", color: GREEN, fontFamily: "'Lora', Georgia, serif", fontSize: "14px" }}
+                      style={{ background: "#f6faf3", border: `1px solid ${GREEN}`, borderRadius: "4px", padding: "12px", textAlign: "left", cursor: "pointer", color: GREEN, fontFamily: "'Lora', Georgia, serif", fontSize: "14px", fontWeight: 600 }}
                     >
                       Accept — A
                     </button>
                     <button 
-                      onClick={() => handleDecline(currentApp.id)}
+                      onClick={() => setConfirmModal({ type: "decline", app: currentApp, declineReason: "CAPACITY_REACHED" })}
                       disabled={!!actionLoading}
-                      style={{ background: "transparent", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "12px", textAlign: "left", cursor: "pointer", color: "rgba(57,41,42,0.6)", fontFamily: "'Lora', Georgia, serif", fontSize: "14px" }}
+                      style={{ background: "#fff8f8", border: "1px solid rgba(185,28,28,0.3)", borderRadius: "4px", padding: "12px", textAlign: "left", cursor: "pointer", color: "#b91c1c", fontFamily: "'Lora', Georgia, serif", fontSize: "14px" }}
                     >
                       Decline — D
                     </button>
                     <button 
-                      onClick={handleSkip}
+                      onClick={handleNext}
                       disabled={!!actionLoading}
-                      style={{ background: "transparent", border: "1px dashed rgba(57,41,42,0.2)", borderRadius: "4px", padding: "12px", textAlign: "left", cursor: "pointer", color: "rgba(57,41,42,0.6)", fontFamily: "'Lora', Georgia, serif", fontSize: "14px" }}
+                      style={{ background: "transparent", border: "1px dashed rgba(57,41,42,0.25)", borderRadius: "4px", padding: "12px", textAlign: "left", cursor: "pointer", color: "rgba(57,41,42,0.7)", fontFamily: "'Lora', Georgia, serif", fontSize: "14px" }}
                     >
                       Skip for now — S
                     </button>
                   </div>
                   <p style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", margin: 0, textWrap: "pretty" }}>
-                    Accepting sends the Accepted email with a payment link good for 72 hours and starts the countdown. A reminder goes at 48 hours. At 72 the place returns to the window — nothing is ever extended on its own.
+                    Accepting sends the Accepted email with a payment link good for 72 hours and starts the countdown.
                   </p>
                 </div>
 
@@ -312,14 +382,69 @@ export default function AdminApplicationsPage() {
                     {placesRemaining}
                   </div>
                   <p style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", margin: 0, textWrap: "pretty" }}>
-                    Of {placesOffered} offered, with {acceptedTotal.length} accepted. Accepting holds a place for 72 hours; it returns here if she does not pay.
+                    Of {placesOffered} offered, with {acceptedTotal.length} accepted.
                   </p>
                 </div>
               </div>
             </div>
           ) : (
-            <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>
-              No applications waiting for review!
+            /* TABLE VIEW (ALL WAITING APPLICANTS) */
+            <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px" }}>
+                <thead>
+                  <tr style={{ backgroundColor: "#faf6f0", textAlign: "left", borderBottom: "1px solid rgba(57,41,42,0.15)" }}>
+                    <th style={{ padding: "12px 16px" }}>Applicant</th>
+                    <th style={{ padding: "12px 16px" }}>Stage &amp; Children</th>
+                    <th style={{ padding: "12px 16px" }}>Neighbourhood</th>
+                    <th style={{ padding: "12px 16px" }}>Applied</th>
+                    <th style={{ padding: "12px 16px", textAlign: "right" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {waitingApps.map((a, idx) => (
+                    <tr key={a.id || idx} style={{ borderBottom: "1px solid rgba(57,41,42,0.08)" }}>
+                      <td style={{ padding: "14px 16px" }}>
+                        <div style={{ fontWeight: 600, color: "#39292a" }}>{a.personName} {a.personLastName}</div>
+                        <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>{a.personEmail} · {a.answers?.phone || "+34 600 000 000"}</div>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <div>{a.answers?.stage || "Pregnant"}</div>
+                        <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>{a.answers?.childrenAge || "None"}</div>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        {a.answers?.neighbourhood || "Barcelona"}
+                      </td>
+                      <td style={{ padding: "14px 16px", fontSize: "12.5px", color: "rgba(57,41,42,0.7)" }}>
+                        {new Date(a.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: "8px" }}>
+                          <button
+                            onClick={() => { setCurrentIndex(idx); setViewMode("reader"); }}
+                            style={{ border: "1px solid rgba(57,41,42,0.25)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "5px 10px", fontSize: "12px", cursor: "pointer" }}
+                          >
+                            Read Full Card
+                          </button>
+                          <button
+                            onClick={() => setConfirmModal({ type: "accept", app: a })}
+                            disabled={!!actionLoading}
+                            style={{ border: `1px solid ${GREEN}`, backgroundColor: "#f6faf3", color: GREEN, borderRadius: "4px", padding: "5px 11px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => setConfirmModal({ type: "decline", app: a, declineReason: "CAPACITY_REACHED" })}
+                            disabled={!!actionLoading}
+                            style={{ border: "1px solid rgba(185,28,28,0.3)", backgroundColor: "#fff8f8", color: "#b91c1c", borderRadius: "4px", padding: "5px 11px", fontSize: "12px", cursor: "pointer" }}
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )
         ) : filter === "Awaiting payment" ? (
@@ -407,19 +532,132 @@ export default function AdminApplicationsPage() {
             </div>
           </div>
         ) : (
-          <div style={{ padding: "40px", textAlign: "center", background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px" }}>
-            List of {filter.toLowerCase()} applications would appear here.
+          /* ALL APPLICATIONS TABLE */
+          <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13.5px" }}>
+              <thead>
+                <tr style={{ backgroundColor: "#faf6f0", textAlign: "left", borderBottom: "1px solid rgba(57,41,42,0.15)" }}>
+                  <th style={{ padding: "12px 16px" }}>Applicant</th>
+                  <th style={{ padding: "12px 16px" }}>Status</th>
+                  <th style={{ padding: "12px 16px" }}>Applied</th>
+                  <th style={{ padding: "12px 16px" }}>Decided</th>
+                </tr>
+              </thead>
+              <tbody>
+                {apps.map((a, idx) => (
+                  <tr key={a.id || idx} style={{ borderBottom: "1px solid rgba(57,41,42,0.08)" }}>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ fontWeight: 600, color: "#39292a" }}>{a.personName} {a.personLastName}</div>
+                      <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>{a.personEmail}</div>
+                    </td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <span style={{
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        backgroundColor: a.status === "paid" ? "#eef8f0" : a.status === "accepted" ? "#fbf2e6" : a.status === "declined" ? "#fef2f2" : "#f4ece2",
+                        color: a.status === "paid" ? "#1e6833" : a.status === "accepted" ? AMBER : a.status === "declined" ? "#b91c1c" : WINE
+                      }}>
+                        {a.status === "submitted" ? "Waiting Review" : a.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: "12.5px", color: "rgba(57,41,42,0.7)" }}>
+                      {new Date(a.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </td>
+                    <td style={{ padding: "12px 16px", fontSize: "12.5px", color: "rgba(57,41,42,0.7)" }}>
+                      {a.decidedAt ? new Date(a.decidedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
-        {/* Audit Footer */}
-        {filter === "Waiting" && (
-          <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "20px 32px", marginTop: "24px" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "12px" }}>
-              DECIDED IN THIS SITTING
-            </div>
-            <div style={{ fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>
-              Nothing yet. Everything you decide here is written to the audit log with your name on it.
+        {/* DECISION CONFIRMATION MODAL */}
+        {confirmModal && (
+          <div style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: "20px"
+          }}>
+            <div style={{
+              backgroundColor: "#fffdfa",
+              border: "1px solid rgba(57,41,42,0.2)",
+              borderRadius: "8px",
+              padding: "28px",
+              maxWidth: "480px",
+              width: "100%",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.15)"
+            }}>
+              {confirmModal.type === "accept" ? (
+                <>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", margin: "0 0 10px", color: GREEN }}>
+                    Accept {confirmModal.app.personName} {confirmModal.app.personLastName}?
+                  </h3>
+                  <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "#39292a", margin: "0 0 20px" }}>
+                    This will generate a 72-hour signed payment link and immediately send the acceptance welcome email.
+                  </p>
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                    <button
+                      onClick={() => setConfirmModal(null)}
+                      style={{ border: "1px solid rgba(57,41,42,0.25)", background: "transparent", borderRadius: "4px", padding: "8px 14px", fontSize: "13px", cursor: "pointer", color: "#39292a" }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleExecuteAccept(confirmModal.app.id)}
+                      disabled={!!actionLoading}
+                      style={{ backgroundColor: GREEN, color: "#fff", border: "none", borderRadius: "4px", padding: "8px 16px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
+                    >
+                      {actionLoading ? "Accepting..." : "Confirm & Send Link"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "22px", margin: "0 0 10px", color: "#b91c1c" }}>
+                    Decline {confirmModal.app.personName} {confirmModal.app.personLastName}?
+                  </h3>
+                  <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "#39292a", margin: "0 0 16px" }}>
+                    A polite notification will be sent letting them know their application could not be accommodated this time.
+                  </p>
+                  <div style={{ marginBottom: "20px" }}>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 600, marginBottom: "6px", color: "rgba(57,41,42,0.7)" }}>Reason code:</label>
+                    <input
+                      type="text"
+                      value={confirmModal.declineReason || "CAPACITY_REACHED"}
+                      onChange={(e) => setConfirmModal({ ...confirmModal, declineReason: e.target.value })}
+                      style={{ width: "100%", padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                    <button
+                      onClick={() => setConfirmModal(null)}
+                      style={{ border: "1px solid rgba(57,41,42,0.25)", background: "transparent", borderRadius: "4px", padding: "8px 14px", fontSize: "13px", cursor: "pointer", color: "#39292a" }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleExecuteDecline(confirmModal.app.id, confirmModal.declineReason)}
+                      disabled={!!actionLoading}
+                      style={{ backgroundColor: "#b91c1c", color: "#fff", border: "none", borderRadius: "4px", padding: "8px 16px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
+                    >
+                      {actionLoading ? "Declining..." : "Confirm Decline"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

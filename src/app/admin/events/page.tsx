@@ -998,7 +998,7 @@ export default function AdminEventsPage() {
                           >
                             Export / Print sheet
                           </Link>
-                          {r.displayState !== "cancelled" && r.displayState !== "completed" && r.displayState !== "past" && r.displayState !== "draft" && (
+                          {r.status !== "cancelled" && (
                             <button
                               onClick={() => { handleOpenCancel(r); setOpenActionMenuId(null); }}
                               style={{ padding: "6px 13px", fontSize: "12.5px", color: WINE, border: "none", background: "none", textAlign: "left", cursor: "pointer", fontWeight: 600 }}
@@ -1007,8 +1007,8 @@ export default function AdminEventsPage() {
                             </button>
                           )}
                           {(() => {
-                            const isCancelledOrPastOrDraft = ["cancelled", "completed", "past", "draft"].includes(r.displayState);
-                            const activeBookings = r.bookingsCount || 0;
+                            const isCancelledOrPastOrDraft = ["cancelled", "completed", "past", "draft"].includes(r.displayState) || r.status === "cancelled" || r.status === "draft";
+                            const activeBookings = r.status === "cancelled" ? 0 : (r.bookingsCount || 0);
 
                             if (!isCancelledOrPastOrDraft && activeBookings > 0) {
                               return (
@@ -1016,7 +1016,7 @@ export default function AdminEventsPage() {
                                   title="Active bookings exist. Cancel the event and refund attendees first."
                                   style={{ padding: "6px 13px", fontSize: "12px", color: "rgba(57,41,42,0.45)", cursor: "not-allowed" }}
                                 >
-                                  Archive — unavailable, bookings exist
+                                  Archive — unavailable, active bookings exist
                                 </div>
                               );
                             }
@@ -1027,14 +1027,14 @@ export default function AdminEventsPage() {
                                 style={{
                                   padding: "6px 13px",
                                   fontSize: "12.5px",
-                                  color: r.displayState === "cancelled" ? WINE : isCancelledOrPastOrDraft ? "rgba(57,41,42,0.7)" : "#39292a",
+                                  color: r.status === "cancelled" ? WINE : isCancelledOrPastOrDraft ? "rgba(57,41,42,0.7)" : "#39292a",
                                   border: "none",
                                   background: "none",
                                   textAlign: "left",
                                   cursor: "pointer",
                                 }}
                               >
-                                Archive
+                                Archive event
                               </button>
                             );
                           })()}
@@ -1129,10 +1129,15 @@ export default function AdminEventsPage() {
               <p style={{ textAlign: "center", padding: "32px", color: MUTED }}>Loading attendees...</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Info Callout */}
+                <div style={{ backgroundColor: "rgba(123,31,44,0.05)", border: "1px solid rgba(123,31,44,0.18)", borderRadius: "4px", padding: "10px 14px", fontSize: "12.5px", color: "#39292a", lineHeight: 1.5 }}>
+                  <strong style={{ color: WINE }}>Refund Policy:</strong> Removing a member or cancelling an event automatically returns all spent credits to their balance immediately.
+                </div>
+
                 {/* 1. Confirmed Members List */}
                 <div>
                   <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
-                    <span>Confirmed Members ({memberBookings.length})</span>
+                    <span>Confirmed Members ({memberBookings.filter((b: any) => b.status !== "released" && b.status !== "cancelled_event").length})</span>
                     <span style={{ fontSize: "13px", color: MUTED, fontWeight: 400 }}>Capacity: {activeEventRoster.capacityMember}</span>
                   </h3>
 
@@ -1151,54 +1156,61 @@ export default function AdminEventsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {memberBookings.map((b) => (
-                          <tr key={b.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                            <td style={{ padding: "10px 12px" }}>
-                              <div style={{ fontWeight: 600 }}>{b.firstName} {b.lastName}</div>
-                              <div style={{ fontSize: "11.5px", color: MUTED }}>{b.email}</div>
-                            </td>
-                            <td style={{ padding: "10px 12px", fontWeight: 600 }}>{b.creditsCharged} cr</td>
-                            <td style={{ padding: "10px 12px" }}>
-                              <span style={{
-                                padding: "2px 6px",
-                                borderRadius: "3px",
-                                fontSize: "10.5px",
-                                fontWeight: 600,
-                                textTransform: "uppercase",
-                                backgroundColor: b.status === "attended" ? "#eef8f0" : b.status === "no_show" ? "#fef2f2" : "#f4ece2",
-                                color: b.status === "attended" ? "#1e6833" : b.status === "no_show" ? "#b91c1c" : WINE
-                              }}>
-                                {b.status}
-                              </span>
-                            </td>
-                            <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                              <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleMarkAttendance("member", b.id, "attended")}
-                                  style={{ backgroundColor: "#eef8f0", color: "#1e6833", border: "1px solid #bbf7d0", borderRadius: "3px", padding: "4px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                                >
-                                  ✓ Check-In
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleMarkAttendance("member", b.id, "no_show")}
-                                  style={{ backgroundColor: "#fff8f8", color: "#b91c1c", border: "1px solid #fecdd3", borderRadius: "3px", padding: "4px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                                >
-                                  ✕ No-Show
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCancelMemberBooking(b.id)}
-                                  title="Remove member and refund credits"
-                                  style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                                >
-                                  ✕ Remove
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {memberBookings.map((b) => {
+                          const isReleased = b.status === "released" || b.status === "cancelled_event";
+                          return (
+                            <tr key={b.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)", opacity: isReleased ? 0.6 : 1 }}>
+                              <td style={{ padding: "10px 12px" }}>
+                                <div style={{ fontWeight: 600 }}>{b.firstName} {b.lastName}</div>
+                                <div style={{ fontSize: "11.5px", color: MUTED }}>{b.email}</div>
+                              </td>
+                              <td style={{ padding: "10px 12px", fontWeight: 600 }}>{b.creditsCharged} cr</td>
+                              <td style={{ padding: "10px 12px" }}>
+                                <span style={{
+                                  padding: "2px 6px",
+                                  borderRadius: "3px",
+                                  fontSize: "10.5px",
+                                  fontWeight: 600,
+                                  textTransform: "uppercase",
+                                  backgroundColor: isReleased ? "#fef2f2" : b.status === "attended" ? "#eef8f0" : b.status === "no_show" ? "#fef2f2" : "#f4ece2",
+                                  color: isReleased ? "#b91c1c" : b.status === "attended" ? "#1e6833" : b.status === "no_show" ? "#b91c1c" : WINE
+                                }}>
+                                  {isReleased ? "Refunded / Released" : b.status}
+                                </span>
+                              </td>
+                              <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                                {!isReleased ? (
+                                  <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMarkAttendance("member", b.id, "attended")}
+                                      style={{ backgroundColor: "#eef8f0", color: "#1e6833", border: "1px solid #bbf7d0", borderRadius: "3px", padding: "4px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                    >
+                                      ✓ Check-In
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleMarkAttendance("member", b.id, "no_show")}
+                                      style={{ backgroundColor: "#fff8f8", color: "#b91c1c", border: "1px solid #fecdd3", borderRadius: "3px", padding: "4px 8px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                    >
+                                      ✕ No-Show
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCancelMemberBooking(b.id)}
+                                      title="Remove member and refund credits"
+                                      style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                    >
+                                      ✕ Remove &amp; Refund ({b.creditsCharged} cr)
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: "11.5px", color: MUTED, fontStyle: "italic" }}>Credits Returned</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}
@@ -1207,7 +1219,7 @@ export default function AdminEventsPage() {
                 {/* 2. Guest Passes List */}
                 <div>
                   <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
-                    <span>Guest Passes ({guestPasses.length})</span>
+                    <span>Guest Passes ({guestPasses.filter((gp: any) => gp.status !== "refunded" && gp.status !== "released").length})</span>
                     <span style={{ fontSize: "13px", color: MUTED, fontWeight: 400 }}>Pass Capacity: {activeEventRoster.capacityGuest}</span>
                   </h3>
 
@@ -1226,50 +1238,53 @@ export default function AdminEventsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {guestPasses.map((gp) => (
-                          <tr key={gp.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                            <td style={{ padding: "10px 12px" }}>
-                              <div style={{ fontWeight: 600 }}>{gp.firstName} {gp.lastName}</div>
-                              <div style={{ fontSize: "11.5px", color: MUTED }}>{gp.email}</div>
-                            </td>
-                            <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
-                            <td style={{ padding: "10px 12px" }}>
-                              <a
-                                href={gp.ticketUrl || `/ticket/${gp.id}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{ color: WINE, fontSize: "12px", textDecoration: "underline", display: "inline-flex", alignItems: "center" }}
-                              >
-                                Open Guest Ticket <ForwardArrow />
-                              </a>
-                            </td>
-                            <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                              <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                                <span style={{
-                                  padding: "2px 6px",
-                                  borderRadius: "3px",
-                                  fontSize: "11px",
-                                  fontWeight: 600,
-                                  textTransform: "uppercase",
-                                  backgroundColor: gp.status === "refunded" ? "#fef2f2" : "#eef8f0",
-                                  color: gp.status === "refunded" ? "#b91c1c" : "#1e6833"
-                                }}>
-                                  {gp.status}
-                                </span>
-                                {gp.status !== "refunded" && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCancelGuestPass(gp.id)}
-                                    title="Remove guest and mark pass refunded"
-                                    style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                                  >
-                                    ✕ Remove &amp; Refund
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {guestPasses.map((gp) => {
+                          const isRefunded = gp.status === "refunded" || gp.status === "released";
+                          return (
+                            <tr key={gp.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)", opacity: isRefunded ? 0.6 : 1 }}>
+                              <td style={{ padding: "10px 12px" }}>
+                                <div style={{ fontWeight: 600 }}>{gp.firstName} {gp.lastName}</div>
+                                <div style={{ fontSize: "11.5px", color: MUTED }}>{gp.email}</div>
+                              </td>
+                              <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
+                              <td style={{ padding: "10px 12px" }}>
+                                <a
+                                  href={gp.ticketUrl || `/ticket/${gp.id}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{ color: WINE, fontSize: "12px", textDecoration: "underline", display: "inline-flex", alignItems: "center" }}
+                                >
+                                  Open Guest Ticket <ForwardArrow />
+                                </a>
+                              </td>
+                              <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                                <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                                  <span style={{
+                                    padding: "2px 6px",
+                                    borderRadius: "3px",
+                                    fontSize: "11px",
+                                    fontWeight: 600,
+                                    textTransform: "uppercase",
+                                    backgroundColor: isRefunded ? "#fef2f2" : "#eef8f0",
+                                    color: isRefunded ? "#b91c1c" : "#1e6833"
+                                  }}>
+                                    {isRefunded ? "Refunded" : gp.status}
+                                  </span>
+                                  {!isRefunded && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCancelGuestPass(gp.id)}
+                                      title="Remove guest and mark pass refunded"
+                                      style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                    >
+                                      ✕ Remove &amp; Refund
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}

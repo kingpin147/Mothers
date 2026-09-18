@@ -312,7 +312,9 @@ export function Navigation() {
                   const accountHref = isAdminUser ? "/admin" : "/account";
                   const accountLabel = isAdminUser
                     ? (lang === "en" ? "Admin Dashboard" : "Panel de Admin")
-                    : (lang === "en" ? "My Account" : "Mi Cuenta");
+                    : memberCredits !== null
+                      ? `${lang === "en" ? "My account" : "Mi cuenta"} · ${Math.max(0, memberCredits)} ${lang === "en" ? "credits" : "créditos"}`
+                      : (lang === "en" ? "My Account" : "Mi Cuenta");
 
                   return (
                     <Link

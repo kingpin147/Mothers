@@ -65,7 +65,7 @@ export default function AdminEditEventPage() {
         setMinToConfirm(ev.minToConfirm?.toString() || "");
         setMemberPlaces(ev.capacityMember?.toString() || "");
         setCreditCost(ev.creditCost?.toString() || "");
-        setGuestPlaces(ev.capacityGuest?.toString() || "0");
+        setGuestPlaces(ev.capacityGuest !== null && ev.capacityGuest !== undefined ? ev.capacityGuest.toString() : "2");
         setGuestGathering(ev.capacityGuestGathering?.toString() || "");
         setDescription(ev.description || "");
         setLangs(ev.languages || ["English"]);
@@ -75,10 +75,10 @@ export default function AdminEditEventPage() {
         if (ev.creditCost === 0) {
           setFreeEvent(true);
         }
-        if (ev.targetStages && Array.isArray(ev.targetStages) && ev.targetStages.length > 0) {
+        if (ev.targetStages && Array.isArray(ev.targetStages)) {
           setStages(ev.targetStages);
         }
-        if (ev.isSignature) {
+        if (ev.isSignature || (ev.capacityGuest === 0 && (ev.creditCost || 0) > 0)) {
           setMembersOnly(true);
         } else {
           setMembersOnly(false);

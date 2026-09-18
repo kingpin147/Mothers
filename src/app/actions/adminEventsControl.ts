@@ -127,7 +127,7 @@ export async function getEventRosterDetail(eventId: string) {
     .where(
       and(
         eq(booking.eventId, eventId),
-        sql`${booking.status} IN ('held', 'confirmed', 'attended', 'no_show')`
+        sql`${booking.status} IN ('held', 'confirmed', 'attended', 'no_show', 'released', 'cancelled_event')`
       )
     )
     .orderBy(desc(booking.createdAt));
@@ -147,7 +147,7 @@ export async function getEventRosterDetail(eventId: string) {
     .where(
       and(
         eq(eventPass.eventId, eventId),
-        sql`${eventPass.status} IN ('paid', 'used')`
+        sql`${eventPass.status} IN ('paid', 'used', 'refunded', 'released')`
       )
     )
     .orderBy(desc(eventPass.purchasedAt));

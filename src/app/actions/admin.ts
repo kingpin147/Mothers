@@ -586,7 +586,10 @@ export async function extendApplicationPayment(applicationId: string) {
     return { success: false, error: "APPLICATION_NOT_ELIGIBLE" };
   }
 
-  const newExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+  const baseTime = appRecord.acceptExpiresAt && new Date(appRecord.acceptExpiresAt).getTime() > Date.now()
+    ? new Date(appRecord.acceptExpiresAt).getTime()
+    : Date.now();
+  const newExpiresAt = new Date(baseTime + 72 * 60 * 60 * 1000);
 
   await db.update(application)
     .set({
