@@ -493,7 +493,9 @@ export default function EventDetailPage() {
                     >
                       {actionLoading
                         ? (lang === "en" ? "Booking…" : "Reservando…")
-                        : (lang === "en" ? "Book" : "Reservar")}
+                        : (isFreeWalk || ev.creditCost === 0 || !ev.capacityTotal
+                            ? (lang === "en" ? "Join the list" : "Unirme a la lista")
+                            : (lang === "en" ? "Book" : "Reservar"))}
                     </button>
                   )
                 ) : (
@@ -514,7 +516,7 @@ export default function EventDetailPage() {
                         cursor: "pointer",
                       }}
                     >
-                      {lang === "en" ? "Book" : "Reservar"}
+                      {lang === "en" ? "Join the list" : "Unirme a la lista"}
                     </button>
                   ) : (
                     <button

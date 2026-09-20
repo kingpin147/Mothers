@@ -46,9 +46,13 @@ export default function AdminFinancePage() {
 
   const ofPurpose = (purpose: string, statusOpt?: string) =>
     payments.filter(
-      (p) =>
-        p.purpose.toLowerCase() === purpose.toLowerCase().replace(/ /g, "_") &&
-        (!statusOpt || p.status.toLowerCase() === statusOpt.toLowerCase())
+      (p) => {
+        const purp = (p.purpose || "").toLowerCase();
+        const target = purpose.toLowerCase().replace(/ /g, "_");
+        const matchPurpose = purp === target || purp.startsWith(target) || (target === "subscription" && purp.includes("subscription"));
+        const matchStatus = !statusOpt || (p.status || "").toLowerCase() === statusOpt.toLowerCase();
+        return matchPurpose && matchStatus;
+      }
     );
 
   const sum = (rows: any[]) => rows.reduce((n, p) => n + Math.abs(money(p) / 100), 0);
@@ -56,7 +60,8 @@ export default function AdminFinancePage() {
   const paid = payments.filter((p) => p.status === "succeeded" || p.status === "paid");
   const subs = ofPurpose("subscription", "succeeded");
   const passes = ofPurpose("event_pass", "succeeded");
-  const joining = ofPurpose("joining_fee");
+  const joining = ofPurpose("joining_fee", "succeeded");
+  const extra = ofPurpose("extra_credits", "succeeded");
   const refunds = payments.filter((p) => p.status === "refunded");
   const failed = payments.filter((p) => p.status === "failed");
 
@@ -413,7 +418,7 @@ export default function AdminFinancePage() {
                 { label: "Subscriptions", value: eur(sum(subs)), pct: pct(sum(subs)) },
                 { label: "Event Passes", value: eur(sum(passes)), pct: pct(sum(passes)) },
                 { label: "Joining fees", value: eur(sum(joining)), pct: pct(sum(joining)) },
-                { label: "Extra credits", value: eur(0), pct: "0%" }, // Not tracked in DB yet
+                { label: "Extra credits", value: eur(sum(extra)), pct: pct(sum(extra)) },
                 { label: "Refunded", value: `−${eur(sum(refunds))}`, pct: pct(sum(refunds)) },
               ].map((m, i) => (
                 <div key={i}>

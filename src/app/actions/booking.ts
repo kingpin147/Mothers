@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { event, booking, creditEntry, creditAllocation, member, person, eventPass, eventWaitlist, auditLog } from "@/db/schema";
 import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 import { canBook, canRelease, canBuyPass, canRsvp } from "@/lib/access";
 import { spendCredits, returnCredits } from "@/lib/ledger";
 import { queueAndSendEmail } from "@/lib/brevo";
@@ -397,6 +398,10 @@ This is a booking confirmation, not a marketing email.
       });
     }
 
+    revalidatePath("/events");
+    revalidatePath(`/events/${eventId}`);
+    revalidatePath("/account");
+
     return {
       success: true,
       bookingId: result.bookingId,
@@ -588,6 +593,12 @@ export async function releaseBooking(bookingId: string) {
         });
       }
     }
+
+    revalidatePath("/events");
+    if (result.eventId) {
+      revalidatePath(`/events/${result.eventId}`);
+    }
+    revalidatePath("/account");
 
     return { success: true, returnedCredits: result.returnedCredits };
   } catch (error: any) {

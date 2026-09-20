@@ -34,113 +34,14 @@ interface PerkItem {
   endingSoon?: boolean;
 }
 
-const PERKS_LIST: PerkItem[] = [
-  {
-    id: "botanica",
-    categoryEn: "Brands & Retail",
-    categoryEs: "Marcas y tiendas",
-    name: "Bebé Botánica",
-    whereEn: "Gràcia · shop and online",
-    whereEs: "Gràcia · tienda y online",
-    offerEn: "15% off everything, in store and online.",
-    offerEs: "15% de descuento en todo, en tienda y online.",
-    detailEn: "Cot linen, wooden toys, the good muslin. Excludes sale items.",
-    detailEs: "Ropa de cuna, juguetes de madera, las muselinas buenas. No aplica a rebajas.",
-    kind: "code",
-    code: "MOTHERS15",
-    validityEn: "Ongoing while the partnership runs",
-    validityEs: "Vigente mientras dure el acuerdo",
-  },
-  {
-    id: "duet",
-    categoryEn: "Expert Care & Support",
-    categoryEs: "Cuidado experto",
-    name: "Clínica Duet",
-    whereEn: "Eixample · pelvic-floor physiotherapy",
-    whereEs: "Eixample · fisioterapia de suelo pélvico",
-    offerEn: "First postnatal assessment €35 instead of €60.",
-    offerEs: "Primera valoración posparto por 35 € en vez de 60 €.",
-    detailEn: "Quote the code when you book by phone or on their site.",
-    detailEs: "Da el código al reservar por teléfono o en su web.",
-    kind: "personal",
-    code: "TM-DUET-4417",
-    validityEn: "Valid until 31 December",
-    validityEs: "Válido hasta el 31 de diciembre",
-  },
-  {
-    id: "casanena",
-    categoryEn: "Places & Hospitality",
-    categoryEs: "Lugares",
-    name: "Casa Nena",
-    whereEn: "Sant Antoni · café",
-    whereEs: "Sant Antoni · café",
-    offerEn: "Coffee and a pastry on the house before 11am.",
-    offerEs: "Café y bollería invitados antes de las 11h.",
-    detailEn: "Any weekday morning, whether or not there is an event on.",
-    detailEs: "Cualquier mañana entre semana, haya evento o no.",
-    kind: "door",
-    doorNoteEn: "No code — show your member card in the app at the counter.",
-    doorNoteEs: "Sin código: enseña tu carné de socia en la barra.",
-    validityEn: "Ongoing while the partnership runs",
-    validityEs: "Vigente mientras dure el acuerdo",
-  },
-  {
-    id: "lluna",
-    categoryEn: "Wellness & Movement",
-    categoryEs: "Bienestar y movimiento",
-    name: "Lluna Postpartum",
-    whereEn: "Home visits across Barcelona",
-    whereEs: "A domicilio en Barcelona",
-    offerEn: "20% off your first massage or doula session.",
-    offerEs: "20% en tu primer masaje o sesión de doula.",
-    detailEn: "Members book through a private link that holds the rate.",
-    detailEs: "Las socias reservan por un enlace privado que fija la tarifa.",
-    kind: "link",
-    href: "https://llunapostpartum.com",
-    validityEn: "Ongoing while the partnership runs",
-    validityEs: "Vigente mientras dure el acuerdo",
-  },
-  {
-    id: "atelier",
-    categoryEn: "Brands & Retail",
-    categoryEs: "Marcas y tiendas",
-    name: "Petit Atelier",
-    whereEn: "Poble-sec · family photography",
-    whereEs: "Poble-sec · fotografía familiar",
-    offerEn: "€40 off a family sitting, prints included.",
-    offerEs: "40 € menos en una sesión familiar, copias incluidas.",
-    detailEn: "One sitting per member. Studio or outdoors.",
-    detailEs: "Una sesión por socia. En estudio o en exterior.",
-    kind: "personal",
-    code: "TM-ATL-0982",
-    validityEn: "Valid until 12 September",
-    validityEs: "Válido hasta el 12 de septiembre",
-    endingSoon: true,
-  },
-  {
-    id: "ona",
-    categoryEn: "Baby & Child Activities",
-    categoryEs: "Actividades",
-    name: "Ona Swim",
-    whereEn: "Poblenou · baby swimming",
-    whereEs: "Poblenou · natación para bebés",
-    offerEn: "Two trial classes free, then 10% off a term.",
-    offerEs: "Dos clases de prueba gratis y 10% en el trimestre.",
-    detailEn: "From four months. Give the code at reception.",
-    detailEs: "Desde los cuatro meses. Da el código en recepción.",
-    kind: "code",
-    code: "MOTHERSONA",
-    validityEn: "Ongoing while the partnership runs",
-    validityEs: "Vigente mientras dure el acuerdo",
-  },
-];
+const GENERAL_WHATSAPP_LINK = "https://chat.whatsapp.com/FjzdbYTUcbmGvVEVSXY23J?s=cl&p=i&mlu=4&ilr=4";
 
 const STAGES_KEYS = [
   { key: "expecting", labelEn: "Pregnant", labelEs: "Embarazo", whatsapp: "https://chat.whatsapp.com/DE10fxxsteA6ItbTPt6HnC" },
   { key: "babies", labelEn: "Babies", labelEs: "Bebés", whatsapp: "https://chat.whatsapp.com/CSgdyyfXDCjDwwDh17j0yB" },
   { key: "toddlers", labelEn: "Toddlers", labelEs: "Peques", whatsapp: "https://chat.whatsapp.com/KYaepZmYshSGemCDnoXO4C" },
   { key: "children36", labelEn: "Children", labelEs: "Niños", whatsapp: "https://chat.whatsapp.com/EPaXEsg41sG0dZjyBJU2xr" },
-  { key: "children610", labelEn: "Big kids", labelEs: "Niños grandes", whatsapp: "https://chat.whatsapp.com/DaOQgBCeZPoB6Z5fXTzXMo" },
+  { key: "children610", labelEn: "Big kids", labelEs: "Niños grandes", whatsapp: GENERAL_WHATSAPP_LINK },
 ];
 
 const normalizeStageKey = (raw: string): string => {
@@ -325,6 +226,7 @@ export default function AccountPage() {
         if (updated.success) {
           setAccountData(updated);
         }
+        router.refresh();
       } else {
         alert(res.error || (lang === "en" ? "Failed to cancel reservation." : "No se pudo cancelar la reserva."));
       }
@@ -367,12 +269,6 @@ export default function AccountPage() {
                 ? "Your credits, your bookings and your membership, all in one place."
                 : "Tus créditos, tus reservas y tu membresía, todo en un mismo lugar."}
             </p>
-          </div>
-
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <span style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", padding: "6px 14px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px" }}>
-              {lang === "en" ? "Member" : "Socia"}
-            </span>
           </div>
         </div>
 
@@ -480,11 +376,16 @@ export default function AccountPage() {
                     return (
                       <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "18px" }}>
                         <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57, 41, 42, 0.7)", border: "1px solid rgba(57, 41, 42, 0.28)", borderRadius: "12px", padding: "2px 9px", display: "inline-block", backgroundColor: "transparent" }}>
-                            {categoryLabel}
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "rgba(57, 41, 42, 0.7)", border: "1px solid rgba(57, 41, 42, 0.28)", borderRadius: "12px", padding: "2px 9px", display: "inline-block", backgroundColor: "transparent" }}>
+                              {categoryLabel}
+                            </span>
+                            <span style={{ fontSize: "11px", fontWeight: 600, color: "#7b1f2c", border: "1px solid rgba(123, 31, 44, 0.28)", borderRadius: "12px", padding: "2px 9px", display: "inline-block", backgroundColor: "#fdf6f2" }}>
+                              {b.creditsCharged > 0 ? `${b.creditsCharged} ${lang === "en" ? "credits" : "créditos"}` : (lang === "en" ? "Included / Free" : "Incluido / Gratis")}
+                            </span>
+                          </div>
                           
-                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", marginTop: "6px", color: "#39292a" }}>
+                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", marginTop: "4px", color: "#39292a" }}>
                             {b.eventTitle}
                           </div>
 
@@ -577,14 +478,48 @@ export default function AccountPage() {
               </p>
             </div>
 
-            {/* WhatsApp Stage Circles - Render a box for each stage they are in */}
-            {selectedStages.length > 0 && selectedStages.map((stageKey) => {
+            {/* WhatsApp Circles: Always show General Circle for all members */}
+            <div style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#f4f7ee" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "9px" }}>
+                {lang === "en" ? "Community WhatsApp Circle" : "Círculo de la Comunidad en WhatsApp"}
+              </div>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px" }}>
+                General — The Circle WA Group
+              </h2>
+              <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 18px" }}>
+                {lang === "en"
+                  ? "The main community circle for all members across Barcelona. Announcements, conversations, and club updates are shared here."
+                  : "El círculo principal para todas las socias en Barcelona. Anuncios, conversaciones y novedades del club se comparten aquí."}
+              </p>
+              <a
+                href={GENERAL_WHATSAPP_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  border: "1px solid #568b05",
+                  color: "#456f04",
+                  backgroundColor: "#fffdfa",
+                  padding: "12px 22px",
+                  borderRadius: "4px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "14.5px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                {lang === "en" ? <>Join General Circle <ForwardArrow /></> : <>Unirse al Círculo General <ForwardArrow /></>}
+              </a>
+            </div>
+
+            {/* Additional Stage Circle (if specific stage chosen) */}
+            {selectedStages.length > 0 && selectedStages.filter(k => k !== "children610").map((stageKey) => {
               const matched = STAGES_KEYS.find((s) => s.key === stageKey);
               if (!matched) return null;
               return (
                 <div key={stageKey} style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#f4f7ee" }}>
                   <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "9px" }}>
-                    {lang === "en" ? "Private WhatsApp Circle" : "Círculo Privado de WhatsApp"}
+                    {lang === "en" ? "Stage WhatsApp Circle" : "Círculo por Etapa en WhatsApp"}
                   </div>
                   <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px" }}>
                     {lang === "en" ? `Your stage: ${matched.labelEn}` : `Tu etapa: ${matched.labelEs}`}
@@ -982,39 +917,23 @@ export default function AccountPage() {
               </p>
 
               {/* Perks Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "22px" }}>
-                {(() => {
-                  const dbPerksMapped: PerkItem[] = (accountData?.partners || []).map((p: any) => ({
-                    id: `db-${p.id}`,
-                    categoryEn: p.umbrella,
-                    categoryEs: p.umbrella,
-                    name: p.name,
-                    whereEn: p.specialty,
-                    whereEs: p.specialty,
-                    offerEn: p.offerForMembers,
-                    offerEs: p.offerForMembers,
-                    detailEn: p.description,
-                    detailEs: p.description,
-                    kind: p.discountCode ? "code" : "door",
-                    code: p.discountCode || "",
-                    validityEn: "Exclusive member benefit",
-                    validityEs: "Beneficio exclusivo de socias",
-                  }));
-                  const allPerks = [...PERKS_LIST, ...dbPerksMapped];
-
-                  return allPerks.map((perk) => {
-                    const category = lang === "en" ? perk.categoryEn : perk.categoryEs;
-                    const where = lang === "en" ? perk.whereEn : perk.whereEs;
-                    const offer = lang === "en" ? perk.offerEn : perk.offerEs;
-                    const detail = lang === "en" ? perk.detailEn : perk.detailEs;
-                    const validity = lang === "en" ? perk.validityEn : perk.validityEs;
-                    const isRevealed = !!revealedPerks[perk.id];
-
+              {(!accountData?.partners || accountData.partners.length === 0) ? (
+                <div style={{ textAlign: "center", padding: "48px 24px", backgroundColor: "#fffdfa", borderRadius: "8px", border: "1px solid rgba(57, 41, 42, 0.12)" }}>
+                  <p style={{ color: "rgba(57,41,42,0.65)", fontSize: "14.5px", fontStyle: "italic", margin: 0 }}>
+                    {lang === "en"
+                      ? "No partner perks are currently active. Curated member offers will appear here when added."
+                      : "No hay ventajas de partners activas actualmente. Las ventajas exclusivas para socias aparecerán aquí cuando se añadan."}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "22px" }}>
+                  {accountData.partners.map((p: any) => {
+                    const isRevealed = !!revealedPerks[p.id];
                     return (
                       <div
-                        key={perk.id}
+                        key={p.id}
                         style={{
-                          border: "1px solid " + (perk.endingSoon ? "rgba(164,118,31,0.5)" : "rgba(57,41,42,0.14)"),
+                          border: "1px solid rgba(57,41,42,0.14)",
                           borderRadius: "8px",
                           padding: "26px 24px",
                           backgroundColor: "#ffffff",
@@ -1027,69 +946,42 @@ export default function AccountPage() {
                       >
                         <div>
                           <div style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", fontWeight: 600, marginBottom: "8px" }}>
-                            {category}
+                            {p.umbrella || (lang === "en" ? "Curated Partner" : "Partner Recomendado")}
                           </div>
                           <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "21px", margin: "0 0 4px", color: "#39292a", lineHeight: 1.25 }}>
-                            {perk.name}
+                            {p.name}
                           </h3>
                           <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.62)", marginBottom: "16px" }}>
-                            {where}
+                            {p.specialty || ""}
                           </div>
                           <p style={{ fontSize: "16px", fontWeight: 600, color: "#39292a", margin: "0 0 6px", lineHeight: 1.35 }}>
-                            {offer}
+                            {p.offerForMembers}
                           </p>
-                          <p style={{ fontSize: "14px", lineHeight: "1.55", color: "rgba(57,41,42,0.8)", margin: 0 }}>
-                            {detail}
-                          </p>
+                          {p.description && (
+                            <p style={{ fontSize: "14px", lineHeight: "1.55", color: "rgba(57,41,42,0.8)", margin: 0 }}>
+                              {p.description}
+                            </p>
+                          )}
                         </div>
 
                         <div style={{ borderTop: "1px solid rgba(57,41,42,0.1)", paddingTop: "16px", marginTop: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
-                          {perk.kind === "door" && (
-                            <div style={{ fontSize: "13.5px", color: "#3e6308", fontWeight: 500, lineHeight: 1.4 }}>
-                              {lang === "en" ? perk.doorNoteEn : perk.doorNoteEs}
-                            </div>
-                          )}
-
-                          {perk.kind === "link" && (
-                            <a
-                              href={perk.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                display: "inline-block",
-                                alignSelf: "flex-start",
-                                border: "1px solid #7b1f2c",
-                                color: "#7b1f2c",
-                                backgroundColor: "transparent",
-                                borderRadius: "4px",
-                                padding: "7px 16px",
-                                fontFamily: "var(--font-heading)",
-                                fontWeight: 600,
-                                fontSize: "13.5px",
-                                textDecoration: "none",
-                              }}
-                            >
-                              {lang === "en" ? "Open private link" : "Abrir enlace privado"}
-                            </a>
-                          )}
-
-                          {(perk.kind === "code" || perk.kind === "personal") && (
+                          {p.discountCode ? (
                             <div style={{ display: "flex", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
                               <div>
                                 <div style={{ fontSize: "10.5px", letterSpacing: "0.06em", color: "rgba(57,41,42,0.52)", textTransform: "uppercase", fontWeight: 500, marginBottom: "2px" }}>
-                                  {perk.kind === "personal" ? (lang === "en" ? "YOUR PERSONAL CODE" : "TU CÓDIGO PERSONAL") : (lang === "en" ? "DISCOUNT CODE" : "CÓDIGO DE DESCUENTO")}
+                                  {lang === "en" ? "DISCOUNT CODE" : "CÓDIGO DE DESCUENTO"}
                                 </div>
                                 <div style={{ fontFamily: "monospace", fontSize: "15px", fontWeight: 600, letterSpacing: "0.08em", color: isRevealed ? "#39292a" : "rgba(57,41,42,0.4)" }}>
-                                  {isRevealed ? perk.code : "••••••••"}
+                                  {isRevealed ? p.discountCode : "••••••••"}
                                 </div>
                               </div>
                               <button
                                 type="button"
                                 onClick={() => {
                                   if (!isRevealed) {
-                                    setRevealedPerks({ ...revealedPerks, [perk.id]: true });
+                                    setRevealedPerks({ ...revealedPerks, [p.id]: true });
                                   } else {
-                                    copyText(perk.code || "", `perk-${perk.id}`);
+                                    copyText(p.discountCode || "", `perk-${p.id}`);
                                   }
                                 }}
                                 style={{
@@ -1107,22 +999,47 @@ export default function AccountPage() {
                               >
                                 {!isRevealed
                                   ? (lang === "en" ? "Reveal code" : "Ver código")
-                                  : copiedCode === `perk-${perk.id}`
+                                  : copiedCode === `perk-${p.id}`
                                   ? (lang === "en" ? "Copied" : "Copiado")
                                   : (lang === "en" ? "Copy code" : "Copiar código")}
                               </button>
                             </div>
+                          ) : p.links?.website ? (
+                            <a
+                              href={p.links.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: "inline-block",
+                                alignSelf: "flex-start",
+                                border: "1px solid #7b1f2c",
+                                color: "#7b1f2c",
+                                backgroundColor: "transparent",
+                                borderRadius: "4px",
+                                padding: "8px 16px",
+                                fontFamily: "var(--font-heading)",
+                                fontWeight: 600,
+                                fontSize: "13.5px",
+                                textDecoration: "none",
+                              }}
+                            >
+                              {lang === "en" ? "Visit partner website" : "Visitar web del partner"}
+                            </a>
+                          ) : (
+                            <div style={{ fontSize: "13.5px", color: "#3e6308", fontWeight: 500, lineHeight: 1.4 }}>
+                              {lang === "en" ? "Show member card in person" : "Enseña tu carné de socia en persona"}
+                            </div>
                           )}
 
                           <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.55)", fontStyle: "italic" }}>
-                            {validity}
+                            {lang === "en" ? "Exclusive member benefit" : "Beneficio exclusivo para socias"}
                           </div>
                         </div>
                       </div>
                     );
-                  });
-                })()}
-              </div>
+                  })}
+                </div>
+              )}
 
               <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#f8efe2", padding: "20px 24px", marginTop: "24px", display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "baseline", justifyContent: "space-between" }}>
                 <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", maxWidth: "42em" }}>
@@ -1196,8 +1113,21 @@ export default function AccountPage() {
                   </div>
                   <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a" }}>
                     {(() => {
-                      const d = memberData?.currentPeriodEnd ? new Date(memberData.currentPeriodEnd) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
-                      return !isNaN(d.getTime()) ? d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" }) : "";
+                      if (memberData?.currentPeriodEnd) {
+                        const cp = new Date(memberData.currentPeriodEnd);
+                        if (!isNaN(cp.getTime())) return cp.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" });
+                      }
+                      if (memberData?.joinedAt) {
+                        const joined = new Date(memberData.joinedAt);
+                        if (!isNaN(joined.getTime())) {
+                          const nextMonth = new Date(joined);
+                          nextMonth.setMonth(nextMonth.getMonth() + 1);
+                          return nextMonth.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" });
+                        }
+                      }
+                      const d = new Date();
+                      d.setDate(d.getDate() + 30);
+                      return d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" });
                     })()}
                   </div>
                   <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)", marginTop: "4px" }}>

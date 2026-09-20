@@ -30,6 +30,7 @@ export async function getApplicationsForAdmin(statusFilter?: "submitted" | "acce
       declineReasonCode: application.declineReasonCode,
       acceptExpiresAt: application.acceptExpiresAt,
       paymentLinkToken: application.paymentLinkToken,
+      isPaid: application.isPaid,
       personName: person.firstName,
       personLastName: person.lastName,
       personEmail: person.email,

@@ -9,7 +9,7 @@ const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41
 
 export default function AdminApplicationsPage() {
   const [apps, setApps] = useState<any[]>([]);
-  const [filter, setFilter] = useState<"Waiting" | "Awaiting payment" | "Declined" | "All">("Waiting");
+  const [filter, setFilter] = useState<"Waiting" | "Awaiting payment" | "Paid" | "Declined" | "All">("Waiting");
   const [viewMode, setViewMode] = useState<"reader" | "table">("reader");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -159,11 +159,12 @@ export default function AdminApplicationsPage() {
         {/* Filter & View Mode Bar */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "24px" }}>
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            {(["Waiting", "Awaiting payment", "Declined", "All"] as const).map((f) => {
+            {(["Waiting", "Awaiting payment", "Paid", "Declined", "All"] as const).map((f) => {
               const on = filter === f;
               let count = "";
               if (f === "Waiting") count = ` (${waitingApps.length})`;
               if (f === "Awaiting payment") count = ` (${awaitingPaymentApps.length})`;
+              if (f === "Paid") count = ` (${paidApps.length})`;
               if (f === "Declined") count = ` (${declinedApps.length})`;
               if (f === "All") count = ` (${totalApps})`;
 
@@ -502,6 +503,45 @@ export default function AdminApplicationsPage() {
               {awaitingPaymentApps.length === 0 && (
                 <div style={{ padding: "16px 0", color: "rgba(57,41,42,0.6)" }}>
                   No one is currently awaiting payment.
+                </div>
+              )}
+            </div>
+          </div>
+        ) : filter === "Paid" ? (
+          <div style={{ background: "#fffdfa", border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", padding: "24px 32px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", margin: 0 }}>Paid & active memberships</h2>
+            </div>
+            <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.65)", margin: "0 0 20px" }}>
+              Applicants who completed payment and are confirmed members with active credits.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {paidApps.map((a, i) => (
+                <div key={a.id || i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid rgba(57,41,42,0.1)", flexWrap: "wrap", gap: "10px" }}>
+                  <div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: "#39292a" }}>
+                      {a.personName} {a.personLastName}
+                    </div>
+                    <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
+                      {a.personEmail} · Joined on {new Date(a.decidedAt || a.submittedAt || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span style={{ border: `1px solid ${GREEN}`, color: GREEN, backgroundColor: "#f4f7ee", borderRadius: "4px", padding: "4px 10px", fontSize: "11px", fontWeight: 600, fontFamily: "'Cormorant Garamond', serif" }}>
+                      ✓ Paid & Active
+                    </span>
+                    <Link
+                      href="/admin/members"
+                      style={{ color: WINE, fontSize: "13px", textDecoration: "underline", fontFamily: "'Lora', Georgia, serif" }}
+                    >
+                      View in Members →
+                    </Link>
+                  </div>
+                </div>
+              ))}
+              {paidApps.length === 0 && (
+                <div style={{ padding: "16px 0", color: "rgba(57,41,42,0.6)" }}>
+                  No paid applications recorded yet.
                 </div>
               )}
             </div>

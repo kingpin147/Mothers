@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
 import { person, eventPass, booking, event, member, creditEntry, auditLog, application, payment } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { queueAndSendEmail } from "@/lib/brevo";
 import { headers } from "next/headers";
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       if (type === "guest_pass" && personId && eventId) {
         await handleGuestPassPurchase(personId, eventId, eventData.amount_total);
       } else if (type === "membership" && memberId) {
-        await handleMembershipActivation(memberId, eventData.customer, eventData.subscription);
+        await handleMembershipActivation(memberId, eventData.customer, eventData.subscription, eventData);
       } else if ((type === "extra_credits" || type === "credit_topup") && memberId) {
         await handleExtraCreditsPurchase(memberId, personId, creditAmount, eventId, eventData);
       }
@@ -297,58 +297,177 @@ This is a booking confirmation, not a marketing email — we keep your details o
   });
 }
 
-async function handleMembershipActivation(memberId: string, customerId: string, subscriptionId: string) {
+async function handleMembershipActivation(
+  memberId: string,
+  customerId: string,
+  subscriptionId: string,
+  sessionData?: any
+) {
   await db.transaction(async (tx) => {
     const mem = await tx.query.member.findFirst({ where: eq(member.id, memberId) });
     if (!mem) return;
 
-    // Activate member
+    const personRecord = await tx.query.person.findFirst({ where: eq(person.id, mem.personId) });
+    if (!personRecord) return;
+
+    const isQuarterly = mem.billingFrequency === "quarterly" || sessionData?.metadata?.isQuarterly === "true";
+    const amountTotalCents = sessionData?.amount_total || (isQuarterly ? 9900 : 3900);
+    const isFeeWaived = sessionData?.metadata?.feeWaived === "true";
+
+    // 1. Activate member
     await tx.update(member).set({
       status: "active",
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscriptionId,
+      joinedAt: mem.joinedAt || new Date(),
       updatedAt: new Date()
     }).where(eq(member.id, memberId));
 
-    // Mark the most recent accepted application for this person as paid
+    // 2. Mark the most recent application for this person as paid
     const recentApp = await tx.query.application.findFirst({
       where: and(
         eq(application.personId, mem.personId),
-        eq(application.status, "accepted")
+        or(eq(application.status, "accepted"), eq(application.status, "submitted"), eq(application.status, "paid"))
       ),
-      orderBy: (application, { desc }) => [desc(application.decidedAt)]
+      orderBy: (application, { desc }) => [desc(application.decidedAt), desc(application.submittedAt)]
     });
 
-    if (recentApp && !recentApp.isPaid) {
+    if (recentApp) {
       await tx.update(application).set({
+        status: "paid",
         isPaid: true,
         updatedAt: new Date()
       }).where(eq(application.id, recentApp.id));
     }
 
-    // Both monthly and quarterly memberships receive 20 credits per month (§5, §6)
-    const amount = 20;
-
-    const expiresAt = new Date();
-    expiresAt.setMonth(expiresAt.getMonth() + 6);
-
-    // Grant credits for the first month
-    await tx.insert(creditEntry).values({
-      memberId,
-      amount,
-      type: "grant",
-      reason: "Initial Membership Grant",
-      sourceType: "subscription_monthly",
-      expiresAt,
+    // 3. Record Payment in finance ledger
+    const existingPayment = await tx.query.payment.findFirst({
+      where: and(
+        eq(payment.personId, mem.personId),
+        or(
+          eq(payment.stripeInvoiceId, subscriptionId),
+          eq(payment.purpose, isQuarterly ? "subscription_quarterly" : "subscription_monthly")
+        ),
+        sql`occurred_at >= NOW() - INTERVAL '1 hour'`
+      ),
     });
 
+    if (!existingPayment) {
+      const subAmount = isQuarterly ? 9900 : 3900;
+      const joiningFeeAmount = (!isFeeWaived && amountTotalCents > subAmount) ? (amountTotalCents - subAmount) : 0;
+
+      // Insert subscription payment
+      await tx.insert(payment).values({
+        personId: mem.personId,
+        purpose: isQuarterly ? "subscription_quarterly" : "subscription_monthly",
+        amountCents: subAmount,
+        currency: "EUR",
+        status: "succeeded",
+        stripeInvoiceId: subscriptionId || sessionData?.id || null,
+        occurredAt: new Date(),
+      });
+
+      // Insert joining fee payment if applicable
+      if (joiningFeeAmount > 0) {
+        await tx.insert(payment).values({
+          personId: mem.personId,
+          purpose: "joining_fee",
+          amountCents: joiningFeeAmount,
+          currency: "EUR",
+          status: "succeeded",
+          stripeInvoiceId: subscriptionId || sessionData?.id || null,
+          occurredAt: new Date(),
+        });
+      }
+    }
+
+    // 4. Grant credits for the first month (if not already granted today)
+    const existingGrant = await tx.query.creditEntry.findFirst({
+      where: and(
+        eq(creditEntry.memberId, memberId),
+        eq(creditEntry.type, "grant"),
+        sql`created_at >= NOW() - INTERVAL '1 hour'`
+      ),
+    });
+
+    if (!existingGrant) {
+      const amount = 20;
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 6);
+
+      await tx.insert(creditEntry).values({
+        memberId,
+        amount,
+        type: "grant",
+        reason: "Initial Membership Grant",
+        sourceType: "subscription_monthly",
+        expiresAt,
+      });
+    }
+
+    // 5. Send Welcome & Payment Confirmation Email
+    const appUrl = getAppUrl();
+    const waCircleUrl = "https://chat.whatsapp.com/FjzdbYTUcbmGvVEVSXY23J?s=cl&p=i&mlu=4&ilr=4";
+    const planName = isQuarterly ? "Quarterly Membership (€99 / 3 months)" : "Monthly Membership (€39 / month)";
+
+    await queueAndSendEmail({
+      personId: mem.personId,
+      toEmail: personRecord.email,
+      toName: personRecord.firstName,
+      templateKey: "welcome_confirmation",
+      dedupeKey: `member_welcome_${memberId}`,
+      subject: "Welcome to The Mothers — your membership is confirmed",
+      htmlContent: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px;background-color:#fbf8f3;font-family:Georgia,serif;color:#39292a;">
+  <div style="max-width:580px;margin:0 auto;background:#fff;border:1px solid #ddd4c6;border-radius:8px;padding:36px 32px;">
+    <div style="text-align:center;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:#7b1f2c;margin-bottom:20px;">The Mothers · Barcelona</div>
+    <h1 style="font-size:26px;font-weight:normal;color:#39292a;margin:0 0 16px;">Welcome to The Mothers, ${personRecord.firstName}.</h1>
+    <p style="font-size:15px;line-height:1.65;color:rgba(57,41,42,0.85);margin:0 0 20px;">
+      Your membership payment has been confirmed and your account is ready. 20 event credits have been loaded into your balance to book any upcoming gathering on our calendar.
+    </p>
+
+    <div style="background:#fcfbf8;border:1px solid #ddd4c6;border-radius:6px;padding:18px;margin:24px 0;">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(57,41,42,0.5);margin-bottom:8px;">Membership Details</div>
+      <div style="font-size:14.5px;color:#39292a;line-height:1.6;">
+        <strong>Plan:</strong> ${planName}<br>
+        <strong>Event Credits:</strong> 20 credits loaded (valid for 6 months)<br>
+        <strong>Status:</strong> Confirmed & Active
+      </div>
+    </div>
+
+    <div style="text-align:center;margin:30px 0 24px;">
+      <a href="${appUrl}/account" style="display:inline-block;background-color:#7b1f2c;color:#fff;text-decoration:none;padding:13px 28px;border-radius:4px;font-size:15px;font-weight:600;">Go to your Member Account</a>
+    </div>
+
+    <div style="background:#f4f7ee;border:1px solid rgba(86,139,5,0.35);border-radius:6px;padding:16px 18px;margin:24px 0;">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:#568b05;font-weight:600;margin-bottom:6px;">WhatsApp Community Circle</div>
+      <p style="font-size:13.5px;line-height:1.55;color:rgba(57,41,42,0.8);margin:0 0 10px;">
+        Join <strong>The Circle WhatsApp Group</strong> to connect with other mothers in Barcelona and receive real-time updates.
+      </p>
+      <a href="${waCircleUrl}" style="color:#456f04;font-weight:600;font-size:13.5px;text-decoration:underline;">Join The Circle on WhatsApp →</a>
+    </div>
+
+    <p style="font-size:13px;line-height:1.55;color:rgba(57,41,42,0.6);margin-top:30px;border-top:1px solid rgba(57,41,42,0.1);padding-top:18px;">
+      If you have any questions at all, simply reply directly to this email. We are here for you.
+    </p>
+  </div>
+</body>
+</html>
+      `,
+      isTransactional: true,
+    });
+
+    // 6. Audit log
     await tx.insert(auditLog).values({
       actorId: mem.personId,
       actorType: "system",
       action: "membership_activated",
       entity: "member",
       entityId: memberId,
-      after: { status: "active", subscriptionId },
+      after: { status: "active", subscriptionId, amountTotalCents },
     });
   });
 }

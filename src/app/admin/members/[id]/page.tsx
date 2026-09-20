@@ -144,20 +144,59 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
       let color = GREY;
       let note = "";
       const d = new Date(b.eventStartsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      const isPast = new Date(b.eventStartsAt).getTime() < Date.now();
       if (b.status === 'attended') {
-        note = `Attended ${d} · ${b.isFreeWalk ? 'free' : b.creditsCharged + ' credits'}`;
-        color = GREY;
+        note = `Attended ${d} · ${b.isFreeWalk ? 'free' : (b.creditsCharged ? b.creditsCharged + ' credits' : 'included')}`;
+        color = GREEN;
       } else if (b.status === 'released') {
-        note = `Released her place ${new Date(b.releasedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+        note = `Released her place ${new Date(b.releasedAt || b.bookedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
         color = AMBER;
       } else if (b.status === 'no_show') {
         note = `No show ${d}`;
         color = WINE;
+      } else if (isPast) {
+        note = `Attended ${d} · ${b.isFreeWalk ? 'free' : (b.creditsCharged ? b.creditsCharged + ' credits' : 'included')}`;
+        color = GREEN;
       } else {
         note = `Booked for ${d}`;
         color = GREY;
       }
       return { title: b.eventTitle, note, color };
+    });
+  };
+
+  const EMAIL_TEMPLATE_NAMES: Record<string, string> = {
+    welcome_confirmation: "Welcome & membership payment confirmation",
+    application_received: "Application received confirmation",
+    application_accepted: "Invitation to join & payment link (72h)",
+    application_declined: "Application update & waitlist",
+    payment_receipt: "Payment receipt",
+    payment_failed: "Payment failed notification",
+    password_reset: "Password reset link",
+    guest_pass_issued: "Guest pass confirmation",
+    ticket_released: "Seat released confirmation",
+    booking_confirmed: "Event booking confirmation",
+    event_booking_confirmed: "Event booking confirmation",
+    event_reminder_48h: "48-hour event reminder",
+    event_cancelled_refund: "Event cancelled & credits refund",
+    waitlist_promoted: "Waitlist promotion notification",
+    credits_expiring_30d: "Credits expiring reminder",
+    membership_paused: "Membership paused notice",
+    membership_cancelled: "Membership cancellation confirmation",
+    admin_manual_message: "Direct message from admin",
+  };
+
+  const formatContactHistory = (entries: any[]) => {
+    return (entries || []).map(e => {
+      let what = EMAIL_TEMPLATE_NAMES[e.templateKey] || (e.payload?.subject ? `Email: ${e.payload.subject}` : (e.templateKey ? e.templateKey.replace(/_/g, ' ') : "Email sent"));
+      if (e.templateKey === "admin_manual_message" && e.payload?.message) {
+        what = `Note: "${e.payload.message}"`;
+      }
+      const dateVal = e.sentAt || e.createdAt;
+      const when = dateVal 
+        ? new Date(dateVal).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        : "Recent";
+      return { what, when, status: e.status };
     });
   };
 
@@ -167,8 +206,10 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
     : 'She stays a member to the end of the period already paid for and keeps every booking made. Credits do not carry past the end. This is reversible only by her rejoining in a window.';
   const statusConfirm = statusOpen === 'pause' ? 'Pause it' : 'End it';
 
-  // Determine Godmother stats
-  const godmotherCode = godmotherStats && godmotherStats.length > 0 ? godmotherStats[0].code : `${member.firstName.toUpperCase()}-${member.lastName.charAt(0).toUpperCase()}`;
+  // Determine Godmother stats matching member account format (MOTHERS-XXXX-BCN)
+  const godmotherCode = godmotherStats && godmotherStats.length > 0
+    ? godmotherStats[0].code
+    : `MOTHERS-${(member.firstName || "MEMBER").toUpperCase().slice(0, 4)}-BCN`;
   const friendsJoined = (godmotherStats || []).filter((g: any) => g.status === 'paid' || g.status === 'qualified').length;
   const bonusEarned = (godmotherStats || []).filter((g: any) => g.status === 'paid').length * 5;
 
@@ -194,7 +235,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
               {member.firstName} {member.lastName}
             </h1>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0 }}>
-              {member.email} · {member.phone || "No phone"} · {member.neighbourhood || "No area"} · member since {new Date(member.joinedAt).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+              {member.email} · {member.phone || "No phone"} · {member.neighbourhood || "Outside Barcelona"} · member since {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
             </p>
           </div>
           <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", alignItems: "center" }}>
@@ -246,21 +287,34 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px 22px" }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 14px" }}>Her membership</h2>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {[
-                { label: 'Stage', value: member.stage || "—" },
-                { label: 'Children', value: member.children?.length ? `${member.children.length}` : "—" },
-                { label: 'Plan', value: `€${(member.monthlyPriceCents/100).toFixed(0)} monthly` },
-                { label: 'Rate held until', value: member.priceLockedUntil ? new Date(member.priceLockedUntil).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : "—" },
-                { label: 'Renews', value: member.currentPeriodEnd ? new Date(member.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—" },
-                { label: 'Pauses used', value: `${member.pauseMonthsUsedYear || 0} of 2` },
-                { label: 'Languages', value: member.languages || "French, Spanish" },
-                { label: 'WhatsApp circles', value: member.whatsappCircles || "Toddlers - Sarrià" },
-              ].map((f, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "14px", padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)", fontSize: "13.5px", lineHeight: 1.5 }}>
-                  <span style={{ color: "rgba(57,41,42,0.68)" }}>{f.label}</span>
-                  <span style={{ textAlign: "right", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>{f.value}</span>
-                </div>
-              ))}
+              {(() => {
+                const stageStr = member.stage || "—";
+                const stageLower = stageStr.toLowerCase();
+                const circles = ["General — The Circle"];
+                if (stageLower.includes("preg") || stageLower.includes("expect")) circles.push("Pregnant");
+                if (stageLower.includes("baby") || stageLower.includes("babies")) circles.push("Babies");
+                if (stageLower.includes("toddler") || stageLower.includes("peque")) circles.push("Toddlers");
+                if (stageLower.includes("child") && !stageLower.includes("big") && !stageLower.includes("610")) circles.push("Children");
+                if (stageLower.includes("big") || stageLower.includes("610") || stageLower.includes("6-10")) circles.push("Big kids");
+
+                const langDisplay = member.languages === "es" ? "Spanish" : member.languages === "en" ? "English" : member.languages || "English, Spanish";
+
+                return [
+                  { label: 'Stage', value: stageStr },
+                  { label: 'Children', value: member.children?.length ? `${member.children.length}` : "—" },
+                  { label: 'Plan', value: `€${(member.monthlyPriceCents/100).toFixed(0)} monthly` },
+                  { label: 'Rate held until', value: member.priceLockedUntil ? new Date(member.priceLockedUntil).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : "—" },
+                  { label: 'Renews', value: member.currentPeriodEnd ? new Date(member.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : (member.joinedAt ? new Date(new Date(member.joinedAt).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—") },
+                  { label: 'Pauses used', value: `${member.pauseMonthsUsedYear || 0} of 2` },
+                  { label: 'Languages', value: langDisplay },
+                  { label: 'WhatsApp circles', value: circles.join(", ") },
+                ].map((f, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "14px", padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)", fontSize: "13.5px", lineHeight: 1.5 }}>
+                    <span style={{ color: "rgba(57,41,42,0.68)" }}>{f.label}</span>
+                    <span style={{ textAlign: "right", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>{f.value}</span>
+                  </div>
+                ));
+              })()}
             </div>
 
             {/* Action Buttons: Pause / Resume & Cancel */}
@@ -377,10 +431,10 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px 22px" }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 12px" }}>What we have said to her</h2>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {(contactHistory || []).length === 0 ? (
+              {formatContactHistory(contactHistory).length === 0 ? (
                 <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)", padding: "8px 0" }}>No direct contact recorded yet</div>
               ) : (
-                (contactHistory || []).map((c: any, i: number) => (
+                formatContactHistory(contactHistory).map((c: any, i: number) => (
                   <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
                     <div style={{ fontSize: "13.5px", lineHeight: 1.5, marginBottom: "2px" }}>{c.what}</div>
                     <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)" }}>{c.when}</div>

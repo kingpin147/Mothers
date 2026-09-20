@@ -1674,11 +1674,11 @@ export function BookingSuccessModal({
           <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 24px" }}>
             {lang === "en" ? (
               <>
-                {moreNeeded > 0 ? `${moreNeeded} more mother${moreNeeded === 1 ? "" : "s"} and` : "Enough mothers have joined so"} “{displayTitle}” is confirmed. Your {ev.creditCost} credit{ev.creditCost === 1 ? "" : "s"} are held, not spent — we confirm ten days before, and if it moves your place moves with it.
+                A few more mothers and this one is confirmed. Your credits are spent, so the place is truly yours — and if it does not run, they come back to you automatically.
               </>
             ) : (
               <>
-                {moreNeeded > 0 ? `Faltan ${moreNeeded} madre${moreNeeded === 1 ? "" : "s"} para confirmar` : "Ya hay suficientes madres para confirmar"} “{displayTitle}”. Tus {ev.creditCost} crédito{ev.creditCost === 1 ? "" : "s"} están retenidos, no gastados — confirmamos diez días antes, y si cambia de fecha, tu plaza se mantiene.
+                Unas madres más y este encuentro estará confirmado. Tus créditos están reservados, por lo que la plaza es verdaderamente tuya — y si no se lleva a cabo, vuelven a ti automáticamente.
               </>
             )}
           </p>
@@ -2369,7 +2369,9 @@ function EventCard({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {lang === "en" ? "Book" : "Reservar"}
+                    {isOpenList
+                      ? (lang === "en" ? "Join the list" : "Unirme a la lista")
+                      : (lang === "en" ? "Book" : "Reservar")}
                   </button>
                 )
               ) : (
@@ -2413,7 +2415,9 @@ function EventCard({
                   >
                     {isBooking
                       ? (lang === "en" ? "Booking..." : "Reservando...")
-                      : (lang === "en" ? "Book" : "Reservar")}
+                      : (isOpenList
+                          ? (lang === "en" ? "Join the list" : "Unirme a la lista")
+                          : (lang === "en" ? "Book" : "Reservar"))}
                   </button>
                 </>
               )}

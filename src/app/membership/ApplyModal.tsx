@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { submitApplication, checkEmailExists, ApplicationFormData } from "@/app/actions/application";
 import { BackArrow } from "@/components/Icons";
 
@@ -16,6 +17,7 @@ export function ApplyModal({
   onClose: () => void;
   lang: "en" | "es";
 }) {
+  const router = useRouter();
   const [step, setStep] = useState<number>(0); // 0-indexed (0 to 10 = 11 steps)
   const [loading, setLoading] = useState<boolean>(false);
   const [submitted, setSubmitted] = useState<boolean>(false);
@@ -859,12 +861,19 @@ export function ApplyModal({
 
           <button
             type="button"
-            onClick={handleNext}
+            onClick={
+              step === 1 && emailCheckError === "ACTIVE_MEMBER"
+                ? () => {
+                    onClose();
+                    router.push("/account/login");
+                  }
+                : handleNext
+            }
             disabled={loading}
             style={{
               border: "1px solid #7b1f2c",
-              color: "#7b1f2c",
-              background: "transparent",
+              color: step === 1 && emailCheckError === "ACTIVE_MEMBER" ? "#f8efe2" : "#7b1f2c",
+              backgroundColor: step === 1 && emailCheckError === "ACTIVE_MEMBER" ? "#7b1f2c" : "transparent",
               padding: "12px 28px",
               borderRadius: "4px",
               fontFamily: "var(--font-heading)",
@@ -878,6 +887,10 @@ export function ApplyModal({
               ? lang === "en"
                 ? "Submitting..."
                 : "Enviando..."
+              : step === 1 && emailCheckError === "ACTIVE_MEMBER"
+              ? lang === "en"
+                ? "Log in"
+                : "Iniciar sesión"
               : step === totalSteps - 1
               ? lang === "en"
                 ? "Submit application"
