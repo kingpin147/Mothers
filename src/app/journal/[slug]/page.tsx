@@ -209,9 +209,6 @@ export default function JournalSlugPage() {
         if (res.related) {
           setRelated(res.related);
         }
-      } else if (STATIC_SEEDS[cleanSlug]) {
-        // Fallback to static seed
-        setArticle(STATIC_SEEDS[cleanSlug]);
       } else {
         setArticle(null);
       }

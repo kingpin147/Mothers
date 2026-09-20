@@ -192,11 +192,8 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
     }
   };
 
-  // Merge dynamic articles with static fallbacks
-  // Dynamic articles from DB take priority; avoid slug duplicates
-  const dynamicSlugs = new Set(dynamicArticles.map((a) => a.slug || a.id));
-  const remainingFallbacks = STATIC_FALLBACKS.filter((f) => !dynamicSlugs.has(f.slug || f.id));
-  const allArticles: PublicArticle[] = [...dynamicArticles, ...remainingFallbacks];
+  // Only display real articles published in the database
+  const allArticles: PublicArticle[] = dynamicArticles;
 
   // Category filter
   const filtered =

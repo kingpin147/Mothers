@@ -112,7 +112,7 @@ export default function AdminMembersPage() {
   
   let filtered = members.filter(m => {
     const isRisk = !!m.atRiskSince;
-    const isEnding = m.status === 'cancelled_at_period_end';
+    const isEnding = m.status === 'cancelled_at_period_end' || !!m.cancelAtPeriodEnd;
     const stateMatched = 
       statusFilter === 'all' || 
       (statusFilter === 'risk' && isRisk) || 

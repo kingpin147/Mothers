@@ -500,11 +500,7 @@ export default function EventDetailPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (ev.isSignature || ev.creditCost > 18) {
-                          setCeilingEvent(ev);
-                        } else {
-                          setSignedOutEvent(ev);
-                        }
+                        setSignedOutEvent(ev);
                       }}
                       style={{
                         backgroundColor: "var(--color-accent)",

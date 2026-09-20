@@ -6,15 +6,18 @@ import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getAppUrl } from "@/lib/urls";
 
-export async function getAccountData() {
+export async function getAccountData(targetMemberId?: string) {
   const session = await auth();
   if (!session?.user) {
     return { success: false, error: "AUTH_REQUIRED" };
   }
 
+  const role = (session.user as any)?.role;
+  const isAdmin = ["owner", "manager", "host", "super_admin"].includes(role);
+
   const userEmail = session.user.email?.toLowerCase().trim();
   let personId = (session.user as any).personId || session.user.id;
-  let memberId = (session.user as any).memberId;
+  let memberId = (isAdmin && targetMemberId) ? targetMemberId : (session.user as any).memberId;
 
   try {
     let personRecord = null;
@@ -26,14 +29,14 @@ export async function getAccountData() {
       });
     }
 
-    if (!memberRecord && personId) {
+    if (!memberRecord && !targetMemberId && personId) {
       memberRecord = await db.query.member.findFirst({
         where: eq(member.personId, personId),
       });
       if (memberRecord) memberId = memberRecord.id;
     }
 
-    if (!memberRecord && userEmail) {
+    if (!memberRecord && !targetMemberId && userEmail) {
       personRecord = await db.query.person.findFirst({
         where: eq(person.email, userEmail),
       });

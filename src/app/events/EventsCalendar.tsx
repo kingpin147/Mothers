@@ -1992,12 +1992,8 @@ function EventCard({
         onMemberBook(ev);
       }
     } else {
-      // Signed out / non-member visitor clicking Book
-      if (ev.isSignature || ev.creditCost > 18) {
-        onOpenCeiling(ev); // State 11: names cost/ceiling or members-only with join route
-      } else {
-        onOpenSignedOut(ev); // State 13: sign in to book place
-      }
+      // Signed out visitor clicking Book -> prompt to sign in to book place
+      onOpenSignedOut(ev);
     }
   };
 
@@ -2033,11 +2029,6 @@ function EventCard({
             {isCancelled && (
               <span style={{ fontSize: "11px", letterSpacing: "0.06em", textTransform: "uppercase", color: "#993842", border: "1px solid rgba(153,56,66,0.45)", background: "rgba(153,56,66,0.07)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
                 {lang === "en" ? "Cancelled" : "Cancelado"}
-              </span>
-            )}
-            {ev.userStatus?.isBooked && !isCancelled && !isPast && !isPending && (
-              <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#456f04", background: "rgba(86,139,5,0.1)", border: "1px solid rgba(86,139,5,0.45)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap" }}>
-                {lang === "en" ? "You are going" : "Asistirás"}
               </span>
             )}
             <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "10px", padding: "3px 10px", whiteSpace: "nowrap", background: "rgba(255,255,255,0.6)" }}>

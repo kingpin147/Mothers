@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Locale } from "@/lib/i18n";
 import { getAccountData } from "@/app/actions/memberAccount";
 import { BackArrow } from "@/components/Icons";
@@ -24,9 +24,12 @@ function formatMonthLabel(key: string, locale: string) {
   return new Date(year, month - 1, 1).toLocaleDateString(locale, { month: "long", year: "numeric" });
 }
 
-export default function ActivityStatementPage() {
+function ActivityStatementContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const memberIdParam = searchParams.get("m");
+
   const [lang, setLang] = useState<Locale>("en");
   const [accountData, setAccountData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -41,7 +44,7 @@ export default function ActivityStatementPage() {
     if (status === "unauthenticated") {
       router.push("/account/login");
     } else if (status === "authenticated") {
-      getAccountData()
+      getAccountData(memberIdParam || undefined)
         .then((res) => {
           if (res.success) {
             setAccountData(res);
@@ -56,7 +59,7 @@ export default function ActivityStatementPage() {
           setLoading(false);
         });
     }
-  }, [status, router]);
+  }, [status, router, memberIdParam]);
 
   if (status === "loading" || loading) {
     return (
@@ -70,7 +73,9 @@ export default function ActivityStatementPage() {
     return (
       <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "16px" }}>
         <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px" }}>Unable to load statement</p>
-        <Link href="/account" style={{ color: "#7b1f2c", textDecoration: "underline" }}>Return to Account</Link>
+        <Link href={memberIdParam ? `/admin/members/${memberIdParam}` : "/account"} style={{ color: "#7b1f2c", textDecoration: "underline" }}>
+          {memberIdParam ? "Return to Member Record" : "Return to Account"}
+        </Link>
       </div>
     );
   }
@@ -96,8 +101,8 @@ export default function ActivityStatementPage() {
 
         {/* Nav */}
         <div className="no-print" style={{ marginBottom: "28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Link href="/account" style={{ color: "rgba(57,41,42,0.6)", fontSize: "14px", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
-            <BackArrow /> {lang === "en" ? "Back to Member Account" : "Volver a Mi Cuenta"}
+          <Link href={memberIdParam ? `/admin/members/${memberIdParam}` : "/account"} style={{ color: "rgba(57,41,42,0.6)", fontSize: "14px", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+            <BackArrow /> {memberIdParam ? (lang === "en" ? "Back to Member Record" : "Volver a Ficha Socia") : (lang === "en" ? "Back to Member Account" : "Volver a Mi Cuenta")}
           </Link>
           <button type="button" onClick={handlePrint} style={{ border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#f8efe2", padding: "8px 18px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
             {lang === "en" ? "Print / Download PDF" : "Imprimir / Guardar PDF"}
@@ -192,5 +197,19 @@ export default function ActivityStatementPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ActivityStatementPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: "70vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#FEFDF9" }}>
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "18px", color: "#7b1f2c" }}>Loading statement...</p>
+        </div>
+      }
+    >
+      <ActivityStatementContent />
+    </Suspense>
   );
 }

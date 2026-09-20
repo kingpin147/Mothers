@@ -106,14 +106,31 @@ export async function uploadImage(
     const filename = `${timestamp}-${randomSuffix}.${ext}`;
     const bucketPath = `${bucket}/${filename}`;
 
-    // 3. Upload to Supabase Storage
-    const { data, error: uploadError } = await supabaseAdmin.storage
+    // 3. Upload to Supabase Storage (with auto-create bucket fallback)
+    let { data, error: uploadError } = await supabaseAdmin.storage
       .from(bucket)
       .upload(filename, fileBuffer, {
         contentType: mimeType,
         cacheControl: "3600",
         upsert: false,
       });
+
+    if (uploadError && uploadError.message?.toLowerCase().includes("not found")) {
+      try {
+        await supabaseAdmin.storage.createBucket(bucket, { public: true });
+        const retry = await supabaseAdmin.storage
+          .from(bucket)
+          .upload(filename, fileBuffer, {
+            contentType: mimeType,
+            cacheControl: "3600",
+            upsert: false,
+          });
+        data = retry.data;
+        uploadError = retry.error;
+      } catch (e) {
+        // bucket creation error will be captured below
+      }
+    }
 
     if (uploadError) {
       return { success: false, error: `Upload failed: ${uploadError.message}` };
