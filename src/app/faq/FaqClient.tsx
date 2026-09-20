@@ -5,22 +5,38 @@ import Link from "next/link";
 import { Locale } from "@/lib/i18n";
 
 interface FaqEntry {
+  group?: string;
   qEn: string;
   aEn: string;
   qEs: string;
   aEs: string;
 }
 
-
-
 interface FaqClientProps {
   dynamicFaqs: FaqEntry[];
   publicSettings?: any;
 }
 
+const CATEGORY_LABELS: Record<string, { en: string; es: string }> = {
+  "Joining": { en: "Joining", es: "Unirse" },
+  "Credits": { en: "Credits", es: "Créditos" },
+  "Events": { en: "Events", es: "Eventos" },
+  "Guests & the Event Pass": { en: "Guests & the Event Pass", es: "Invitadas y Event Pass" },
+  "Membership & money": { en: "Membership & money", es: "Membresía y precios" },
+  "General": { en: "General", es: "General" }
+};
+
+const DEFAULT_CATEGORY_ORDER = [
+  "Joining",
+  "Credits",
+  "Events",
+  "Guests & the Event Pass",
+  "Membership & money",
+];
+
 export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: FaqClientProps) {
   const [lang, setLang] = useState<Locale>("en");
-  const [openIdx, setOpenIdx] = useState<number | null>(0);
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({ "Joining-0": true });
 
   const processText = (text: string) => {
     let t = text;
@@ -37,11 +53,19 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
   };
 
   const allFaqs = dynamicFaqs.map((f) => ({
+    group: f.group || "Joining",
     qEn: f.qEn,
     aEn: processText(f.aEn),
     qEs: f.qEs,
     aEs: processText(f.aEs)
   }));
+
+  // Group FAQs by category maintaining consistent order
+  const categoriesPresent = Array.from(new Set(allFaqs.map((f) => f.group)));
+  const sortedCategories = [
+    ...DEFAULT_CATEGORY_ORDER.filter((cat) => categoriesPresent.includes(cat)),
+    ...categoriesPresent.filter((cat) => !DEFAULT_CATEGORY_ORDER.includes(cat))
+  ];
 
   useEffect(() => {
     const updateLang = () => {
@@ -53,8 +77,11 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
 
-  const toggleAccordion = (idx: number) => {
-    setOpenIdx(openIdx === idx ? null : idx);
+  const toggleAccordion = (key: string) => {
+    setOpenMap((prev) => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
   };
 
   return (
@@ -82,64 +109,92 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
           </p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {allFaqs.map((faq, idx) => {
-            const isOpen = openIdx === idx;
+        <div style={{ display: "flex", flexDirection: "column", gap: "36px" }}>
+          {sortedCategories.map((catName) => {
+            const groupItems = allFaqs.filter((f) => f.group === catName);
+            if (groupItems.length === 0) return null;
+            const catLabel = CATEGORY_LABELS[catName]?.[lang] || catName;
+
             return (
-              <div
-                key={idx}
-                style={{
-                  borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
-                  padding: "6px 0"
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleAccordion(idx)}
+              <div key={catName} style={{ display: "flex", flexDirection: "column" }}>
+                <div
                   style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "16px",
-                    background: "transparent",
-                    border: "none",
-                    textAlign: "left",
-                    padding: "18px 2px",
-                    cursor: "pointer",
                     fontFamily: "var(--font-heading)",
                     fontWeight: 600,
-                    fontSize: "18px",
-                    color: "var(--color-text)",
-                    minHeight: "44px"
+                    fontSize: "14px",
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: "var(--color-accent)",
+                    paddingBottom: "10px",
+                    borderBottom: "2px solid rgba(123, 31, 44, 0.2)",
+                    marginBottom: "4px"
                   }}
                 >
-                  <span>{lang === "en" ? faq.qEn : faq.qEs}</span>
-                  <span style={{
-                    flex: "none",
-                    color: "var(--color-accent)",
-                    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                    transition: "transform 0.2s ease",
-                    display: "flex",
-                    alignItems: "center"
-                  }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  </span>
-                </button>
+                  {catLabel}
+                </div>
 
-                {isOpen && (
-                  <p style={{
-                    fontSize: "15px",
-                    lineHeight: "1.65",
-                    color: "rgba(57, 41, 42, 0.75)",
-                    margin: "0 0 20px 0",
-                    paddingRight: "28px"
-                  }}>
-                    {lang === "en" ? faq.aEn : faq.aEs}
-                  </p>
-                )}
+                {groupItems.map((faq, idx) => {
+                  const itemKey = `${catName}-${idx}`;
+                  const isOpen = !!openMap[itemKey];
+
+                  return (
+                    <div
+                      key={itemKey}
+                      style={{
+                        borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
+                        padding: "4px 0"
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleAccordion(itemKey)}
+                        style={{
+                          width: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "16px",
+                          background: "transparent",
+                          border: "none",
+                          textAlign: "left",
+                          padding: "16px 2px",
+                          cursor: "pointer",
+                          fontFamily: "var(--font-heading)",
+                          fontWeight: 600,
+                          fontSize: "17.5px",
+                          color: "var(--color-text)",
+                          minHeight: "44px"
+                        }}
+                      >
+                        <span>{lang === "en" ? faq.qEn : faq.qEs}</span>
+                        <span style={{
+                          flex: "none",
+                          color: "var(--color-accent)",
+                          transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                          transition: "transform 0.2s ease",
+                          display: "flex",
+                          alignItems: "center"
+                        }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+                            <path d="m6 9 6 6 6-6" />
+                          </svg>
+                        </span>
+                      </button>
+
+                      {isOpen && (
+                        <p style={{
+                          fontSize: "15px",
+                          lineHeight: "1.65",
+                          color: "rgba(57, 41, 42, 0.75)",
+                          margin: "0 0 18px 0",
+                          paddingRight: "28px"
+                        }}>
+                          {lang === "en" ? faq.aEn : faq.aEs}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -174,7 +229,7 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
               : "Prueba un Evento Abierto: vive la comunidad, sin necesidad de membresía."}
           </p>
           <Link
-            href="/membership"
+            href="/events"
             style={{
               display: "inline-block",
               border: "1px solid #f8efe2",
@@ -187,7 +242,7 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
               textDecoration: "none"
             }}
           >
-            {lang === "en" ? "Join now" : "Únete ahora"}
+            {lang === "en" ? "Explore events" : "Explorar eventos"}
           </Link>
         </div>
       </div>

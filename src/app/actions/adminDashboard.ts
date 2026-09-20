@@ -518,14 +518,81 @@ export async function runManualCron(jobKey: "threshold-decisions" | "expire-cred
       .from(event)
       .where(and(eq(event.status, "published_pending"), lte(event.startsAt, t7Date), gte(event.startsAt, now)));
 
+    let processedCount = 0;
+
     for (const ev of pendingEvents) {
-      await db
-        .update(event)
-        .set({ status: "confirmed", confirmedAt: new Date(), updatedAt: new Date() })
-        .where(eq(event.id, ev.id));
+      // Count active bookings
+      const counts = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(booking)
+        .where(
+          and(
+            eq(booking.eventId, ev.id),
+            sql`status IN ('held', 'confirmed')`
+          )
+        );
+
+      const activeBookings = Number(counts[0]?.count || 0);
+
+      if (activeBookings >= (ev.minToConfirm || 1)) {
+        // Threshold met: confirm event and promote held bookings
+        await db.transaction(async (tx) => {
+          await tx
+            .update(event)
+            .set({ status: "confirmed", confirmedAt: new Date(), updatedAt: new Date() })
+            .where(eq(event.id, ev.id));
+
+          await tx
+            .update(booking)
+            .set({ status: "confirmed", updatedAt: new Date() })
+            .where(and(eq(booking.eventId, ev.id), eq(booking.status, "held")));
+
+          await tx.insert(auditLog).values({
+            actorType: "admin",
+            actorId: session?.user?.id || "admin",
+            action: "manual_threshold_confirm",
+            entity: "event",
+            entityId: ev.id,
+            after: { activeBookings, minRequired: ev.minToConfirm },
+          });
+        });
+        processedCount++;
+      } else if (ev.decisionAt && new Date(ev.decisionAt) <= now) {
+        // Threshold not met at decision date: cancel and release held credits
+        await db.transaction(async (tx) => {
+          await tx
+            .update(event)
+            .set({
+              status: "cancelled",
+              cancelledAt: new Date(),
+              cancelReason: `Threshold not met: ${activeBookings}/${ev.minToConfirm} bookings at decision date`,
+              updatedAt: new Date(),
+            })
+            .where(eq(event.id, ev.id));
+
+          await tx
+            .update(booking)
+            .set({
+              status: "cancelled_event",
+              cancelledAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(and(eq(booking.eventId, ev.id), eq(booking.status, "held")));
+
+          await tx.insert(auditLog).values({
+            actorType: "admin",
+            actorId: session?.user?.id || "admin",
+            action: "manual_threshold_cancel",
+            entity: "event",
+            entityId: ev.id,
+            after: { activeBookings, minRequired: ev.minToConfirm },
+          });
+        });
+        processedCount++;
+      }
     }
 
-    return { success: true, count: pendingEvents.length };
+    return { success: true, count: processedCount };
   }
 
   if (jobKey === "expire-credits") {

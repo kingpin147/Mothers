@@ -1554,8 +1554,31 @@ export function TopUpModal({
         </div>
 
         {error && (
-          <div style={{ color: "#993842", fontSize: "13.5px", marginBottom: "14px", background: "#fbf1f1", padding: "8px 12px", borderRadius: "4px" }}>
-            {error}
+          <div style={{ color: "#993842", fontSize: "13.5px", marginBottom: "14px", background: "#fbf1f1", padding: "10px 14px", borderRadius: "6px", lineHeight: 1.5 }}>
+            {error === "MEMBER_ACCOUNT_REQUIRED" || error.includes("MEMBER_ACCOUNT_REQUIRED") ? (
+              <div>
+                <span>
+                  {lang === "en"
+                    ? "An active membership is required to purchase credits and reserve member-only events."
+                    : "Se requiere una membresía activa para comprar créditos y reservar encuentros de socias."}
+                </span>
+                <div style={{ marginTop: "8px" }}>
+                  <Link
+                    href="/membership"
+                    style={{
+                      color: "#7b1f2c",
+                      fontWeight: 600,
+                      textDecoration: "underline",
+                      fontSize: "13.5px",
+                    }}
+                  >
+                    {lang === "en" ? "Explore Membership →" : "Ver membresía →"}
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              error
+            )}
           </div>
         )}
 
@@ -3112,28 +3135,56 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
               </svg>
             </div>
             <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 10px", color: "#39292a" }}>
-              {lang === "en" ? "Booking Notice" : "Aviso de reserva"}
+              {bookingError === "MEMBER_ACCOUNT_REQUIRED" || bookingError.includes("MEMBER_ACCOUNT_REQUIRED")
+                ? (lang === "en" ? "Membership Required" : "Membresía requerida")
+                : (lang === "en" ? "Booking Notice" : "Aviso de reserva")}
             </h3>
             <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.76)", margin: "0 0 22px" }}>
-              {bookingError}
+              {bookingError === "MEMBER_ACCOUNT_REQUIRED" || bookingError.includes("MEMBER_ACCOUNT_REQUIRED")
+                ? (lang === "en"
+                    ? "You need an active membership to reserve member-only gatherings and access credit top-ups."
+                    : "Necesitas una membresía activa para reservar encuentros exclusivos de socias y recargar créditos.")
+                : bookingError}
             </p>
-            <button
-              type="button"
-              onClick={() => setBookingError(null)}
-              style={{
-                border: "1px solid #7b1f2c",
-                backgroundColor: "#7b1f2c",
-                color: "#fdfaf5",
-                padding: "10px 28px",
-                borderRadius: "4px",
-                fontFamily: "var(--font-heading)",
-                fontWeight: 600,
-                fontSize: "14.5px",
-                cursor: "pointer",
-              }}
-            >
-              {lang === "en" ? "Understood" : "Entendido"}
-            </button>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+              {(bookingError === "MEMBER_ACCOUNT_REQUIRED" || bookingError.includes("MEMBER_ACCOUNT_REQUIRED")) && (
+                <Link
+                  href="/membership"
+                  onClick={() => setBookingError(null)}
+                  style={{
+                    border: "1px solid #7b1f2c",
+                    backgroundColor: "#7b1f2c",
+                    color: "#fdfaf5",
+                    padding: "10px 24px",
+                    borderRadius: "4px",
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 600,
+                    fontSize: "14.5px",
+                    textDecoration: "none",
+                    display: "inline-block",
+                  }}
+                >
+                  {lang === "en" ? "Explore Membership" : "Ver membresía"}
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => setBookingError(null)}
+                style={{
+                  border: "1px solid rgba(57,41,42,0.3)",
+                  backgroundColor: "transparent",
+                  color: "#39292a",
+                  padding: "10px 24px",
+                  borderRadius: "4px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "14.5px",
+                  cursor: "pointer",
+                }}
+              >
+                {lang === "en" ? "Close" : "Cerrar"}
+              </button>
+            </div>
           </div>
         </div>
       )}
