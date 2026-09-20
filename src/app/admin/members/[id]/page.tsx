@@ -317,18 +317,18 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
               })()}
             </div>
 
-            {/* Action Buttons: Pause / Resume & Cancel */}
+            {/* Action Buttons: Pause / Resume / Reactivate & Cancel */}
             <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", marginTop: "16px" }}>
-              {member.status === "paused" ? (
+              {(member.status === "paused" || member.status === "cancelled_at_period_end" || member.status === "lapsed" || member.cancelAtPeriodEnd) ? (
                 <button type="button" onClick={handleResume} disabled={isSubmitting} style={{ border: `1px solid ${GREEN}`, background: "transparent", color: GREEN, borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
-                  {isSubmitting ? "Resuming..." : "Resume her membership"}
+                  {isSubmitting ? "Processing..." : (member.status === "paused" ? "Resume her membership" : "Reactivate her membership")}
                 </button>
               ) : (
                 <button type="button" onClick={() => setStatusOpen("pause")} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
                   Pause her membership
                 </button>
               )}
-              {member.status !== "cancelled_at_period_end" && member.status !== "lapsed" && (
+              {member.status !== "cancelled_at_period_end" && member.status !== "lapsed" && !member.cancelAtPeriodEnd && (
                 <button type="button" onClick={() => setStatusOpen("cancel")} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
                   End her membership
                 </button>

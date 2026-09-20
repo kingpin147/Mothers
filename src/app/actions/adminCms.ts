@@ -264,9 +264,26 @@ export async function pauseMember(memberId: string, reason: string): Promise<{ s
 export async function resumeMember(memberId: string, reason?: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { adminId } = await verifyAdminRole();
+    const existing = await db.select().from(member).where(eq(member.id, memberId)).limit(1);
+    if (!existing.length) return { success: false, error: "Member not found" };
+    const mRec = existing[0];
+
+    if (mRec.stripeSubscriptionId) {
+      try {
+        const { stripe } = await import("@/lib/stripe");
+        await stripe.subscriptions.update(mRec.stripeSubscriptionId, {
+          cancel_at_period_end: false,
+          pause_collection: "",
+        });
+      } catch (stripeErr) {
+        console.warn("Stripe resume warning:", stripeErr);
+      }
+    }
+
     await db.transaction(async (tx) => {
       await tx.update(member).set({ 
         status: 'active', 
+        cancelAtPeriodEnd: false,
         pausedUntil: null,
         updatedAt: new Date() 
       }).where(eq(member.id, memberId));
@@ -289,6 +306,21 @@ export async function resumeMember(memberId: string, reason?: string): Promise<{
 export async function cancelMember(memberId: string, reason: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { adminId } = await verifyAdminRole();
+    const existing = await db.select().from(member).where(eq(member.id, memberId)).limit(1);
+    if (!existing.length) return { success: false, error: "Member not found" };
+    const mRec = existing[0];
+
+    if (mRec.stripeSubscriptionId) {
+      try {
+        const { stripe } = await import("@/lib/stripe");
+        await stripe.subscriptions.update(mRec.stripeSubscriptionId, {
+          cancel_at_period_end: true,
+        });
+      } catch (stripeErr) {
+        console.warn("Stripe cancel warning:", stripeErr);
+      }
+    }
+
     await db.transaction(async (tx) => {
       await tx.update(member).set({ 
         status: 'cancelled_at_period_end', 

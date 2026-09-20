@@ -355,6 +355,44 @@ export async function cancelMembership() {
   }
 }
 
+export async function reactivateMembership() {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+  const memberId = (session.user as any).memberId;
+  if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+
+  try {
+    const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
+    if (!memberRecord) return { success: false, error: "MEMBER_NOT_FOUND" };
+    if (!memberRecord.cancelAtPeriodEnd && memberRecord.status === "active") {
+      return { success: false, error: "ALREADY_ACTIVE" };
+    }
+
+    if (memberRecord.stripeSubscriptionId) {
+      try {
+        const { stripe } = await import("@/lib/stripe");
+        await stripe.subscriptions.update(memberRecord.stripeSubscriptionId, {
+          cancel_at_period_end: false,
+        });
+      } catch (stripeErr) {
+        console.warn("Stripe reactivate warning:", stripeErr);
+      }
+    }
+
+    await db.update(member)
+      .set({
+        cancelAtPeriodEnd: false,
+        status: "active",
+        updatedAt: new Date(),
+      })
+      .where(eq(member.id, memberId));
+
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || "REACTIVATE_FAILED" };
+  }
+}
+
 export async function getStripePortalUrl() {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };

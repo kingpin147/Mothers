@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Locale } from "@/lib/i18n";
-import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, getStripePortalUrl } from "@/app/actions/memberAccount";
+import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, reactivateMembership, getStripePortalUrl } from "@/app/actions/memberAccount";
 import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
 import ThemeLoader from "@/components/ThemeLoader";
 import { ForwardArrow } from "@/components/Icons";
@@ -78,10 +78,11 @@ export default function AccountPage() {
   // Ref for scrolling to top-up section
   const topUpRef = useRef<HTMLDivElement>(null);
 
-  // Membership cancel state
+  // Membership cancel & reactivate state
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelResult, setCancelResult] = useState<{ success: boolean; error?: string; currentPeriodEnd?: string | null } | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [reactivateLoading, setReactivateLoading] = useState(false);
 
   // Details form state
   const [detailsForm, setDetailsForm] = useState({ firstName: "", lastName: "", phone: "", stage: "", neighbourhood: "" });
@@ -1514,13 +1515,44 @@ export default function AccountPage() {
             ) : (
               <div style={{ padding: "16px 20px", backgroundColor: "#fdf2f2", border: "1px solid rgba(153,56,66,0.4)", borderRadius: "6px", marginBottom: "14px" }}>
                 <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "17px", color: "#993842", margin: "0 0 6px" }}>
-                  {lang === "en" ? "Membership cancelled" : "Membresía cancelada"}
+                  {lang === "en" ? "Membership scheduled for cancellation" : "Membresía programada para cancelación"}
                 </h3>
-                <p style={{ fontSize: "14px", color: "#39292a", margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: "14px", color: "#39292a", margin: "0 0 14px", lineHeight: 1.5 }}>
                   {lang === "en"
-                    ? "Your membership has been cancelled and will end at the close of your current billing period."
-                    : "Tu membresía ha sido cancelada y finalizará al cierre de tu periodo de facturación actual."}
+                    ? "Your membership has been cancelled and will end at the close of your current billing period. If you changed your mind, you can reactivate it anytime before the end of the period."
+                    : "Tu membresía ha sido cancelada y finalizará al cierre de tu periodo de facturación actual. Si has cambiado de opinión, puedes reactivarla en cualquier momento antes de que finalice el periodo."}
                 </p>
+                <button
+                  type="button"
+                  disabled={reactivateLoading}
+                  onClick={async () => {
+                    setReactivateLoading(true);
+                    try {
+                      const res = await reactivateMembership();
+                      if (res.success) {
+                        const refreshed = await getAccountData();
+                        if (refreshed.success) setAccountData(refreshed);
+                      } else {
+                        alert(res.error || "Failed to reactivate membership");
+                      }
+                    } finally {
+                      setReactivateLoading(false);
+                    }
+                  }}
+                  style={{
+                    border: "1px solid #3f6604",
+                    color: "#3f6604",
+                    backgroundColor: "transparent",
+                    padding: "10px 18px",
+                    borderRadius: "4px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "14px",
+                    cursor: "pointer"
+                  }}
+                >
+                  {reactivateLoading ? (lang === "en" ? "Reactivating…" : "Reactivando…") : (lang === "en" ? "Reactivate my membership" : "Reactivar mi membresía")}
+                </button>
               </div>
             )}
 
