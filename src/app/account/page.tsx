@@ -9,6 +9,7 @@ import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails,
 import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
 import ThemeLoader from "@/components/ThemeLoader";
 import { ForwardArrow } from "@/components/Icons";
+import CountryPhoneInput from "@/components/CountryPhoneInput";
 
 type AccountTab = "overview" | "credits" | "perks" | "membership";
 
@@ -1298,11 +1299,11 @@ export default function AccountPage() {
                     <label style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "7px", display: "block" }}>
                       {lang === "en" ? "Phone" : "Teléfono"}
                     </label>
-                    <input
-                      type="tel"
+                    <CountryPhoneInput
                       value={detailsForm.phone}
-                      onChange={(e) => setDetailsForm({ ...detailsForm, phone: e.target.value.replace(/[^\d+ ]/g, "") })}
-                      style={{ width: "100%", boxSizing: "border-box", minHeight: "46px", padding: "11px 14px", fontSize: "15px", fontFamily: "'Lora', Georgia, serif", color: "#39292a", background: "#fff", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", outline: "none" }}
+                      onChange={(val) => setDetailsForm({ ...detailsForm, phone: val })}
+                      lang={lang}
+                      placeholder={lang === "en" ? "612 345 678" : "612 345 678"}
                     />
                   </div>
 

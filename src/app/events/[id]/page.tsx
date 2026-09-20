@@ -371,24 +371,44 @@ export default function EventDetailPage() {
 
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
                 {/* Non-Member Guest Pass Button */}
-                {!isMember && passEligible && (
-                  <button
-                    type="button"
-                    onClick={() => setEventPassEvent(ev)}
-                    style={{
-                      border: "1px solid var(--color-accent)",
-                      backgroundColor: "transparent",
-                      color: "var(--color-accent)",
-                      padding: "12px 22px",
-                      borderRadius: "4px",
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 600,
-                      fontSize: "14.5px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {guestPassLabel}
-                  </button>
+                {!isMember && !isFreeWalk && (
+                  passEligible ? (
+                    <button
+                      type="button"
+                      onClick={() => setEventPassEvent(ev)}
+                      style={{
+                        border: "1px solid var(--color-accent)",
+                        backgroundColor: "transparent",
+                        color: "var(--color-accent)",
+                        padding: "12px 22px",
+                        borderRadius: "4px",
+                        fontFamily: "var(--font-heading)",
+                        fontWeight: 600,
+                        fontSize: "14.5px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {guestPassLabel}
+                    </button>
+                  ) : (ev.isSignature || ev.creditCost > 18) ? (
+                    <button
+                      type="button"
+                      onClick={() => setCeilingEvent(ev)}
+                      style={{
+                        border: "1px solid var(--color-accent)",
+                        backgroundColor: "transparent",
+                        color: "var(--color-accent)",
+                        padding: "12px 22px",
+                        borderRadius: "4px",
+                        fontFamily: "var(--font-heading)",
+                        fontWeight: 600,
+                        fontSize: "14.5px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {lang === "en" ? "€35 Event Pass" : "Event Pass 35€"}
+                    </button>
+                  ) : null
                 )}
 
                 {/* Member / Guest Main Button */}
@@ -482,60 +502,6 @@ export default function EventDetailPage() {
                     <button
                       type="button"
                       onClick={() => setFreeRsvpEvent(ev)}
-                      style={{
-                        backgroundColor: "var(--color-accent)",
-                        color: "#f8efe2",
-                        border: "none",
-                        padding: "12px 26px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {lang === "en" ? "Book" : "Reservar"}
-                    </button>
-                  ) : ev.isSignature || ev.creditCost > 18 ? (
-                    <button
-                      type="button"
-                      onClick={() => setCeilingEvent(ev)}
-                      style={{
-                        backgroundColor: "var(--color-accent)",
-                        color: "#f8efe2",
-                        border: "none",
-                        padding: "12px 26px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {lang === "en" ? "Book" : "Reservar"}
-                    </button>
-                  ) : isFull ? (
-                    <button
-                      type="button"
-                      onClick={() => setGuestFullEvent(ev)}
-                      style={{
-                        backgroundColor: "var(--color-accent)",
-                        color: "#f8efe2",
-                        border: "none",
-                        padding: "12px 26px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {lang === "en" ? "Book" : "Reservar"}
-                    </button>
-                  ) : !passEligible && !isFreeWalk ? (
-                    <button
-                      type="button"
-                      onClick={() => setGuestNotOpenEvent(ev)}
                       style={{
                         backgroundColor: "var(--color-accent)",
                         color: "#f8efe2",

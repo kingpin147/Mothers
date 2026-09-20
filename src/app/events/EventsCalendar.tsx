@@ -1969,20 +1969,16 @@ function EventCard({
         onMemberBook(ev);
       }
     } else {
-      // Signed out visitor
-      if (isFull) {
-        onOpenGuestFull(ev);
-      } else if (ev.creditCost > 18 || ev.isSignature) {
-        onOpenCeiling(ev);
-      } else {
-        onOpenSignedOut(ev);
-      }
+      // Signed out visitor clicking Book -> prompt to sign in or join
+      onOpenSignedOut(ev);
     }
   };
 
   const handleGuestPassClick = () => {
     if (eligible) {
       onOpenEventPass(ev);
+    } else if (ev.creditCost > 18 || ev.isSignature) {
+      onOpenCeiling(ev);
     } else {
       onOpenGuestNotOpen(ev);
     }
