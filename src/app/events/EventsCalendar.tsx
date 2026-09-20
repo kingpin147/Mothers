@@ -570,7 +570,7 @@ export function FreeWalkRsvpModal({
                   fontWeight: 600, fontSize: "14.5px", cursor: loading ? "wait" : "pointer",
                 }}
               >
-                {loading ? (lang === "en" ? "Joining..." : "Uniéndome...") : (lang === "en" ? "Join the open list" : "Unirme a la lista")}
+                {loading ? (lang === "en" ? "Joining..." : "Uniéndome...") : (lang === "en" ? "Join the open list" : "Unirme a la lista abierta")}
               </button>
             </div>
           </form>
@@ -939,7 +939,7 @@ export function EventPassModal({
               </svg>
             </div>
             <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 12px", color: "#39292a" }}>
-              {lang === "en" ? "You've used both your Event Passes." : "Has utilizado tus dos Event Passes."}
+              {lang === "en" ? "You've used both your Event Passes." : "Ya has usado tus dos Event Passes."}
             </h2>
             <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 24px" }}>
               {lang === "en"
@@ -1133,14 +1133,14 @@ export function CeilingModal({
 
         <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 12px", color: "#39292a" }}>
           {ev.isSignature
-            ? (lang === "en" ? "This one is for members." : "Este evento es solo para socias.")
-            : (lang === "en" ? "This one is beyond the Event Pass." : "Este evento supera el Event Pass.")}
+            ? (lang === "en" ? "Signature moments are members only." : "Los Signature moments son exclusivos para socias.")
+            : (lang === "en" ? "This one is beyond the Event Pass." : "Este encuentro supera el Event Pass.")}
         </h2>
         <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 24px" }}>
           {ev.isSignature
             ? (lang === "en"
                 ? `Signature moments — like “${getEventDisplayTitle(ev, lang)}” — are the handful of experiences each year kept for members alone: everything else on the calendar opens to guests on an Event Pass.`
-                : `Los momentos especiales — como “${getEventDisplayTitle(ev, lang)}” — son las experiencias reservadas exclusivamente para socias: todo lo demás en el calendario se abre a invitadas con un Event Pass.`)
+                : `Los Signature moments — como “${getEventDisplayTitle(ev, lang)}” — son las experiencias reservadas exclusivamente para socias: todo lo demás en el calendario se abre a invitadas con un Event Pass.`)
             : (lang === "en"
                 ? `An Event Pass covers experiences up to 18 credits. “${getEventDisplayTitle(ev, lang)}” costs ${ev.creditCost} — the richer end of the calendar, and one of the reasons members pay monthly rather than by the event.`
                 : `Un Event Pass cubre experiencias de hasta 18 créditos. “${getEventDisplayTitle(ev, lang)}” cuesta ${ev.creditCost} créditos — el extremo más exclusivo del calendario, y una de las razones por las que las socias pagan mensualmente en lugar de por evento.`)}
@@ -1992,8 +1992,12 @@ function EventCard({
         onMemberBook(ev);
       }
     } else {
-      // Signed out visitor clicking Book -> prompt to sign in or join
-      onOpenSignedOut(ev);
+      // Signed out / non-member visitor clicking Book
+      if (ev.isSignature || ev.creditCost > 18) {
+        onOpenCeiling(ev); // State 11: names cost/ceiling or members-only with join route
+      } else {
+        onOpenSignedOut(ev); // State 13: sign in to book place
+      }
     }
   };
 
@@ -2375,31 +2379,10 @@ function EventCard({
                   >
                     {isBooking ? (lang === "en" ? "Joining..." : "Uniéndome...") : (lang === "en" ? "Join the waitlist" : "Unirme a la lista")}
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleBookClick}
-                    style={{
-                      border: "1px solid #7b1f2c",
-                      backgroundColor: "#7b1f2c",
-                      color: "#f8efe2",
-                      padding: "10px 22px",
-                      borderRadius: "4px",
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 600,
-                      fontSize: "14.5px",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {isOpenList
-                      ? (lang === "en" ? "Join the list" : "Unirme a la lista")
-                      : (lang === "en" ? "Book" : "Reservar")}
-                  </button>
-                )
+                ) : null
               ) : (
                 <>
-                  {!isMember && !ev.isSignature && (ev.creditCost <= 18) && (
+                  {eligible && (
                     <button
                       type="button"
                       onClick={handleGuestPassClick}
@@ -2438,9 +2421,7 @@ function EventCard({
                   >
                     {isBooking
                       ? (lang === "en" ? "Booking..." : "Reservando...")
-                      : (isOpenList
-                          ? (lang === "en" ? "Join the list" : "Unirme a la lista")
-                          : (lang === "en" ? "Book" : "Reservar"))}
+                      : (lang === "en" ? "Book" : "Reservar")}
                   </button>
                 </>
               )}

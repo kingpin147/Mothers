@@ -371,44 +371,24 @@ export default function EventDetailPage() {
 
               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
                 {/* Non-Member Guest Pass Button */}
-                {!isMember && !isFreeWalk && (
-                  passEligible ? (
-                    <button
-                      type="button"
-                      onClick={() => setEventPassEvent(ev)}
-                      style={{
-                        border: "1px solid var(--color-accent)",
-                        backgroundColor: "transparent",
-                        color: "var(--color-accent)",
-                        padding: "12px 22px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {guestPassLabel}
-                    </button>
-                  ) : (ev.isSignature || ev.creditCost > 18) ? (
-                    <button
-                      type="button"
-                      onClick={() => setCeilingEvent(ev)}
-                      style={{
-                        border: "1px solid var(--color-accent)",
-                        backgroundColor: "transparent",
-                        color: "var(--color-accent)",
-                        padding: "12px 22px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {lang === "en" ? "€35 Event Pass" : "Event Pass 35€"}
-                    </button>
-                  ) : null
+                {!isMember && !isFreeWalk && passEligible && (
+                  <button
+                    type="button"
+                    onClick={() => setEventPassEvent(ev)}
+                    style={{
+                      border: "1px solid var(--color-accent)",
+                      backgroundColor: "transparent",
+                      color: "var(--color-accent)",
+                      padding: "12px 22px",
+                      borderRadius: "4px",
+                      fontFamily: "var(--font-heading)",
+                      fontWeight: 600,
+                      fontSize: "14.5px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {guestPassLabel}
+                  </button>
                 )}
 
                 {/* Member / Guest Main Button */}
@@ -493,14 +473,12 @@ export default function EventDetailPage() {
                     >
                       {actionLoading
                         ? (lang === "en" ? "Booking…" : "Reservando…")
-                        : (isFreeWalk || ev.creditCost === 0 || !ev.capacityTotal
-                            ? (lang === "en" ? "Join the list" : "Unirme a la lista")
-                            : (lang === "en" ? "Book" : "Reservar"))}
+                        : (lang === "en" ? "Book" : "Reservar")}
                     </button>
                   )
                 ) : (
                   /* Signed Out User */
-                  isFreeWalk ? (
+                  isFull ? null : isFreeWalk ? (
                     <button
                       type="button"
                       onClick={() => setFreeRsvpEvent(ev)}
@@ -516,12 +494,18 @@ export default function EventDetailPage() {
                         cursor: "pointer",
                       }}
                     >
-                      {lang === "en" ? "Join the list" : "Unirme a la lista"}
+                      {lang === "en" ? "Book" : "Reservar"}
                     </button>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setSignedOutEvent(ev)}
+                      onClick={() => {
+                        if (ev.isSignature || ev.creditCost > 18) {
+                          setCeilingEvent(ev);
+                        } else {
+                          setSignedOutEvent(ev);
+                        }
+                      }}
                       style={{
                         backgroundColor: "var(--color-accent)",
                         color: "#f8efe2",
