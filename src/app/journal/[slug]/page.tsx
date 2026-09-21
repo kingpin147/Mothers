@@ -513,8 +513,8 @@ export default function JournalSlugPage() {
             }}
           >
             {lang === "en"
-              ? "The writing is free. The room is the membership."
-              : "Los textos son gratis. La sala es la membresía."}
+              ? "The Mothers Circle is waiting for you"
+              : "El Círculo de The Mothers te está esperando"}
           </h3>
           <p
             style={{

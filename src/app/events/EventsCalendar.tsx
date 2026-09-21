@@ -8,6 +8,7 @@ import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 import { subscribeToLetter } from "@/app/actions/publicWindow";
 import { useLanguage } from "@/components/LanguageProvider";
 import { ForwardArrow } from "@/components/Icons";
+import CountryPhoneInput from "@/components/CountryPhoneInput";
 
 export type Lang = "en" | "es";
 
@@ -531,16 +532,15 @@ export function FreeWalkRsvpModal({
                 onChange={(e) => setEmail(e.target.value)}
                 style={{ ...modalInputStyle, gridColumn: "1 / -1" }}
               />
-              <input
-                type="tel"
-                inputMode="numeric"
-                pattern="[0-9+ ]*"
-                required
-                placeholder={lang === "en" ? "Phone (WhatsApp)" : "Teléfono (WhatsApp)"}
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value.replace(/[^\d+ ]/g, ""))}
-                style={{ ...modalInputStyle, gridColumn: "1 / -1" }}
-              />
+              <div style={{ gridColumn: "1 / -1" }}>
+                <CountryPhoneInput
+                  value={whatsapp}
+                  onChange={(fullNumber) => setWhatsapp(fullNumber)}
+                  lang={lang}
+                  placeholder={lang === "en" ? "Phone (WhatsApp)" : "Teléfono (WhatsApp)"}
+                  required
+                />
+              </div>
             </div>
 
             <p style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)", margin: "0 0 16px", lineHeight: 1.5 }}>

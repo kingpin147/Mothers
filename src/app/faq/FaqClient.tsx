@@ -36,6 +36,7 @@ const DEFAULT_CATEGORY_ORDER = [
 
 export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: FaqClientProps) {
   const [lang, setLang] = useState<Locale>("en");
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({ "Joining": true });
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({ "Joining-0": true });
 
   const processText = (text: string) => {
@@ -77,6 +78,13 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
 
+  const toggleCategory = (catName: string) => {
+    setOpenCategories((prev) => ({
+      ...prev,
+      [catName]: !prev[catName]
+    }));
+  };
+
   const toggleAccordion = (key: string) => {
     setOpenMap((prev) => ({
       ...prev,
@@ -109,92 +117,147 @@ export default function FaqClient({ dynamicFaqs = [], publicSettings = {} }: Faq
           </p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "36px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {sortedCategories.map((catName) => {
             const groupItems = allFaqs.filter((f) => f.group === catName);
             if (groupItems.length === 0) return null;
             const catLabel = CATEGORY_LABELS[catName]?.[lang] || catName;
+            const isCatOpen = !!openCategories[catName];
 
             return (
-              <div key={catName} style={{ display: "flex", flexDirection: "column" }}>
-                <div
+              <div
+                key={catName}
+                style={{
+                  borderBottom: "1px solid rgba(123, 31, 44, 0.2)",
+                  display: "flex",
+                  flexDirection: "column",
+                  transition: "background-color 0.15s ease"
+                }}
+              >
+                {/* Category Header Accordion Trigger */}
+                <button
+                  type="button"
+                  onClick={() => toggleCategory(catName)}
                   style={{
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                    fontSize: "14px",
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: "var(--color-accent)",
-                    paddingBottom: "10px",
-                    borderBottom: "2px solid rgba(123, 31, 44, 0.2)",
-                    marginBottom: "4px"
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px 4px",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left"
                   }}
                 >
-                  {catLabel}
-                </div>
-
-                {groupItems.map((faq, idx) => {
-                  const itemKey = `${catName}-${idx}`;
-                  const isOpen = !!openMap[itemKey];
-
-                  return (
-                    <div
-                      key={itemKey}
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "12px" }}>
+                    <span
                       style={{
-                        borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
-                        padding: "4px 0"
+                        fontFamily: "var(--font-heading)",
+                        fontWeight: 600,
+                        fontSize: "14.5px",
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: "var(--color-accent)"
                       }}
                     >
-                      <button
-                        type="button"
-                        onClick={() => toggleAccordion(itemKey)}
-                        style={{
-                          width: "100%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: "16px",
-                          background: "transparent",
-                          border: "none",
-                          textAlign: "left",
-                          padding: "16px 2px",
-                          cursor: "pointer",
-                          fontFamily: "var(--font-heading)",
-                          fontWeight: 600,
-                          fontSize: "17.5px",
-                          color: "var(--color-text)",
-                          minHeight: "44px"
-                        }}
-                      >
-                        <span>{lang === "en" ? faq.qEn : faq.qEs}</span>
-                        <span style={{
-                          flex: "none",
-                          color: "var(--color-accent)",
-                          transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                          transition: "transform 0.2s ease",
-                          display: "flex",
-                          alignItems: "center"
-                        }}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
-                            <path d="m6 9 6 6 6-6" />
-                          </svg>
-                        </span>
-                      </button>
+                      {catLabel}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'Lora', Georgia, serif",
+                        fontSize: "13px",
+                        color: "rgba(57, 41, 42, 0.45)",
+                        fontWeight: 400
+                      }}
+                    >
+                      {groupItems.length}
+                    </span>
+                  </div>
 
-                      {isOpen && (
-                        <p style={{
-                          fontSize: "15px",
-                          lineHeight: "1.65",
-                          color: "rgba(57, 41, 42, 0.75)",
-                          margin: "0 0 18px 0",
-                          paddingRight: "28px"
-                        }}>
-                          {lang === "en" ? faq.aEn : faq.aEs}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
+                  <span
+                    style={{
+                      flex: "none",
+                      color: "var(--color-accent)",
+                      transform: isCatOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s ease",
+                      display: "flex",
+                      alignItems: "center"
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </span>
+                </button>
+
+                {/* Questions Under Open Category */}
+                {isCatOpen && (
+                  <div style={{ display: "flex", flexDirection: "column", paddingBottom: "12px" }}>
+                    {groupItems.map((faq, idx) => {
+                      const itemKey = `${catName}-${idx}`;
+                      const isOpen = !!openMap[itemKey];
+
+                      return (
+                        <div
+                          key={itemKey}
+                          style={{
+                            borderTop: "1px solid rgba(57, 41, 42, 0.12)",
+                            padding: "2px 0"
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleAccordion(itemKey)}
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "16px",
+                              background: "transparent",
+                              border: "none",
+                              textAlign: "left",
+                              padding: "14px 2px",
+                              cursor: "pointer",
+                              fontFamily: "var(--font-heading)",
+                              fontWeight: 600,
+                              fontSize: "16.5px",
+                              color: "var(--color-text)",
+                              minHeight: "42px"
+                            }}
+                          >
+                            <span>{lang === "en" ? faq.qEn : faq.qEs}</span>
+                            <span style={{
+                              flex: "none",
+                              color: "var(--color-accent)",
+                              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                              transition: "transform 0.2s ease",
+                              display: "flex",
+                              alignItems: "center"
+                            }}>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                                <path d="m6 9 6 6 6-6" />
+                              </svg>
+                            </span>
+                          </button>
+
+                          {isOpen && (
+                            <p style={{
+                              fontSize: "15px",
+                              lineHeight: "1.65",
+                              color: "rgba(57, 41, 42, 0.75)",
+                              margin: "0 0 16px 0",
+                              paddingRight: "28px"
+                            }}>
+                              {lang === "en" ? faq.aEn : faq.aEs}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
