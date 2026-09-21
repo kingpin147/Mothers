@@ -1,0 +1,26 @@
+{
+  "name": "The Mothers",
+  "short_name": "The Mothers",
+  "description": "A private membership club for mothers in Barcelona.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FEFDF9",
+  "theme_color": "#7b1f2c",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

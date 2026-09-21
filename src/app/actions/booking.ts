@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, creditEntry, creditAllocation, member, person, eventPass, eventWaitlist, auditLog } from "@/db/schema";
+import { event, booking, creditEntry, creditAllocation, member, person, eventPass, eventWaitlist, auditLog, guestRsvp } from "@/db/schema";
 import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -30,6 +30,36 @@ export async function bookEvent(eventId: string) {
   const memberId = (session.user as any).memberId;
 
   if (!memberId) {
+    const ev = await db.query.event.findFirst({
+      where: eq(event.id, eventId),
+    });
+    if (ev && (ev.isFreeWalk || ev.creditCost === 0)) {
+      const nameParts = (session.user.name || "Member User").trim().split(" ");
+      const firstName = nameParts[0] || "User";
+      const lastName = nameParts.slice(1).join(" ") || "Admin";
+      const email = (session.user.email || "").toLowerCase().trim();
+
+      const existingEntry = await db.query.guestRsvp.findFirst({
+        where: and(
+          eq(guestRsvp.eventId, eventId),
+          eq(guestRsvp.email, email)
+        ),
+      });
+
+      if (!existingEntry && email) {
+        await db.insert(guestRsvp).values({
+          eventId,
+          firstName,
+          lastName,
+          email,
+        });
+      }
+
+      revalidatePath("/events");
+      revalidatePath(`/events/${eventId}`);
+      return { success: true };
+    }
+
     return { success: false, error: "MEMBER_ACCOUNT_REQUIRED" };
   }
 

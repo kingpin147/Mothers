@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { getEventRoster, markAttendance } from "@/app/actions/adminEvents";
-import { adminCancelMemberBooking } from "@/app/actions/adminEventsControl";
+import { getEventRoster, markAttendance, markGuestRsvpAttendance } from "@/app/actions/adminEvents";
+import { adminCancelMemberBooking, adminRemoveGuestRsvp } from "@/app/actions/adminEventsControl";
 import { BackArrow } from "@/components/Icons";
 
 const WINE = '#7b1f2c', AMBER = '#a8752c', GREEN = '#3f6604', GREY = 'rgba(57,41,42,0.55)';
@@ -40,6 +40,23 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  const handleMarkGuestRsvp = async (rsvpId: string, currentlyAttended: boolean) => {
+    const res = await markGuestRsvpAttendance(rsvpId, !currentlyAttended);
+    if (res.success) {
+      fetchRoster();
+    }
+  };
+
+  const handleRemoveRsvp = async (rsvpId: string) => {
+    if (!confirm("Are you sure you want to remove this person from the open list?")) return;
+    const res = await adminRemoveGuestRsvp(rsvpId);
+    if (res.success) {
+      fetchRoster();
+    } else {
+      alert(res.error || "Failed to remove RSVP.");
+    }
+  };
+
   const handleCancelMember = async (bookingId: string) => {
     if (!confirm("Are you sure you want to remove this member from the event and refund their credits?")) return;
     const res = await adminCancelMemberBooking(bookingId);
@@ -62,6 +79,7 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
   const bookings = data.bookings || [];
   const released = data.released || [];
   const waitlist = data.waitlist || [];
+  const guestRsvps = data.guestRsvps || [];
 
   const placesTaken = bookings.length;
   const maxCapacity = ev.capacityMember + ev.capacityGuest;
@@ -69,6 +87,7 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
   const membersCount = bookings.filter((b: any) => b.booking.kind === 'member').length;
   const guestCount = bookings.filter((b: any) => b.booking.kind === 'guest').length;
   const arrivedCount = bookings.filter((b: any) => b.booking.status === 'attended').length;
+  const openListArrivedCount = guestRsvps.filter((r: any) => r.attendedAt).length;
   
   const dateFormatted = new Date(ev.startsAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   const timeFormatted = `${new Date(ev.startsAt).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})} - ${new Date(ev.endsAt).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})}`;
@@ -230,6 +249,86 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
             })}
           </div>
         </div>
+
+        {/* Free Walk / Open List Section */}
+        {(ev.isFreeWalk || ev.creditCost === 0 || guestRsvps.length > 0) && (
+          <div className="print-border" style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", overflowX: "auto", marginBottom: "24px" }}>
+            <div style={{ padding: "16px 18px", borderBottom: "1px solid rgba(57,41,42,0.18)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", margin: 0, color: "#39292a" }}>
+                Open List RSVPs ({guestRsvps.length})
+              </h2>
+              <span style={{ fontSize: "13px", color: GREEN, fontWeight: 600 }}>
+                {openListArrivedCount} Arrived
+              </span>
+            </div>
+            <div style={{ minWidth: "760px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "2.5fr 2fr 2fr 180px", gap: "14px", padding: "12px 18px", borderBottom: "1px solid rgba(57,41,42,0.1)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)" }}>
+                <div>Attendee</div>
+                <div>Contact</div>
+                <div>RSVP Date</div>
+                <div style={{ textAlign: "right" }}>Actions</div>
+              </div>
+
+              {guestRsvps.length === 0 ? (
+                <div style={{ padding: "20px 18px", fontSize: "14px", color: "rgba(57,41,42,0.65)" }}>No open list RSVPs yet.</div>
+              ) : guestRsvps.map((r: any) => {
+                const isAttended = !!r.attendedAt;
+                return (
+                  <div key={r.id} style={{ display: "grid", gridTemplateColumns: "2.5fr 2fr 2fr 180px", gap: "14px", padding: "16px 18px", borderBottom: "1px solid rgba(57,41,42,0.08)", alignItems: "center", background: isAttended ? "rgba(63,102,4,0.03)" : "transparent" }}>
+                    <div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: "#39292a" }}>{r.firstName} {r.lastName}</div>
+                      <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>{r.email}</div>
+                    </div>
+                    <div style={{ fontSize: "13px", color: "#39292a" }}>
+                      {r.whatsappE164 || <span style={{ color: "rgba(57,41,42,0.4)" }}>No phone provided</span>}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.65)" }}>
+                      {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div className="no-print" style={{ textAlign: "right", display: "inline-flex", gap: "8px", alignItems: "center", justifyContent: "flex-end" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleMarkGuestRsvp(r.id, isAttended)}
+                        style={{
+                          border: isAttended ? "none" : "1px solid rgba(57,41,42,0.3)",
+                          background: isAttended ? "#3f6604" : "transparent",
+                          color: isAttended ? "#fff" : "#39292a",
+                          borderRadius: "4px",
+                          padding: "6px 12px",
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontWeight: 600,
+                          fontSize: "13px",
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {isAttended ? 'Arrived ✓' : 'Mark'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRsvp(r.id)}
+                        style={{
+                          border: "1px solid rgba(123,31,44,0.35)",
+                          background: "#fff8f8",
+                          color: WINE,
+                          borderRadius: "4px",
+                          padding: "6px 10px",
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontWeight: 600,
+                          fontSize: "13px",
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 400px), 1fr))", gap: "16px" }}>
           

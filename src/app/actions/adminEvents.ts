@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member, eventPass } from "@/db/schema";
+import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member, eventPass, guestRsvp } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
@@ -916,6 +916,22 @@ export async function getEventRoster(eventId: string) {
     .where(eq(eventWaitlist.eventId, eventId))
     .orderBy(eventWaitlist.createdAt);
 
+  // Get Free Open List RSVPs
+  const guestRsvps = await db
+    .select({
+      id: guestRsvp.id,
+      eventId: guestRsvp.eventId,
+      firstName: guestRsvp.firstName,
+      lastName: guestRsvp.lastName,
+      email: guestRsvp.email,
+      whatsappE164: guestRsvp.whatsappE164,
+      attendedAt: guestRsvp.attendedAt,
+      createdAt: guestRsvp.createdAt,
+    })
+    .from(guestRsvp)
+    .where(eq(guestRsvp.eventId, eventId))
+    .orderBy(desc(guestRsvp.createdAt));
+
   // Get target stages
   const stageRows = await db
     .select({
@@ -933,6 +949,7 @@ export async function getEventRoster(eventId: string) {
     event: { ...ev, targetStages }, 
     bookings: bookingsWithPerson, 
     released: releasedBookings, 
+    guestRsvps,
     waitlist 
   };
 }
@@ -953,6 +970,27 @@ export async function markAttendance(bookingId: string, attended: boolean) {
       updatedAt: new Date(),
     })
     .where(eq(booking.id, bookingId));
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/admin/events");
+
+  return { success: true };
+}
+
+export async function markGuestRsvpAttendance(rsvpId: string, attended: boolean) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "host", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  await db
+    .update(guestRsvp)
+    .set({
+      attendedAt: attended ? new Date() : null,
+    })
+    .where(eq(guestRsvp.id, rsvpId));
 
   const { revalidatePath } = await import("next/cache");
   revalidatePath("/admin/events");

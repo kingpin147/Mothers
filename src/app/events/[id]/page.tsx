@@ -94,7 +94,7 @@ export default function EventDetailPage() {
     }
   }, [session, eventId]);
 
-  const isMember = !!session?.user;
+  const isMember = (session?.user as any)?.role === "member" && !!(session?.user as any)?.memberId;
   const currentCreditBalance = memberCredits ?? 0;
 
   // Handle URL intent triggers
@@ -106,7 +106,13 @@ export default function EventDetailPage() {
         window.history.replaceState({}, "", `/events/${eventId}`);
       } else if (query.get("action") === "book") {
         window.history.replaceState({}, "", `/events/${eventId}`);
-        if (isMember) {
+        if (ev.isFreeWalk || ev.creditCost === 0) {
+          if (isMember) {
+            handleMemberBook(ev);
+          } else {
+            setFreeRsvpEvent(ev);
+          }
+        } else if (isMember) {
           handleMemberBook(ev);
         } else {
           setSignedOutEvent(ev);

@@ -392,6 +392,7 @@ export function FreeWalkRsvpModal({
   lang: Lang;
   onClose: () => void;
 }) {
+  const { data: session } = useSession();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -399,6 +400,19 @@ export function FreeWalkRsvpModal({
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session?.user) {
+      if (session.user.name && !firstName) {
+        const parts = session.user.name.trim().split(" ");
+        setFirstName(parts[0] || "");
+        setLastName(parts.slice(1).join(" ") || "");
+      }
+      if (session.user.email && !email) {
+        setEmail(session.user.email);
+      }
+    }
+  }, [session]);
 
   const isUnlimited = !ev.capacityTotal || ev.isFreeWalk;
 
@@ -2428,7 +2442,7 @@ function EventCard({
 
 export function EventsCalendar({ events, categories, creditBalance = 0 }: Props) {
   const { data: session } = useSession();
-  const isMember = !!session?.user;
+  const isMember = (session?.user as any)?.role === "member" && !!(session?.user as any)?.memberId;
 
   const { language: lang } = useLanguage();
   const [eventsList, setEventsList] = useState<PublicEvent[]>(events);

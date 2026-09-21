@@ -10,7 +10,8 @@ import {
   creditEntry,
   auditLog,
   eventWaitlist,
-  adminUser
+  adminUser,
+  guestRsvp
 } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -86,10 +87,27 @@ export async function getEventAttendees(eventId: string) {
     ticketUrl: `/ticket/${gp.id}`,
   }));
 
+  // 3. Fetch Free Open List RSVPs
+  const guestRsvps = await db
+    .select({
+      id: guestRsvp.id,
+      eventId: guestRsvp.eventId,
+      firstName: guestRsvp.firstName,
+      lastName: guestRsvp.lastName,
+      email: guestRsvp.email,
+      whatsappE164: guestRsvp.whatsappE164,
+      attendedAt: guestRsvp.attendedAt,
+      createdAt: guestRsvp.createdAt,
+    })
+    .from(guestRsvp)
+    .where(eq(guestRsvp.eventId, eventId))
+    .orderBy(desc(guestRsvp.createdAt));
+
   return {
     success: true,
     memberBookings,
     guestPasses,
+    guestRsvps,
   };
 }
 
@@ -152,6 +170,21 @@ export async function getEventRosterDetail(eventId: string) {
     )
     .orderBy(desc(eventPass.purchasedAt));
 
+  const guestRsvps = await db
+    .select({
+      id: guestRsvp.id,
+      eventId: guestRsvp.eventId,
+      firstName: guestRsvp.firstName,
+      lastName: guestRsvp.lastName,
+      email: guestRsvp.email,
+      whatsappE164: guestRsvp.whatsappE164,
+      attendedAt: guestRsvp.attendedAt,
+      createdAt: guestRsvp.createdAt,
+    })
+    .from(guestRsvp)
+    .where(eq(guestRsvp.eventId, eventId))
+    .orderBy(desc(guestRsvp.createdAt));
+
   const waitlist = await db
     .select({
       id: eventWaitlist.id,
@@ -172,12 +205,13 @@ export async function getEventRosterDetail(eventId: string) {
     hostUser,
     memberBookings,
     guestPasses,
+    guestRsvps,
     waitlist,
   };
 }
 
 const adminMarkAttendanceSchema = z.object({
-  type: z.enum(["member", "guest"]),
+  type: z.enum(["member", "guest", "rsvp"]),
   id: z.string().min(1),
   status: z.enum(["attended", "no_show", "confirmed", "released"]),
 });
@@ -185,7 +219,7 @@ const adminMarkAttendanceSchema = z.object({
 // ─── 2. ADMIN MARK ATTENDANCE (CHECK-IN / NO-SHOW) ──────────────────────────
 
 export async function adminMarkAttendance(
-  type: "member" | "guest",
+  type: "member" | "guest" | "rsvp",
   id: string,
   status: "attended" | "no_show" | "confirmed" | "released"
 ) {
@@ -200,20 +234,97 @@ export async function adminMarkAttendance(
       .update(booking)
       .set({ status, updatedAt: new Date() })
       .where(eq(booking.id, id));
-  } else {
+  } else if (type === "guest") {
     const passStatus = status === "attended" ? "used" : status === "released" ? "refunded" : "paid";
     await db
       .update(eventPass)
       .set({ status: passStatus, updatedAt: new Date() })
       .where(eq(eventPass.id, id));
+  } else if (type === "rsvp") {
+    await db
+      .update(guestRsvp)
+      .set({
+        attendedAt: status === "attended" ? new Date() : null,
+      })
+      .where(eq(guestRsvp.id, id));
   }
 
   await db.insert(auditLog).values({
     actorId: adminId,
     actorType: "admin",
     action: `mark_attendance_${status}`,
-    entity: type === "member" ? "booking" : "event_pass",
+    entity: type === "member" ? "booking" : type === "guest" ? "event_pass" : "guest_rsvp",
     entityId: id,
+  });
+
+  return { success: true };
+}
+
+export async function adminRemoveGuestRsvp(rsvpId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { adminId } = await verifyAdmin();
+    await db.delete(guestRsvp).where(eq(guestRsvp.id, rsvpId));
+
+    await db.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "admin_remove_guest_rsvp",
+      entity: "guest_rsvp",
+      entityId: rsvpId,
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to remove RSVP" };
+  }
+}
+
+export async function adminAddGuestRsvp(rawData: {
+  eventId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  whatsappE164?: string;
+}) {
+  const { adminId } = await verifyAdmin();
+  const parsed = z.object({
+    eventId: z.string().min(1),
+    firstName: z.string().trim().min(1, "First name is required"),
+    lastName: z.string().trim().min(1, "Last name is required"),
+    email: z.string().trim().email("Invalid email").toLowerCase(),
+    whatsappE164: z.string().trim().optional(),
+  }).safeParse(rawData);
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+
+  const existing = await db.query.guestRsvp.findFirst({
+    where: and(
+      eq(guestRsvp.eventId, parsed.data.eventId),
+      eq(guestRsvp.email, parsed.data.email)
+    ),
+  });
+
+  if (existing) {
+    return { success: false, error: "This email is already registered on the open list for this event." };
+  }
+
+  const [inserted] = await db.insert(guestRsvp).values({
+    eventId: parsed.data.eventId,
+    firstName: parsed.data.firstName,
+    lastName: parsed.data.lastName,
+    email: parsed.data.email,
+    whatsappE164: parsed.data.whatsappE164 || null,
+  }).returning();
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "admin_add_guest_rsvp",
+    entity: "guest_rsvp",
+    entityId: inserted.id,
+    after: { eventId: parsed.data.eventId, email: parsed.data.email },
   });
 
   return { success: true };

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MoreHorizontal, Users, CheckCircle, Edit2, Copy, Printer, X, Eye } from "lucide-react";
 import { getAdminEvents, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, publishAdminEvent } from "@/app/actions/adminEvents";
 import { deleteEvent } from "@/app/actions/events";
-import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember, adminCancelMemberBooking, adminCancelGuestPass } from "@/app/actions/adminEventsControl";
+import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember, adminCancelMemberBooking, adminCancelGuestPass, adminRemoveGuestRsvp, adminAddGuestRsvp } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
 import ThemeLoader from "@/components/ThemeLoader";
@@ -65,11 +65,16 @@ export default function AdminEventsPage() {
   const [rosterLoading, setRosterLoading] = useState(false);
   const [memberBookings, setMemberBookings] = useState<any[]>([]);
   const [guestPasses, setGuestPasses] = useState<any[]>([]);
+  const [guestRsvps, setGuestRsvps] = useState<any[]>([]);
 
   // Guest Pass Form in Modal
   const [guestForm, setGuestForm] = useState({ firstName: "", lastName: "", email: "" });
   const [issuingPass, setIssuingPass] = useState(false);
   const [generatedTicketUrl, setGeneratedTicketUrl] = useState<string | null>(null);
+
+  // Free Walk / Open List RSVP Form in Modal
+  const [guestRsvpForm, setGuestRsvpForm] = useState({ firstName: "", lastName: "", email: "", whatsappE164: "" });
+  const [addingRsvp, setAddingRsvp] = useState(false);
 
   // Manual Member Booking Form in Modal
   const [selectedMemberId, setSelectedMemberId] = useState("");
@@ -120,6 +125,7 @@ export default function AdminEventsPage() {
       const mb = res.memberBookings || [];
       setMemberBookings(mb);
       setGuestPasses(res.guestPasses || []);
+      setGuestRsvps(res.guestRsvps || []);
       const available = allMembers.filter(m => !mb.some((b: any) => b.email === m.email));
       if (available.length > 0) {
         setSelectedMemberId(available[0].id);
@@ -129,14 +135,52 @@ export default function AdminEventsPage() {
     }
   };
 
-  const handleMarkAttendance = async (type: "member" | "guest", id: string, status: "attended" | "no_show" | "confirmed" | "released") => {
+  const handleMarkAttendance = async (type: "member" | "guest" | "rsvp", id: string, status: "attended" | "no_show" | "confirmed" | "released") => {
     const res = await adminMarkAttendance(type, id, status);
     if (res.success && activeEventRoster) {
       const refreshed = await getEventAttendees(activeEventRoster.id);
       if (refreshed.success) {
         setMemberBookings(refreshed.memberBookings || []);
         setGuestPasses(refreshed.guestPasses || []);
+        setGuestRsvps(refreshed.guestRsvps || []);
       }
+    }
+  };
+
+  const handleRemoveGuestRsvp = async (rsvpId: string) => {
+    if (!confirm("Are you sure you want to remove this attendee from the open list?")) return;
+    const res = await adminRemoveGuestRsvp(rsvpId);
+    if (res.success && activeEventRoster) {
+      const refreshed = await getEventAttendees(activeEventRoster.id);
+      if (refreshed.success) {
+        setGuestRsvps(refreshed.guestRsvps || []);
+      }
+      loadData();
+    } else {
+      alert(res.error || "Failed to remove attendee.");
+    }
+  };
+
+  const handleAddGuestRsvp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!guestRsvpForm.firstName || !guestRsvpForm.email || !activeEventRoster) return;
+    setAddingRsvp(true);
+    const res = await adminAddGuestRsvp({
+      eventId: activeEventRoster.id,
+      firstName: guestRsvpForm.firstName,
+      lastName: guestRsvpForm.lastName,
+      email: guestRsvpForm.email,
+      whatsappE164: guestRsvpForm.whatsappE164,
+    });
+    setAddingRsvp(false);
+    if (res.success) {
+      setGuestRsvpForm({ firstName: "", lastName: "", email: "", whatsappE164: "" });
+      const refreshed = await getEventAttendees(activeEventRoster.id);
+      if (refreshed.success) {
+        setGuestRsvps(refreshed.guestRsvps || []);
+      }
+    } else {
+      alert(res.error || "Failed to add RSVP.");
     }
   };
 
@@ -1216,82 +1260,183 @@ export default function AdminEventsPage() {
                   )}
                 </div>
 
-                {/* 2. Guest Passes List */}
-                <div>
-                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
-                    <span>Guest Passes ({guestPasses.filter((gp: any) => gp.status !== "refunded" && gp.status !== "released").length})</span>
-                    <span style={{ fontSize: "13px", color: MUTED, fontWeight: 400 }}>Pass Capacity: {activeEventRoster.capacityGuest}</span>
-                  </h3>
+                {/* 2. Open List / Free Walk RSVPs */}
+                {(activeEventRoster.isFreeWalk || activeEventRoster.creditCost === 0 || guestRsvps.length > 0) && (
+                  <div>
+                    <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
+                      <span>Open List RSVPs ({guestRsvps.length})</span>
+                      <span style={{ fontSize: "13px", color: GREEN, fontWeight: 500 }}>
+                        {guestRsvps.filter((r: any) => r.attendedAt).length} Checked In
+                      </span>
+                    </h3>
 
-                  {guestPasses.length === 0 ? (
-                    <p style={{ fontSize: "13px", color: MUTED, padding: "12px", backgroundColor: "#fbf8f3", borderRadius: "4px" }}>
-                      No guest passes issued yet.
-                    </p>
-                  ) : (
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                      <thead>
-                        <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
-                          <th style={{ padding: "8px 12px" }}>Guest</th>
-                          <th style={{ padding: "8px 12px" }}>Price</th>
-                          <th style={{ padding: "8px 12px" }}>Ticket Portal Link</th>
-                          <th style={{ padding: "8px 12px", textAlign: "right" }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {guestPasses.map((gp) => {
-                          const isRefunded = gp.status === "refunded" || gp.status === "released";
-                          return (
-                            <tr key={gp.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)", opacity: isRefunded ? 0.6 : 1 }}>
-                              <td style={{ padding: "10px 12px" }}>
-                                <div style={{ fontWeight: 600 }}>{gp.firstName} {gp.lastName}</div>
-                                <div style={{ fontSize: "11.5px", color: MUTED }}>{gp.email}</div>
-                              </td>
-                              <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
-                              <td style={{ padding: "10px 12px" }}>
-                                <a
-                                  href={gp.ticketUrl || `/ticket/${gp.id}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  style={{ color: WINE, fontSize: "12px", textDecoration: "underline", display: "inline-flex", alignItems: "center" }}
-                                >
-                                  Open Guest Ticket <ForwardArrow />
-                                </a>
-                              </td>
-                              <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                                <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                    {guestRsvps.length === 0 ? (
+                      <p style={{ fontSize: "13px", color: MUTED, padding: "12px", backgroundColor: "#fbf8f3", borderRadius: "4px" }}>
+                        No one has joined the open list for this free event yet.
+                      </p>
+                    ) : (
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                        <thead>
+                          <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
+                            <th style={{ padding: "8px 12px" }}>Attendee</th>
+                            <th style={{ padding: "8px 12px" }}>WhatsApp / Phone</th>
+                            <th style={{ padding: "8px 12px" }}>RSVP Date</th>
+                            <th style={{ padding: "8px 12px" }}>Status</th>
+                            <th style={{ padding: "8px 12px", textAlign: "right" }}>Attendance &amp; Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {guestRsvps.map((r: any) => {
+                            const isAttended = !!r.attendedAt;
+                            return (
+                              <tr key={r.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
+                                <td style={{ padding: "10px 12px" }}>
+                                  <div style={{ fontWeight: 600 }}>{r.firstName} {r.lastName}</div>
+                                  <div style={{ fontSize: "11.5px", color: MUTED }}>{r.email}</div>
+                                </td>
+                                <td style={{ padding: "10px 12px", fontSize: "12.5px" }}>
+                                  {r.whatsappE164 || <span style={{ color: MUTED }}>—</span>}
+                                </td>
+                                <td style={{ padding: "10px 12px", fontSize: "12px", color: MUTED }}>
+                                  {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                </td>
+                                <td style={{ padding: "10px 12px" }}>
                                   <span style={{
                                     padding: "2px 6px",
                                     borderRadius: "3px",
-                                    fontSize: "11px",
+                                    fontSize: "10.5px",
                                     fontWeight: 600,
                                     textTransform: "uppercase",
-                                    backgroundColor: isRefunded ? "#fef2f2" : "#eef8f0",
-                                    color: isRefunded ? "#b91c1c" : "#1e6833"
+                                    backgroundColor: isAttended ? "#eef8f0" : "#f4ece2",
+                                    color: isAttended ? "#1e6833" : WINE
                                   }}>
-                                    {isRefunded ? "Refunded" : gp.status}
+                                    {isAttended ? "Attended" : "Registered"}
                                   </span>
-                                  {!isRefunded && (
+                                </td>
+                                <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                                  <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                                     <button
                                       type="button"
-                                      onClick={() => handleCancelGuestPass(gp.id)}
-                                      title="Remove guest and mark pass refunded"
-                                      style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                      onClick={() => handleMarkAttendance("rsvp", r.id, isAttended ? "confirmed" : "attended")}
+                                      style={{
+                                        backgroundColor: isAttended ? "#fff8f8" : "#eef8f0",
+                                        color: isAttended ? "#b91c1c" : "#1e6833",
+                                        border: `1px solid ${isAttended ? "#fecdd3" : "#bbf7d0"}`,
+                                        borderRadius: "3px",
+                                        padding: "4px 8px",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                      }}
                                     >
-                                      ✕ Remove &amp; Refund
+                                      {isAttended ? "Undo Check-In" : "✓ Check-In"}
                                     </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveGuestRsvp(r.id)}
+                                      title="Remove from open list"
+                                      style={{
+                                        backgroundColor: "#fdf2f2",
+                                        color: "#993842",
+                                        border: "1px solid rgba(153,56,66,0.35)",
+                                        borderRadius: "3px",
+                                        padding: "4px 9px",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      ✕ Remove
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                )}
 
-                {/* 3. Operator Desk: Manual Booking & Direct Pass Issue */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginTop: "12px", borderTop: "1px solid rgba(57,41,42,0.15)", paddingTop: "20px" }}>
+                {/* 3. Guest Passes List (For Paid Events) */}
+                {(!activeEventRoster.isFreeWalk && activeEventRoster.creditCost > 0) && (
+                  <div>
+                    <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
+                      <span>Guest Passes ({guestPasses.filter((gp: any) => gp.status !== "refunded" && gp.status !== "released").length})</span>
+                      <span style={{ fontSize: "13px", color: MUTED, fontWeight: 400 }}>Pass Capacity: {activeEventRoster.capacityGuest}</span>
+                    </h3>
+
+                    {guestPasses.length === 0 ? (
+                      <p style={{ fontSize: "13px", color: MUTED, padding: "12px", backgroundColor: "#fbf8f3", borderRadius: "4px" }}>
+                        No guest passes issued yet.
+                      </p>
+                    ) : (
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                        <thead>
+                          <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
+                            <th style={{ padding: "8px 12px" }}>Guest</th>
+                            <th style={{ padding: "8px 12px" }}>Price</th>
+                            <th style={{ padding: "8px 12px" }}>Ticket Portal Link</th>
+                            <th style={{ padding: "8px 12px", textAlign: "right" }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {guestPasses.map((gp) => {
+                            const isRefunded = gp.status === "refunded" || gp.status === "released";
+                            return (
+                              <tr key={gp.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)", opacity: isRefunded ? 0.6 : 1 }}>
+                                <td style={{ padding: "10px 12px" }}>
+                                  <div style={{ fontWeight: 600 }}>{gp.firstName} {gp.lastName}</div>
+                                  <div style={{ fontSize: "11.5px", color: MUTED }}>{gp.email}</div>
+                                </td>
+                                <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
+                                <td style={{ padding: "10px 12px" }}>
+                                  <a
+                                    href={gp.ticketUrl || `/ticket/${gp.id}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ color: WINE, fontSize: "12px", textDecoration: "underline", display: "inline-flex", alignItems: "center" }}
+                                  >
+                                    Open Guest Ticket <ForwardArrow />
+                                  </a>
+                                </td>
+                                <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                                  <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                                    <span style={{
+                                      padding: "2px 6px",
+                                      borderRadius: "3px",
+                                      fontSize: "11px",
+                                      fontWeight: 600,
+                                      textTransform: "uppercase",
+                                      backgroundColor: isRefunded ? "#fef2f2" : "#eef8f0",
+                                      color: isRefunded ? "#b91c1c" : "#1e6833"
+                                    }}>
+                                      {isRefunded ? "Refunded" : gp.status}
+                                    </span>
+                                    {!isRefunded && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCancelGuestPass(gp.id)}
+                                        title="Remove guest and mark pass refunded"
+                                        style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
+                                      >
+                                        ✕ Remove &amp; Refund
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                )}
+
+                {/* 4. Operator Desk: Manual Booking, Direct Pass Issue & Open List Add */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px", marginTop: "12px", borderTop: "1px solid rgba(57,41,42,0.15)", paddingTop: "20px" }}>
                   {/* Manual Member Seat Booking */}
                   <div style={{ backgroundColor: "#fbf8f3", padding: "18px", borderRadius: "6px", border: "1px solid rgba(57,41,42,0.15)" }}>
                     <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Manually Book Member to Event</h4>
@@ -1320,47 +1465,94 @@ export default function AdminEventsPage() {
                     </form>
                   </div>
 
-                  {/* Direct Guest Pass Issue */}
-                  <div style={{ backgroundColor: "#fbf8f3", padding: "18px", borderRadius: "6px", border: "1px solid rgba(57,41,42,0.15)" }}>
-                    <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Issue €35 Guest Ticket Pass</h4>
-                    <p style={{ fontSize: "12px", color: MUTED, margin: "0 0 12px" }}>Generates a unique payment link. The guest is only confirmed once they complete checkout.</p>
-                    <form onSubmit={handleIssueGuest} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  {/* Free Open List Manual Add */}
+                  {(activeEventRoster.isFreeWalk || activeEventRoster.creditCost === 0) && (
+                    <div style={{ backgroundColor: "#fbf8f3", padding: "18px", borderRadius: "6px", border: "1px solid rgba(57,41,42,0.15)" }}>
+                      <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Add to Open List (Free RSVP)</h4>
+                      <p style={{ fontSize: "12px", color: MUTED, margin: "0 0 12px" }}>Quickly add an attendee to the free open list roster.</p>
+                      <form onSubmit={handleAddGuestRsvp} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                          <input
+                            type="text"
+                            placeholder="First Name"
+                            value={guestRsvpForm.firstName}
+                            onChange={(e) => setGuestRsvpForm({ ...guestRsvpForm, firstName: e.target.value })}
+                            required
+                            style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Last Name"
+                            value={guestRsvpForm.lastName}
+                            onChange={(e) => setGuestRsvpForm({ ...guestRsvpForm, lastName: e.target.value })}
+                            style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
+                          />
+                        </div>
                         <input
-                          type="text"
-                          placeholder="First Name"
-                          value={guestForm.firstName}
-                          onChange={(e) => setGuestForm({ ...guestForm, firstName: e.target.value })}
+                          type="email"
+                          placeholder="email@example.com"
+                          value={guestRsvpForm.email}
+                          onChange={(e) => setGuestRsvpForm({ ...guestRsvpForm, email: e.target.value })}
                           required
                           style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
                         />
                         <input
-                          type="text"
-                          placeholder="Last Name"
-                          value={guestForm.lastName}
-                          onChange={(e) => setGuestForm({ ...guestForm, lastName: e.target.value })}
+                          type="tel"
+                          placeholder="WhatsApp / Phone (optional)"
+                          value={guestRsvpForm.whatsappE164}
+                          onChange={(e) => setGuestRsvpForm({ ...guestRsvpForm, whatsappE164: e.target.value })}
                           style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
                         />
-                      </div>
-                      <input
-                        type="email"
-                        placeholder="guest@example.com"
-                        value={guestForm.email}
-                        onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
-                        required
-                        style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
-                      />
-                      <button type="submit" disabled={issuingPass} style={{ backgroundColor: "#fff", color: WINE, border: `1px solid ${WINE}`, borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                        {issuingPass ? "Generating..." : <>Generate Guest Ticket <ForwardArrow /></>}
-                      </button>
-                    </form>
+                        <button type="submit" disabled={addingRsvp} style={{ backgroundColor: WINE, color: "#fff", border: "none", borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                          {addingRsvp ? "Adding..." : "+ Add to Open List"}
+                        </button>
+                      </form>
+                    </div>
+                  )}
 
-                    {generatedTicketUrl && (
-                      <div style={{ marginTop: "10px", padding: "8px 12px", backgroundColor: "#eef8f0", border: "1px solid #bbf7d0", borderRadius: "4px", fontSize: "12px" }}>
-                        ✓ Ticket Created! <a href={generatedTicketUrl} target="_blank" rel="noreferrer" style={{ fontWeight: 600, color: "#1e6833", textDecoration: "underline" }}>View Ticket Link</a>
-                      </div>
-                    )}
-                  </div>
+                  {/* Direct Guest Pass Issue (Only if event has credit cost) */}
+                  {(!activeEventRoster.isFreeWalk && activeEventRoster.creditCost > 0) && (
+                    <div style={{ backgroundColor: "#fbf8f3", padding: "18px", borderRadius: "6px", border: "1px solid rgba(57,41,42,0.15)" }}>
+                      <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Issue €35 Guest Ticket Pass</h4>
+                      <p style={{ fontSize: "12px", color: MUTED, margin: "0 0 12px" }}>Generates a unique payment link. The guest is only confirmed once they complete checkout.</p>
+                      <form onSubmit={handleIssueGuest} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                          <input
+                            type="text"
+                            placeholder="First Name"
+                            value={guestForm.firstName}
+                            onChange={(e) => setGuestForm({ ...guestForm, firstName: e.target.value })}
+                            required
+                            style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Last Name"
+                            value={guestForm.lastName}
+                            onChange={(e) => setGuestForm({ ...guestForm, lastName: e.target.value })}
+                            style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
+                          />
+                        </div>
+                        <input
+                          type="email"
+                          placeholder="guest@example.com"
+                          value={guestForm.email}
+                          onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
+                          required
+                          style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
+                        />
+                        <button type="submit" disabled={issuingPass} style={{ backgroundColor: "#fff", color: WINE, border: `1px solid ${WINE}`, borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                          {issuingPass ? "Generating..." : <>Generate Guest Ticket <ForwardArrow /></>}
+                        </button>
+                      </form>
+
+                      {generatedTicketUrl && (
+                        <div style={{ marginTop: "10px", padding: "8px 12px", backgroundColor: "#eef8f0", border: "1px solid #bbf7d0", borderRadius: "4px", fontSize: "12px" }}>
+                          ✓ Ticket Created! <a href={generatedTicketUrl} target="_blank" rel="noreferrer" style={{ fontWeight: 600, color: "#1e6833", textDecoration: "underline" }}>View Ticket Link</a>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
