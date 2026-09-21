@@ -4,8 +4,17 @@ import { db } from "@/db";
 import { eventPass, event, person, booking, auditLog } from "@/db/schema";
 import { eq, and, or } from "drizzle-orm";
 import crypto from "crypto";
+import { z } from "zod";
 
-export async function getGuestTicketByToken(token: string) {
+const ticketTokenSchema = z.string().trim().min(1, "Ticket token is required");
+
+export async function getGuestTicketByToken(rawToken: string) {
+  const parsed = ticketTokenSchema.safeParse(rawToken);
+  if (!parsed.success) {
+    return { success: false, error: "INVALID_TOKEN" };
+  }
+  const token = parsed.data;
+
   try {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -58,7 +67,13 @@ export async function getGuestTicketByToken(token: string) {
   }
 }
 
-export async function releaseGuestTicket(token: string) {
+export async function releaseGuestTicket(rawToken: string) {
+  const parsed = ticketTokenSchema.safeParse(rawToken);
+  if (!parsed.success) {
+    return { success: false, error: "INVALID_TOKEN" };
+  }
+  const token = parsed.data;
+
   try {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 

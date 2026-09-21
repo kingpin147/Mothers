@@ -27,6 +27,95 @@ import {
 } from "@/db/schema";
 import { eq, desc, and, or, sql, ne, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { z } from "zod";
+
+const adjustCreditsSchema = z.object({
+  memberId: z.string().trim().min(1, "MEMBER_ID_REQUIRED"),
+  amount: z.number().int(),
+  reason: z.string().trim().min(1, "REASON_REQUIRED"),
+});
+
+const savePartnerSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().trim().min(1, "Partner name is required"),
+  umbrella: z.string().trim().min(1, "Umbrella category is required"),
+  specialty: z.string().trim().min(1, "Specialty is required"),
+  description: z.string().optional(),
+  offerForMembers: z.string().trim().min(1, "Offer for members is required"),
+  discountCode: z.string().optional(),
+  exclusive: z.boolean().optional(),
+  status: z.string().optional(),
+  forceOverrideConflict: z.boolean().optional(),
+});
+
+const savePerkSchema = z.object({
+  id: z.string().optional(),
+  partnerId: z.string().trim().min(1, "Partner ID is required"),
+  title: z.string().trim().min(1, "Title is required"),
+  description: z.string().trim().min(1, "Description is required"),
+  perkType: z.string().trim().min(1, "Perk type is required"),
+  terms: z.string().optional(),
+  discountCode: z.string().optional(),
+  linkUrl: z.string().optional(),
+  validUntil: z.date().optional(),
+  active: z.boolean().optional(),
+});
+
+const saveFaqSchema = z.object({
+  id: z.string().optional(),
+  category: z.string().optional(),
+  questionEn: z.string().trim().min(1, "Question (EN) is required"),
+  answerEn: z.string().trim().min(1, "Answer (EN) is required"),
+  questionEs: z.string().trim().min(1, "Question (ES) is required"),
+  answerEs: z.string().trim().min(1, "Answer (ES) is required"),
+  sortOrder: z.number().int().optional(),
+  active: z.boolean().optional(),
+});
+
+const saveJournalPostSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().trim().min(1, "Title is required"),
+  titleEs: z.string().optional(),
+  slug: z.string().optional(),
+  category: z.string().optional(),
+  excerpt: z.string().trim().min(1, "Excerpt is required"),
+  excerptEs: z.string().optional(),
+  body: z.string().trim().min(1, "Body is required"),
+  bodyEs: z.string().optional(),
+  quoteEn: z.string().optional(),
+  quoteEs: z.string().optional(),
+  author: z.string().optional(),
+  authorRoleEn: z.string().optional(),
+  authorRoleEs: z.string().optional(),
+  bylineEn: z.string().optional(),
+  bylineEs: z.string().optional(),
+  reviewedNoteEn: z.string().optional(),
+  reviewedNoteEs: z.string().optional(),
+  heroImageId: z.string().nullable().optional(),
+  heroImageUrl: z.string().nullable().optional(),
+  status: z.string().optional(),
+  published: z.boolean().optional(),
+  publishedAt: z.date().nullable().optional(),
+  audience: z.string().optional(),
+  seoTitle: z.string().optional(),
+  seoTitleEs: z.string().optional(),
+  seoDescription: z.string().optional(),
+  seoDescriptionEs: z.string().optional(),
+  notifySubscribers: z.boolean().optional(),
+});
+
+const saveInternalNoteSchema = z.object({
+  entityType: z.string().trim().min(1),
+  entityId: z.string().trim().min(1),
+  body: z.string().trim().min(1, "Body is required"),
+});
+
+const createSubscriberSchema = z.object({
+  name: z.string().optional(),
+  email: z.string().trim().email("Invalid email address").toLowerCase(),
+  list: z.string().optional(),
+  source: z.string().optional(),
+});
 
 async function verifyAdminRole() {
   const session = await auth();
@@ -75,11 +164,17 @@ export async function getAdminMembers() {
   }
 }
 
-export async function adjustMemberCredits(data: {
+export async function adjustMemberCredits(rawData: {
   memberId: string;
   amount: number; // positive or negative
   reason: string; // mandatory reason code (§5)
 }) {
+  const parsed = adjustCreditsSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   const { adminId } = await verifyAdminRole();
   if (!data.reason || !data.reason.trim()) {
     return { success: false, error: "REASON_REQUIRED" };
@@ -404,7 +499,7 @@ export async function getAdminPartners() {
   return { success: true, partners };
 }
 
-export async function savePartner(data: {
+export async function savePartner(rawData: {
   id?: string;
   name: string;
   umbrella: string;
@@ -416,6 +511,12 @@ export async function savePartner(data: {
   status?: string;
   forceOverrideConflict?: boolean;
 }): Promise<{ success: boolean; error?: string; conflict?: boolean; incumbentName?: string; exclusiveUntil?: Date | null }> {
+  const parsed = savePartnerSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   try {
     await verifyAdminRole();
     const isExclusive = data.exclusive ?? false;
@@ -506,7 +607,7 @@ export async function getPartnerPerks(partnerId: string) {
   return { success: true, perks };
 }
 
-export async function savePartnerPerk(data: {
+export async function savePartnerPerk(rawData: {
   id?: string;
   partnerId: string;
   title: string;
@@ -518,6 +619,12 @@ export async function savePartnerPerk(data: {
   validUntil?: Date;
   active?: boolean;
 }) {
+  const parsed = savePerkSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   try {
     await verifyAdminRole();
     if (data.id) {
@@ -619,11 +726,17 @@ export async function getInternalNotes(entityType: string, entityId: string) {
   return { success: true, notes };
 }
 
-export async function saveInternalNote(data: {
+export async function saveInternalNote(rawData: {
   entityType: string;
   entityId: string;
   body: string;
 }) {
+  const parsed = saveInternalNoteSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   try {
     const { adminId } = await verifyAdminRole();
     const author = adminId ? await db.query.adminUser.findFirst({ where: eq(adminUser.id, adminId) }) : null;
@@ -654,12 +767,18 @@ export async function getSubscribersList(listType: string = "letter") {
   return { success: true, subscribers };
 }
 
-export async function createSubscriber(data: {
+export async function createSubscriber(rawData: {
   name?: string;
   email: string;
   list?: string;
   source?: string;
 }) {
+  const parsed = createSubscriberSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   try {
     await verifyAdminRole();
     const cleanEmail = data.email.toLowerCase().trim();
@@ -779,7 +898,7 @@ export async function getAdminFaqs() {
   return { success: true, faqs };
 }
 
-export async function saveFaq(data: {
+export async function saveFaq(rawData: {
   id?: string;
   category?: string;
   questionEn: string;
@@ -789,6 +908,12 @@ export async function saveFaq(data: {
   sortOrder?: number;
   active?: boolean;
 }): Promise<{ success: boolean; error?: string }> {
+  const parsed = saveFaqSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   try {
     await verifyAdminRole();
 
@@ -893,7 +1018,7 @@ export async function getAdminJournalPosts() {
   return { success: true, posts };
 }
 
-export async function saveJournalPost(data: {
+export async function saveJournalPost(rawData: {
   id?: string;
   title: string;
   titleEs?: string;
@@ -924,6 +1049,12 @@ export async function saveJournalPost(data: {
   seoDescriptionEs?: string;
   notifySubscribers?: boolean;
 }): Promise<{ success: boolean; id?: string; error?: string; notifiedCount?: number }> {
+  const parsed = saveJournalPostSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   try {
     const { adminId } = await verifyAdminRole();
 

@@ -4,6 +4,15 @@ import { db } from "@/db";
 import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, eventPass, guestRsvp, eventStage, stage } from "@/db/schema";
 import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { z } from "zod";
+
+const createCategorySchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  stageAffinity: z.string().optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+const entityIdSchema = z.string().trim().min(1, "ID is required");
 
 // ─── 1. GET PUBLIC EVENTS & DYNAMIC CATEGORIES ─────────────────────────────
 
@@ -248,11 +257,17 @@ export async function getEventCategories() {
   return { success: true, categories };
 }
 
-export async function createEventCategory(data: {
+export async function createEventCategory(rawData: {
   name: string;
   stageAffinity?: string;
   sortOrder?: number;
 }) {
+  const parsed = createCategorySchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   const session = await auth();
   const role = (session?.user as any)?.role;
   const allowed = ["owner", "manager", "super_admin"];
@@ -275,7 +290,11 @@ export async function createEventCategory(data: {
   return { success: true, category: inserted[0] };
 }
 
-export async function deleteEventCategory(categoryId: string) {
+export async function deleteEventCategory(rawCategoryId: string) {
+  const parsed = entityIdSchema.safeParse(rawCategoryId);
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  const categoryId = parsed.data;
+
   const session = await auth();
   const role = (session?.user as any)?.role;
   const allowed = ["owner", "manager", "super_admin"];
@@ -288,7 +307,11 @@ export async function deleteEventCategory(categoryId: string) {
   return { success: true };
 }
 
-export async function deleteEvent(eventId: string) {
+export async function deleteEvent(rawEventId: string) {
+  const parsed = entityIdSchema.safeParse(rawEventId);
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  const eventId = parsed.data;
+
   try {
     const session = await auth();
     const role = (session?.user as any)?.role;
@@ -341,7 +364,11 @@ export async function deleteEvent(eventId: string) {
 
 // ─── 3. GET SINGLE PUBLIC EVENT BY ID ────────────────────────────────────────
 
-export async function getPublicEventById(id: string) {
+export async function getPublicEventById(rawId: string) {
+  const parsed = entityIdSchema.safeParse(rawId);
+  if (!parsed.success) return { success: false, error: "EVENT_NOT_FOUND" };
+  const id = parsed.data;
+
   try {
     const rows = await db
       .select({

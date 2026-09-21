@@ -5,6 +5,17 @@ import { member, person, creditEntry, booking, event, eventCategory, eventPass, 
 import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getAppUrl } from "@/lib/urls";
+import { z } from "zod";
+
+const updatePersonDetailsSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required"),
+  lastName: z.string().trim().min(1, "Last name is required"),
+  phone: z.string().trim().optional(),
+  stage: z.string().optional(),
+  neighbourhood: z.string().optional(),
+});
+
+const perkIdSchema = z.string().trim().min(1, "PERK_NOT_FOUND");
 
 export async function getAccountData(targetMemberId?: string) {
   const session = await auth();
@@ -259,7 +270,13 @@ export async function resumeMembership() {
   }
 }
 
-export async function updatePersonDetails(data: { firstName: string; lastName: string; phone?: string; stage?: string; neighbourhood?: string }) {
+export async function updatePersonDetails(rawData: { firstName: string; lastName: string; phone?: string; stage?: string; neighbourhood?: string }) {
+  const parsed = updatePersonDetailsSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
 
@@ -423,7 +440,11 @@ export async function getStripePortalUrl() {
 
 // ─── 4. REVEAL PERK CODE (SERVER-SIDE TRACKED §12) ──────────────────────────
 
-export async function revealPerkCode(perkId: string) {
+export async function revealPerkCode(rawPerkId: string) {
+  const parsed = perkIdSchema.safeParse(rawPerkId);
+  if (!parsed.success) return { success: false, error: "PERK_NOT_FOUND" };
+  const perkId = parsed.data;
+
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
 

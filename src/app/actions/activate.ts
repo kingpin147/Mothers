@@ -4,8 +4,21 @@ import { db } from "@/db";
 import { application, person, member, memberCredential, creditEntry, auditLog, window } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 
-export async function getActivationDetails(token: string) {
+const tokenSchema = z.string().trim().min(1, "Token is required");
+const savePasswordSchema = z.object({
+  token: z.string().trim().min(1, "Token is required"),
+  password: z.string().min(8, "PASSWORD_TOO_SHORT"),
+});
+
+export async function getActivationDetails(rawToken: string) {
+  const parsed = tokenSchema.safeParse(rawToken);
+  if (!parsed.success) {
+    return { success: false, error: "INVALID_OR_EXPIRED_TOKEN" };
+  }
+  const token = parsed.data;
+
   const appRecord = await db.query.application.findFirst({
     where: eq(application.paymentLinkToken, token),
   });
@@ -46,12 +59,15 @@ export async function getActivationDetails(token: string) {
   };
 }
 
-export async function saveMemberPassword(token: string, password: string) {
-  try {
-    if (!password || password.length < 8) {
-      return { success: false, error: "PASSWORD_TOO_SHORT" };
-    }
+export async function saveMemberPassword(rawToken: string, rawPassword: string) {
+  const parsed = savePasswordSchema.safeParse({ token: rawToken, password: rawPassword });
+  if (!parsed.success) {
+    const isPwErr = parsed.error.issues.some(i => i.message === "PASSWORD_TOO_SHORT");
+    return { success: false, error: isPwErr ? "PASSWORD_TOO_SHORT" : "INVALID_INPUT" };
+  }
+  const { token, password } = parsed.data;
 
+  try {
     const appRecord = await db.query.application.findFirst({
       where: eq(application.paymentLinkToken, token),
     });

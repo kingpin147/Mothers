@@ -4,6 +4,71 @@ import { db } from "@/db";
 import { setting, window, auditLog, person, member } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { z } from "zod";
+
+const updateClubSettingsSchema = z.object({
+  joiningFeeCents: z.number().int().nonnegative().optional(),
+  openingMonthlyPriceCents: z.number().int().nonnegative().optional(),
+  openingQuarterlyPriceCents: z.number().int().nonnegative().optional(),
+  quarterlyFeeCents: z.number().int().nonnegative().optional(),
+  standardMonthlyPriceCents: z.number().int().nonnegative().optional(),
+  joiningFeeFreePlaces: z.number().int().nonnegative().optional(),
+  passToMemberDays: z.number().int().nonnegative().optional(),
+  
+  guestPassPriceCents: z.number().int().nonnegative().optional(),
+  passCreditCeiling: z.number().int().nonnegative().optional(),
+  maxLifetimeGuestPasses: z.number().int().nonnegative().optional(),
+  guestPlacesDefault: z.number().int().nonnegative().optional(),
+  guestsOpenDays: z.number().int().nonnegative().optional(),
+  guestsCloseDays: z.number().int().nonnegative().optional(),
+  
+  monthlyGrantCredits: z.number().int().nonnegative().optional(),
+  creditLifeMonths: z.number().int().nonnegative().optional(),
+  rolloverCapCredits: z.number().int().nonnegative().optional(),
+  expiryWarningDays: z.number().int().nonnegative().optional(),
+  topUpPriceCents: z.number().int().nonnegative().optional(),
+  releaseDeadlineHours: z.number().int().nonnegative().optional(),
+  
+  referralBonusCredits: z.number().int().nonnegative().optional(),
+  godmotherThreeMonthBonus: z.number().int().nonnegative().optional(),
+  godmotherFriendsLimit: z.number().int().nonnegative().optional(),
+  godmotherBonusLife: z.number().int().nonnegative().optional(),
+  
+  answerAppHours: z.number().int().nonnegative().optional(),
+  paymentLinkHours: z.number().int().nonnegative().optional(),
+  pauseAllowanceMonths: z.number().int().nonnegative().optional(),
+  placesOffered: z.number().int().nonnegative().optional(),
+  rateHeldMonths: z.number().int().nonnegative().optional(),
+  
+  scheduleMembersFrom: z.number().int().nonnegative().optional(),
+  scheduleGuestsOpen: z.number().int().nonnegative().optional(),
+  scheduleEarlyWarning: z.number().int().nonnegative().optional(),
+  scheduleDecisionPoint: z.number().int().nonnegative().optional(),
+  scheduleGuestsClose: z.number().int().nonnegative().optional(),
+});
+
+const createMembershipWindowSchema = z.object({
+  opensAt: z.string().min(1, "Opens at date is required"),
+  closesAt: z.string().min(1, "Closes at date is required"),
+  placesOffered: z.number().int().positive("Places offered must be at least 1"),
+  openingMonthlyPriceCents: z.number().int().nonnegative(),
+  openingQuarterlyPriceCents: z.number().int().nonnegative(),
+  standardMonthlyPriceCents: z.number().int().nonnegative(),
+  standardQuarterlyPriceCents: z.number().int().nonnegative(),
+});
+
+const setMembershipWindowStatusSchema = z.object({
+  windowId: z.string().trim().min(1, "Window ID is required"),
+  status: z.enum(["open", "closed"]),
+});
+
+const adminUpdateMemberProfileSchema = z.object({
+  memberId: z.string().trim().min(1, "Member ID is required"),
+  stage: z.string(),
+  neighbourhood: z.string(),
+  phone: z.string().optional(),
+  notesInternal: z.string().optional(),
+});
 
 async function verifyAdmin() {
   const session = await auth();
@@ -71,7 +136,7 @@ export async function getClubSettings() {
   };
 }
 
-export async function updateClubSettings(data: {
+export async function updateClubSettings(rawData: {
   joiningFeeCents?: number;
   openingMonthlyPriceCents?: number;
   openingQuarterlyPriceCents?: number;
@@ -111,6 +176,12 @@ export async function updateClubSettings(data: {
   scheduleDecisionPoint?: number;
   scheduleGuestsClose?: number;
 }) {
+  const parsed = updateClubSettingsSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
+  }
+  const data = parsed.data;
+
   const { adminId } = await verifyAdmin();
 
   const settingEntries = [
@@ -191,7 +262,7 @@ export async function getMembershipWindows() {
   return { success: true, windows };
 }
 
-export async function createMembershipWindow(data: {
+export async function createMembershipWindow(rawData: {
   opensAt: string;
   closesAt: string;
   placesOffered: number;
@@ -200,6 +271,12 @@ export async function createMembershipWindow(data: {
   standardMonthlyPriceCents: number;
   standardQuarterlyPriceCents: number;
 }) {
+  const parsed = createMembershipWindowSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_WINDOW" };
+  }
+  const data = parsed.data;
+
   const { adminId } = await verifyAdmin();
   if (new Date(data.closesAt) <= new Date(data.opensAt) || data.placesOffered < 1) {
     return { success: false, error: "INVALID_WINDOW" };
@@ -248,7 +325,11 @@ export async function createMembershipWindow(data: {
   return { success: true, window: created };
 }
 
-export async function setMembershipWindowStatus(windowId: string, status: "open" | "closed") {
+export async function setMembershipWindowStatus(rawWindowId: string, rawStatus: "open" | "closed") {
+  const parsed = setMembershipWindowStatusSchema.safeParse({ windowId: rawWindowId, status: rawStatus });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  const { windowId, status } = parsed.data;
+
   const { adminId } = await verifyAdmin();
   const target = await db.query.window.findFirst({ where: eq(window.id, windowId) });
   if (!target) return { success: false, error: "WINDOW_NOT_FOUND" };
@@ -271,13 +352,17 @@ export async function setMembershipWindowStatus(windowId: string, status: "open"
 
 // ─── 2. UPDATE MEMBER PROFILE (STAGE / AREA / NOTES) ─────────────────────────
 
-export async function adminUpdateMemberProfile(data: {
+export async function adminUpdateMemberProfile(rawData: {
   memberId: string;
   stage: string;
   neighbourhood: string;
   phone?: string;
   notesInternal?: string;
 }) {
+  const parsed = adminUpdateMemberProfileSchema.safeParse(rawData);
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  const data = parsed.data;
+
   const { adminId } = await verifyAdmin();
 
   const targetMember = await db.query.member.findFirst({

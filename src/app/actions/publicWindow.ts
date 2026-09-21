@@ -53,9 +53,29 @@ export async function getPublicSettings() {
   };
 }
 
-export async function subscribeToLetter(email: string) {
-  if (!email || !email.includes("@")) return { success: false, error: "INVALID_EMAIL" };
-  const cleanEmail = email.toLowerCase().trim();
+import { z } from "zod";
+
+const emailSchema = z.string().trim().email("INVALID_EMAIL").toLowerCase();
+
+const subscribeComingSoonSchema = z.object({
+  email: z.string().trim().email("INVALID_EMAIL").toLowerCase(),
+  name: z.string().trim().optional(),
+});
+
+const partnerAppSchema = z.object({
+  name: z.string().trim().min(1, "MISSING_FIELDS"),
+  business: z.string().trim().min(1, "MISSING_FIELDS"),
+  category: z.string().trim().optional().default("General"),
+  email: z.string().trim().email("INVALID_EMAIL").toLowerCase(),
+  website: z.string().trim().optional().default(""),
+  message: z.string().trim().optional().default(""),
+});
+
+export async function subscribeToLetter(rawEmail: string) {
+  const parsed = emailSchema.safeParse(rawEmail);
+  if (!parsed.success) return { success: false, error: "INVALID_EMAIL" };
+  const cleanEmail = parsed.data;
+
   try {
     // 1. Record in subscriber table
     const existingSub = await db.query.subscriber.findFirst({
@@ -93,9 +113,11 @@ export async function subscribeToLetter(email: string) {
   }
 }
 
-export async function subscribeToComingSoon(email: string, name?: string) {
-  if (!email || !email.includes("@")) return { success: false, error: "INVALID_EMAIL" };
-  const cleanEmail = email.toLowerCase().trim();
+export async function subscribeToComingSoon(rawEmail: string, rawName?: string) {
+  const parsed = subscribeComingSoonSchema.safeParse({ email: rawEmail, name: rawName });
+  if (!parsed.success) return { success: false, error: "INVALID_EMAIL" };
+  const { email: cleanEmail, name } = parsed.data;
+
   try {
     // 1. Record in subscriber table
     const existingSub = await db.query.subscriber.findFirst({
@@ -110,7 +132,7 @@ export async function subscribeToComingSoon(email: string, name?: string) {
     }
 
     await db.insert(subscriber).values({
-      name: name?.trim() || null,
+      name: name || null,
       email: cleanEmail,
       list: "letter",
       source: "coming_soon",
@@ -121,7 +143,7 @@ export async function subscribeToComingSoon(email: string, name?: string) {
     // 2. Record in person & waitlistEntry
     let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
     if (!personRecord) {
-      const [p] = await db.insert(person).values({ firstName: name?.trim() || "", lastName: "", email: cleanEmail, source: "coming_soon" }).returning();
+      const [p] = await db.insert(person).values({ firstName: name || "", lastName: "", email: cleanEmail, source: "coming_soon" }).returning();
       personRecord = p;
     }
     const existing = await db.query.waitlistEntry.findFirst({ where: eq(waitlistEntry.personId, personRecord.id) });
@@ -146,7 +168,7 @@ export async function getPublicPartners() {
   return { success: true, partners };
 }
 
-export async function submitPartnerApplication(data: {
+export async function submitPartnerApplication(rawData: {
   name: string;
   business: string;
   category: string;
@@ -154,9 +176,12 @@ export async function submitPartnerApplication(data: {
   website: string;
   message: string;
 }) {
-  if (!data.name || !data.business || !data.email) {
-    return { success: false, error: "MISSING_FIELDS" };
+  const parsed = partnerAppSchema.safeParse(rawData);
+  if (!parsed.success) {
+    const isMissing = parsed.error.issues.some(i => i.message === "MISSING_FIELDS");
+    return { success: false, error: isMissing ? "MISSING_FIELDS" : "INVALID_INPUT" };
   }
+  const data = parsed.data;
 
   try {
     const { queueAndSendEmail } = await import("@/lib/brevo");

@@ -3,13 +3,27 @@
 import { db } from "@/db";
 import { person, waitlistEntry } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 
-export async function joinWaitlist(data: {
+const joinWaitlistSchema = z.object({
+  firstName: z.string().trim().min(1, "First name is required"),
+  lastName: z.string().trim().min(1, "Last name is required"),
+  email: z.string().trim().email("Invalid email address").toLowerCase(),
+  source: z.string().trim().optional(),
+});
+
+export async function joinWaitlist(rawData: {
   firstName: string;
   lastName: string;
   email: string;
   source?: string;
 }) {
+  const parsed = joinWaitlistSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message || "Invalid input" };
+  }
+  const data = parsed.data;
+
   try {
     // 1. Check if person exists
     let existingPerson = await db.query.person.findFirst({

@@ -7,12 +7,31 @@ import { queueAndSendEmail } from "@/lib/brevo";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { getAppUrl } from "@/lib/urls";
+import { z } from "zod";
+
+const requestResetSchema = z.object({
+  email: z.string().trim().email().toLowerCase(),
+  locale: z.enum(["en", "es"]).default("en"),
+});
+
+const resetTokenSchema = z.string().trim().min(1, "TOKEN_EXPIRED_OR_INVALID");
+
+const completeResetSchema = z.object({
+  token: z.string().trim().min(1, "TOKEN_EXPIRED_OR_INVALID"),
+  newPassword: z.string().min(8, "PASSWORD_TOO_SHORT"),
+});
 
 // ─── 1. REQUEST PASSWORD RESET (PREVENTS ENUMERATION) ───────────────────────
 
-export async function requestPasswordReset(email: string, locale: "en" | "es" = "en") {
+export async function requestPasswordReset(rawEmail: string, rawLocale: "en" | "es" = "en") {
+  const parsed = requestResetSchema.safeParse({ email: rawEmail, locale: rawLocale });
+  // If invalid email format, still return success to prevent timing/format enumeration
+  if (!parsed.success) {
+    return { success: true };
+  }
+  const { email: cleanEmail, locale } = parsed.data;
+
   try {
-    const cleanEmail = email.toLowerCase().trim();
 
     const personRecord = await db.query.person.findFirst({
       where: eq(person.email, cleanEmail),
@@ -201,7 +220,13 @@ If you did not ask for it, no action is needed.
 
 // ─── 2. VERIFY TOKEN VALIDITY ───────────────────────────────────────────────
 
-export async function verifyResetToken(token: string) {
+export async function verifyResetToken(rawToken: string) {
+  const parsed = resetTokenSchema.safeParse(rawToken);
+  if (!parsed.success) {
+    return { valid: false, error: "TOKEN_EXPIRED_OR_INVALID" };
+  }
+  const token = parsed.data;
+
   try {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -232,12 +257,15 @@ export async function verifyResetToken(token: string) {
 
 // ─── 3. COMPLETE PASSWORD RESET ─────────────────────────────────────────────
 
-export async function completePasswordReset(token: string, newPassword: string) {
-  try {
-    if (!newPassword || newPassword.length < 8) {
-      return { success: false, error: "PASSWORD_TOO_SHORT" };
-    }
+export async function completePasswordReset(rawToken: string, rawNewPassword: string) {
+  const parsed = completeResetSchema.safeParse({ token: rawToken, newPassword: rawNewPassword });
+  if (!parsed.success) {
+    const isPwErr = parsed.error.issues.some(i => i.message === "PASSWORD_TOO_SHORT");
+    return { success: false, error: isPwErr ? "PASSWORD_TOO_SHORT" : "TOKEN_EXPIRED_OR_INVALID" };
+  }
+  const { token, newPassword } = parsed.data;
 
+  try {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
     const cred = await db.query.memberCredential.findFirst({
