@@ -879,8 +879,8 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
         },
       },
       success_url: eventId
-        ? `${origin}/events/${eventId}?booking_success=true`
-        : `${origin}/account?credits_purchased=true`,
+        ? `${origin}/events/${eventId}?booking_success=true&credits_purchased=true&amount=${amount}`
+        : `${origin}/account?credits_purchased=true&amount=${amount}`,
       cancel_url: eventId
         ? `${origin}/events/${eventId}`
         : `${origin}/account`,

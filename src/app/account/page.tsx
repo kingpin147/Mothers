@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Locale } from "@/lib/i18n";
 import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, reactivateMembership, getStripePortalUrl } from "@/app/actions/memberAccount";
 import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
@@ -55,9 +55,10 @@ const normalizeStageKey = (raw: string): string => {
   return raw;
 };
 
-export default function AccountPage() {
+function AccountPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [lang, setLang] = useState<Locale>("en");
   const [activeTab, setActiveTab] = useState<AccountTab>("overview");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -65,6 +66,10 @@ export default function AccountPage() {
   const [accountLoading, setAccountLoading] = useState(true);
   const [accountData, setAccountData] = useState<any>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
+
+  // Extra credits purchase confirmation banner state (Image 2)
+  const [purchaseConfirmed, setPurchaseConfirmed] = useState(false);
+  const [purchasedAmount, setPurchasedAmount] = useState(1);
 
   // Stripe Portal Loading State
   const [portalLoading, setPortalLoading] = useState(false);
@@ -104,6 +109,19 @@ export default function AccountPage() {
     const saved = localStorage.getItem("tm_lang");
     if (saved === "es" || saved === "en") setLang(saved as Locale);
   }, []);
+
+  useEffect(() => {
+    if (searchParams) {
+      if (searchParams.get("credits_purchased") === "true") {
+        setActiveTab("credits");
+        setPurchaseConfirmed(true);
+        const amt = parseInt(searchParams.get("amount") || "1", 10);
+        if (!isNaN(amt) && amt > 0) {
+          setPurchasedAmount(amt);
+        }
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -725,6 +743,87 @@ export default function AccountPage() {
                     {lang === "en" ? "Book an event" : "Reservar un evento"}
                   </Link>
                 </div>
+
+                {/* Extra Credits Purchase Confirmed Box (Image 2) */}
+                {purchaseConfirmed && (
+                  <div
+                    style={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid rgba(57, 41, 42, 0.14)",
+                      borderRadius: "8px",
+                      padding: "20px 24px",
+                      marginTop: "20px",
+                      display: "flex",
+                      gap: "14px",
+                      alignItems: "flex-start",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "50%",
+                        border: "1.8px solid #568b05",
+                        color: "#568b05",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "13px",
+                        fontWeight: "bold",
+                        flexShrink: 0,
+                        marginTop: "1px",
+                      }}
+                    >
+                      ✓
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontWeight: 600,
+                          fontSize: "17px",
+                          color: "#568b05",
+                        }}
+                      >
+                        {lang === "en"
+                          ? `${purchasedAmount} credit${purchasedAmount === 1 ? "" : "s"} added to your balance.`
+                          : `${purchasedAmount} crédito${purchasedAmount === 1 ? "" : "s"} añadido${purchasedAmount === 1 ? "" : "s"} a tu saldo.`}
+                      </div>
+                      <p
+                        style={{
+                          fontSize: "14.5px",
+                          lineHeight: "1.6",
+                          color: "rgba(57, 41, 42, 0.72)",
+                          margin: "4px 0 14px",
+                        }}
+                      >
+                        {lang === "en"
+                          ? `Your balance is now ${availableCredits} credits — ready to book with.`
+                          : `Tu saldo es ahora de ${availableCredits} créditos — listos para reservar.`}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setPurchaseConfirmed(false)}
+                        style={{
+                          border: "1px solid rgba(57, 41, 42, 0.28)",
+                          backgroundColor: "#ffffff",
+                          color: "#39292a",
+                          padding: "8px 24px",
+                          borderRadius: "4px",
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontWeight: 600,
+                          fontSize: "14.5px",
+                          cursor: "pointer",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#7b1f2c")}
+                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.28)")}
+                      >
+                        {lang === "en" ? "Done" : "Hecho"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1583,5 +1682,19 @@ export default function AccountPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense
+      fallback={
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f8efe2" }}>
+          <ThemeLoader text="Loading..." size="large" />
+        </div>
+      }
+    >
+      <AccountPageContent />
+    </Suspense>
   );
 }

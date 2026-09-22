@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { stripeEvent, member, payment, person, auditLog, creditEntry, event as eventTable, booking, eventPass, application } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { grantMonthlySubscriptionCredits } from "@/lib/ledger";
-import { queueAndSendEmail } from "@/lib/brevo";
+import { queueAndSendEmail, generateSubscriptionConfirmationEmailHtml, generateGuestPassEmailHtml } from "@/lib/brevo";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
   apiVersion: "2025-01-27.acacia" as any,
@@ -118,6 +118,39 @@ export async function POST(req: NextRequest) {
                   updatedAt: new Date(),
                 })
                 .where(eq(member.id, memberRecord.id));
+
+              // Send subscription payment confirmation email
+              const personRecord = await tx.query.person.findFirst({
+                where: eq(person.id, memberRecord.personId),
+              });
+
+              if (personRecord) {
+                const planName = isQuarterly ? "Quarterly Membership (€99 / 3 months)" : "Monthly Membership (€39 / month)";
+                const appUrl = process.env.NEXTAUTH_URL || "https://themothers.cc";
+                const isEs = personRecord.locale === "es";
+                const subject = isEs
+                  ? "Bienvenida a The Mothers — tu membresía está confirmada"
+                  : "Welcome to The Mothers — your membership is confirmed";
+
+                const htmlContent = generateSubscriptionConfirmationEmailHtml({
+                  firstName: personRecord.firstName,
+                  planName,
+                  creditsGranted: 20,
+                  appUrl,
+                  isEs,
+                });
+
+                await queueAndSendEmail({
+                  personId: personRecord.id,
+                  toEmail: personRecord.email,
+                  toName: `${personRecord.firstName} ${personRecord.lastName}`,
+                  templateKey: "welcome_confirmation",
+                  dedupeKey: `member_welcome_inv_${invoice.id}`,
+                  subject,
+                  htmlContent,
+                  isTransactional: true,
+                });
+              }
             });
           }
         }
@@ -376,33 +409,38 @@ export async function POST(req: NextRequest) {
               if (personRecord) {
                 const origin = process.env.NEXTAUTH_URL || "https://themothers.cc";
                 const ticketLink = `${origin}/ticket/${rawToken}`;
-                const subject = personRecord.locale === "es"
+                const isEs = personRecord.locale === "es";
+                const subject = isEs
                   ? `Tu Event Pass: ${ev.title} — The Mothers`
-                  : `Your Event Pass: ${ev.title} — The Mothers`;
+                  : `Your Event Pass — ${ev.title} · The Mothers`;
 
-                const htmlContent = `
-                  <div style="font-family: 'Lora', Georgia, serif; color: #39292a; max-width: 600px; margin: 0 auto; padding: 32px; background: #fdf9f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 8px;">
-                    <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 26px; margin: 0 0 16px;">
-                      ${personRecord.locale === "es" ? "Event Pass Confirmado" : "Event Pass Confirmed"}
-                    </h2>
-                    <p style="font-size: 15px; line-height: 1.6;">
-                      ${personRecord.locale === "es"
-                        ? `Hola ${personRecord.firstName}, aquí tienes tu pase de invitada para <strong>${ev.title}</strong>.`
-                        : `Hi ${personRecord.firstName}, here is your guest pass for <strong>${ev.title}</strong>.`}
-                    </p>
-                    <div style="margin: 32px 0; text-align: center;">
-                      <a href="${ticketLink}" style="display: inline-block; background: #7b1f2c; color: #f8efe2; padding: 12px 28px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 15px;">
-                        ${personRecord.locale === "es" ? "Ver tu entrada" : "View your ticket"}
-                      </a>
-                    </div>
-                  </div>
-                `;
+                const eventDateFormatted = new Date(ev.startsAt).toLocaleDateString(isEs ? "es-ES" : "en-GB", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+
+                const htmlContent = generateGuestPassEmailHtml({
+                  firstName: personRecord.firstName,
+                  eventTitle: ev.title,
+                  eventDate: eventDateFormatted,
+                  meetingPoint: ev.meetingPoint || ev.venueName || "Barcelona",
+                  neighbourhood: ev.neighbourhood || undefined,
+                  amountPaidEur: (session.amount_total || 3500) / 100,
+                  last4: session.payment_intent ? undefined : undefined,
+                  passNumber: 1,
+                  receiptNumber: `TM-${insertedBooking[0].id.slice(0, 4).toUpperCase()}`,
+                  ticketUrl: ticketLink,
+                  isEs,
+                });
 
                 await queueAndSendEmail({
                   personId,
                   toEmail: personRecord.email,
                   toName: `${personRecord.firstName} ${personRecord.lastName}`,
-                  templateKey: "event_pass_ticket",
+                  templateKey: "guest_place_booked",
                   dedupeKey: `event_pass_${insertedBooking[0].id}`,
                   subject,
                   htmlContent,
@@ -421,6 +459,8 @@ export async function POST(req: NextRequest) {
           await db.transaction(async (tx) => {
             const mem = await tx.query.member.findFirst({ where: eq(member.id, memberId) });
             if (!mem) return;
+
+            const personRecord = await tx.query.person.findFirst({ where: eq(person.id, mem.personId) });
 
             // Activate member
             await tx.update(member).set({
@@ -464,6 +504,36 @@ export async function POST(req: NextRequest) {
               entityId: memberId,
               after: { status: "active", subscriptionId },
             });
+
+            // Send Welcome / Subscription Confirmation Email
+            if (personRecord) {
+              const isQuarterly = mem.billingFrequency === "quarterly" || meta.isQuarterly === "true";
+              const planName = isQuarterly ? "Quarterly Membership (€99 / 3 months)" : "Monthly Membership (€39 / month)";
+              const appUrl = process.env.NEXTAUTH_URL || "https://themothers.cc";
+              const isEs = personRecord.locale === "es";
+              const subject = isEs
+                ? "Bienvenida a The Mothers — tu membresía está confirmada"
+                : "Welcome to The Mothers — your membership is confirmed";
+
+              const htmlContent = generateSubscriptionConfirmationEmailHtml({
+                firstName: personRecord.firstName,
+                planName,
+                creditsGranted: 20,
+                appUrl,
+                isEs,
+              });
+
+              await queueAndSendEmail({
+                personId: personRecord.id,
+                toEmail: personRecord.email,
+                toName: `${personRecord.firstName} ${personRecord.lastName}`,
+                templateKey: "welcome_confirmation",
+                dedupeKey: `member_welcome_${memberId}`,
+                subject,
+                htmlContent,
+                isTransactional: true,
+              });
+            }
           });
         }
         break;

@@ -407,8 +407,8 @@ async function handleMembershipActivation(
 
     // 5. Send Welcome & Payment Confirmation Email
     const appUrl = getAppUrl();
-    const waCircleUrl = "https://chat.whatsapp.com/FjzdbYTUcbmGvVEVSXY23J?s=cl&p=i&mlu=4&ilr=4";
     const planName = isQuarterly ? "Quarterly Membership (€99 / 3 months)" : "Monthly Membership (€39 / month)";
+    const isEs = personRecord.locale === "es";
 
     await queueAndSendEmail({
       personId: mem.personId,
@@ -416,47 +416,14 @@ async function handleMembershipActivation(
       toName: personRecord.firstName,
       templateKey: "welcome_confirmation",
       dedupeKey: `member_welcome_${memberId}`,
-      subject: "Welcome to The Mothers — your membership is confirmed",
-      htmlContent: `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:24px;background-color:#fbf8f3;font-family:Georgia,serif;color:#39292a;">
-  <div style="max-width:580px;margin:0 auto;background:#fff;border:1px solid #ddd4c6;border-radius:8px;padding:36px 32px;">
-    <div style="text-align:center;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:#7b1f2c;margin-bottom:20px;">The Mothers · Barcelona</div>
-    <h1 style="font-size:26px;font-weight:normal;color:#39292a;margin:0 0 16px;">Welcome to The Mothers, ${personRecord.firstName}.</h1>
-    <p style="font-size:15px;line-height:1.65;color:rgba(57,41,42,0.85);margin:0 0 20px;">
-      Your membership payment has been confirmed and your account is ready. 20 event credits have been loaded into your balance to book any upcoming gathering on our calendar.
-    </p>
-
-    <div style="background:#fcfbf8;border:1px solid #ddd4c6;border-radius:6px;padding:18px;margin:24px 0;">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(57,41,42,0.5);margin-bottom:8px;">Membership Details</div>
-      <div style="font-size:14.5px;color:#39292a;line-height:1.6;">
-        <strong>Plan:</strong> ${planName}<br>
-        <strong>Event Credits:</strong> 20 credits loaded (valid for 6 months)<br>
-        <strong>Status:</strong> Confirmed & Active
-      </div>
-    </div>
-
-    <div style="text-align:center;margin:30px 0 24px;">
-      <a href="${appUrl}/account" style="display:inline-block;background-color:#7b1f2c;color:#fff;text-decoration:none;padding:13px 28px;border-radius:4px;font-size:15px;font-weight:600;">Go to your Member Account</a>
-    </div>
-
-    <div style="background:#f4f7ee;border:1px solid rgba(86,139,5,0.35);border-radius:6px;padding:16px 18px;margin:24px 0;">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:#568b05;font-weight:600;margin-bottom:6px;">WhatsApp Community Circle</div>
-      <p style="font-size:13.5px;line-height:1.55;color:rgba(57,41,42,0.8);margin:0 0 10px;">
-        Join <strong>The Circle WhatsApp Group</strong> to connect with other mothers in Barcelona and receive real-time updates.
-      </p>
-      <a href="${waCircleUrl}" style="color:#456f04;font-weight:600;font-size:13.5px;text-decoration:underline;">Join The Circle on WhatsApp →</a>
-    </div>
-
-    <p style="font-size:13px;line-height:1.55;color:rgba(57,41,42,0.6);margin-top:30px;border-top:1px solid rgba(57,41,42,0.1);padding-top:18px;">
-      If you have any questions at all, simply reply directly to this email. We are here for you.
-    </p>
-  </div>
-</body>
-</html>
-      `,
+      subject: isEs ? "Bienvenida a The Mothers — tu membresía está confirmada" : "Welcome to The Mothers — your membership is confirmed",
+      htmlContent: (await import("@/lib/brevo")).generateSubscriptionConfirmationEmailHtml({
+        firstName: personRecord.firstName,
+        planName,
+        creditsGranted: 20,
+        appUrl,
+        isEs,
+      }),
       isTransactional: true,
     });
 

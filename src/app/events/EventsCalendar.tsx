@@ -1947,6 +1947,145 @@ export function BookingSuccessModal({
   );
 }
 
+// ─── GuestPassSuccessModal (Guest Pass Booked / Confirmed from Stripe) ────────
+
+export function GuestPassSuccessModal({
+  lang,
+  onClose,
+}: {
+  lang: Lang;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        backgroundColor: "rgba(57, 41, 42, 0.45)",
+        backdropFilter: "blur(3px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+        overflowY: "auto",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          maxWidth: "480px",
+          margin: "auto",
+          border: "1px solid rgba(57,41,42,0.14)",
+          borderRadius: "8px",
+          padding: "clamp(28px, 5vw, 36px)",
+          backgroundColor: "#FEFDF9",
+          boxShadow: "0 20px 50px rgba(45,43,43,0.16)",
+          textAlign: "center",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            color: "rgba(57,41,42,0.5)",
+            width: "30px",
+            height: "30px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "48px",
+            height: "48px",
+            borderRadius: "50%",
+            background: "#edf5e8",
+            color: "#568b05",
+            marginBottom: "16px",
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="24" height="24">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        </div>
+
+        <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "24px", margin: "0 0 12px", color: "#39292a" }}>
+          {lang === "en" ? "Your place is booked." : "Tu plaza está reservada."}
+        </h2>
+
+        <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 14px" }}>
+          {lang === "en"
+            ? "You have a seat at the table. Your confirmation email is on its way — it is your ticket, and it carries the meeting point and a link to release your place if your plans change."
+            : "Tienes tu asiento en la mesa. Tu correo de confirmación está en camino — es tu ticket, e incluye el punto de encuentro y un enlace para liberar tu plaza si cambian tus planes."}
+        </p>
+
+        <div
+          style={{
+            border: "1px solid rgba(86,139,5,0.35)",
+            background: "rgba(86,139,5,0.07)",
+            borderRadius: "6px",
+            padding: "12px 16px",
+            margin: "0 0 18px",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#568b05", fontWeight: 600, marginBottom: "4px" }}>
+            {lang === "en" ? "Ticket & Meeting point" : "Entrada y punto de encuentro"}
+          </div>
+          <div style={{ fontSize: "13px", lineHeight: "1.55", color: "rgba(57,41,42,0.78)" }}>
+            {lang === "en"
+              ? "We have sent your ticket with the exact meeting point and instructions to your email address."
+              : "Hemos enviado tu entrada con el punto de encuentro exacto e instrucciones a tu dirección de correo."}
+          </div>
+        </div>
+
+        <p style={{ fontSize: "13px", lineHeight: "1.6", color: "rgba(57,41,42,0.58)", margin: "0 0 22px", fontStyle: "italic" }}>
+          {lang === "en"
+            ? "No account needed. Keep that email and you have everything."
+            : "Sin cuenta ni contraseña. Guarda ese correo y lo tendrás todo."}
+        </p>
+
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            border: "1px solid #7b1f2c",
+            backgroundColor: "#7b1f2c",
+            color: "#f8efe2",
+            padding: "11px 32px",
+            borderRadius: "4px",
+            fontFamily: "var(--font-heading)",
+            fontWeight: 600,
+            fontSize: "15px",
+            cursor: "pointer",
+          }}
+        >
+          {lang === "en" ? "Got it" : "Entendido"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface EventCardProps {
   ev: PublicEvent;
   lang: Lang;
@@ -2450,6 +2589,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [bookingLoadingId, setBookingLoadingId] = useState<string | null>(null);
   
   // Modals state management for all 14 dialogs
+  const [guestPassSuccessModal, setGuestPassSuccessModal] = useState<boolean>(false);
   const [bookingSuccessEvent, setBookingSuccessEvent] = useState<PublicEvent | null>(null);
   const [waitlistSuccess, setWaitlistSuccess] = useState<{ event: PublicEvent; position: number } | null>(null);
   const [eventPassEvent, setEventPassEvent] = useState<PublicEvent | null>(null);
@@ -2468,6 +2608,16 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   useEffect(() => {
     setCurrentCreditBalance(creditBalance);
   }, [creditBalance]);
+
+  // Check for guest_pass_success in URL params
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const query = new URLSearchParams(window.location.search);
+      if (query.get("guest_pass_success") === "true") {
+        setGuestPassSuccessModal(true);
+      }
+    }
+  }, []);
 
   // Intent preservation for returning signed-in members (§3 State 13)
   useEffect(() => {
@@ -2999,6 +3149,14 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       </div>
 
       {/* ─── MODALS (ALL 14 DIALOG STATES COVERED) ─── */}
+      {/* Guest Pass Confirmed (Stripe checkout return) */}
+      {guestPassSuccessModal && (
+        <GuestPassSuccessModal
+          lang={lang}
+          onClose={() => setGuestPassSuccessModal(false)}
+        />
+      )}
+
       {/* States 01, 02, 05: Booked / Reserved / Free walk */}
       {bookingSuccessEvent && (
         <BookingSuccessModal
