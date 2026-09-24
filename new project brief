@@ -1,0 +1,144 @@
+Based on the developer brief (Tech Brief.dc.html), here is a clear breakdown of what you already have but are hiding, what rules are clearly defined, and what is currently missing (either requiring design, copy, or business decisions):
+
+1. What you already have (But are Removing/Hiding for now)
+These are features from the standard "live membership" model that exist conceptually or in the codebase, but need to be turned off or hidden during this pre-membership phase:
+
+Guest Passes & "Guest" Wording: Hidden. Everyone has an "account" for now.
+Apply / Subscribe buttons: Replaced with "Join the list" and "Book".
+The €19 Joining Fee: Hidden entirely (the copy just says "no joining fee if you join before launch").
+Partner Discounts: Disabled for now. They are shown as "Coming January 2027" (though the sessions themselves remain bookable with credits).
+2. What is missing to Design (Missing UI / Copy)
+The tech brief explicitly lists these areas as having no UI designs or copy yet. You will need to ask the design/product team for these:
+
+Transactional Emails (Completely missing designs):
+Booking confirmation
+Payment receipt
+Meeting-point reminder
+Credit-expiry notice
+Waitlist notifications
+Host request application status
+Missing Pages & Components:
+Forum Admin / Moderation Queue: The UI for the team to view reports, hide posts, and pause accounts.
+Forgot Password flow.
+Mobile Navigation Menu.
+Full-Event Waiting List UI.
+Cookie Banner (if you are adding analytics).
+404 Error Page.
+Missing Content:
+Spanish Translations: The ES toggle exists, but there is no Spanish copy provided yet.
+3. What is missing Business Rules (Open Decisions)
+The tech brief lists these specific logic flows as unresolved. You need the product owner to make a decision on how these should work before coding them:
+
+Account Creation Timing: When a user books their first paid event, is the account created before the Stripe payment happens (current behavior in the prototype), or only after the payment succeeds?
+Godmother Referral Trigger: Do you grant the +5 pending credits to the referrer as soon as the new mother registers an account, or only after the new mother makes her first booking?
+Next Steps: Before we start coding the heavy backend logic, I recommend sending the list in sections #2 and #3 back to the product/design team to get clarification on the rules and missing UI.
+
+Would you like me to start stubbing out the database models for the Forum and Credits while you wait for those answers?
+
+
+📋 Product & Design Questions for Final Sign-Off
+To ensure the backend logic and missing UI are built exactly to your expectations, we need clarification on a few open decisions and missing designs.
+
+1. Core UI & Navigation (Missing Designs)
+Cookie Banner: What level of consent is required? Do we need a simple "Accept All" banner, or granular options (Marketing, Analytics, Essential)? What analytics tool are you planning to use?
+404 Error Page: Do you want a simple text page, or should it include quick links to "Upcoming Events", "The Circle", and "Home" to keep users engaged?
+Mobile Navigation Menu: Does the mobile menu slide in from the side or take up the full screen? Should the "Join the List" CTA be the most prominent button inside it?
+Forgot Password: Should we send a traditional "Click here to reset" link, or a "Magic Link" that logs them in automatically?
+2. The Circle (Forum & Moderation)
+Public Side - Hidden Posts: When an admin hides a post or it gets reported too many times, does it disappear entirely from the public feed, or does it leave a placeholder saying "This post was removed for moderation"?
+Admin Side - Dashboard: Does the team need a separate /admin dashboard to view reports, or should the moderation tools just appear inline on the forum for staff members?
+Account Pausing Logic: If an admin "Pauses" a mother's account for breaking house rules, what happens to her existing event bookings and remaining credits? Are they frozen, or automatically refunded?
+Spam Prevention: The brief mentions "posting needs a booking". Does booking a free event (0 credits) unlock the ability to post on the forum, or does it require a paid booking to prevent spam accounts?
+3. Full-Event Waiting List Logic
+We know the event cards show an "open list", but we need to define the user journey for full events.
+
+Joining the List: Does joining the waitlist require holding/deducting credits, or is it free to join and they only pay if a spot opens?
+Waitlist Resolution: If someone cancels and a spot opens up, does the system automatically book the first person on the waitlist, or does it email everyone on the waitlist so the first person to click gets the spot?
+UI: Where on the "Account" dashboard should users see the events they are currently waitlisted for?
+4. Transactional Emails
+We will use Brevo (as per your tech stack), but we need the exact Subject Lines and Body Copy for the following:
+
+Booking confirmation: Should this include a calendar invite attachment (.ics)?
+Payment receipt: Does this need to be a formal tax/VAT invoice, or just a simple receipt?
+Meeting-point reminder: How many hours/days before the event should this be sent?
+Credit-expiry notice: When should this warn the user? (e.g., 7 days before expiry?)
+Waitlist notifications: (Depends on the waitlist logic chosen above).
+Host request status: Copy for "Application Received", "Let's schedule a call", and "Approved/Rejected".
+5. Open Business Rules (From Tech Brief)
+Account Creation Timing: If a user creates an account at their first booking, does the account get created before the Stripe payment happens, or only after payment succeeds? (Recommendation: Create it before payment but mark it as 'pending', so if they abandon the checkout, we can email them a reminder).
+Godmother Referral Trigger: Do you grant the +5 pending credits to the referrer as soon as the new mother registers, or only after the new mother makes her first booking? (Recommendation: After the first booking, to prevent fake-account abuse).
+6. Edge Cases & Compliance (Missed in Brief)
+Refund Expiry Clock: If an event is cancelled by the organizers, and credits are refunded to the mothers, do those refunded credits keep their original 6-month expiry date, or does the 6-month clock reset?
+GDPR / Account Deletion: Do we need a "Delete Account" button in the Account settings? If a mother deletes her account, what happens to her forum posts? Do they get deleted, or just anonymized?
+Once we have answers to these, we can finalize the database architecture and begin building out the exact flows!
+
+
+To make The Circle (Forum) feel instant, snappy, and responsive (sub-100ms interactions, instant likes/replies, fast photo uploads), here are the best targeted libraries and architectural technologies that integrate seamlessly with your existing stack (Next.js 15, React 19, Drizzle ORM, Postgres, Supabase):
+
+1. Instant UI & Optimistic Updates (Zero-Lag UX)
+React 19 useOptimistic (Built-in — No Extra Library Needed)
+Why: You already have "react": "^19.0.0" installed! With useOptimistic and Next.js Server Actions, when a user clicks ❤️ (Heart) or posts a reply, the UI updates instantly (0ms delay) before the server even responds. If the request fails, it gracefully rolls back.
+TanStack Query (@tanstack/react-query) (Optional for complex feeds)
+Why: Provides automated background refetching, smooth cursor-based infinite scrolling (useInfiniteQuery), and local in-memory caching so navigating between topics is instant without re-fetching.
+2. Fast Image Uploads & Serving (Up to 4 Photos per Post)
+Mobile photos are often 5MB–10MB each. If a mother uploads 4 photos on a mobile network, uploading 40MB can take 15+ seconds without optimization.
+
+browser-image-compression (Client-side pre-compression)
+Why: Compresses and resizes images in the browser down to WebP/1000px in ~100ms before uploading. This reduces a 10MB photo to ~150KB, making post creation feel instant.
+sharp (Server-side processing)
+Why: High-performance Node.js C++ image processing library. Used in your Next.js API/actions to sanitize, strip EXIF metadata (privacy for mothers/children), and optimize images.
+3. Ultra-Fast Rate Limiting & Hot-Feed Caching
+The brief specifies strict rate limits (5 posts & 20 replies per 24h, 30s gap). Checking PostgreSQL for every single keystroke/attempt adds unnecessary DB queries.
+
+@upstash/redis + @upstash/ratelimit (Serverless Redis)
+Why: Lightning-fast in-memory checks (<10ms). Handles rate-limiting and can cache the "Top 20 Trending/Recent Posts" in memory, bypassing database load during traffic spikes.
+4. Real-Time Live Feed Updates (Without complex WebSockets)
+Supabase Realtime (Already available via @supabase/supabase-js)
+Why: You already have the Supabase SDK. You can subscribe to Postgres table changes (INSERT on circle_replies or circle_posts) to show "New reply received" or live heart counters without running a heavy custom Socket.io server.
+5. PostgreSQL & Drizzle Database Tuning (Biggest Speed Impact)
+To keep feeds fast as the forum scales, configure your Drizzle schema with:
+
+Composite Indexing:
+ts
+// In Drizzle schema
+index('idx_posts_topic_created').on(circlePosts.topic, circlePosts.createdAt.desc())
+Denormalized Counts (heartsCount, repliesCount columns):
+Store hearts_count and replies_count directly as integer columns on circle_posts (updated atomically with sql\hearts_count + 1``).
+Avoid running SELECT COUNT(*) queries across tables on every feed render.
+Cursor-Based Pagination (Keyset):
+Use WHERE created_at < :last_seen_date LIMIT 15 instead of OFFSET / LIMIT to keep page loads fast even on page 50.
+Summary of Recommended Additions:
+Technology	Package	What it Solves
+Image Compression	browser-image-compression	Instant photo uploads (<150KB instead of 10MB)
+Server Image Tuning	sharp	Metadata stripping, thumbnail generation
+Rate Limiting & Cache	@upstash/ratelimit + @upstash/redis	Enforces 30s gap & 24h quotas in <10ms
+Optimistic State	Native useOptimistic (React 19)	0ms perceived latency on likes and replies
+
+Here are the live performance and latency audit results for your Database (Supabase PostgreSQL) and Vercel Deployment:
+
+📊 Benchmark Results
+1. Database Performance (Supabase PostgreSQL)
+Database Host: aws-0-eu-west-2.pooler.supabase.com (AWS London / eu-west-2 via Supabase Connection Pooler)
+Initial Cold Connection + SSL Handshake: ~1,154 ms
+Warm Query Latency (Average across 5 runs): 161.37 ms (Includes remote internet transit from client to London datacenter)
+Schema & Table Queries: 193 ms (41 tables checked)
+Internal Vercel-to-DB Latency: When deployed to Vercel's London (lhr1) or Frankfurt (fra1) edge, DB roundtrips are typically ~10ms–25ms.
+2. Vercel Live Response Speed (themothers.cc)
+Homepage (https://themothers.cc):
+Total Round-Trip Time: 1,250 ms
+Vercel Edge Status: HIT (Cached at Edge)
+Events Calendar (https://themothers.cc/events):
+Total Round-Trip Time: 1,673 ms
+Vercel Edge Status: MISS (Dynamic SSR — fetches from database on every page visit)
+🔍 Key Findings & Recommendations for Forum & Site Speed
+The /events page is currently a Cache MISS:
+
+Every visit to /events hits the serverless function and queries PostgreSQL dynamically, causing the ~1.6s load time.
+Fix for Forum & Events: Use Next.js revalidateTag() / unstable_cache or client-side SWR/React Query caching so users get instant (~100ms–200ms) cached page loads.
+Serverless Region Alignment:
+
+Your database is hosted in AWS London (eu-west-2).
+Ensure your Vercel project's Function Region is explicitly set to London (lhr1) or Frankfurt (fra1) so your API routes/Server Actions talk to the DB with <15ms internal latency.
+Supabase Pooler is Active:
+
+You are already using pooler.supabase.com in .env.local with keep_alive and global client caching in src/db/index.ts, which prevents PostgreSQL connection exhaustion on Vercel serverless invocations.
