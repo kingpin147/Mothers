@@ -142,3 +142,29 @@ Ensure your Vercel project's Function Region is explicitly set to London (lhr1) 
 Supabase Pooler is Active:
 
 You are already using pooler.supabase.com in .env.local with keep_alive and global client caching in src/db/index.ts, which prevents PostgreSQL connection exhaustion on Vercel serverless invocations.
+
+
+1. What to KEEP (Your current stack is already superior here)
+Keep Drizzle ORM (Do NOT switch to Prisma):
+Why: Drizzle is 3x–5x faster than Prisma on Vercel Serverless. Prisma bundles a heavy query engine binary that causes noticeable cold-start delays (300ms–800ms). Drizzle provides the exact same 100% end-to-end TypeScript safety as Prisma, but with zero engine overhead and native PostgreSQL speed.
+Keep Supabase Storage (Do NOT switch to AWS S3):
+Why: You already have Supabase configured (@supabase/supabase-js). Supabase Storage is S3-compatible, sits right next to your database in the same EU region, and requires zero extra IAM/AWS account management.
+2. What to ADOPT (Valuable upgrades for "The Mothers")
+Adopt React Hook Form (react-hook-form + @hookform/resolvers):
+Why: You already have zod installed. Pairing Zod with React Hook Form makes multi-step forms (Become a Host request, Credit Top-up, First Booking modal, Report post dialog) robust, fast to type, and strictly validated on both client and server.
+Adopt Radix UI Primitives (@radix-ui/react-*):
+Why: Perfect for the unstyled, accessible logic of dropdown menus, topic selectors, photo lightboxes, report modals, and the mobile navigation drawer—while keeping your custom luxury typography and color palette intact.
+Adopt TanStack Table (@tanstack/react-table for Admin):
+Why: Ideal for building the /admin/reports moderation queue, members list, and credit transaction ledger with sorting, filtering, and pagination out of the box.
+3. What to Consider Only if Needed
+React-PDF (@react-pdf/renderer):
+When to use: Only if the client requires downloadable PDF VAT invoices for credit top-ups. If standard Brevo email receipts are sufficient, you do not need this extra bundle weight.
+🎯 Final Recommended Stack for The Mothers (Pre-Membership & Scale)
+Layer	Recommended Choice	Why
+Framework & UI	Next.js 15 (App Router) + React 19	Already installed; native Server Actions & useOptimistic
+Database & ORM	Supabase PostgreSQL + Drizzle ORM	Maximum serverless speed, zero cold-start engine lag
+Form & Validation	React Hook Form + Zod	Safe form handling for Host applications & booking flows
+Components & UI	Tailwind CSS + Radix UI Primitives	Fully accessible modals, drawers, and popovers
+Admin Tables	TanStack Table	Clean data tables for reports & moderation queues
+Media & Storage	Supabase Storage	Fast image uploads (up to 4 per post) in the same EU region
+Payments & Comms	Stripe + Brevo	Already in place for credit top-ups & transactional emails
