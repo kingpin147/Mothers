@@ -1530,8 +1530,8 @@ export function TopUpModal({
         </div>
         <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", margin: "0 0 18px" }}>
           {lang === "en"
-            ? <>This one costs {ev.creditCost} credits and you have {creditBalance}. Add {shortfall} credits for &euro;{shortfall} and we&rsquo;ll book you in straight away.</>
-            : <>Este encuentro cuesta {ev.creditCost} créditos y tienes {creditBalance}. Añade {shortfall} créditos por {shortfall}€ y te reservaremos directamente.</>}
+            ? <>This one costs {ev.creditCost} credits and you have {creditBalance}. Add {shortfall} credits for &euro;{shortfall * 2} and we&rsquo;ll book you in straight away.</>
+            : <>Este encuentro cuesta {ev.creditCost} créditos y tienes {creditBalance}. Añade {shortfall} créditos por {shortfall * 2}€ y te reservaremos directamente.</>}
         </p>
 
         <div
@@ -1559,7 +1559,7 @@ export function TopUpModal({
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "5px 0", borderTop: "1px solid rgba(57,41,42,0.1)" }}>
             <span style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)" }}>
-              {lang === "en" ? `Add ${shortfall} ${shortfall === 1 ? "credit" : "credits"} — €1 each` : `Añadir ${shortfall} ${shortfall === 1 ? "crédito" : "créditos"} — 1€ cada uno`}
+              {lang === "en" ? `Add ${shortfall} ${shortfall === 1 ? "credit" : "credits"} — €2 each` : `Añadir ${shortfall} ${shortfall === 1 ? "crédito" : "créditos"} — 2€ cada uno`}
             </span>
             <span style={{ fontFamily: "var(--font-heading)", fontSize: "14.5px", color: "#7b1f2c", fontWeight: 600 }}>
               &euro;{shortfall}
@@ -2640,6 +2640,19 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [activeStatus, setActiveStatus] = useState<string>("all");
   const [activeStage, setActiveStage] = useState<string>("all");
   const [activeAudience, setActiveAudience] = useState<string>("all");
+  const [freeOnly, setFreeOnly] = useState<boolean>(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".pill-dropdown-item")) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
 
   const handleMemberBook = async (ev: PublicEvent) => {
     setBookingLoadingId(ev.id);
@@ -2719,32 +2732,34 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     }
   };
 
-  // Category items matching prototype exactly
-  const categoryChips = [
-    { id: "all", labelEn: "All events", labelEs: "Todos los eventos" },
-    { id: "easy", labelEn: "Easy connection", labelEs: "Easy connection" },
-    { id: "baby", labelEn: "Play date", labelEs: "Play date" },
-    { id: "evenings", labelEn: "MoM's date", labelEs: "MoM's date" },
-    { id: "learn", labelEn: "Learn & Grow", labelEs: "Learn & Grow" },
-    { id: "signature", labelEn: "Signature moments", labelEs: "Signature moments" },
+  // Category options
+  const catOpts = [
+    { key: "all", label: lang === "en" ? "All types" : "Todos los tipos" },
+    { key: "easy", label: "Easy connection" },
+    { key: "baby", label: "Play date" },
+    { key: "evenings", label: "MoM's date" },
+    { key: "learn", label: "Learn & Grow" },
+    { key: "signature", label: "Signature moments" },
   ];
 
-  const stageChips = [
-    { id: "all", labelEn: "All stages", labelEs: "Todas las etapas" },
-    { id: "pregnant", labelEn: "Pregnant", labelEs: "Embarazada" },
-    { id: "babies", labelEn: "Babies", labelEs: "Bebés" },
-    { id: "toddlers", labelEn: "Toddlers", labelEs: "Peques" },
-    { id: "children", labelEn: "Children", labelEs: "Niños" },
-    { id: "big_kids", labelEn: "Big kids", labelEs: "Niños grandes" },
+  // Stage options
+  const stageOpts = [
+    { key: "all", label: lang === "en" ? "All stages" : "Todas las etapas" },
+    { key: "pregnant", label: lang === "en" ? "Pregnant" : "Embarazo" },
+    { key: "babies", label: lang === "en" ? "Babies" : "Bebés" },
+    { key: "toddlers", label: lang === "en" ? "Toddlers" : "Peques" },
+    { key: "children", label: lang === "en" ? "Children" : "Niños" },
+    { key: "big_kids", label: lang === "en" ? "Big kids" : "Niños mayores" },
   ];
 
-  const audienceChips = [
-    { id: "all", labelEn: "All groups", labelEs: "Todos los grupos" },
-    { id: "kids", labelEn: "Kids welcome", labelEs: "Con peques" },
-    { id: "moms", labelEn: "Mothers only", labelEs: "Solo madres" },
+  // Audience options
+  const groupOpts = [
+    { key: "all", label: lang === "en" ? "All groups" : "Todos los grupos" },
+    { key: "kids", label: lang === "en" ? "Kids welcome" : "Con peques" },
+    { key: "moms", label: lang === "en" ? "Mothers only" : "Solo madres" },
   ];
 
-  // Calculate current month & next month names dynamically
+  // Dynamic Month options
   const now = new Date();
   const currentMonthNameEn = now.toLocaleString("en-US", { month: "long" });
   const currentMonthNameEs = now.toLocaleString("es-ES", { month: "long" });
@@ -2752,21 +2767,21 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const nextMonthNameEn = nextMonthDate.toLocaleString("en-US", { month: "long" });
   const nextMonthNameEs = nextMonthDate.toLocaleString("es-ES", { month: "long" });
 
-  const dateChips = [
-    { id: "all", labelEn: "All dates", labelEs: "Todas las fechas" },
-    { id: "this_month", labelEn: `This month · ${currentMonthNameEn}`, labelEs: `Este mes · ${currentMonthNameEs}` },
-    { id: "next_month", labelEn: `Next month · ${nextMonthNameEn}`, labelEs: `Próximo mes · ${nextMonthNameEs}` },
+  const monthOpts = [
+    { key: "all", label: lang === "en" ? "All dates" : "Todas las fechas" },
+    { key: "this_month", label: lang === "en" ? `This month · ${currentMonthNameEn}` : `Este mes · ${currentMonthNameEs}` },
+    { key: "next_month", label: lang === "en" ? `Next month · ${nextMonthNameEn}` : `Próximo mes · ${nextMonthNameEs}` },
   ];
 
-  const statusChips = [
-    { id: "all", labelEn: "All states", labelEs: "Todos los estados", dotBg: "transparent", dotBorder: "rgba(57,41,42,0.3)" },
-    { id: "confirmed", labelEn: "Confirmed", labelEs: "Confirmados", dotBg: "#e8f1e9", dotBorder: "rgba(74,122,80,0.45)" },
-    { id: "pending", labelEn: "To be confirmed", labelEs: "Por confirmar", dotBg: "#fff3e4", dotBorder: "rgba(164,118,31,0.4)" },
-    { id: "cancelled", labelEn: "Cancelled", labelEs: "Cancelados", dotBg: "#fbf1f1", dotBorder: "rgba(153,56,66,0.28)" },
-    { id: "past", labelEn: "Past", labelEs: "Pasados", dotBg: "#dde3e6", dotBorder: "rgba(96,110,118,0.45)" },
+  const stateOpts = [
+    { key: "all", label: lang === "en" ? "Any status" : "Cualquier estado" },
+    { key: "confirmed", label: lang === "en" ? "Confirmed" : "Confirmados" },
+    { key: "pending", label: lang === "en" ? "To be confirmed" : "Por confirmar" },
+    { key: "cancelled", label: lang === "en" ? "Cancelled" : "Cancelados" },
+    { key: "past", label: lang === "en" ? "Past" : "Pasados" },
   ];
 
-  const hasActiveFilters = activeCategory !== "all" || activeDateFilter !== "all" || activeStatus !== "all" || activeStage !== "all" || activeAudience !== "all";
+  const hasActiveFilters = activeCategory !== "all" || activeDateFilter !== "all" || activeStatus !== "all" || activeStage !== "all" || activeAudience !== "all" || freeOnly;
 
   const clearAllFilters = () => {
     setActiveCategory("all");
@@ -2774,10 +2789,17 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     setActiveStatus("all");
     setActiveStage("all");
     setActiveAudience("all");
+    setFreeOnly(false);
   };
 
   // Filtering
   const filtered = eventsList.filter((ev) => {
+    // 0. Free events only
+    if (freeOnly) {
+      const isFree = ev.creditCost === 0 || ev.isFreeWalk === true;
+      if (!isFree) return false;
+    }
+
     // 1. Category match
     if (activeCategory !== "all") {
       const catInfo = getCategoryInfo(ev, "en");
@@ -2892,186 +2914,702 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   });
 
   return (
-    <div style={{ backgroundColor: "#FEFDF9", minHeight: "100vh", padding: "clamp(48px, 6vw, 88px) clamp(24px, 5vw, 64px)" }}>
-      <div style={{ maxWidth: "1160px", margin: "0 auto" }}>
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent)", marginBottom: "12px" }}>
-            {lang === "en" ? "CALENDAR" : "CALENDARIO"}
-          </div>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(34px, 5vw, 54px)", fontWeight: 400, lineHeight: 1.1, margin: "0 0 16px 0" }}>
-            {lang === "en" ? "Upcoming events." : "Próximos eventos."}
-          </h1>
-          <p style={{ fontSize: "19px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.78)", margin: "0 auto", maxWidth: "680px" }}>
-            {lang === "en"
-              ? "Walks, workshops, dinners, and seasonal moments — browse what's coming up and book your place."
-              : "Paseos, talleres, cenas y momentos de temporada — mira lo que se viene y reserva tu lugar."}
-          </p>
+    <div style={{ backgroundColor: "#fdf8f2", minHeight: "100vh", fontFamily: "'Lora', Georgia, serif", color: "#39292a" }}>
+      {/* ─── HERO HEADER ─── */}
+      <section style={{ maxWidth: "800px", margin: "0 auto", padding: "clamp(40px, 6vw, 76px) clamp(20px, 5vw, 64px) clamp(20px, 3vw, 30px)", textAlign: "center" }}>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "14px" }}>
+          {lang === "en" ? "CALENDAR" : "CALENDARIO"}
         </div>
+        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(32px, 4.6vw, 54px)", lineHeight: 1.08, margin: "0 0 16px", textWrap: "pretty" }}>
+          {lang === "en" ? "Where mothers meet and friendships start." : "Donde las madres se encuentran y empiezan las amistades."}
+        </h1>
+        <p style={{ fontSize: "16.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.74)", margin: "0 auto", maxWidth: "62ch" }}>
+          {lang === "en"
+            ? "Small groups, the same faces, a host who makes the introductions. Walks and park socials are free; everything else takes a few credits."
+            : "Grupos reducidos, las mismas caras, una anfitriona que hace las presentaciones. Los paseos y encuentros en el parque son gratuitos; todo lo demás cuesta unos pocos créditos."}
+        </p>
+      </section>
 
-        {/* ─── 3 FILTER ROWS MATCHING EXACT MODEL ─── */}
-        <div style={{ marginBottom: "36px" }}>
-          {/* Categories & Dates Group */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "28px" }}>
-            {/* Row 1: Categories */}
-            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "10px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
-              {categoryChips.map((chip) => {
-                const selected = activeCategory === chip.id;
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    onClick={() => setActiveCategory(chip.id)}
-                    style={{
-                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.22)",
-                      backgroundColor: "transparent",
-                      color: selected ? "#7b1f2c" : "#39292a",
-                      fontWeight: selected ? 600 : 400,
-                      padding: "9px 18px",
-                      borderRadius: "20px",
-                      fontSize: "13.5px",
-                      fontFamily: "var(--font-body)",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {lang === "en" ? chip.labelEn : chip.labelEs}
-                  </button>
-                );
-              })}
+      <section style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 clamp(20px, 5vw, 64px) clamp(46px, 6vw, 80px)" }}>
+        {/* ─── UNIFIED PILL FILTER BAR ─── */}
+        <div style={{ marginBottom: "20px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              border: "1px solid rgba(57, 41, 42, 0.2)",
+              borderRadius: "40px",
+              background: "#ffffff",
+              boxShadow: "0 6px 22px rgba(57, 41, 42, 0.07)",
+              position: "relative",
+              zIndex: 30,
+            }}
+          >
+            {/* What */}
+            <div
+              className="pill-dropdown-item"
+              style={{
+                position: "relative",
+                flex: "1 1 150px",
+                minWidth: "140px",
+                padding: "12px 38px 12px 22px",
+                cursor: "pointer",
+                borderTopLeftRadius: "40px",
+                borderBottomLeftRadius: "40px",
+                background: activeCategory !== "all" ? "rgba(123, 31, 44, 0.06)" : "transparent",
+                userSelect: "none",
+              }}
+              onClick={() => setOpenDropdown(openDropdown === "what" ? null : "what")}
+            >
+              <span
+                style={{
+                  fontSize: "10.5px",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: activeCategory !== "all" ? "#7b1f2c" : "rgba(57, 41, 42, 0.66)",
+                  display: "block",
+                  marginBottom: "2px",
+                }}
+              >
+                {lang === "en" ? "What" : "Qué"}
+              </span>
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "16.5px",
+                  color: "#39292a",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {catOpts.find((o) => o.key === activeCategory)?.label || (lang === "en" ? "All types" : "Todos los tipos")}
+              </div>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="rgba(57,41,42,0.55)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                width="14"
+                height="14"
+                style={{
+                  position: "absolute",
+                  right: "16px",
+                  top: "50%",
+                  marginTop: "-7px",
+                  pointerEvents: "none",
+                  transform: openDropdown === "what" ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                }}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+
+              {/* Floating Menu */}
+              {openDropdown === "what" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    left: 0,
+                    minWidth: "240px",
+                    backgroundColor: "#ffffff",
+                    border: "1px solid rgba(57, 41, 42, 0.16)",
+                    borderRadius: "12px",
+                    boxShadow: "0 18px 40px rgba(57, 41, 42, 0.16)",
+                    padding: "8px 6px",
+                    zIndex: 100,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {catOpts.map((o) => {
+                    const isSelected = activeCategory === o.key;
+                    return (
+                      <div
+                        key={o.key}
+                        onClick={() => {
+                          setActiveCategory(o.key);
+                          setOpenDropdown(null);
+                        }}
+                        style={{
+                          padding: "11px 16px",
+                          margin: "2px 0",
+                          borderRadius: "8px",
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontSize: "16.5px",
+                          fontWeight: isSelected ? 600 : 400,
+                          color: isSelected ? "#7b1f2c" : "#39292a",
+                          backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                          cursor: "pointer",
+                          transition: "background-color 0.15s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "#f7f3ee";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <span>{o.label}</span>
+                        {isSelected && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+                            <path d="m5 12 5 5L20 7" />
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Row 2: Dates */}
-            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
-              {dateChips.map((chip) => {
-                const selected = activeDateFilter === chip.id;
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    onClick={() => setActiveDateFilter(chip.id)}
-                    style={{
-                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.2)",
-                      backgroundColor: "transparent",
-                      color: selected ? "#7b1f2c" : "rgba(57,41,42,0.7)",
-                      fontWeight: selected ? 600 : 400,
-                      padding: "7px 15px",
-                      borderRadius: "20px",
-                      fontSize: "12.5px",
-                      fontFamily: "var(--font-body)",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {lang === "en" ? chip.labelEn : chip.labelEs}
-                  </button>
-                );
-              })}
+            {/* When */}
+            <div
+              className="pill-dropdown-item"
+              style={{
+                position: "relative",
+                flex: "1 1 150px",
+                minWidth: "140px",
+                padding: "12px 38px 12px 22px",
+                cursor: "pointer",
+                borderLeft: "1px solid rgba(57, 41, 42, 0.12)",
+                background: activeDateFilter !== "all" ? "rgba(123, 31, 44, 0.06)" : "transparent",
+                userSelect: "none",
+              }}
+              onClick={() => setOpenDropdown(openDropdown === "when" ? null : "when")}
+            >
+              <span
+                style={{
+                  fontSize: "10.5px",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: activeDateFilter !== "all" ? "#7b1f2c" : "rgba(57, 41, 42, 0.66)",
+                  display: "block",
+                  marginBottom: "2px",
+                }}
+              >
+                {lang === "en" ? "When" : "Cuándo"}
+              </span>
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "16.5px",
+                  color: "#39292a",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {monthOpts.find((o) => o.key === activeDateFilter)?.label || (lang === "en" ? "All dates" : "Todas las fechas")}
+              </div>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="rgba(57,41,42,0.55)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                width="14"
+                height="14"
+                style={{
+                  position: "absolute",
+                  right: "16px",
+                  top: "50%",
+                  marginTop: "-7px",
+                  pointerEvents: "none",
+                  transform: openDropdown === "when" ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                }}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+
+              {/* Floating Menu */}
+              {openDropdown === "when" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    left: 0,
+                    minWidth: "240px",
+                    backgroundColor: "#ffffff",
+                    border: "1px solid rgba(57, 41, 42, 0.16)",
+                    borderRadius: "12px",
+                    boxShadow: "0 18px 40px rgba(57, 41, 42, 0.16)",
+                    padding: "8px 6px",
+                    zIndex: 100,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {monthOpts.map((o) => {
+                    const isSelected = activeDateFilter === o.key;
+                    return (
+                      <div
+                        key={o.key}
+                        onClick={() => {
+                          setActiveDateFilter(o.key);
+                          setOpenDropdown(null);
+                        }}
+                        style={{
+                          padding: "11px 16px",
+                          margin: "2px 0",
+                          borderRadius: "8px",
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontSize: "16.5px",
+                          fontWeight: isSelected ? 600 : 400,
+                          color: isSelected ? "#7b1f2c" : "#39292a",
+                          backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                          cursor: "pointer",
+                          transition: "background-color 0.15s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "#f7f3ee";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <span>{o.label}</span>
+                        {isSelected && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+                            <path d="m5 12 5 5L20 7" />
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Row 3: Stages */}
-            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
-              {stageChips.map((chip) => {
-                const selected = activeStage === chip.id;
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    onClick={() => setActiveStage(chip.id)}
-                    style={{
-                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
-                      backgroundColor: "transparent",
-                      color: selected ? "#7b1f2c" : "rgba(57,41,42,0.65)",
-                      fontWeight: selected ? 600 : 400,
-                      padding: "6px 13px",
-                      borderRadius: "20px",
-                      fontSize: "12px",
-                      fontFamily: "var(--font-body)",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {lang === "en" ? chip.labelEn : chip.labelEs}
-                  </button>
-                );
-              })}
+            {/* Your stage */}
+            <div
+              className="pill-dropdown-item"
+              style={{
+                position: "relative",
+                flex: "1 1 150px",
+                minWidth: "140px",
+                padding: "12px 38px 12px 22px",
+                cursor: "pointer",
+                borderLeft: "1px solid rgba(57, 41, 42, 0.12)",
+                background: activeStage !== "all" ? "rgba(123, 31, 44, 0.06)" : "transparent",
+                userSelect: "none",
+              }}
+              onClick={() => setOpenDropdown(openDropdown === "stage" ? null : "stage")}
+            >
+              <span
+                style={{
+                  fontSize: "10.5px",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: activeStage !== "all" ? "#7b1f2c" : "rgba(57, 41, 42, 0.66)",
+                  display: "block",
+                  marginBottom: "2px",
+                }}
+              >
+                {lang === "en" ? "Your stage" : "Tu etapa"}
+              </span>
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "16.5px",
+                  color: "#39292a",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {stageOpts.find((o) => o.key === activeStage)?.label || (lang === "en" ? "All stages" : "Todas las etapas")}
+              </div>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="rgba(57,41,42,0.55)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                width="14"
+                height="14"
+                style={{
+                  position: "absolute",
+                  right: "16px",
+                  top: "50%",
+                  marginTop: "-7px",
+                  pointerEvents: "none",
+                  transform: openDropdown === "stage" ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                }}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+
+              {/* Floating Menu */}
+              {openDropdown === "stage" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    left: 0,
+                    minWidth: "240px",
+                    backgroundColor: "#ffffff",
+                    border: "1px solid rgba(57, 41, 42, 0.16)",
+                    borderRadius: "12px",
+                    boxShadow: "0 18px 40px rgba(57, 41, 42, 0.16)",
+                    padding: "8px 6px",
+                    zIndex: 100,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {stageOpts.map((o) => {
+                    const isSelected = activeStage === o.key;
+                    return (
+                      <div
+                        key={o.key}
+                        onClick={() => {
+                          setActiveStage(o.key);
+                          setOpenDropdown(null);
+                        }}
+                        style={{
+                          padding: "11px 16px",
+                          margin: "2px 0",
+                          borderRadius: "8px",
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontSize: "16.5px",
+                          fontWeight: isSelected ? 600 : 400,
+                          color: isSelected ? "#7b1f2c" : "#39292a",
+                          backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                          cursor: "pointer",
+                          transition: "background-color 0.15s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "#f7f3ee";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <span>{o.label}</span>
+                        {isSelected && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+                            <path d="m5 12 5 5L20 7" />
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Row 4: Audience / Kids */}
-            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", paddingBottom: "4px", scrollbarWidth: "none" }} className="hide-scrollbar">
-              {audienceChips.map((chip) => {
-                const selected = activeAudience === chip.id;
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    onClick={() => setActiveAudience(chip.id)}
-                    style={{
-                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
-                      backgroundColor: "transparent",
-                      color: selected ? "#7b1f2c" : "rgba(57,41,42,0.65)",
-                      fontWeight: selected ? 600 : 400,
-                      padding: "6px 13px",
-                      borderRadius: "20px",
-                      fontSize: "12px",
-                      fontFamily: "var(--font-body)",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {lang === "en" ? chip.labelEn : chip.labelEs}
-                  </button>
-                );
-              })}
+            {/* Who comes */}
+            <div
+              className="pill-dropdown-item"
+              style={{
+                position: "relative",
+                flex: "1 1 150px",
+                minWidth: "140px",
+                padding: "12px 38px 12px 22px",
+                cursor: "pointer",
+                borderLeft: "1px solid rgba(57, 41, 42, 0.12)",
+                background: activeAudience !== "all" ? "rgba(123, 31, 44, 0.06)" : "transparent",
+                userSelect: "none",
+              }}
+              onClick={() => setOpenDropdown(openDropdown === "group" ? null : "group")}
+            >
+              <span
+                style={{
+                  fontSize: "10.5px",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: activeAudience !== "all" ? "#7b1f2c" : "rgba(57, 41, 42, 0.66)",
+                  display: "block",
+                  marginBottom: "2px",
+                }}
+              >
+                {lang === "en" ? "Who comes" : "Quién viene"}
+              </span>
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "16.5px",
+                  color: "#39292a",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {groupOpts.find((o) => o.key === activeAudience)?.label || (lang === "en" ? "All groups" : "Todos los grupos")}
+              </div>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="rgba(57,41,42,0.55)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                width="14"
+                height="14"
+                style={{
+                  position: "absolute",
+                  right: "16px",
+                  top: "50%",
+                  marginTop: "-7px",
+                  pointerEvents: "none",
+                  transform: openDropdown === "group" ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                }}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+
+              {/* Floating Menu */}
+              {openDropdown === "group" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    left: 0,
+                    minWidth: "240px",
+                    backgroundColor: "#ffffff",
+                    border: "1px solid rgba(57, 41, 42, 0.16)",
+                    borderRadius: "12px",
+                    boxShadow: "0 18px 40px rgba(57, 41, 42, 0.16)",
+                    padding: "8px 6px",
+                    zIndex: 100,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {groupOpts.map((o) => {
+                    const isSelected = activeAudience === o.key;
+                    return (
+                      <div
+                        key={o.key}
+                        onClick={() => {
+                          setActiveAudience(o.key);
+                          setOpenDropdown(null);
+                        }}
+                        style={{
+                          padding: "11px 16px",
+                          margin: "2px 0",
+                          borderRadius: "8px",
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontSize: "16.5px",
+                          fontWeight: isSelected ? 600 : 400,
+                          color: isSelected ? "#7b1f2c" : "#39292a",
+                          backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                          cursor: "pointer",
+                          transition: "background-color 0.15s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "#f7f3ee";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <span>{o.label}</span>
+                        {isSelected && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+                            <path d="m5 12 5 5L20 7" />
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Status */}
+            <div
+              className="pill-dropdown-item"
+              style={{
+                position: "relative",
+                flex: "1 1 150px",
+                minWidth: "140px",
+                padding: "12px 38px 12px 22px",
+                cursor: "pointer",
+                borderLeft: "1px solid rgba(57, 41, 42, 0.12)",
+                borderTopRightRadius: "40px",
+                borderBottomRightRadius: "40px",
+                background: activeStatus !== "all" ? "rgba(123, 31, 44, 0.06)" : "transparent",
+                userSelect: "none",
+              }}
+              onClick={() => setOpenDropdown(openDropdown === "status" ? null : "status")}
+            >
+              <span
+                style={{
+                  fontSize: "10.5px",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: activeStatus !== "all" ? "#7b1f2c" : "rgba(57, 41, 42, 0.66)",
+                  display: "block",
+                  marginBottom: "2px",
+                }}
+              >
+                {lang === "en" ? "Status" : "Estado"}
+              </span>
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "16.5px",
+                  color: "#39292a",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {stateOpts.find((o) => o.key === activeStatus)?.label || (lang === "en" ? "Any status" : "Cualquier estado")}
+              </div>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="rgba(57,41,42,0.55)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                width="14"
+                height="14"
+                style={{
+                  position: "absolute",
+                  right: "16px",
+                  top: "50%",
+                  marginTop: "-7px",
+                  pointerEvents: "none",
+                  transform: openDropdown === "status" ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                }}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+
+              {/* Floating Menu */}
+              {openDropdown === "status" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    minWidth: "240px",
+                    backgroundColor: "#ffffff",
+                    border: "1px solid rgba(57, 41, 42, 0.16)",
+                    borderRadius: "12px",
+                    boxShadow: "0 18px 40px rgba(57, 41, 42, 0.16)",
+                    padding: "8px 6px",
+                    zIndex: 100,
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {stateOpts.map((o) => {
+                    const isSelected = activeStatus === o.key;
+                    return (
+                      <div
+                        key={o.key}
+                        onClick={() => {
+                          setActiveStatus(o.key);
+                          setOpenDropdown(null);
+                        }}
+                        style={{
+                          padding: "11px 16px",
+                          margin: "2px 0",
+                          borderRadius: "8px",
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontSize: "16.5px",
+                          fontWeight: isSelected ? 600 : 400,
+                          color: isSelected ? "#7b1f2c" : "#39292a",
+                          backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                          cursor: "pointer",
+                          transition: "background-color 0.15s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "#f7f3ee";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <span>{o.label}</span>
+                        {isSelected && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+                            <path d="m5 12 5 5L20 7" />
+                          </svg>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Row 5: Status / State with Authentic Swatches */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", justifyContent: "space-between", paddingBottom: "4px" }}>
-            <div style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px", alignItems: "center", scrollbarWidth: "none" }} className="hide-scrollbar">
-              {statusChips.map((chip) => {
-                const selected = activeStatus === chip.id;
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    onClick={() => setActiveStatus(chip.id)}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      border: selected ? "1px solid #7b1f2c" : "1px solid rgba(57,41,42,0.18)",
-                      backgroundColor: "transparent",
-                      color: selected ? "#7b1f2c" : "rgba(57,41,42,0.72)",
-                      fontWeight: selected ? 600 : 400,
-                      padding: "6px 14px",
-                      borderRadius: "20px",
-                      fontSize: "12.5px",
-                      fontFamily: "var(--font-body)",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: "12px",
-                        height: "12px",
-                        borderRadius: "50%",
-                        backgroundColor: selected ? chip.dotBorder : "transparent",
-                        border: selected ? "2px solid #7b1f2c" : `1px solid ${chip.dotBorder}`,
-                        flexShrink: 0,
-                      }}
-                    />
-                    {lang === "en" ? chip.labelEn : chip.labelEs}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Sub Row: Free events only switch & Clear all */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 18px", alignItems: "center", justifyContent: "center", marginTop: "14px" }}>
+            <button
+              type="button"
+              onClick={() => setFreeOnly(!freeOnly)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                border: "none",
+                background: "transparent",
+                padding: "4px 0",
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: "13.5px",
+                color: freeOnly ? "#568b05" : "rgba(57, 41, 42, 0.78)",
+                cursor: "pointer",
+                fontWeight: freeOnly ? 600 : 400,
+              }}
+            >
+              <span
+                style={{
+                  width: "32px",
+                  height: "18px",
+                  borderRadius: "9px",
+                  background: freeOnly ? "#568b05" : "rgba(57, 41, 42, 0.22)",
+                  position: "relative",
+                  flex: "none",
+                  transition: "background 0.2s ease",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "2px",
+                    left: freeOnly ? "16px" : "2px",
+                    width: "14px",
+                    height: "14px",
+                    borderRadius: "50%",
+                    background: "#ffffff",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                    transition: "left 0.2s ease",
+                  }}
+                />
+              </span>
+              {lang === "en" ? "Free events only" : "Solo eventos gratuitos"}
+            </button>
 
             {hasActiveFilters && (
               <button
@@ -3080,18 +3618,42 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                 style={{
                   border: "none",
                   background: "transparent",
+                  padding: "4px 0",
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "13.5px",
                   color: "#7b1f2c",
-                  fontSize: "13px",
-                  cursor: "pointer",
                   textDecoration: "underline",
-                  padding: "4px 8px",
-                  whiteSpace: "nowrap",
+                  textUnderlineOffset: "3px",
+                  cursor: "pointer",
                 }}
               >
-                {lang === "en" ? "Clear all filters" : "Borrar todos los filtros"}
+                {lang === "en" ? "Clear all" : "Borrar filtros"}
               </button>
             )}
           </div>
+        </div>
+
+        {/* Counter & Status Header Line */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "12px",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            marginBottom: "26px",
+            paddingBottom: "16px",
+            borderBottom: "1px solid rgba(57, 41, 42, 0.14)",
+          }}
+        >
+          <span style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)", fontFeatureSettings: "'tnum'" }}>
+            {sortedEvents.length} {lang === "en" ? (sortedEvents.length === 1 ? "event" : "events") : (sortedEvents.length === 1 ? "evento" : "eventos")}
+          </span>
+          <span style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>
+            {isMember
+              ? (lang === "en" ? `Wallet: ${currentCreditBalance} credits` : `Monedero: ${currentCreditBalance} créditos`)
+              : (lang === "en" ? "No account yet — you can look before you open one" : "Sin cuenta aún — puedes mirar antes de abrir una")}
+          </span>
         </div>
 
         {/* ─── EVENTS GRID ─── */}
@@ -3146,7 +3708,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       {/* ─── MODALS (ALL 14 DIALOG STATES COVERED) ─── */}
       {/* Guest Pass Confirmed (Stripe checkout return) */}

@@ -1,159 +1,253 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { DICTIONARIES, Locale } from "@/lib/i18n";
-import { getPublicMembershipWindow } from "@/app/actions/publicWindow";
+import { useLanguage } from "@/components/LanguageProvider";
 
-export default function HomeClient({
-  initialWindowOpen = true,
-  initialSpotsRemaining = 50,
-}: {
-  initialWindowOpen?: boolean;
-  initialSpotsRemaining?: number;
-}) {
-  const [lang, setLang] = useState<Locale>("en");
-  const [windowOpen, setWindowOpen] = useState(initialWindowOpen);
-  const [spotsRemaining, setSpotsRemaining] = useState(initialSpotsRemaining);
-  const umbTrackRef = useRef<HTMLDivElement>(null);
+interface EventCardItem {
+  id: string;
+  title: string;
+  categoryLabel: string;
+  date: string;
+  neighbourhood: string;
+  price: string;
+  image?: string;
+}
+
+const SEED_EVENTS: EventCardItem[] = [
+  {
+    id: "e1",
+    title: "Wednesday Morning Walk & Coffee",
+    categoryLabel: "Walks",
+    date: "Wed 15 Oct · 10:00",
+    neighbourhood: "Parc de la Ciutadella",
+    price: "Free",
+    image: "/assets/home-hero.webp",
+  },
+  {
+    id: "e2",
+    title: "Postpartum & Early Months Hosted Circle",
+    categoryLabel: "Circles",
+    date: "Fri 17 Oct · 11:30",
+    neighbourhood: "Gràcia",
+    price: "1 credit",
+    image: "/assets/home-hero.webp",
+  },
+  {
+    id: "e3",
+    title: "Evening Supper & Honest Talk",
+    categoryLabel: "Suppers",
+    date: "Thu 23 Oct · 20:00",
+    neighbourhood: "Eixample Dreta",
+    price: "2 credits",
+    image: "/assets/home-hero.webp",
+  },
+  {
+    id: "e4",
+    title: "Returning to Work & Career Balance Talk",
+    categoryLabel: "Talks",
+    date: "Tue 28 Oct · 18:30",
+    neighbourhood: "Sant Antoni",
+    price: "1 credit",
+    image: "/assets/home-hero.webp",
+  },
+];
+
+export default function HomeClient({ initialEvents = [] }: { initialEvents?: any[] }) {
+  const { language: lang } = useLanguage();
+  const [waitlisted, setWaitlisted] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    const updateLang = () => {
-      const saved =
-        localStorage.getItem("site_language") ||
-        localStorage.getItem("tm_lang");
-      if (saved === "es" || saved === "en") setLang(saved as Locale);
-    };
-    updateLang();
-    window.addEventListener("tm_lang_change", updateLang);
-    return () => window.removeEventListener("tm_lang_change", updateLang);
+    const saved = localStorage.getItem("tm_pre_joined_list");
+    if (saved) setWaitlisted(true);
   }, []);
 
-  useEffect(() => {
-    getPublicMembershipWindow().then((state) => {
-      setWindowOpen(state.open);
-      setSpotsRemaining(state.spotsRemaining);
-    });
-  }, []);
+  const handleJoinList = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes("@")) {
+      setErrorMsg(lang === "en" ? "Please enter a valid email." : "Introduce un correo válido.");
+      return;
+    }
+    setLoading(true);
+    setErrorMsg("");
 
-  const t = DICTIONARIES[lang];
-
-  // The label appears ONLY when spots are limited (<= 10 remaining)
-  const showSpotsUrgency = windowOpen && spotsRemaining <= 10 && spotsRemaining > 0;
-
-  const scrollUmb = (dir: number) => {
-    if (!umbTrackRef.current) return;
-    const card = umbTrackRef.current.firstElementChild as HTMLElement;
-    const step = card ? card.getBoundingClientRect().width + 22 : 280;
-    umbTrackRef.current.scrollBy({ left: dir * step, behavior: "smooth" });
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, source: "home_page_waitlist" }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      setWaitlisted(true);
+      localStorage.setItem("tm_pre_joined_list", "true");
+      setModalOpen(false);
+    } catch {
+      setErrorMsg(lang === "en" ? "Something went wrong. Please try again." : "Algo ha fallado. Inténtalo de nuevo.");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const displayEvents: EventCardItem[] =
+    initialEvents && initialEvents.length > 0
+      ? initialEvents.slice(0, 4).map((ev: any) => ({
+          id: ev.id,
+          title: ev.title,
+          categoryLabel: ev.categoryName || "Gathering",
+          date: ev.startsAt ? new Date(ev.startsAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Upcoming",
+          neighbourhood: ev.neighbourhood || "Barcelona",
+          price: ev.creditCost && ev.creditCost > 0 ? `${ev.creditCost} ${ev.creditCost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}` : (lang === "en" ? "Free" : "Gratis"),
+          image: "/assets/home-hero.webp",
+        }))
+      : SEED_EVENTS;
+
   return (
-    <div style={{ backgroundColor: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", minHeight: "100vh" }}>
-      {/* ─── HERO SECTION ─── */}
+    <div style={{ backgroundColor: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
+      {/* ─── 1. HERO SECTION ─── */}
       <section
         style={{
-          maxWidth: "1320px",
+          maxWidth: "1240px",
           margin: "0 auto",
-          padding: "clamp(56px, 7vw, 96px) clamp(24px, 5vw, 64px) clamp(40px, 5vw, 64px)",
+          padding: "clamp(40px, 6vw, 80px) clamp(20px, 5vw, 64px) clamp(32px, 4vw, 56px)",
           display: "flex",
           flexWrap: "wrap",
-          gap: "clamp(40px, 5vw, 64px)",
+          gap: "clamp(32px, 5vw, 56px)",
           alignItems: "center",
         }}
       >
-        <div style={{ flex: "1 1 480px", minWidth: "320px" }}>
+        <div style={{ flex: "1 1 440px", minWidth: "280px" }}>
           <div
             style={{
-              fontFamily: "'Cormorant Garamond', serif",
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontWeight: 600,
-              fontSize: "14px",
+              fontSize: "13px",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               color: "#7b1f2c",
               marginBottom: "18px",
             }}
           >
-            {t.hero.kicker}
+            {lang === "en" ? "Barcelona · a circle of mothers" : "Barcelona · un círculo de madres"}
           </div>
+
           <h1
             style={{
-              fontFamily: "'Cormorant Garamond', serif",
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontWeight: 400,
-              fontSize: "clamp(50px, 6.2vw, 82px)",
+              fontSize: "clamp(38px, 5.4vw, 70px)",
               lineHeight: 1.04,
               letterSpacing: "-0.01em",
-              margin: "0 0 24px",
+              margin: "0 0 22px",
+              textWrap: "pretty",
             }}
           >
-            {t.hero.title}
+            {lang === "en" ? "Find your people. Build your circle." : "Encuentra a tu gente. Crea tu círculo."}
           </h1>
+
           <p
             style={{
-              fontSize: "19px",
+              fontSize: "18px",
               lineHeight: 1.65,
-              color: "rgba(57, 41, 42, 0.78)",
-              maxWidth: "560px",
-              margin: "0 0 16px",
+              color: "rgba(57, 41, 42, 0.75)",
+              maxWidth: "52ch",
+              margin: "0 0 18px",
             }}
           >
-            {t.hero.subtitle}
+            {lang === "en"
+              ? "Motherhood is better with friends who get it. Meet mothers at your stage, in your neighbourhood — and keep seeing them, week after week, until they are yours."
+              : "La maternidad se vive mejor con amigas que te entienden. Conoce a madres en tu misma etapa, en tu barrio — y sigue viéndolas, semana tras semana, hasta que formen parte de tu vida."}
           </p>
+
           <p
             style={{
-              fontSize: "15px",
+              fontSize: "14.5px",
               lineHeight: 1.6,
-              color: "rgba(57, 41, 42, 0.65)",
+              color: "rgba(57, 41, 42, 0.72)",
               borderTop: "1px solid rgba(57, 41, 42, 0.16)",
               paddingTop: "16px",
-              margin: "26px 0 0",
-              maxWidth: "500px",
+              margin: 0,
+              maxWidth: "48ch",
             }}
           >
-            {windowOpen ? t.hero.windowNoteOpen : t.hero.windowNoteClosed}
+            {lang === "en"
+              ? "Walks, play dates, suppers and talks across Barcelona — from pregnancy through the school years."
+              : "Caminatas, quedadas, cenas y charlas por toda Barcelona — desde el embarazo hasta la etapa escolar."}
           </p>
-          <Link
-            href="/membership"
-            style={{
-              marginTop: "20px",
-              color: "#7b1f2c",
-              fontFamily: "'Cormorant Garamond', serif",
-              fontWeight: 600,
-              fontSize: "17px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              whiteSpace: "nowrap",
-              textDecoration: "none",
-            }}
-          >
-            {t.hero.ctaSecondary}
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
-          </Link>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", alignItems: "center", marginTop: "26px" }}>
+            <Link
+              href="/events"
+              style={{
+                border: "1px solid #7b1f2c",
+                color: "#7b1f2c",
+                backgroundColor: "transparent",
+                padding: "13px 24px",
+                borderRadius: "4px",
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 600,
+                fontSize: "15.5px",
+                whiteSpace: "nowrap",
+                textDecoration: "none",
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.08)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              {lang === "en" ? "See what's on" : "Ver qué eventos hay"}
+            </Link>
+
+            <Link
+              href="/events"
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 600,
+                fontSize: "15.5px",
+                whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                color: "#7b1f2c",
+                textDecoration: "none",
+              }}
+            >
+              <span>{lang === "en" ? "Book your first event" : "Reserva tu primer evento"}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </Link>
+          </div>
         </div>
 
-        {/* Hero Visual */}
-        <div style={{ flex: "1 1 420px", minWidth: "300px" }}>
+        {/* Hero Image Frame */}
+        <div style={{ flex: "1 1 380px", minWidth: "270px" }}>
           <div
             style={{
-              background: "#ecdcd0",
-              padding: "10px",
-              borderRadius: "8px",
-              boxShadow: "0 14px 36px rgba(45, 43, 43, 0.18)",
+              backgroundColor: "#ecdcd0",
+              padding: "8px",
+              borderRadius: "6px",
+              boxShadow: "0 12px 32px rgba(45, 43, 43, 0.16)",
             }}
           >
             <div
               style={{
                 border: "1px solid rgba(57, 41, 42, 0.18)",
-                borderRadius: "4px",
+                borderRadius: "3px",
                 overflow: "hidden",
-                height: "480px",
+                height: "440px",
                 backgroundColor: "#f4ece1",
               }}
             >
               <img
                 src="/assets/home-hero.webp"
-                alt="Mothers in Barcelona walking and enjoying coffee together"
+                alt="Mothers in Barcelona walking and enjoying a picnic together"
                 style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               />
             </div>
@@ -161,536 +255,616 @@ export default function HomeClient({
         </div>
       </section>
 
-      {/* ─── WHY THE MOTHERS (THREE PILLARS) ─── */}
+      {/* ─── 2. HOW FRIENDSHIPS START (3-STEP GUIDE) ─── */}
       <section
         style={{
-          maxWidth: "1280px",
+          maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(36px, 4.5vw, 60px) clamp(24px, 5vw, 64px)",
+          padding: "clamp(40px, 5vw, 70px) clamp(20px, 5vw, 64px) clamp(24px, 3vw, 36px)",
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "clamp(36px, 4vw, 56px)" }}>
-          <div style={{ flex: "1 1 420px", minWidth: "300px" }}>
-            <div
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 600,
-                fontSize: "14px",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "#568b05",
-                marginBottom: "16px",
-              }}
-            >
-              {t.why.kicker}
-            </div>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 600,
-                fontSize: "clamp(32px, 4vw, 44px)",
-                lineHeight: 1.15,
-                margin: "0 0 20px",
-              }}
-            >
-              {t.why.heading}
-            </h2>
-            <p style={{ fontSize: "18px", lineHeight: 1.7, color: "rgba(57, 41, 42, 0.75)", textAlign: "justify" }}>
-              {t.why.body}
-            </p>
-          </div>
-
-          <div style={{ flex: "1 1 440px", minWidth: "300px", display: "flex", flexDirection: "column", gap: "28px" }}>
-            {t.why.pillars.map((pillar, idx) => (
-              <div key={idx} style={{ display: "flex", gap: "18px" }}>
-                <div
-                  style={{
-                    flex: "none",
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "50%",
-                    border: "1px solid rgba(123, 31, 44, 0.35)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#7b1f2c",
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
-                    {idx === 0 && (
-                      <>
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
-                        <circle cx="10" cy="7" r="4" />
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      </>
-                    )}
-                    {idx === 1 && (
-                      <>
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-                        <path d="m9 12 2 2 4-4" />
-                      </>
-                    )}
-                    {idx === 2 && (
-                      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />
-                    )}
-                  </svg>
-                </div>
-                <div>
-                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", margin: "0 0 4px" }}>
-                    {pillar.title}
-                  </h3>
-                  <p style={{ fontSize: "16px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.68)", margin: 0 }}>
-                    {pillar.body}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── HOW IT WORKS (THREE STEPS) ─── */}
-      <section
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-          padding: "clamp(36px, 4.5vw, 60px) clamp(24px, 5vw, 64px)",
-          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-        }}
-      >
-        <div style={{ textAlign: "center", maxWidth: "680px", margin: "0 auto 36px" }}>
+        <div style={{ textAlign: "center", maxWidth: "620px", margin: "0 auto 36px" }}>
           <div
             style={{
-              fontFamily: "'Cormorant Garamond', serif",
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontWeight: 600,
-              fontSize: "14px",
+              fontSize: "13px",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               color: "#7b1f2c",
               marginBottom: "10px",
             }}
           >
-            {t.how.kicker}
+            {lang === "en" ? "How friendships start" : "Cómo empiezan las amistades"}
           </div>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "clamp(32px, 4vw, 44px)", margin: 0 }}>
-            {t.how.heading}
+          <h2
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontWeight: 600,
+              fontSize: "clamp(27px, 3.6vw, 40px)",
+              lineHeight: 1.15,
+              margin: 0,
+            }}
+          >
+            {lang === "en" ? "From stranger to friend, in three steps." : "De desconocida a amiga, en tres pasos."}
           </h2>
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "28px", justifyContent: "center" }}>
-          {t.how.steps.map((step, idx) => (
-            <div key={idx} style={{ flex: "1 1 280px", maxWidth: "340px", textAlign: "center", padding: "0 14px" }}>
-              <div
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 400,
-                  fontSize: "42px",
-                  lineHeight: 1.1,
-                  color: "rgba(123, 31, 44, 0.28)",
-                  marginBottom: "8px",
-                }}
-              >
-                {step.n}
-              </div>
-              <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "22px", margin: "0 0 8px" }}>
-                {step.title}
-              </h3>
-              <p style={{ fontSize: "16px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.68)", margin: 0 }}>
-                {step.body}
-              </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 250px), 1fr))", gap: "28px" }}>
+          {/* Step 01 */}
+          <div style={{ textAlign: "center", padding: "0 10px" }}>
+            <div
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 400,
+                fontSize: "38px",
+                lineHeight: 1.1,
+                color: "rgba(123, 31, 44, 0.28)",
+                marginBottom: "6px",
+                fontFeatureSettings: "'tnum'",
+              }}
+            >
+              01
             </div>
+            <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "21px", margin: "0 0 7px" }}>
+              {lang === "en" ? "Come once" : "Ven una vez"}
+            </h3>
+            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
+              {lang === "en"
+                ? "Start with a walk or a hosted coffee. A host makes the introductions, so you never walk in alone."
+                : "Empieza con una caminata o un café con anfitriona. Una madre anfitriona hace las presentaciones para que nunca llegues sola."}
+            </p>
+          </div>
+
+          {/* Step 02 */}
+          <div style={{ textAlign: "center", padding: "0 10px" }}>
+            <div
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 400,
+                fontSize: "38px",
+                lineHeight: 1.1,
+                color: "rgba(123, 31, 44, 0.28)",
+                marginBottom: "6px",
+                fontFeatureSettings: "'tnum'",
+              }}
+            >
+              02
+            </div>
+            <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "21px", margin: "0 0 7px" }}>
+              {lang === "en" ? "Keep coming back" : "Sigue viniendo"}
+            </h3>
+            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
+              {lang === "en"
+                ? "Small groups, the same faces. By the third time, you are not talking about the babies any more."
+                : "Grupos reducidos, las mismas caras. A la tercera vez, ya no solo habláis de los bebés."}
+            </p>
+          </div>
+
+          {/* Step 03 */}
+          <div style={{ textAlign: "center", padding: "0 10px" }}>
+            <div
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 400,
+                fontSize: "38px",
+                lineHeight: 1.1,
+                color: "rgba(123, 31, 44, 0.28)",
+                marginBottom: "6px",
+                fontFeatureSettings: "'tnum'",
+              }}
+            >
+              03
+            </div>
+            <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "21px", margin: "0 0 7px" }}>
+              {lang === "en" ? "Find your circle" : "Encuentra tu círculo"}
+            </h3>
+            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
+              {lang === "en"
+                ? "The mothers you call on a bad Tuesday. The ones who get it, because they are living it too."
+                : "Las madres a las que llamas un martes difícil. Las que te entienden porque están viviendo lo mismo."}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 3. NEXT ON THE CALENDAR ─── */}
+      <section
+        style={{
+          maxWidth: "1160px",
+          margin: "0 auto",
+          padding: "clamp(30px, 4vw, 52px) clamp(20px, 5vw, 64px)",
+          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
+        }}
+      >
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "baseline", justifyContent: "space-between", marginBottom: "26px" }}>
+          <div>
+            <div
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 600,
+                fontSize: "13px",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "#7b1f2c",
+                marginBottom: "9px",
+              }}
+            >
+              {lang === "en" ? "Next on the calendar" : "Próximamente en el calendario"}
+            </div>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(25px, 3.2vw, 34px)", margin: 0 }}>
+              {lang === "en" ? "Where you will meet her." : "Donde la conocerás."}
+            </h2>
+          </div>
+
+          <Link
+            href="/events"
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontWeight: 600,
+              fontSize: "15px",
+              whiteSpace: "nowrap",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "#7b1f2c",
+              textDecoration: "none",
+            }}
+          >
+            <span>{lang === "en" ? "The whole calendar" : "Ver todo el calendario"}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </Link>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 260px), 1fr))", gap: "20px" }}>
+          {displayEvents.map((ev) => (
+            <Link
+              key={ev.id}
+              href={`/events/${ev.id}`}
+              style={{
+                border: "1px solid rgba(57, 41, 42, 0.18)",
+                borderRadius: "8px",
+                backgroundColor: "#ffffff",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                color: "#39292a",
+                textDecoration: "none",
+                transition: "border-color 0.2s ease, transform 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "rgba(123, 31, 44, 0.5)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.18)";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              <div style={{ height: "132px", borderBottom: "1px solid rgba(57, 41, 42, 0.12)", backgroundColor: "#f4ece1", overflow: "hidden" }}>
+                <img
+                  src={ev.image || "/assets/home-hero.webp"}
+                  alt={ev.title}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              </div>
+
+              <div style={{ padding: "16px 18px 18px", display: "flex", flexDirection: "column", gap: "9px", flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      letterSpacing: "0.04em",
+                      color: "#7b1f2c",
+                      border: "1px solid rgba(123, 31, 44, 0.35)",
+                      borderRadius: "10px",
+                      padding: "3px 10px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {ev.categoryLabel}
+                  </span>
+                  <span style={{ fontSize: "11.5px", color: "rgba(57, 41, 42, 0.72)", whiteSpace: "nowrap", fontFeatureSettings: "'tnum'" }}>
+                    {ev.price}
+                  </span>
+                </div>
+
+                <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", margin: 0, lineHeight: 1.3 }}>
+                  {ev.title}
+                </h3>
+
+                <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>{ev.date}</div>
+                <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>{ev.neighbourhood}</div>
+              </div>
+            </Link>
           ))}
         </div>
       </section>
 
-      {/* ─── MEMBERSHIP TEASER CARD ─── */}
+      {/* ─── 4. THE GODMOTHER PROGRAM ─── */}
       <section
         style={{
-          maxWidth: "1280px",
+          maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(36px, 4.5vw, 60px) clamp(24px, 5vw, 64px)",
+          padding: "clamp(30px, 4vw, 52px) clamp(20px, 5vw, 64px)",
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
         <div
           style={{
+            border: "1px solid rgba(86, 139, 5, 0.4)",
+            borderRadius: "8px",
+            backgroundColor: "rgba(86, 139, 5, 0.06)",
+            padding: "clamp(24px, 4vw, 40px)",
             display: "flex",
             flexWrap: "wrap",
-            gap: "clamp(36px, 4vw, 56px)",
+            gap: "clamp(24px, 4vw, 48px)",
             alignItems: "center",
-            justifyContent: "space-between",
-            border: "1px solid rgba(57, 41, 42, 0.18)",
-            borderRadius: "8px",
-            padding: "clamp(36px, 5vw, 64px)",
-            backgroundColor: "#f8efe2",
           }}
         >
-          <div style={{ flex: "1 1 420px", minWidth: "300px" }}>
+          <div style={{ flex: "1 1 380px", minWidth: "270px" }}>
             <div
               style={{
-                fontFamily: "'Cormorant Garamond', serif",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontWeight: 600,
-                fontSize: "14px",
+                fontSize: "13px",
                 letterSpacing: "0.14em",
                 textTransform: "uppercase",
-                color: "#7b1f2c",
+                color: "#3b5e04",
                 marginBottom: "12px",
               }}
             >
-              {t.membershipTeaser.kicker}
+              <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" style={{ flex: "none" }}>
+                <path d="m12 2 2.9 6.3 6.6.8-4.9 4.5 1.3 6.6L12 17l-5.9 3.2 1.3-6.6L2.5 9.1l6.6-.8Z" />
+              </svg>
+              <span>{lang === "en" ? "The Godmother program" : "El programa Madrinas"}</span>
             </div>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "clamp(32px, 4vw, 44px)", margin: "0 0 12px" }}>
-              {t.membershipTeaser.heading}
+
+            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400, fontSize: "clamp(26px, 3.4vw, 40px)", lineHeight: 1.12, margin: "0 0 14px" }}>
+              {lang === "en" ? "Bring a mother into the circle." : "Invita a una madre al círculo."}
             </h2>
-            <p style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "24px", color: "#7b1f2c", margin: "0 0 4px" }}>
-              {t.membershipTeaser.price}
+
+            <p style={{ fontSize: "16px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 20px", maxWidth: "52ch" }}>
+              {lang === "en"
+                ? "Every account comes with a personal invite code. Share it with the friend who has just moved here, the neighbour with the pram — and once you are a member, you earn 5 credits for every mother who registers with it."
+                : "Cada cuenta incluye un código de invitación personal. Compártelo con la amiga que acaba de mudarse o la vecina con el carrito — y cuando seas socia, ganarás 5 créditos por cada madre que se registre con él."}
             </p>
-            <p style={{ fontSize: "15px", color: "rgba(57, 41, 42, 0.65)", margin: "0 0 14px" }}>
-              {t.membershipTeaser.priceSub}
-            </p>
-            {showSpotsUrgency && (
-              <div style={{ marginBottom: "20px" }}>
-                <span
-                  style={{
-                    display: "inline-block",
-                    fontSize: "13px",
-                    letterSpacing: "0.03em",
-                    color: "#993842",
-                    border: "1px solid rgba(153, 56, 66, 0.4)",
-                    borderRadius: "10px",
-                    padding: "4px 14px",
-                    fontWeight: 600,
-                  }}
-                >
-                  {t.membershipTeaser.spotsLabel(spotsRemaining)}
-                </span>
-              </div>
-            )}
-            <div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
               <Link
-                href="/membership"
+                href="/account"
                 style={{
-                  border: "1px solid #7b1f2c",
-                  color: "#7b1f2c",
-                  padding: "13px 28px",
+                  border: "1px solid #568b05",
+                  backgroundColor: "#568b05",
+                  color: "#ffffff",
+                  padding: "12px 22px",
                   borderRadius: "4px",
-                  fontFamily: "'Cormorant Garamond', serif",
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
                   fontWeight: 600,
-                  fontSize: "16px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
+                  fontSize: "15px",
                   whiteSpace: "nowrap",
                   textDecoration: "none",
                 }}
               >
-                {t.membershipTeaser.cta}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+                {lang === "en" ? "Get your invite code" : "Consigue tu código"}
+              </Link>
+
+              <Link
+                href="/faq"
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "15px",
+                  whiteSpace: "nowrap",
+                  color: "#3b5e04",
+                  textDecoration: "none",
+                }}
+              >
+                {lang === "en" ? "How it works" : "Cómo funciona"}
               </Link>
             </div>
           </div>
 
-          <ul style={{ flex: "1 1 360px", minWidth: "280px", listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "15px" }}>
-            {t.membershipTeaser.bullets.map((b, idx) => (
-              <li key={idx} style={{ display: "flex", gap: "12px", alignItems: "flex-start", fontSize: "16px", lineHeight: 1.55, color: "#39292a" }}>
-                <span style={{ flex: "none", color: "#568b05", marginTop: "3px" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
+          <div style={{ flex: "0 1 320px", minWidth: "240px", display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "13px 0", borderTop: "1px solid rgba(86, 139, 5, 0.3)" }}>
+              <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
+              <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
+                {lang === "en" ? "Share your code with a mother you know" : "Comparte tu código con una madre que conozcas"}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "13px 0", borderTop: "1px solid rgba(86, 139, 5, 0.3)" }}>
+              <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
+              <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
+                {lang === "en" ? "She registers and books her first event" : "Ella se registra y reserva su primer evento"}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "13px 0", borderTop: "1px solid rgba(86, 139, 5, 0.3)" }}>
+              <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
+              <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
+                <span style={{ display: "inline-block", fontSize: "10.5px", letterSpacing: "0.09em", textTransform: "uppercase", color: "#fdf8f2", backgroundColor: "#7b1f2c", border: "1px solid #7b1f2c", borderRadius: "10px", padding: "2px 9px", whiteSpace: "nowrap", marginBottom: "6px" }}>
+                  {lang === "en" ? "Members only" : "Solo socias"}
                 </span>
-                <span>{b}</span>
-              </li>
-            ))}
-          </ul>
+                <br />
+                {lang === "en"
+                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother, once you become a member (January 2027)</>
+                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre al hacerte socia (enero 2027)</>}
+              </span>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "13px 0", borderTop: "1px solid rgba(86, 139, 5, 0.3)", borderBottom: "1px solid rgba(86, 139, 5, 0.3)" }}>
+              <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
+              <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
+                {lang === "en"
+                  ? <>Earn <strong style={{ fontWeight: 600 }}>2 credits</strong> each time you host an event yourself — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>become a host</Link></>
+                  : <>Gana <strong style={{ fontWeight: 600 }}>2 créditos</strong> cada vez que organices un evento tú misma — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>sé anfitriona</Link></>}
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ─── PARTNERS UMBRELLAS ─── */}
+      {/* ─── 5. FROM JANUARY 2027 (MEMBERSHIP PREVIEW) ─── */}
       <section
         style={{
-          maxWidth: "1280px",
+          maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(36px, 4.5vw, 60px) clamp(24px, 5vw, 64px)",
-          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-        }}
-      >
-        <div style={{ maxWidth: "720px", margin: "0 auto 32px", textAlign: "center" }}>
-          <div
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontWeight: 600,
-              fontSize: "14px",
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "#568b05",
-              marginBottom: "14px",
-            }}
-          >
-            {t.partners.kicker}
-          </div>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "clamp(32px, 4vw, 44px)", margin: "0 0 16px" }}>
-            {t.partners.heading}
-          </h2>
-          <p style={{ fontSize: "17px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
-            {t.partners.body}
-          </p>
-        </div>
-
-        <div style={{ position: "relative" }}>
-          <div
-            ref={umbTrackRef}
-            style={{
-              display: "flex",
-              alignItems: "stretch",
-              gap: "22px",
-              overflowX: "auto",
-              scrollSnapType: "x mandatory",
-              scrollBehavior: "smooth",
-              padding: "2px 2px 14px",
-              scrollbarWidth: "none",
-            }}
-          >
-            {t.partners.umbrellas.map((u, idx) => (
-              <div
-                key={idx}
-                style={{
-                  flex: "0 0 clamp(238px, 25vw, 276px)",
-                  scrollSnapAlign: "start",
-                  display: "flex",
-                  flexDirection: "column",
-                  border: "1px solid rgba(57, 41, 42, 0.16)",
-                  borderRadius: "6px",
-                  padding: "26px 22px",
-                }}
-              >
-                <div style={{ color: "#7b1f2c", marginBottom: "14px" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
-                    {idx === 0 && <path d="M11 20A7 7 0 0 1 4 13c0-4 3-8 9-11 1 5 4 7 4 11a7 7 0 0 1-6 7ZM8 16c5-3 7-7 9-13" />}
-                    {idx === 1 && <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />}
-                    {idx === 2 && <path d="M12 2c.6 3.2 1.6 5.7 3 7.1 1.4 1.4 3.9 2.4 7 3-3.1.6-5.6 1.6-7 3-1.4 1.4-2.4 3.9-3 7.1-.6-3.2-1.6-5.7-3-7.1-1.4-1.4-3.9-2.4-7-3 3.1-.6 5.6-1.6 7-3 1.4-1.4 2.4-3.9 3-7.1Z" fill="currentColor" stroke="none" />}
-                    {idx === 3 && <path d="M17 8h1a4 4 0 1 1 0 8h-1M3 8h14v7a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4ZM6 2v2M10 2v2M14 2v2" />}
-                    {idx === 4 && <path d="M6 8h12l1 12H5ZM9 8V6a3 3 0 0 1 6 0v2" />}
-                  </svg>
-                </div>
-                <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", margin: "0 0 6px" }}>
-                  {u.title}
-                </h3>
-                <p style={{ fontSize: "14px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.65)", margin: 0 }}>
-                  {u.body}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "2px" }}>
-            <button
-              type="button"
-              onClick={() => scrollUmb(-1)}
-              aria-label="Previous category"
-              style={{
-                width: "44px",
-                height: "44px",
-                border: "1px solid rgba(57, 41, 42, 0.24)",
-                borderRadius: "50%",
-                background: "transparent",
-                color: "#7b1f2c",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
-                <path d="M19 12H5M11 18l-6-6 6-6" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollUmb(1)}
-              aria-label="Next category"
-              style={{
-                width: "44px",
-                height: "44px",
-                border: "1px solid rgba(57, 41, 42, 0.24)",
-                borderRadius: "50%",
-                background: "transparent",
-                color: "#7b1f2c",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="17" height="17">
-                <path d="M5 12h14M13 6l6 6-6 6"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <p style={{ textAlign: "center", fontSize: "13px", color: "rgba(57, 41, 42, 0.5)", marginTop: "20px" }}>
-          {t.partners.note}
-        </p>
-      </section>
-
-      {/* ─── GODMOTHER PROGRAMME MODULE ─── */}
-      <section
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-          padding: "clamp(36px, 4.5vw, 60px) clamp(24px, 5vw, 64px)",
+          padding: "clamp(30px, 4vw, 52px) clamp(20px, 5vw, 64px) clamp(46px, 6vw, 76px)",
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
         <div
           style={{
-            border: "1px solid rgba(86, 139, 5, 0.45)",
+            border: "1px solid rgba(57, 41, 42, 0.2)",
             borderRadius: "8px",
-            backgroundColor: "#f4f7ee",
-            padding: "clamp(32px, 4.5vw, 52px)",
+            padding: "clamp(24px, 4vw, 40px)",
+            backgroundColor: "#ffffff",
             display: "flex",
             flexWrap: "wrap",
-            gap: "clamp(32px, 4.5vw, 56px)",
+            gap: "clamp(28px, 4vw, 48px)",
+            alignItems: "flex-start",
           }}
         >
-          <div style={{ flex: "1 1 360px", minWidth: "300px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "9px", marginBottom: "14px" }}>
-              <span style={{ color: "#568b05", display: "inline-flex" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
-                  <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8Z" />
-                </svg>
-              </span>
-              <span
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "#456f04",
-                }}
-              >
-                {t.godmother.kicker}
-              </span>
+          <div style={{ flex: "1 1 340px", minWidth: "270px" }}>
+            <div
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 600,
+                fontSize: "13px",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "#568b05",
+                marginBottom: "12px",
+              }}
+            >
+              {lang === "en" ? "From January 2027" : "Desde enero de 2027"}
             </div>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 600,
-                fontSize: "clamp(28px, 3.6vw, 42px)",
-                lineHeight: 1.15,
-                margin: "0 0 16px",
-                maxWidth: "22em",
-              }}
-            >
-              {t.godmother.heading}
+
+            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(24px, 3.2vw, 34px)", lineHeight: 1.2, margin: "0 0 16px" }}>
+              {lang === "en" ? "Keep your circle, all year round." : "Mantén tu círculo todo el año."}
             </h2>
-            <p
-              style={{
-                fontSize: "17px",
-                lineHeight: 1.7,
-                color: "rgba(57, 41, 42, 0.75)",
-                margin: "0 0 22px",
-                maxWidth: "48ch",
-              }}
-            >
-              {t.godmother.body}
+
+            <p style={{ fontSize: "16px", lineHeight: 1.7, color: "rgba(57, 41, 42, 0.72)", textAlign: "justify", margin: "0 0 18px" }}>
+              {lang === "en"
+                ? "Membership is how the friendships you make now keep going: at least four events a month with the same mothers, your stage group, and a private circle to talk in between. Nothing you have already bought disappears."
+                : "La membresía es la forma de mantener vivas las amistades que forjes ahora: al menos cuatro eventos al mes con las mismas madres, tu grupo de etapa y un círculo privado para hablar entre encuentro y encuentro. Nada de lo que hayas adquirido desaparece."}
             </p>
+
             <Link
-              href="/account"
+              href="/membership"
               style={{
-                display: "inline-block",
-                border: "1px solid #568b05",
-                color: "#456f04",
-                padding: "13px 26px",
-                borderRadius: "4px",
-                fontFamily: "'Cormorant Garamond', serif",
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontWeight: 600,
-                fontSize: "16px",
+                fontSize: "15px",
+                whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                color: "#7b1f2c",
                 textDecoration: "none",
-                backgroundColor: "transparent",
               }}
             >
-              {t.godmother.cta}
+              <span>{lang === "en" ? "What membership will be" : "Cómo será la membresía"}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
             </Link>
-            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: "12px 0 0" }}>
-              {t.godmother.ctaNote}
-            </p>
           </div>
 
-          <div style={{ flex: "1 1 320px", minWidth: "280px", display: "flex", flexDirection: "column", gap: "18px" }}>
-            {t.godmother.steps.map((g, idx) => (
-              <div
-                key={idx}
-                style={{
-                  display: "flex",
-                  gap: "16px",
-                  alignItems: "flex-start",
-                  borderTop: "1px solid rgba(86, 139, 5, 0.28)",
-                  paddingTop: "16px",
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 400,
-                    fontSize: "28px",
-                    lineHeight: 1,
-                    color: "rgba(86, 139, 5, 0.5)",
-                    fontVariantNumeric: "tabular-nums",
-                    flex: "none",
-                  }}
-                >
-                  {g.n}
+          <div style={{ flex: "1 1 300px", minWidth: "260px", display: "flex", flexDirection: "column" }}>
+            {[
+              { fromEn: "Meet mothers at events", toEn: "See them every week", fromEs: "Conoce madres en eventos", toEs: "Vuelve a verlas cada semana" },
+              { fromEn: "A walk, a coffee, a supper", toEn: "At least 4 events a month", fromEs: "Un paseo, un café, una cena", toEs: "Al menos 4 eventos al mes" },
+              { fromEn: "Conversations at events", toEn: "A private circle in between", fromEs: "Conversaciones en eventos", toEs: "Un círculo privado entre citas" },
+              { fromEn: "New faces each time", toEn: "Your stage group, by name", fromEs: "Nuevas caras cada vez", toEs: "Tu grupo por etapa, por su nombre" },
+            ].map((row, idx) => (
+              <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "12px", alignItems: "baseline", padding: "13px 0", borderTop: "1px solid rgba(57, 41, 42, 0.12)" }}>
+                <span style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>
+                  {lang === "en" ? row.fromEn : row.fromEs}
                 </span>
-                <div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", marginBottom: "4px" }}>
-                    {g.title}
-                  </div>
-                  <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
-                    {g.body}
-                  </p>
-                </div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="rgba(57, 41, 42, 0.35)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+                <span style={{ fontSize: "13.5px", color: "#39292a" }}>
+                  {lang === "en" ? row.toEn : row.toEs}
+                </span>
               </div>
             ))}
+
+            <div style={{ marginTop: "20px" }}>
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                style={{
+                  border: "1px solid #7b1f2c",
+                  backgroundColor: "transparent",
+                  color: "#7b1f2c",
+                  borderRadius: "4px",
+                  padding: "12px 22px",
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "15px",
+                  whiteSpace: "nowrap",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                {waitlisted
+                  ? (lang === "en" ? "✓ On the list — we will write first" : "✓ En la lista — te avisaremos antes")
+                  : (lang === "en" ? "Tell me when membership opens" : "Avísame cuando abra la membresía")}
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ─── CLOSING CTA ─── */}
-      <section
-        style={{
-          backgroundColor: "#39292a",
-          color: "#f8efe2",
-          padding: "clamp(48px, 6vw, 72px) clamp(24px, 5vw, 64px)",
-          textAlign: "center",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(36px, 5.5vw, 58px)", margin: "0 0 24px", color: "#f8efe2" }}>
-          {t.closing.heading}
-        </h2>
-        <Link
-          href="/membership"
+      {/* Join the List Modal */}
+      {modalOpen && (
+        <div
           style={{
-            border: "1px solid #f8efe2",
-            color: "#f8efe2",
-            padding: "15px 36px",
-            borderRadius: "4px",
-            fontFamily: "'Cormorant Garamond', serif",
-            fontWeight: 600,
-            fontSize: "17px",
-            display: "inline-block",
-            whiteSpace: "nowrap",
-            textDecoration: "none",
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(57, 41, 42, 0.65)",
+            backdropFilter: "blur(4px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
           }}
+          onClick={() => setModalOpen(false)}
         >
-          {t.closing.cta}
-        </Link>
-      </section>
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "460px",
+              backgroundColor: "#fdf8f2",
+              border: "1px solid rgba(57, 41, 42, 0.2)",
+              borderRadius: "8px",
+              boxShadow: "0 12px 36px rgba(57, 41, 42, 0.24)",
+              padding: "28px 32px",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              aria-label="Close"
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                color: "#39292a",
+                fontSize: "20px",
+              }}
+            >
+              ✕
+            </button>
+
+            <div
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontSize: "12px",
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: "#7b1f2c",
+                marginBottom: "6px",
+                fontWeight: 600,
+              }}
+            >
+              {lang === "en" ? "Opening January 2027" : "Apertura en enero 2027"}
+            </div>
+
+            <h3
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 500,
+                fontSize: "28px",
+                margin: "0 0 10px",
+                color: "#39292a",
+                lineHeight: 1.15,
+              }}
+            >
+              {lang === "en" ? "Be first to know when memberships open." : "Sé la primera en saber cuándo abrimos membresías."}
+            </h3>
+
+            <p
+              style={{
+                fontSize: "14px",
+                lineHeight: 1.6,
+                color: "rgba(57, 41, 42, 0.78)",
+                margin: "0 0 20px",
+              }}
+            >
+              {lang === "en"
+                ? "Mothers on this list receive pre-launch invitations and waive the €19 joining fee."
+                : "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento y se les eximirá de la cuota de alta de 19€."}
+            </p>
+
+            <form onSubmit={handleJoinList} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <input
+                type="email"
+                required
+                placeholder={lang === "en" ? "Your email address" : "Tu correo electrónico"}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  borderRadius: "4px",
+                  border: "1px solid rgba(57, 41, 42, 0.25)",
+                  backgroundColor: "#ffffff",
+                  fontSize: "14.5px",
+                  color: "#39292a",
+                  fontFamily: "'Lora', Georgia, serif",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+
+              {errorMsg && <div style={{ color: "#993842", fontSize: "13px" }}>{errorMsg}</div>}
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  padding: "12px 20px",
+                  backgroundColor: "#7b1f2c",
+                  color: "#fdf8f2",
+                  border: "1px solid #7b1f2c",
+                  borderRadius: "4px",
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "16px",
+                  cursor: loading ? "wait" : "pointer",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {loading
+                  ? (lang === "en" ? "Saving..." : "Guardando...")
+                  : (lang === "en" ? "Join the list" : "Unirme a la lista")}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

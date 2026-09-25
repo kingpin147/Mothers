@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
-import { person, eventPass, booking, event, member, creditEntry, auditLog, application, payment } from "@/db/schema";
+import { person, eventPass, booking, event, member, creditEntry, creditBatch, auditLog, application, payment } from "@/db/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { queueAndSendEmail } from "@/lib/brevo";
@@ -525,7 +525,7 @@ async function handleExtraCreditsPurchase(
       type: "grant",
       sourceType: "extra_purchase",
       sourceId: session.id,
-      reason: `Extra credits purchase (${creditAmount} × €1)`,
+      reason: `Extra credits purchase (${creditAmount} × €2)`,
       expiresAt,
     });
 

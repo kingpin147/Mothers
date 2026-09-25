@@ -23,6 +23,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
+export default function RootComingSoonPage() {
   return <ComingSoonClient />;
 }
+

@@ -221,314 +221,389 @@ export default function EventDetailPage() {
   const guestPassLabel = `€${guestPrice} Event Pass`;
 
   return (
-    <div style={{ backgroundColor: "#FEFDF9", minHeight: "100vh", padding: "48px clamp(24px, 5vw, 64px) 80px" }}>
-      <div style={{ maxWidth: "840px", margin: "0 auto" }}>
-        {/* Back navigation */}
-        <div style={{ marginBottom: "24px" }}>
-          <Link href="/events" style={{ color: "var(--color-text-muted)", fontSize: "14px", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
-            <BackArrow /> {lang === "en" ? "Back to Events Calendar" : "Volver al Calendario"}
-          </Link>
-        </div>
-
-        {/* Main Event Card */}
-        <div
+    <div style={{ backgroundColor: "#fdf8f2", minHeight: "100vh", fontFamily: "'Lora', Georgia, serif", color: "#39292a" }}>
+      {/* ─── BREADCRUMB / BACK LINK ─── */}
+      <section style={{ maxWidth: "1160px", margin: "0 auto", padding: "clamp(26px, 4vw, 44px) clamp(20px, 5vw, 64px) 0" }}>
+        <Link
+          href="/events"
           style={{
-            backgroundColor: isGathering ? "#fbf3e4" : isAlreadyBooked ? "#eef4e9" : "#FEFDF9",
-            border: isGathering ? "1px solid rgba(164, 118, 31, 0.45)" : isAlreadyBooked ? "1px solid rgba(86, 139, 5, 0.34)" : "1px solid rgba(57,41,42,0.16)",
-            borderRadius: "10px",
-            padding: "clamp(28px, 5vw, 48px)",
+            fontSize: "14px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            color: "#7b1f2c",
+            textDecoration: "none",
           }}
         >
-          {/* Top chips */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-              {ev.categoryName && (
-                <span style={{ fontSize: "12px", color: "var(--color-accent)", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "12px", padding: "3px 10px", backgroundColor: "rgba(255,255,255,0.7)" }}>
-                  {ev.categoryName}
-                </span>
-              )}
-              {ev.isSignature && (
-                <span style={{ fontSize: "12px", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.32)", borderRadius: "12px", padding: "3px 10px", backgroundColor: "#fbf1f1", fontWeight: 600 }}>
-                  {lang === "en" ? "Signature Moment" : "Momento especial"}
-                </span>
-              )}
-              {passEligible && (
-                <span style={{ fontSize: "12px", color: "#568b05", border: "1px solid rgba(86,139,5,0.45)", borderRadius: "12px", padding: "3px 10px", backgroundColor: "rgba(86,139,5,0.07)", fontWeight: 600 }}>
-                  {lang === "en" ? `Open to guests — €${guestPrice}` : `Abierto a invitadas — ${guestPrice}€`}
-                </span>
-              )}
-              <span style={{ backgroundColor: statusLabel.bg, color: statusLabel.color, fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", padding: "3px 9px", borderRadius: "4px", border: `1px solid ${statusLabel.color}33` }}>
-                {lang === "en" ? statusLabel.en : statusLabel.es}
-              </span>
-            </div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+            <path d="M19 12H5M11 18l-6-6 6-6" />
+          </svg>
+          {lang === "en" ? "All events" : "Todos los eventos"}
+        </Link>
+      </section>
 
-            <div style={{ fontFamily: "var(--font-heading)", fontSize: "17px", fontWeight: 600, color: "var(--color-accent)" }}>
-              {isFreeWalk
-                ? (lang === "en" ? "Included with membership" : "Incluido con membresía")
-                : `${ev.creditCost} ${lang === "en" ? (ev.creditCost === 1 ? "credit" : "credits") : (ev.creditCost === 1 ? "crédito" : "créditos")}`}
-              {passEligible && ` · ${guestPassLabel}`}
+      {/* ─── TWO COLUMN MAIN SECTION ─── */}
+      <section
+        style={{
+          maxWidth: "1160px",
+          margin: "0 auto",
+          padding: "clamp(20px, 3vw, 30px) clamp(20px, 5vw, 64px) clamp(40px, 5vw, 70px)",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "clamp(28px, 4vw, 48px)",
+          alignItems: "flex-start",
+        }}
+      >
+        {/* Left Column: Event details & content */}
+        <div style={{ flex: "1 1 420px", minWidth: "290px" }}>
+          {/* Photo Slot */}
+          <div style={{ background: "#ecdcd0", padding: "7px", borderRadius: "6px", marginBottom: "26px" }}>
+            <div
+              style={{
+                border: "1px solid rgba(57, 41, 42, 0.18)",
+                borderRadius: "3px",
+                overflow: "hidden",
+                height: "340px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#f4eae1",
+                color: "rgba(57, 41, 42, 0.6)",
+                textAlign: "center",
+                padding: "20px",
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48" style={{ marginBottom: "12px", opacity: 0.7 }}>
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "16px", fontStyle: "italic" }}>
+                Photo — {displayTitle}
+              </div>
             </div>
+          </div>
+
+          {/* Category & Kids Badge Row */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", marginBottom: "14px" }}>
+            <span
+              style={{
+                fontSize: "11px",
+                letterSpacing: "0.04em",
+                color: "#7b1f2c",
+                border: "1px solid rgba(123, 31, 44, 0.35)",
+                borderRadius: "10px",
+                padding: "3px 10px",
+              }}
+            >
+              {ev.categoryName || (lang === "en" ? "Easy connection" : "Conexión")}
+            </span>
+            <span style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.72)" }}>
+              {ev.audienceType === "mothers_only" || ev.audienceType === "moms_only"
+                ? (lang === "en" ? "Mothers only — no children" : "Solo madres — sin peques")
+                : (lang === "en" ? "Children welcome" : "Peques bienvenidos")}
+            </span>
           </div>
 
           {/* Title */}
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(26px, 4.5vw, 40px)", fontWeight: 500, margin: "0 0 24px", color: "#39292a" }}>
+          <h1
+            style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontWeight: 400,
+              fontSize: "clamp(30px, 4vw, 46px)",
+              lineHeight: 1.1,
+              margin: "0 0 18px",
+              textWrap: "pretty",
+            }}
+          >
             {displayTitle}
           </h1>
 
-          {/* Meta grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", backgroundColor: "rgba(255,255,255,0.7)", padding: "20px", borderRadius: "6px", marginBottom: "28px", fontSize: "14px" }}>
-            <div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Date" : "Fecha"}</div>
-              <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-                <span>{ev.dateStr || new Date(ev.startsAt).toLocaleDateString()}</span>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Time" : "Hora"}</div>
-              <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-                <span>{ev.timeStr || new Date(ev.startsAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Area" : "Zona"}</div>
-              <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                <span>{ev.neighbourhood || "Barcelona"}</span>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Venue" : "Espacio"}</div>
-              <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><path d="M3 21h18M3 7l9-4 9 4M4 10v11M20 10v11M8 10v11M12 10v11M16 10v11" /></svg>
-                <span>{ev.venueName || "Meeting point on RSVP"}</span>
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Places" : "Plazas"}</div>
-              <div style={{ fontWeight: 600, color: isFreeWalk ? "#568b05" : isFull ? "#993842" : "var(--color-accent-2)" }}>
-                {isFreeWalk
-                  ? (lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas")
-                  : isFull
-                  ? (lang === "en" ? "Full — waitlist open" : "Completo — lista de espera")
-                  : (lang === "en" ? `${ev.capacityRemaining ?? ev.capacityTotal} places left` : `Quedan ${ev.capacityRemaining ?? ev.capacityTotal} plazas`)}
-              </div>
-            </div>
-            {ev.languages && ev.languages.length > 0 && (
-              <div>
-                <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Language" : "Idioma"}</div>
-                <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" /></svg>
-                  <span>{ev.languages.map((l) => getLanguageLabel(l, lang)).join(" · ")}</span>
-                </div>
-              </div>
-            )}
-            {ev.minToConfirm != null && ev.minToConfirm > 0 && (
-              <div>
-                <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(57,41,42,0.5)", fontWeight: 600, marginBottom: "3px" }}>{lang === "en" ? "Min. to confirm" : "Mín. para confirmar"}</div>
-                <div style={{ fontWeight: 600 }}>{ev.bookedMember || 0}/{ev.minToConfirm}</div>
-              </div>
-            )}
-          </div>
-
           {/* Description */}
           {displayDesc && (
-            <>
-              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "19px", margin: "0 0 10px", fontWeight: 600, color: "#39292a" }}>
-                {lang === "en" ? "About this experience" : "Sobre este encuentro"}
-              </h3>
-              <p style={{ fontSize: "16px", lineHeight: "1.7", color: "rgba(57,41,42,0.78)", marginBottom: "32px" }}>
-                {displayDesc}
+            <p
+              style={{
+                fontSize: "17px",
+                lineHeight: 1.7,
+                color: "rgba(57, 41, 42, 0.78)",
+                margin: "0 0 26px",
+                maxWidth: "62ch",
+              }}
+            >
+              {displayDesc}
+            </p>
+          )}
+
+          {/* 4-Grid Meta: When, Where, Spoken, Hosted with */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
+              gap: "18px",
+              borderTop: "1px solid rgba(57, 41, 42, 0.16)",
+              paddingTop: "22px",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
+                {lang === "en" ? "When" : "Cuándo"}
+              </div>
+              <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
+                {ev.dateStr || new Date(ev.startsAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "long", day: "numeric", month: "short" })}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
+                {lang === "en" ? "Where" : "Dónde"}
+              </div>
+              <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
+                {ev.neighbourhood || "Barcelona"}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
+                {lang === "en" ? "Spoken" : "Idioma"}
+              </div>
+              <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
+                {ev.languages && ev.languages.length > 0
+                  ? ev.languages.map((l) => getLanguageLabel(l, lang)).join(" · ")
+                  : (lang === "en" ? "English, Spanish" : "Inglés, Español")}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
+                {lang === "en" ? "Hosted with" : "Colaborador"}
+              </div>
+              <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
+                {ev.partnerName || "The Mothers"}
+              </div>
+            </div>
+          </div>
+
+          {/* Meeting Point Section */}
+          <div style={{ borderTop: "1px solid rgba(57, 41, 42, 0.16)", marginTop: "22px", paddingTop: "22px" }}>
+            <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "8px" }}>
+              {lang === "en" ? "Meeting point" : "Punto de encuentro"}
+            </div>
+            <p style={{ fontSize: "15px", lineHeight: 1.6, color: isAlreadyBooked ? "#39292a" : "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "60ch" }}>
+              {isAlreadyBooked
+                ? (ev.meetingPointNote || ev.venueAddress || ev.venueName || "Meeting point details will be sent via WhatsApp.")
+                : (lang === "en"
+                    ? `The exact address is sent when you book. ${ev.neighbourhood || "Barcelona"}, a short walk from public transport.`
+                    : `La dirección exacta se envía al reservar. ${ev.neighbourhood || "Barcelona"}, cerca del transporte público.`)}
+            </p>
+          </div>
+
+          {/* Before You Book Section */}
+          <div style={{ borderTop: "1px solid rgba(57, 41, 42, 0.16)", marginTop: "22px", paddingTop: "22px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "21px", margin: "0 0 12px" }}>
+              {lang === "en" ? "Before you book" : "Antes de reservar"}
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.7)", maxWidth: "64ch" }}>
+              <p style={{ margin: 0 }}>
+                <strong style={{ fontWeight: 600, color: "#39292a" }}>
+                  {lang === "en" ? "Cancellation: " : "Cancelación: "}
+                </strong>
+                {lang === "en" ? "Free cancellation up to 24 hours before." : "Cancelación gratuita hasta 24 horas antes."}
               </p>
-            </>
-          )}
-
-          {/* Meeting Point Box */}
-          {isAlreadyBooked ? (
-            <div style={{ backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.3)", borderRadius: "6px", padding: "14px 18px", marginBottom: "28px", fontSize: "13.5px", color: "#39292a" }}>
-              <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#568b05", fontWeight: 700, marginBottom: "4px" }}>
-                {lang === "en" ? "Meeting Point" : "Punto de Encuentro"}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 600 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                <span>{ev.meetingPointNote || ev.venueAddress || ev.venueName}</span>
-              </div>
-            </div>
-          ) : (
-            <div style={{ backgroundColor: "rgba(255,255,255,0.7)", border: "1px dashed rgba(57,41,42,0.2)", borderRadius: "6px", padding: "14px 18px", marginBottom: "28px", fontSize: "13px", color: "rgba(57,41,42,0.65)", display: "flex", alignItems: "center", gap: "8px" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="15" height="15" style={{ flexShrink: 0 }}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-              <span>
+              {ev.minToConfirm && ev.minToConfirm > 0 && (
+                <p style={{ margin: 0 }}>
+                  {lang === "en"
+                    ? `This event gathers ${ev.minToConfirm} mothers before it is confirmed. Credits are only taken if it goes ahead.`
+                    : `Este evento reúne a ${ev.minToConfirm} madres para confirmarse. Los créditos solo se descuentan si se realiza.`}
+                </p>
+              )}
+              <p style={{ margin: 0 }}>
                 {lang === "en"
-                  ? "Meeting point is shared with confirmed attendees only. Book your place to unlock it."
-                  : "El punto de encuentro se comparte solo con las confirmadas. Reserva tu plaza para verlo."}
-              </span>
+                  ? "Until January 2027 this event is open to every mother, member or not. You book for yourself, and the place is yours the moment it is confirmed."
+                  : "Hasta enero de 2027 este evento está abierto a todas las madres, socias o no. Reservas para ti y la plaza es tuya en cuanto se confirma."}
+              </p>
             </div>
-          )}
-
-          {/* Action Bar */}
-          {ev.status !== "cancelled" && ev.status !== "completed" && (
-            <div style={{ borderTop: "1px solid rgba(57,41,42,0.14)", paddingTop: "24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-              <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.65)" }}>
-                {lang === "en"
-                  ? "Free cancellation up to 24h before the event."
-                  : "Cancelación gratuita hasta 24h antes del evento."}
-              </div>
-
-              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
-                {/* Non-Member Guest Pass Button */}
-                {!isMember && !isFreeWalk && passEligible && (
-                  <button
-                    type="button"
-                    onClick={() => setEventPassEvent(ev)}
-                    style={{
-                      border: "1px solid var(--color-accent)",
-                      backgroundColor: "transparent",
-                      color: "var(--color-accent)",
-                      padding: "12px 22px",
-                      borderRadius: "4px",
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 600,
-                      fontSize: "14.5px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {guestPassLabel}
-                  </button>
-                )}
-
-                {/* Member / Guest Main Button */}
-                {isMember ? (
-                  isAlreadyBooked ? (
-                    <button
-                      type="button"
-                      disabled
-                      style={{
-                        border: "1px solid rgba(86,139,5,0.4)",
-                        backgroundColor: "#edf5e8",
-                        color: "#568b05",
-                        padding: "12px 24px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "default",
-                      }}
-                    >
-                      {isFreeWalk
-                        ? (lang === "en" ? "You're on the list" : "Estás en la lista")
-                        : (lang === "en" ? "Booked" : "Reservada")}
-                    </button>
-                  ) : isAlreadyWaitlisted ? (
-                    <button
-                      type="button"
-                      disabled
-                      style={{
-                        border: "1px solid rgba(138,97,22,0.4)",
-                        backgroundColor: "#fbf3e4",
-                        color: "#8a6116",
-                        padding: "12px 24px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "default",
-                      }}
-                    >
-                      {lang === "en"
-                        ? `On waitlist (position ${userWaitlistPos ?? 1})`
-                        : `En lista de espera (posición ${userWaitlistPos ?? 1})`}
-                    </button>
-                  ) : isFull ? (
-                    <button
-                      type="button"
-                      disabled={actionLoading}
-                      onClick={() => handleMemberWaitlist(ev)}
-                      style={{
-                        border: "1px solid #7b1f2c",
-                        backgroundColor: "transparent",
-                        color: "#7b1f2c",
-                        padding: "12px 24px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: actionLoading ? "wait" : "pointer",
-                      }}
-                    >
-                      {actionLoading
-                        ? (lang === "en" ? "Joining…" : "Uniéndome…")
-                        : (lang === "en" ? "Join waitlist" : "Unirme a la lista de espera")}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={actionLoading}
-                      onClick={() => handleMemberBook(ev)}
-                      style={{
-                        backgroundColor: "var(--color-accent)",
-                        color: "#f8efe2",
-                        border: "none",
-                        padding: "12px 26px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: actionLoading ? "wait" : "pointer",
-                      }}
-                    >
-                      {actionLoading
-                        ? (lang === "en" ? "Booking…" : "Reservando…")
-                        : (lang === "en" ? "Book" : "Reservar")}
-                    </button>
-                  )
-                ) : (
-                  /* Signed Out User */
-                  isFull ? null : isFreeWalk ? (
-                    <button
-                      type="button"
-                      onClick={() => setFreeRsvpEvent(ev)}
-                      style={{
-                        backgroundColor: "var(--color-accent)",
-                        color: "#f8efe2",
-                        border: "none",
-                        padding: "12px 26px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {lang === "en" ? "Book" : "Reservar"}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSignedOutEvent(ev);
-                      }}
-                      style={{
-                        backgroundColor: "var(--color-accent)",
-                        color: "#f8efe2",
-                        border: "none",
-                        padding: "12px 26px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {lang === "en" ? "Book" : "Reservar"}
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+
+        {/* Right Column: Sticky Booking Sidebar */}
+        <aside style={{ flex: "0 1 330px", minWidth: "270px", position: "sticky", top: "90px" }}>
+          <div style={{ border: "1px solid rgba(57, 41, 42, 0.2)", borderRadius: "8px", background: "#ffffff", padding: "24px" }}>
+            {/* Price Row */}
+            <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "6px" }}>
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "44px", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
+                {isFreeWalk ? "Free" : `${ev.creditCost} ${ev.creditCost === 1 ? "credit" : "credits"}`}
+              </span>
+              {!isFreeWalk && (
+                <span style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.72)" }}>
+                  (€{ev.creditCost * 2})
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.72)", marginBottom: "18px" }}>
+              {isFreeWalk
+                ? (lang === "en" ? "Walks and park socials never cost credits." : "Los paseos y encuentros en el parque nunca cuestan créditos.")
+                : (lang === "en" ? "€2 per credit · buy as you go" : "2€ por crédito · compra según necesites")}
+            </div>
+
+            {/* Status Line */}
+            <div style={{ fontSize: "13px", color: "#456f04", borderTop: "1px solid rgba(57, 41, 42, 0.12)", paddingTop: "14px", marginBottom: "6px" }}>
+              {isFreeWalk
+                ? (lang === "en" ? "Open list" : "Lista abierta")
+                : isFull
+                ? (lang === "en" ? "Full" : "Completo")
+                : (lang === "en"
+                    ? `${ev.capacityRemaining ?? ev.capacityTotal ?? 12} places left`
+                    : `Quedan ${ev.capacityRemaining ?? ev.capacityTotal ?? 12} plazas`)}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12.5px", color: "rgba(57, 41, 42, 0.74)", marginBottom: "14px" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flex: "none" }}>
+                <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              {lang === "en" ? "Cancel any time up to 24h before" : "Cancela gratis hasta 24h antes"}
+            </div>
+
+            {/* Main Booking Button */}
+            {isMember ? (
+              isAlreadyBooked ? (
+                <button
+                  type="button"
+                  disabled
+                  style={{
+                    width: "100%",
+                    border: "1px solid rgba(86, 139, 5, 0.4)",
+                    backgroundColor: "#edf5e8",
+                    color: "#568b05",
+                    borderRadius: "4px",
+                    padding: "13px 16px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15.5px",
+                    cursor: "default",
+                  }}
+                >
+                  {isFreeWalk
+                    ? (lang === "en" ? "You're on the list" : "Estás en la lista")
+                    : (lang === "en" ? "Booked" : "Reservada")}
+                </button>
+              ) : isAlreadyWaitlisted ? (
+                <button
+                  type="button"
+                  disabled
+                  style={{
+                    width: "100%",
+                    border: "1px solid rgba(138, 97, 22, 0.4)",
+                    backgroundColor: "#fbf3e4",
+                    color: "#8a6116",
+                    borderRadius: "4px",
+                    padding: "13px 16px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15.5px",
+                    cursor: "default",
+                  }}
+                >
+                  {lang === "en" ? `On waitlist (position ${userWaitlistPos ?? 1})` : `En lista de espera (${userWaitlistPos ?? 1})`}
+                </button>
+              ) : isFull ? (
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => handleMemberWaitlist(ev)}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #7b1f2c",
+                    background: "transparent",
+                    color: "#7b1f2c",
+                    borderRadius: "4px",
+                    padding: "13px 16px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15.5px",
+                    cursor: actionLoading ? "wait" : "pointer",
+                  }}
+                >
+                  {actionLoading ? (lang === "en" ? "Joining…" : "Uniéndome…") : (lang === "en" ? "Join waitlist" : "Unirme a la lista")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => handleMemberBook(ev)}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #7b1f2c",
+                    background: "#7b1f2c",
+                    color: "#fdf8f2",
+                    borderRadius: "4px",
+                    padding: "13px 16px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15.5px",
+                    cursor: actionLoading ? "wait" : "pointer",
+                  }}
+                >
+                  {actionLoading
+                    ? (lang === "en" ? "Booking…" : "Reservando…")
+                    : isFreeWalk
+                    ? (lang === "en" ? "Join — free" : "Unirme — gratis")
+                    : (lang === "en" ? `Book with ${ev.creditCost} credits` : `Reservar con ${ev.creditCost} créditos`)}
+                </button>
+              )
+            ) : (
+              /* Signed-out User */
+              <button
+                type="button"
+                onClick={() => {
+                  if (isFreeWalk) setFreeRsvpEvent(ev);
+                  else setSignedOutEvent(ev);
+                }}
+                style={{
+                  width: "100%",
+                  border: "1px solid #7b1f2c",
+                  background: "#7b1f2c",
+                  color: "#fdf8f2",
+                  borderRadius: "4px",
+                  padding: "13px 16px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "15.5px",
+                  cursor: "pointer",
+                }}
+              >
+                {isFreeWalk
+                  ? (lang === "en" ? "Join — free" : "Unirme — gratis")
+                  : (lang === "en" ? "Book your place" : "Reservar mi plaza")}
+              </button>
+            )}
+
+            <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", marginTop: "12px" }}>
+              {lang === "en" ? "Your account is created with this booking." : "Tu cuenta se crea con esta reserva."}
+            </div>
+          </div>
+
+          {/* Gold Notice Box below Sidebar */}
+          <div
+            style={{
+              border: "1px solid rgba(201, 162, 39, 0.5)",
+              background: "rgba(201, 162, 39, 0.08)",
+              borderRadius: "8px",
+              padding: "18px 20px",
+              marginTop: "16px",
+            }}
+          >
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", whiteSpace: "nowrap", marginBottom: "6px" }}>
+              {lang === "en" ? "Coming before January 2027?" : "¿Vienes antes de enero de 2027?"}
+            </div>
+            <p style={{ fontSize: "13px", lineHeight: 1.6, color: "#5c4708", margin: 0 }}>
+              {lang === "en"
+                ? "Every mother who books an event before membership opens hears from us first, before it opens publicly."
+                : "Toda madre que reserve un evento antes de abrir la membresía se enterará antes que nadie."}
+            </p>
+          </div>
+        </aside>
+      </section>
 
       {/* ─── ALL 14 DIALOG MODALS ─── */}
       {/* States 01, 02, 05: Booked / Reserved / Free walk */}

@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member, eventPass, guestRsvp } from "@/db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
 export async function publishAdminEvent(eventId: string) {
@@ -113,16 +113,38 @@ export async function getAdminEvents() {
     stagesMap[sl.eventId].push(sl.labelEn);
   }
 
-  const events = eventsData.map(e => ({
-    ...e.event,
-    categoryName: e.categoryName,
-    bookingsCount: e.bookingsCount,
-    memberBookingsCount: e.memberBookingsCount,
-    guestBookingsCount: e.guestBookingsCount,
-    totalHistoricalBookings: e.totalHistoricalBookings,
-    totalPasses: e.totalPasses,
-    targetStages: stagesMap[e.event.id] || [],
-  }));
+  // Auto-complete any events whose date has passed so DB stays up-to-date
+  const now = new Date();
+  const pastEventIds = eventsData
+    .filter(e => (e.event.status === "confirmed" || e.event.status === "published_pending") &&
+      (e.event.endsAt ? new Date(e.event.endsAt) < now : new Date(e.event.startsAt) < now))
+    .map(e => e.event.id);
+
+  if (pastEventIds.length > 0) {
+    try {
+      await db.update(event).set({
+        status: "completed",
+        updatedAt: now,
+      }).where(inArray(event.id, pastEventIds));
+    } catch (err) {
+      console.warn("Could not auto-complete past events:", err);
+    }
+  }
+
+  const events = eventsData.map(e => {
+    const isPast = pastEventIds.includes(e.event.id) || e.event.status === "completed";
+    return {
+      ...e.event,
+      status: isPast && e.event.status !== "cancelled" ? "completed" : e.event.status,
+      categoryName: e.categoryName,
+      bookingsCount: e.bookingsCount,
+      memberBookingsCount: e.memberBookingsCount,
+      guestBookingsCount: e.guestBookingsCount,
+      totalHistoricalBookings: e.totalHistoricalBookings,
+      totalPasses: e.totalPasses,
+      targetStages: stagesMap[e.event.id] || [],
+    };
+  });
 
   return { success: true, events };
 }

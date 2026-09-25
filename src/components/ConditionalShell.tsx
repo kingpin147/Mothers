@@ -3,8 +3,9 @@
 import { usePathname } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { CookieBanner } from "@/components/CookieBanner";
 
-const COMING_SOON_PATHS = ["/", "/coming-soon"];
+const STANDALONE_PATHS = ["/coming-soon"];
 
 export default function ConditionalShell({
   children,
@@ -12,9 +13,10 @@ export default function ConditionalShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isComingSoon = COMING_SOON_PATHS.includes(pathname);
+  const isComingSoonPage = pathname === "/" || pathname === "/coming-soon" || pathname?.startsWith("/coming-soon");
+  const isStandalone = isComingSoonPage;
 
-  if (isComingSoon) {
+  if (isStandalone) {
     return <>{children}</>;
   }
 
@@ -23,6 +25,7 @@ export default function ConditionalShell({
       <Navigation />
       <main style={{ flex: 1 }}>{children}</main>
       <Footer />
+      <CookieBanner />
     </div>
   );
 }

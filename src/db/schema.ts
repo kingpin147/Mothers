@@ -120,6 +120,9 @@ export const person = pgTable(
     locale: text("locale").default("es").notNull(),
     isMother: boolean("is_mother").default(true).notNull(),
     marketingOptIn: boolean("marketing_opt_in").default(false).notNull(),
+    createdBeforeLaunch: boolean("created_before_launch").default(true).notNull(),
+    isPaused: boolean("is_paused").default(false).notNull(),
+    pausedReason: text("paused_reason"),
     source: text("source"),
     notesInternal: text("notes_internal"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -861,4 +864,144 @@ export const internalNote = pgTable(
     index("idx_internal_note_entity").on(table.entityType, table.entityId),
   ]
 );
+
+// ─── 11. PRE-MEMBERSHIP WALLET & LEADS ───────────────────────────────────────
+
+export const creditBatch = pgTable(
+  "credit_batch",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    remaining: integer("remaining").notNull(),
+    purchasedAt: timestamp("purchased_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    source: text("source").default("purchase").notNull(), // 'purchase', 'referral', 'hosting', 'adjustment'
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_credit_batch_person_expires").on(table.personId, table.expiresAt),
+  ]
+);
+
+export const leadEntry = pgTable(
+  "lead_entry",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    email: text("email").notNull(),
+    source: text("source").default("countdown_banner").notNull(), // 'countdown_banner', 'footer', 'membership', 'signup'
+    type: text("type").default("waitlist").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_lead_entry_email").on(table.email),
+  ]
+);
+
+export const hostRequest = pgTable(
+  "host_request",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    format: text("format").notNull(), // 'walk', 'park_social', 'hosted_coffee'
+    neighbourhood: text("neighbourhood").notNull(),
+    preferredDays: text("preferred_days").notNull(),
+    languages: jsonb("languages").$type<string[]>().default([]).notNull(),
+    reason: text("reason").notNull(),
+    charterAgreed: boolean("charter_agreed").default(true).notNull(),
+    status: text("status").default("submitted").notNull(), // 'submitted', 'call_scheduled', 'approved', 'declined'
+    reviewedByAdminId: text("reviewed_by_admin_id").references(() => adminUser.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+// ─── 12. THE CIRCLE (FORUM & MODERATION) ────────────────────────────────────
+
+export const circlePost = pgTable(
+  "circle_post",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    isAnonymous: boolean("is_anonymous").default(false).notNull(),
+    anonymousArea: text("anonymous_area"),
+    topic: text("topic").notNull(), // 'pregnancy_birth', 'feeding', 'sleep', 'postpartum', 'nurseries', 'work_money', 'life_bcn', 'meetups', 'recommendations'
+    body: text("body").notNull(),
+    photos: jsonb("photos").$type<string[]>().default([]).notNull(),
+    photoConsent: boolean("photo_consent").default(true).notNull(),
+    heartsCount: integer("hearts_count").default(0).notNull(),
+    repliesCount: integer("replies_count").default(0).notNull(),
+    reportsCount: integer("reports_count").default(0).notNull(),
+    status: text("status").default("visible").notNull(), // 'visible', 'hidden', 'removed'
+    isPartnerExpert: boolean("is_partner_expert").default(false).notNull(),
+    hiddenReason: text("hidden_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_circle_post_topic_created").on(table.topic, table.createdAt),
+    index("idx_circle_post_status_created").on(table.status, table.createdAt),
+    index("idx_circle_post_person").on(table.personId),
+  ]
+);
+
+export const circleReply = pgTable(
+  "circle_reply",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    postId: text("post_id").notNull().references(() => circlePost.id, { onDelete: "cascade" }),
+    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    isAnonymous: boolean("is_anonymous").default(false).notNull(),
+    anonymousArea: text("anonymous_area"),
+    body: text("body").notNull(),
+    isPartnerExpert: boolean("is_partner_expert").default(false).notNull(),
+    heartsCount: integer("hearts_count").default(0).notNull(),
+    status: text("status").default("visible").notNull(), // 'visible', 'hidden', 'removed'
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_circle_reply_post_created").on(table.postId, table.createdAt),
+  ]
+);
+
+export const circleHeart = pgTable(
+  "circle_heart",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    postId: text("post_id").references(() => circlePost.id, { onDelete: "cascade" }),
+    replyId: text("reply_id").references(() => circleReply.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_unique_person_post_heart").on(table.personId, table.postId),
+    uniqueIndex("idx_unique_person_reply_heart").on(table.personId, table.replyId),
+  ]
+);
+
+export const circleReport = pgTable(
+  "circle_report",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    postId: text("post_id").references(() => circlePost.id, { onDelete: "cascade" }),
+    replyId: text("reply_id").references(() => circleReply.id, { onDelete: "cascade" }),
+    reporterPersonId: text("reporter_person_id").notNull().references(() => person.id),
+    reason: text("reason").notNull(), // 'unkind', 'selling_spam', 'unsafe_private', 'child_photo_no_consent', 'other'
+    details: text("details"),
+    status: text("status").default("pending").notNull(), // 'pending', 'resolved_hidden', 'resolved_dismissed'
+    reviewedByAdminId: text("reviewed_by_admin_id").references(() => adminUser.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_circle_report_post").on(table.postId),
+    index("idx_circle_report_status").on(table.status),
+  ]
+);
+
 

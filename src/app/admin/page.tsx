@@ -154,6 +154,7 @@ export default function AdminDashboardPage() {
     { kicker: 'Queue 04 · Finance', title: 'Payments & revenue', body: 'Subscriptions, €35 Event Passes, €19 joining fees, refunds and shop orders.', cta: 'Open the ledger', href: '/admin/finance' }
   ];
   const cms = [
+    { label: 'The Circle — Reports & Moderation Queue', href: '/admin/reports' },
     { label: 'The Letter & Subscribers', href: '/admin/subscribers' },
     { label: 'Partner directory & perk codes', href: '/admin/partners' },
     { label: 'FAQ — English & Spanish', href: '/admin/faq' },

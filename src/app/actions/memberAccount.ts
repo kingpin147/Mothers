@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { member, person, creditEntry, booking, event, eventCategory, eventPass, partner, partnerPerk, perkCodePool, perkReveal } from "@/db/schema";
+import { member, person, creditEntry, creditBatch, circlePost, circleReply, booking, event, eventCategory, eventPass, partner, partnerPerk, perkCodePool, perkReveal, eventWaitlist } from "@/db/schema";
 import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getAppUrl } from "@/lib/urls";
@@ -81,7 +81,7 @@ export async function getAccountData(targetMemberId?: string) {
     }
 
     // Parallelize independent sub-queries for maximum performance
-    const [creditRows, ledger, upcomingBookings, godmotherStats, activePartners] = await Promise.all([
+    const [creditRows, ledger, upcomingBookings, godmotherStats, activePartners, creditBatches, activeWaitlists] = await Promise.all([
       db
         .select({
           total: sql<number>`COALESCE(SUM(amount), 0)`,
@@ -141,6 +141,43 @@ export async function getAccountData(targetMemberId?: string) {
         .select()
         .from(partner)
         .where(inArray(partner.status, ["active", "Live", "live", "Ending soon"])),
+      personId
+        ? db
+            .select()
+            .from(creditBatch)
+            .where(
+              and(
+                eq(creditBatch.personId, personId),
+                sql`${creditBatch.remaining} > 0`,
+                sql`${creditBatch.expiresAt} > NOW()`
+              )
+            )
+            .orderBy(asc(creditBatch.expiresAt))
+        : Promise.resolve([]),
+      personId
+        ? db
+            .select({
+              id: eventWaitlist.id,
+              eventId: eventWaitlist.eventId,
+              position: eventWaitlist.position,
+              offeredAt: eventWaitlist.offeredAt,
+              offerExpiresAt: eventWaitlist.offerExpiresAt,
+              createdAt: eventWaitlist.createdAt,
+              eventTitle: event.title,
+              startsAt: event.startsAt,
+              venueName: event.venueName,
+              neighbourhood: event.neighbourhood,
+            })
+            .from(eventWaitlist)
+            .innerJoin(event, eq(eventWaitlist.eventId, event.id))
+            .where(
+              and(
+                eq(eventWaitlist.personId, personId),
+                sql`${event.startsAt} > NOW()`
+              )
+            )
+            .orderBy(asc(event.startsAt))
+        : Promise.resolve([]),
     ]);
 
     const currentBalance = Number(creditRows[0]?.total || 0);
@@ -150,6 +187,19 @@ export async function getAccountData(targetMemberId?: string) {
       eventDate: b.eventDate ? new Date(b.eventDate).toISOString() : null,
       eventEndDate: b.eventEndDate ? new Date(b.eventEndDate).toISOString() : null,
       confirmedCount: Number(b.confirmedCount ?? b.confirmed_count ?? 0),
+    }));
+
+    const safeBatches = (creditBatches || []).map((b: any) => ({
+      ...b,
+      expiresAt: b.expiresAt ? new Date(b.expiresAt).toISOString() : null,
+      createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : null,
+    }));
+
+    const safeWaitlists = (activeWaitlists || []).map((w: any) => ({
+      ...w,
+      startsAt: w.startsAt ? new Date(w.startsAt).toISOString() : null,
+      offeredAt: w.offeredAt ? new Date(w.offeredAt).toISOString() : null,
+      offerExpiresAt: w.offerExpiresAt ? new Date(w.offerExpiresAt).toISOString() : null,
     }));
 
     return {
@@ -168,12 +218,15 @@ export async function getAccountData(targetMemberId?: string) {
         pausedUntil: memberRecord.pausedUntil ? new Date(memberRecord.pausedUntil).toISOString() : null,
         cancelAtPeriodEnd: !!memberRecord.cancelAtPeriodEnd,
         currentPeriodEnd: memberRecord.currentPeriodEnd ? new Date(memberRecord.currentPeriodEnd).toISOString() : null,
+        createdBeforeLaunch: !!personRecord?.createdBeforeLaunch,
       },
       credits: {
         available: Math.max(0, currentBalance),
         ledger: ledger || [],
+        batches: safeBatches,
       },
       bookings: safeBookings,
+      waitlists: safeWaitlists,
       godmother: {
         totalCreditsEarned: Number(godmotherStats[0]?.totalCreditsEarned || 0),
       },
@@ -183,6 +236,45 @@ export async function getAccountData(targetMemberId?: string) {
     console.error("getAccountData error:", error);
     return { success: false, error: error?.message || "ACCOUNT_LOAD_FAILED" };
   }
+}
+
+export async function leaveWaitlist(waitlistId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("You must be logged in.");
+  }
+
+  const personId = session.user.id;
+
+  const waitlistEntry = await db.query.eventWaitlist.findFirst({
+    where: and(
+      eq(eventWaitlist.id, waitlistId),
+      eq(eventWaitlist.personId, personId)
+    ),
+  });
+
+  if (!waitlistEntry) {
+    throw new Error("Waitlist entry not found.");
+  }
+
+  await db
+    .delete(eventWaitlist)
+    .where(eq(eventWaitlist.id, waitlistId));
+
+  // Re-number subsequent positions on this event
+  await db
+    .update(eventWaitlist)
+    .set({
+      position: sql`${eventWaitlist.position} - 1`,
+    })
+    .where(
+      and(
+        eq(eventWaitlist.eventId, waitlistEntry.eventId),
+        sql`${eventWaitlist.position} > ${waitlistEntry.position}`
+      )
+    );
+
+  return { success: true };
 }
 
 export async function pauseMembership() {
@@ -556,3 +648,48 @@ export async function getMyCredits(): Promise<{ balance: number }> {
     return { balance: 0 };
   }
 }
+
+export async function deleteMyAccountGDPR() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("You must be logged in to delete your account.");
+  }
+
+  const personId = session.user.id;
+
+  // 1. Anonymize circle posts and delete attached photos
+  await db
+    .update(circlePost)
+    .set({
+      isAnonymous: true,
+      anonymousArea: "Barcelona",
+      photos: [],
+      updatedAt: new Date(),
+    })
+    .where(eq(circlePost.personId, personId));
+
+  // 2. Anonymize circle replies
+  await db
+    .update(circleReply)
+    .set({
+      isAnonymous: true,
+      anonymousArea: "Barcelona",
+      updatedAt: new Date(),
+    })
+    .where(eq(circleReply.personId, personId));
+
+  // 3. Mark person as deleted (soft delete with deletedAt, scrub personal details)
+  await db
+    .update(person)
+    .set({
+      firstName: "Deleted",
+      lastName: "Mother",
+      phoneE164: null,
+      whatsappE164: null,
+      deletedAt: new Date(),
+    })
+    .where(eq(person.id, personId));
+
+  return { success: true };
+}
+

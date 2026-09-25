@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/db";
-import { stripeEvent, member, payment, person, auditLog, creditEntry, event as eventTable, booking, eventPass, application } from "@/db/schema";
+import { stripeEvent, member, payment, person, auditLog, creditEntry, creditBatch, event as eventTable, booking, eventPass, application } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { grantMonthlySubscriptionCredits } from "@/lib/ledger";
 import { queueAndSendEmail, generateSubscriptionConfirmationEmailHtml, generateGuestPassEmailHtml } from "@/lib/brevo";
@@ -253,7 +253,7 @@ export async function POST(req: NextRequest) {
               type: "grant",
               sourceType: "extra_purchase",
               sourceId: session.id,
-              reason: `Extra credits purchase (${creditAmount} × €1)`,
+              reason: `Extra credits purchase (${creditAmount} × €2)`,
               expiresAt,
             });
 

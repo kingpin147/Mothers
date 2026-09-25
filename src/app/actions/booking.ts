@@ -7,7 +7,7 @@ import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { canBook, canRelease, canBuyPass, canRsvp } from "@/lib/access";
 import { spendCredits, returnCredits } from "@/lib/ledger";
-import { queueAndSendEmail } from "@/lib/brevo";
+import { queueAndSendEmail, generateBookingConfirmedEmailHtml, generateWaitlistPromotedEmailHtml } from "@/lib/brevo";
 import { getAppUrl } from "@/lib/urls";
 import crypto from "crypto";
 import { z } from "zod";
@@ -250,6 +250,7 @@ export async function bookEvent(eventId: string) {
         eventStatus: targetEventStatus,
         startsAt: ev.startsAt,
         venueName: ev.venueName,
+        creditsCharged: ev.creditCost,
       };
     });
 
@@ -265,156 +266,27 @@ export async function bookEvent(eventId: string) {
     });
 
     if (personRecord) {
-      const subject =
-        personRecord.locale === "es"
-          ? `Reserva Confirmada: ${result.eventTitle} — The Mothers`
-          : `Booking Confirmed: ${result.eventTitle} — The Mothers`;
-
       const origin = getAppUrl();
-      const accountUrl = `${origin}/account`;
-      const eventDateFormatted = new Date(result.startsAt).toLocaleDateString(personRecord.locale === "es" ? "es-ES" : "en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-      const eventTimeFormatted = new Date(result.startsAt).toLocaleTimeString(personRecord.locale === "es" ? "es-ES" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+      const isEs = personRecord.locale === "es";
+      const eventDateFormatted = new Date(result.startsAt).toLocaleDateString(isEs ? "es-ES" : "en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+      const eventTimeFormatted = new Date(result.startsAt).toLocaleTimeString(isEs ? "es-ES" : "en-GB", { hour: "2-digit", minute: "2-digit" });
 
-      const htmlContent = `\n<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
-<title>Your place is booked — The Mothers</title>
-<!--[if mso]>
-<style>body,table,td,p,a{font-family:Georgia,'Times New Roman',serif !important;}</style>
-<![endif]-->
-<style>
-@media only screen and (max-width:620px){
-  .px{padding-left:24px !important;padding-right:24px !important;}
-  .h1{font-size:30px !important;line-height:36px !important;}
-}
-</style>
-</head>
-<body style="margin:0;padding:0;background-color:#efeae1;">
-<span style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">Your place is booked — this email carries the meeting point.</span>
+      const subject = isEs
+        ? `Tu plaza está reservada — ${result.eventTitle}, ${eventDateFormatted}`
+        : `You're booked — ${result.eventTitle}, ${eventDateFormatted}`;
 
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
-<tr>
-<td align="center" style="padding:32px 12px;">
-
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#faf7f1;border:1px solid #ddd4c6;">
-
-<tr>
-<td class="px" align="center" style="padding:34px 48px 26px;border-bottom:1px solid #ddd4c6;">
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:20px;mso-line-height-rule:exactly;letter-spacing:3px;text-transform:uppercase;color:#7b1f2c;">The Mothers</div>
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:1.5px;text-transform:uppercase;color:#8a807a;padding-top:7px;">Barcelona</div>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:38px 48px 0;">
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Booking confirmed</div>
-<h1 class="h1" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:42px;mso-line-height-rule:exactly;font-weight:normal;color:#2A1E20;">Your place is booked.</h1>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
-<p style="margin:0 0 16px;">Hello <span style="color:#7b1f2c;">${personRecord.firstName}</span>,</p>
-<p style="margin:0 0 16px;">You're in. <strong style="font-weight:normal;color:#7b1f2c;">${result.eventTitle}</strong> — the details are below, and this email is the only thing you need to bring.</p>
-<p style="margin:0;">If plans change, release your place from your account and the credits come straight back, up to 24 hours before. After that they don't, because the table is already laid.</p>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:30px 48px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #ddd4c6;background-color:#f3efe6;">
-<tr>
-<td style="padding:22px 24px 14px;font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;">Where and when</td>
-</tr>
-<tr>
-<td style="padding:0 24px 22px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
-<div style="font-size:20px;line-height:28px;mso-line-height-rule:exactly;padding-bottom:12px;">${result.eventTitle}</div>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
-<tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Date</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">${eventDateFormatted} · ${eventTimeFormatted}</td>
-</tr>
-<tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Venue</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">${result.venueName || "See meeting point in account"}</td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:28px 48px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0">
-<tr>
-<td bgcolor="#7b1f2c" style="border-radius:4px;">
-<a href="${accountUrl}" style="display:block;padding:16px 34px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">View or release my place</a>
-</td>
-</tr>
-</table>
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">Everything you have booked lives in your account.</div>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:32px 48px 0;">
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Worth knowing</div>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
-<tr>
-<td width="26" valign="top" style="width:26px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">01</td>
-<td valign="top" style="">Release before 24 hours and your credits return in full. After that they stay spent — the numbers have gone to the host by then.</td>
-</tr>
-<tr>
-<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">02</td>
-<td valign="top" style="padding-top:10px;">If we cancel for any reason, your credits come back automatically and we email you ahead of time.</td>
-</tr>
-</table>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:28px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#5c534e;">
-<p style="margin:0;">Anything before the day — dietary needs, a late arrival, a nap that overran — reply to this email.</p>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:26px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
-<p style="margin:0;">See you there,<br>The Mothers Team</p>
-</td>
-</tr>
-
-<tr>
-<td class="px" align="center" style="padding:32px 48px 34px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
-<tr><td style="border-top:1px solid #ddd4c6;font-size:0;line-height:0;">&nbsp;</td></tr>
-</table>
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:20px;">
-The Mothers · Carrer de Girona, 08009 Barcelona, Spain<br>
-<a href="mailto:hello@themothers.cc" style="color:#7b1f2c;text-decoration:underline;">hello@themothers.cc</a> &nbsp;·&nbsp;
-<a href="https://themothers.cc" style="color:#7b1f2c;text-decoration:underline;">themothers.cc</a>
-</div>
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:18px;mso-line-height-rule:exactly;color:#8a807a;padding-top:12px;">
-You're receiving this because you booked a place using your membership credits.<br>
-This is a booking confirmation, not a marketing email.
-</div>
-</td>
-</tr>
-
-</table>
-
-</td>
-</tr>
-</table>
-</body>
-</html>
-      `;
+      const htmlContent = generateBookingConfirmedEmailHtml({
+        firstName: personRecord.firstName || "Member",
+        eventTitle: result.eventTitle,
+        eventDateFormatted,
+        eventTimeFormatted,
+        venueName: result.venueName || undefined,
+        meetingPoint: result.venueName || undefined,
+        creditsCharged: result.creditsCharged,
+        startsAt: result.startsAt,
+        appUrl: origin,
+        isEs,
+      });
 
       await queueAndSendEmail({
         personId,
@@ -858,9 +730,9 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
             currency: "eur",
             product_data: {
               name: `THE Mothers — ${amount} Extra Event Credits`,
-              description: `€1/credit · 6-month validity · THE Mothers Barcelona`,
+              description: `€2/credit · 6-month validity · THE Mothers Barcelona`,
             },
-            unit_amount: amount * 100, // €1 per credit in cents
+            unit_amount: amount * 200, // €2 per credit in cents
           },
           quantity: 1,
         },

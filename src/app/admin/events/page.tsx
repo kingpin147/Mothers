@@ -407,24 +407,32 @@ export default function AdminEventsPage() {
 
     const passColor = passActive ? GREEN : MUTED;
 
+    const isPast = ev.status === "completed" || ev.status === "past" ||
+      (ev.endsAt ? new Date(ev.endsAt) < now : new Date(ev.startsAt) < now);
+
     const displayCategory = ev.categoryName || ev.category || (ev.isSignature ? "Signature moments" : "Play dates");
     const displayStage = ev.targetStages && ev.targetStages.length > 0 ? ev.targetStages.join(", ") : "All stages";
 
     const displayState =
+      ev.status === "cancelled" ? "cancelled" :
+      isPast ? "past" :
       ev.status === "published_pending" ? "gathering" :
-      ev.status === "completed" ? "past" :
       ev.status;
 
     const displayStatusLabel =
+      ev.status === "cancelled" ? "Cancelled" :
+      isPast ? "Past" :
       ev.status === "published_pending" ? "To be confirmed" :
-      ev.status === "completed" ? "Past" :
-      ev.status.charAt(0).toUpperCase() + ev.status.slice(1);
+      ev.status === "draft" ? "Draft" :
+      "Confirmed";
 
     let statusNote = "";
     if (ev.status === "draft") {
       statusNote = "Invisible publicly · publishing starts the schedule";
     } else if (ev.status === "cancelled") {
       statusNote = ev.cancelReason ? `“${ev.cancelReason}”` : "Cancelled · every credit returned";
+    } else if (isPast) {
+      statusNote = "Event concluded · attendance recorded";
     } else if (ev.status === "confirmed") {
       statusNote = booked >= (ev.capacityMember || 10) ? "Full · places taken" : "Confirmed · live on the public calendar";
     } else if (isGathering) {
@@ -452,8 +460,8 @@ export default function AdminEventsPage() {
       guestBooked,
       capInForce,
       isGathering,
-      showDecision: isGathering,
-      statusColor: STATUS_COLORS[ev.status] || MUTED,
+      showDecision: isGathering && !isPast,
+      statusColor: isPast ? MUTED : (STATUS_COLORS[ev.status] || MUTED),
     };
   };
 

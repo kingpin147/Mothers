@@ -8,7 +8,6 @@ import { LanguageProvider } from "@/components/LanguageProvider";
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
   variable: "--font-heading",
   display: "swap",
 });
@@ -16,7 +15,6 @@ const cormorant = Cormorant_Garamond({
 const lora = Lora({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
   variable: "--font-body",
   display: "swap",
 });

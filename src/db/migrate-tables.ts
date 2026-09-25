@@ -290,6 +290,115 @@ async function main() {
       FOR EACH ROW EXECUTE FUNCTION prevent_credit_entry_mutation();
     `);
 
+    // 12. Pre-membership columns & tables
+    await sql.unsafe(`
+      ALTER TABLE person ADD COLUMN IF NOT EXISTS created_before_launch boolean DEFAULT true NOT NULL;
+      ALTER TABLE person ADD COLUMN IF NOT EXISTS is_paused boolean DEFAULT false NOT NULL;
+      ALTER TABLE person ADD COLUMN IF NOT EXISTS paused_reason text;
+
+      CREATE TABLE IF NOT EXISTS credit_batch (
+        id text PRIMARY KEY,
+        person_id text NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+        amount integer NOT NULL,
+        remaining integer NOT NULL,
+        purchased_at timestamptz DEFAULT now() NOT NULL,
+        expires_at timestamptz NOT NULL,
+        source text DEFAULT 'purchase' NOT NULL,
+        stripe_payment_intent_id text,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_credit_batch_person_expires ON credit_batch(person_id, expires_at);
+
+      CREATE TABLE IF NOT EXISTS lead_entry (
+        id text PRIMARY KEY,
+        email text NOT NULL,
+        source text DEFAULT 'countdown_banner' NOT NULL,
+        type text DEFAULT 'waitlist' NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_lead_entry_email ON lead_entry(email);
+
+      CREATE TABLE IF NOT EXISTS host_request (
+        id text PRIMARY KEY,
+        person_id text NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+        format text NOT NULL,
+        neighbourhood text NOT NULL,
+        preferred_days text NOT NULL,
+        languages jsonb DEFAULT '[]'::jsonb NOT NULL,
+        reason text NOT NULL,
+        charter_agreed boolean DEFAULT true NOT NULL,
+        status text DEFAULT 'submitted' NOT NULL,
+        reviewed_by_admin_id text REFERENCES admin_user(id),
+        reviewed_at timestamptz,
+        notes text,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS circle_post (
+        id text PRIMARY KEY,
+        person_id text NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+        is_anonymous boolean DEFAULT false NOT NULL,
+        anonymous_area text,
+        topic text NOT NULL,
+        body text NOT NULL,
+        photos jsonb DEFAULT '[]'::jsonb NOT NULL,
+        photo_consent boolean DEFAULT true NOT NULL,
+        hearts_count integer DEFAULT 0 NOT NULL,
+        replies_count integer DEFAULT 0 NOT NULL,
+        reports_count integer DEFAULT 0 NOT NULL,
+        status text DEFAULT 'visible' NOT NULL,
+        is_partner_expert boolean DEFAULT false NOT NULL,
+        hidden_reason text,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_circle_post_topic_created ON circle_post(topic, created_at);
+      CREATE INDEX IF NOT EXISTS idx_circle_post_status_created ON circle_post(status, created_at);
+      CREATE INDEX IF NOT EXISTS idx_circle_post_person ON circle_post(person_id);
+
+      CREATE TABLE IF NOT EXISTS circle_reply (
+        id text PRIMARY KEY,
+        post_id text NOT NULL REFERENCES circle_post(id) ON DELETE CASCADE,
+        person_id text NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+        is_anonymous boolean DEFAULT false NOT NULL,
+        anonymous_area text,
+        body text NOT NULL,
+        is_partner_expert boolean DEFAULT false NOT NULL,
+        hearts_count integer DEFAULT 0 NOT NULL,
+        status text DEFAULT 'visible' NOT NULL,
+        created_at timestamptz DEFAULT now() NOT NULL,
+        updated_at timestamptz DEFAULT now() NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_circle_reply_post_created ON circle_reply(post_id, created_at);
+
+      CREATE TABLE IF NOT EXISTS circle_heart (
+        id text PRIMARY KEY,
+        person_id text NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+        post_id text REFERENCES circle_post(id) ON DELETE CASCADE,
+        reply_id text REFERENCES circle_reply(id) ON DELETE CASCADE,
+        created_at timestamptz DEFAULT now() NOT NULL
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_person_post_heart ON circle_heart(person_id, post_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_person_reply_heart ON circle_heart(person_id, reply_id);
+
+      CREATE TABLE IF NOT EXISTS circle_report (
+        id text PRIMARY KEY,
+        post_id text REFERENCES circle_post(id) ON DELETE CASCADE,
+        reply_id text REFERENCES circle_reply(id) ON DELETE CASCADE,
+        reporter_person_id text NOT NULL REFERENCES person(id),
+        reason text NOT NULL,
+        details text,
+        status text DEFAULT 'pending' NOT NULL,
+        reviewed_by_admin_id text REFERENCES admin_user(id),
+        reviewed_at timestamptz,
+        created_at timestamptz DEFAULT now() NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_circle_report_post ON circle_report(post_id);
+      CREATE INDEX IF NOT EXISTS idx_circle_report_status ON circle_report(status);
+    `);
+
     console.log("✅ DDL migration completed successfully!");
   } catch (err) {
     console.error("❌ Migration error:", err);

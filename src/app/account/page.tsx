@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Locale } from "@/lib/i18n";
-import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, reactivateMembership, getStripePortalUrl } from "@/app/actions/memberAccount";
+import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, reactivateMembership, getStripePortalUrl, deleteMyAccountGDPR, leaveWaitlist } from "@/app/actions/memberAccount";
 import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
 import ThemeLoader from "@/components/ThemeLoader";
 import { ForwardArrow } from "@/components/Icons";
@@ -104,6 +104,41 @@ function AccountPageContent() {
 
   // Cancel reservation state
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+  const [leavingWaitlistId, setLeavingWaitlistId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleLeaveWaitlist = async (waitlistId: string) => {
+    if (!confirm(lang === "en" ? "Are you sure you want to leave this waitlist?" : "¿Segura que deseas salir de la lista de espera?")) return;
+    setLeavingWaitlistId(waitlistId);
+    try {
+      const res = await leaveWaitlist(waitlistId);
+      if (res.success) {
+        const refreshed = await getAccountData();
+        if (refreshed.success) setAccountData(refreshed);
+      }
+    } catch (e: any) {
+      alert(e?.message || "Failed to leave waitlist");
+    } finally {
+      setLeavingWaitlistId(null);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const res = await deleteMyAccountGDPR();
+      if (res.success) {
+        await signOut({ redirect: false });
+        window.location.href = "/";
+      }
+    } catch (e: any) {
+      setDeleteError(e?.message || "Account deletion failed");
+      setDeleteLoading(false);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("tm_lang");
@@ -497,6 +532,77 @@ function AccountPageContent() {
               </p>
             </div>
 
+            {/* Pre-Launch Early Access Waiver Banner */}
+            {accountData?.member?.createdBeforeLaunch && (
+              <div style={{ backgroundColor: "#fbf6ef", border: "1px solid #7b1f2c", borderRadius: "8px", padding: "18px 22px", display: "flex", alignItems: "flex-start", gap: "14px" }}>
+                <span style={{ fontSize: "20px", color: "#7b1f2c" }}>★</span>
+                <div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "16px", color: "#7b1f2c" }}>
+                    {lang === "en" ? "Early Mother Benefit" : "Beneficio de Madrina Pionera"}
+                  </div>
+                  <div style={{ fontSize: "14px", color: "#39292a", marginTop: "4px", lineHeight: "1.5" }}>
+                    {lang === "en"
+                      ? "Because you joined before our January 2027 membership launch, your €19 joining fee is permanently waived. You pay only pay-as-you-go credits for gatherings."
+                      : "Al haberte unido antes del lanzamiento de enero de 2027, tu cuota de alta de 19€ queda exenta permanentemente. Solo pagas los créditos por encuentro que utilices."}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Active Waitlists Section */}
+            {accountData?.waitlists?.length > 0 && (
+              <div style={{ border: "1px solid rgba(57, 41, 42, 0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 30px)", backgroundColor: "#fffdfa" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", margin: 0 }}>
+                    {lang === "en" ? "Active Waitlists" : "Listas de Espera Activas"}
+                  </h3>
+                  <span style={{ fontSize: "12px", color: "#7b1f2c", fontWeight: 600, border: "1px solid rgba(123,31,44,0.3)", borderRadius: "12px", padding: "2px 8px" }}>
+                    {accountData.waitlists.length} {lang === "en" ? "queued" : "en espera"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  {accountData.waitlists.map((w: any) => {
+                    const dateStr = w.startsAt ? new Date(w.startsAt).toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short", day: "numeric", weekday: "short" }) : "";
+                    const isOffered = !!w.offeredAt;
+                    return (
+                      <div key={w.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "12px", gap: "12px" }}>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, backgroundColor: isOffered ? "#e6f4ea" : "#f3efe6", color: isOffered ? "#137333" : "#7b1f2c", padding: "2px 8px", borderRadius: "4px" }}>
+                              {isOffered ? (lang === "en" ? "SPOT AVAILABLE NOW" : "PLAZA DISPONIBLE AHORA") : (lang === "en" ? "Position #" + w.position : "Posición #" + w.position)}
+                            </span>
+                            <span style={{ fontSize: "13px", color: "rgba(57,41,42,0.7)" }}>{dateStr}</span>
+                          </div>
+                          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", color: "#39292a" }}>
+                            {w.eventTitle}
+                          </div>
+                          {w.venueName && <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)" }}>{w.venueName} · {w.neighbourhood}</div>}
+                        </div>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          {isOffered && (
+                            <Link
+                              href={"/events/" + w.eventId}
+                              style={{ backgroundColor: "#7b1f2c", color: "#faf7f1", fontSize: "12.5px", fontWeight: 600, padding: "6px 14px", borderRadius: "4px", textDecoration: "none" }}
+                            >
+                              {lang === "en" ? "Claim spot" : "Confirmar"}
+                            </Link>
+                          )}
+                          <button
+                            type="button"
+                            disabled={leavingWaitlistId === w.id}
+                            onClick={() => handleLeaveWaitlist(w.id)}
+                            style={{ border: "1px solid rgba(57,41,42,0.25)", backgroundColor: "transparent", color: "rgba(57,41,42,0.7)", fontSize: "12px", padding: "5px 12px", borderRadius: "4px", cursor: "pointer" }}
+                          >
+                            {leavingWaitlistId === w.id ? (lang === "en" ? "Leaving..." : "Saliendo...") : (lang === "en" ? "Leave list" : "Salir")}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* WhatsApp Circles: Always show General Circle for all members */}
             <div style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#f4f7ee" }}>
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "9px" }}>
@@ -624,6 +730,38 @@ function AccountPageContent() {
         {activeTab === "credits" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             
+            {/* Active Credit Batches (Pre-membership 6-month validity) */}
+            {accountData?.credits?.batches?.length > 0 && (
+              <div style={{ border: "1px solid rgba(86,139,5,0.35)", borderRadius: "8px", padding: "20px 24px", backgroundColor: "#f4f7ee" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "8px" }}>
+                  {lang === "en" ? "ACTIVE CREDIT BATCHES" : "LOTES DE CRÉDITOS ACTIVOS"}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {accountData.credits.batches.map((b: any) => {
+                    const expStr = b.expiresAt ? new Date(b.expiresAt).toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short", day: "numeric", year: "numeric" }) : "";
+                    return (
+                      <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px", borderBottom: "1px solid rgba(86,139,5,0.15)", paddingBottom: "6px" }}>
+                        <div style={{ fontWeight: 600, color: "#39292a" }}>
+                          +{b.remaining} {lang === "en" ? "credits" : "créditos"} <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.65)", fontSize: "12.5px" }}>({b.source || "top-up"})</span>
+                        </div>
+                        <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.75)" }}>
+                          {lang === "en" ? ("Expires on " + expStr) : ("Caduca el " + expStr)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ marginTop: "14px" }}>
+                  <Link
+                    href="/topup"
+                    style={{ display: "inline-block", backgroundColor: "#568b05", color: "#faf7f1", padding: "8px 18px", borderRadius: "4px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}
+                  >
+                    {lang === "en" ? "Buy credits (€2 / credit) →" : "Comprar créditos (2€ / crédito) →"}
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Main Credits Card (Image 2 style) */}
             <div style={{ border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", padding: "clamp(24px, 4vw, 36px)", backgroundColor: "#fffdfa", boxShadow: "0 1px 4px rgba(57,41,42,0.04)" }}>
               {/* Header row */}
@@ -1654,6 +1792,51 @@ function AccountPageContent() {
                 </button>
               </div>
             )}
+
+            {/* GDPR Privacy & Account Deletion */}
+            <div style={{ border: "1px solid rgba(153,56,66,0.25)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#fffdfa", marginTop: "24px" }}>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 8px", color: "#993842" }}>
+                {lang === "en" ? "GDPR Account Deletion" : "Eliminación de Cuenta y Datos (RGPD)"}
+              </h2>
+              <p style={{ fontSize: "13.5px", lineHeight: "1.5", color: "rgba(57,41,42,0.7)", margin: "0 0 16px" }}>
+                {lang === "en"
+                  ? "Under GDPR Article 17, you can permanently delete your personal profile, contact info, and scrub community forum posts."
+                  : "Conforme al artículo 17 del RGPD, puedes solicitar la eliminación permanente de tu perfil, datos personales y publicaciones en el foro."}
+              </p>
+              {!showDeleteModal ? (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(true)}
+                  style={{ border: "1px solid #993842", color: "#993842", backgroundColor: "transparent", padding: "8px 18px", borderRadius: "4px", fontSize: "13.5px", fontWeight: 600, cursor: "pointer" }}
+                >
+                  {lang === "en" ? "Delete my account permanently" : "Eliminar mi cuenta permanentemente"}
+                </button>
+              ) : (
+                <div style={{ backgroundColor: "#fdf2f2", border: "1px solid rgba(153,56,66,0.3)", borderRadius: "6px", padding: "16px 18px" }}>
+                  <p style={{ fontSize: "13.5px", color: "#7b1f2c", margin: "0 0 12px", fontWeight: 600 }}>
+                    {lang === "en" ? "This action is permanent and cannot be undone." : "Esta acción es permanente y no se puede deshacer."}
+                  </p>
+                  {deleteError && <p style={{ color: "#b91c1c", fontSize: "13px", margin: "0 0 8px" }}>{deleteError}</p>}
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      disabled={deleteLoading}
+                      onClick={handleDeleteAccount}
+                      style={{ backgroundColor: "#993842", color: "#faf7f1", border: "none", padding: "8px 18px", borderRadius: "4px", fontSize: "13px", fontWeight: 600, cursor: deleteLoading ? "wait" : "pointer" }}
+                    >
+                      {deleteLoading ? (lang === "en" ? "Deleting..." : "Eliminando...") : (lang === "en" ? "Confirm Delete" : "Confirmar Eliminación")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteModal(false)}
+                      style={{ backgroundColor: "transparent", border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "8px 16px", borderRadius: "4px", fontSize: "13px", cursor: "pointer" }}
+                    >
+                      {lang === "en" ? "Cancel" : "Cancelar"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Logout button at the very bottom */}
             <div style={{ marginTop: "12px", borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "24px", display: "flex", justifyContent: "flex-end" }}>
