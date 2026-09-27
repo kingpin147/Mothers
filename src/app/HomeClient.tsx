@@ -55,6 +55,7 @@ const SEED_EVENTS: EventCardItem[] = [
 
 export default function HomeClient({ initialEvents = [] }: { initialEvents?: any[] }) {
   const { language: lang } = useLanguage();
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [waitlisted, setWaitlisted] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -369,7 +370,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
         </div>
       </section>
 
-      {/* ─── 3. NEXT ON THE CALENDAR ─── */}
+      {/* ─── 3. NEXT ON THE CALENDAR (CAROUSEL) ─── */}
       <section
         style={{
           maxWidth: "1160px",
@@ -378,7 +379,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "baseline", justifyContent: "space-between", marginBottom: "26px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center", justifyContent: "space-between", marginBottom: "26px" }}>
           <div>
             <div
               style={{
@@ -398,33 +399,116 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             </h2>
           </div>
 
-          <Link
-            href="/events"
-            style={{
-              fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontWeight: 600,
-              fontSize: "15px",
-              whiteSpace: "nowrap",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              color: "#7b1f2c",
-              textDecoration: "none",
-            }}
-          >
-            <span>{lang === "en" ? "The whole calendar" : "Ver todo el calendario"}</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+            <Link
+              href="/events"
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontWeight: 600,
+                fontSize: "15px",
+                whiteSpace: "nowrap",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                color: "#7b1f2c",
+                textDecoration: "none",
+              }}
+            >
+              <span>{lang === "en" ? "The whole calendar" : "Ver todo el calendario"}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </Link>
+
+            {/* Carousel Navigation Arrows */}
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                type="button"
+                onClick={() => scrollContainerRef.current?.scrollBy({ left: -310, behavior: "smooth" })}
+                aria-label="Previous events"
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  border: "1px solid rgba(57, 41, 42, 0.25)",
+                  background: "#ffffff",
+                  color: "#39292a",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#7b1f2c";
+                  e.currentTarget.style.color = "#7b1f2c";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
+                  e.currentTarget.style.color = "#39292a";
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => scrollContainerRef.current?.scrollBy({ left: 310, behavior: "smooth" })}
+                aria-label="Next events"
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  border: "1px solid rgba(57, 41, 42, 0.25)",
+                  background: "#ffffff",
+                  color: "#39292a",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#7b1f2c";
+                  e.currentTarget.style.color = "#7b1f2c";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
+                  e.currentTarget.style.color = "#39292a";
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 260px), 1fr))", gap: "20px" }}>
+        {/* Scrollable Container */}
+        <div
+          ref={scrollContainerRef}
+          style={{
+            display: "flex",
+            gap: "20px",
+            overflowX: "auto",
+            scrollSnapType: "x mandatory",
+            paddingBottom: "14px",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+          }}
+        >
           {displayEvents.map((ev) => (
             <Link
               key={ev.id}
               href={`/events/${ev.id}`}
               style={{
+                flex: "0 0 clamp(260px, 75vw, 290px)",
+                scrollSnapAlign: "start",
                 border: "1px solid rgba(57, 41, 42, 0.18)",
                 borderRadius: "8px",
                 backgroundColor: "#ffffff",
@@ -556,7 +640,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               </Link>
 
               <Link
-                href="/faq"
+                href="/membership#faq"
                 style={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
                   fontWeight: 600,
@@ -611,7 +695,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
         </div>
       </section>
 
-      {/* ─── 5. FROM JANUARY 2027 (MEMBERSHIP PREVIEW) ─── */}
+      {/* ─── 5. FROM JANUARY 2027 (VISUAL 4-CARD GRID) ─── */}
       <section
         style={{
           maxWidth: "1160px",
@@ -626,36 +710,29 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             borderRadius: "8px",
             padding: "clamp(24px, 4vw, 40px)",
             backgroundColor: "#ffffff",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "clamp(28px, 4vw, 48px)",
-            alignItems: "flex-start",
           }}
         >
-          <div style={{ flex: "1 1 340px", minWidth: "270px" }}>
-            <div
-              style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontWeight: 600,
-                fontSize: "13px",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "#568b05",
-                marginBottom: "12px",
-              }}
-            >
-              {lang === "en" ? "From January 2027" : "Desde enero de 2027"}
+          {/* Header Row */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", marginBottom: "32px" }}>
+            <div>
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#568b05",
+                  marginBottom: "8px",
+                }}
+              >
+                {lang === "en" ? "FROM JANUARY 2027" : "DESDE ENERO DE 2027"}
+              </div>
+
+              <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(26px, 3.4vw, 36px)", lineHeight: 1.15, margin: 0 }}>
+                {lang === "en" ? "Keep your circle, all year round." : "Mantén tu círculo todo el año."}
+              </h2>
             </div>
-
-            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(24px, 3.2vw, 34px)", lineHeight: 1.2, margin: "0 0 16px" }}>
-              {lang === "en" ? "Keep your circle, all year round." : "Mantén tu círculo todo el año."}
-            </h2>
-
-            <p style={{ fontSize: "16px", lineHeight: 1.7, color: "rgba(57, 41, 42, 0.72)", textAlign: "justify", margin: "0 0 18px" }}>
-              {lang === "en"
-                ? "Membership is how the friendships you make now keep going: at least four events a month with the same mothers, your stage group, and a private circle to talk in between. Nothing you have already bought disappears."
-                : "La membresía es la forma de mantener vivas las amistades que forjes ahora: al menos cuatro eventos al mes con las mismas madres, tu grupo de etapa y un círculo privado para hablar entre encuentro y encuentro. Nada de lo que hayas adquirido desaparece."}
-            </p>
 
             <Link
               href="/membership"
@@ -668,7 +745,17 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 alignItems: "center",
                 gap: "8px",
                 color: "#7b1f2c",
+                border: "1px solid rgba(123, 31, 44, 0.4)",
+                padding: "8px 16px",
+                borderRadius: "4px",
                 textDecoration: "none",
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.06)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
               <span>{lang === "en" ? "What membership will be" : "Cómo será la membresía"}</span>
@@ -678,54 +765,121 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             </Link>
           </div>
 
-          <div style={{ flex: "1 1 300px", minWidth: "260px", display: "flex", flexDirection: "column" }}>
-            {[
-              { fromEn: "Meet mothers at events", toEn: "See them every week", fromEs: "Conoce madres en eventos", toEs: "Vuelve a verlas cada semana" },
-              { fromEn: "A walk, a coffee, a supper", toEn: "At least 4 events a month", fromEs: "Un paseo, un café, una cena", toEs: "Al menos 4 eventos al mes" },
-              { fromEn: "Conversations at events", toEn: "A private circle in between", fromEs: "Conversaciones en eventos", toEs: "Un círculo privado entre citas" },
-              { fromEn: "New faces each time", toEn: "Your stage group, by name", fromEs: "Nuevas caras cada vez", toEs: "Tu grupo por etapa, por su nombre" },
-            ].map((row, idx) => (
-              <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "12px", alignItems: "baseline", padding: "13px 0", borderTop: "1px solid rgba(57, 41, 42, 0.12)" }}>
-                <span style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>
-                  {lang === "en" ? row.fromEn : row.fromEs}
-                </span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="rgba(57, 41, 42, 0.35)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
+          {/* 4 Visual Cards Grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 210px), 1fr))", gap: "20px" }}>
+            {/* Card 1: Events */}
+            <div
+              style={{
+                padding: "22px 20px",
+                border: "1px solid rgba(57, 41, 42, 0.12)",
+                borderRadius: "6px",
+                backgroundColor: "#fdf8f2",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <div style={{ color: "#568b05" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="24" height="24">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                <span style={{ fontSize: "13.5px", color: "#39292a" }}>
-                  {lang === "en" ? row.toEn : row.toEs}
-                </span>
               </div>
-            ))}
+              <div>
+                <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", margin: "0 0 4px", color: "#39292a" }}>
+                  {lang === "en" ? "4+ events a month" : "4+ eventos al mes"}
+                </h3>
+                <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: 0, lineHeight: 1.45 }}>
+                  {lang === "en" ? "With the same mothers" : "Con las mismas madres"}
+                </p>
+              </div>
+            </div>
 
-            <div style={{ marginTop: "20px" }}>
-              <button
-                type="button"
-                onClick={() => setModalOpen(true)}
-                style={{
-                  border: "1px solid #7b1f2c",
-                  backgroundColor: "transparent",
-                  color: "#7b1f2c",
-                  borderRadius: "4px",
-                  padding: "12px 22px",
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  whiteSpace: "nowrap",
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                }}
-              >
-                {waitlisted
-                  ? (lang === "en" ? "✓ On the list — we will write first" : "✓ En la lista — te avisaremos antes")
-                  : (lang === "en" ? "Tell me when membership opens" : "Avísame cuando abra la membresía")}
-              </button>
+            {/* Card 2: Stage group */}
+            <div
+              style={{
+                padding: "22px 20px",
+                border: "1px solid rgba(57, 41, 42, 0.12)",
+                borderRadius: "6px",
+                backgroundColor: "#fdf8f2",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <div style={{ color: "#568b05" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="24" height="24">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", margin: "0 0 4px", color: "#39292a" }}>
+                  {lang === "en" ? "Your stage group" : "Tu grupo por etapa"}
+                </h3>
+                <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: 0, lineHeight: 1.45 }}>
+                  {lang === "en" ? "Mothers at your stage" : "Madres en tu misma etapa"}
+                </p>
+              </div>
+            </div>
+
+            {/* Card 3: The Circle */}
+            <div
+              style={{
+                padding: "22px 20px",
+                border: "1px solid rgba(57, 41, 42, 0.12)",
+                borderRadius: "6px",
+                backgroundColor: "#fdf8f2",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <div style={{ color: "#568b05" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="24" height="24">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", margin: "0 0 4px", color: "#39292a" }}>
+                  {lang === "en" ? "The Circle" : "El Círculo"}
+                </h3>
+                <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: 0, lineHeight: 1.45 }}>
+                  {lang === "en" ? "Talk in between events" : "Habla entre eventos"}
+                </p>
+              </div>
+            </div>
+
+            {/* Card 4: Credits carry over */}
+            <div
+              style={{
+                padding: "22px 20px",
+                border: "1px solid rgba(57, 41, 42, 0.12)",
+                borderRadius: "6px",
+                backgroundColor: "#fdf8f2",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <div style={{ color: "#568b05" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="24" height="24">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                  <line x1="1" y1="10" x2="23" y2="10" />
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", margin: "0 0 4px", color: "#39292a" }}>
+                  {lang === "en" ? "Credits carry over" : "Créditos acumulables"}
+                </h3>
+                <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: 0, lineHeight: 1.45 }}>
+                  {lang === "en" ? "Nothing you buy is lost" : "Nada de lo que compras se pierde"}
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, creditEntry, creditAllocation, member, person, eventPass, eventWaitlist, auditLog, guestRsvp } from "@/db/schema";
+import { event, booking, creditEntry, creditAllocation, member, person, eventPass, eventWaitlist, auditLog, guestRsvp, memberCredential } from "@/db/schema";
 import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -909,4 +909,92 @@ export async function claimWaitlistOffer(waitlistId: string) {
     return { success: false, error: error?.message || "CLAIM_FAILED" };
   }
 }
+
+// ─── CHECK BOOKING EMAIL STATUS ─────────────────────────────────────────────
+
+export type BookingEmailCheckResult = {
+  exists: boolean;
+  firstName?: string;
+  hasPassword?: boolean;
+  isAlreadyBooked?: boolean;
+  availableCredits?: number;
+  personId?: string;
+};
+
+export async function checkBookingEmailStatus(
+  email: string,
+  eventId?: string
+): Promise<BookingEmailCheckResult> {
+  try {
+    const normalised = (email || "").toLowerCase().trim();
+    if (!normalised || !normalised.includes("@")) {
+      return { exists: false };
+    }
+
+    const existingPerson = await db.query.person.findFirst({
+      where: eq(person.email, normalised),
+    });
+
+    if (!existingPerson) {
+      return { exists: false };
+    }
+
+    const firstName = existingPerson.firstName || normalised.split("@")[0] || "Friend";
+
+    // 1. Check if member credential with passwordHash exists
+    const credential = await db.query.memberCredential.findFirst({
+      where: eq(memberCredential.personId, existingPerson.id),
+    });
+    const hasPassword = !!credential && !!credential.passwordHash;
+
+    // 2. Check if already booked on this event
+    let isAlreadyBooked = false;
+    if (eventId) {
+      const activeBooking = await db.query.booking.findFirst({
+        where: and(
+          eq(booking.eventId, eventId),
+          eq(booking.personId, existingPerson.id),
+          inArray(booking.status, ["held", "confirmed"])
+        ),
+      });
+      if (activeBooking) {
+        isAlreadyBooked = true;
+      } else {
+        const guestRsvpEntry = await db.query.guestRsvp.findFirst({
+          where: and(
+            eq(guestRsvp.eventId, eventId),
+            eq(guestRsvp.email, normalised)
+          ),
+        });
+        if (guestRsvpEntry) isAlreadyBooked = true;
+      }
+    }
+
+    // 3. Calculate available credits if member record exists
+    let availableCredits = 0;
+    const memberRecord = await db.query.member.findFirst({
+      where: eq(member.personId, existingPerson.id),
+    });
+    if (memberRecord) {
+      const creditEntries = await db
+        .select()
+        .from(creditEntry)
+        .where(eq(creditEntry.memberId, memberRecord.id));
+      availableCredits = creditEntries.reduce((sum, entry) => sum + entry.amount, 0);
+    }
+
+    return {
+      exists: true,
+      firstName,
+      hasPassword,
+      isAlreadyBooked,
+      availableCredits,
+      personId: existingPerson.id,
+    };
+  } catch (err) {
+    console.error("checkBookingEmailStatus error:", err);
+    return { exists: false };
+  }
+}
+
 

@@ -11,7 +11,7 @@ import ThemeLoader from "@/components/ThemeLoader";
 import { ForwardArrow } from "@/components/Icons";
 import CountryPhoneInput from "@/components/CountryPhoneInput";
 
-type AccountTab = "overview" | "credits" | "perks" | "membership";
+type AccountTab = "overview" | "credits" | "hosting" | "perks" | "membership";
 
 interface PerkItem {
   id: string;
@@ -55,6 +55,20 @@ const normalizeStageKey = (raw: string): string => {
   return raw;
 };
 
+const TARGET_DATE = new Date("2027-01-06T00:00:00+01:00").getTime();
+
+function calculateTimeLeft() {
+  const now = new Date().getTime();
+  const diff = Math.max(0, TARGET_DATE - now);
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  return { days, hours, minutes, seconds };
+}
+
 function AccountPageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -66,6 +80,14 @@ function AccountPageContent() {
   const [accountLoading, setAccountLoading] = useState(true);
   const [accountData, setAccountData] = useState<any>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>(calculateTimeLeft);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Extra credits purchase confirmation banner state (Image 2)
   const [purchaseConfirmed, setPurchaseConfirmed] = useState(false);
@@ -294,6 +316,7 @@ function AccountPageContent() {
   const TABS: { id: AccountTab; labelEn: string; labelEs: string }[] = [
     { id: "overview", labelEn: "Overview", labelEs: "Resumen" },
     { id: "credits", labelEn: "Credits", labelEs: "Créditos" },
+    { id: "hosting", labelEn: "Hosting", labelEs: "Anfitriona" },
     { id: "perks", labelEn: "Perks", labelEs: "Ventajas" },
     { id: "membership", labelEn: "Membership", labelEs: "Membresía" },
   ];
@@ -1138,6 +1161,129 @@ function AccountPageContent() {
           </div>
         )}
 
+        {/* ─── TAB: HOSTING (MATCHING IMAGE 2 MOCKUP) ─── */}
+        {activeTab === "hosting" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div style={{ border: "1px solid rgba(57, 41, 42, 0.14)", borderRadius: "8px", padding: "clamp(24px, 4vw, 36px)", backgroundColor: "#fffdfa" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "baseline", gap: "12px", marginBottom: "8px" }}>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "26px", color: "#39292a", margin: 0 }}>
+                  {lang === "en" ? "Events that need a host" : "Eventos que necesitan anfitriona"}
+                </h2>
+                <Link
+                  href="/host"
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15px",
+                    color: "#3b5e04",
+                    textDecoration: "none",
+                  }}
+                >
+                  {lang === "en" ? "What a host does →" : "Qué hace una anfitriona →"}
+                </Link>
+              </div>
+
+              <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57, 41, 42, 0.72)", margin: "0 0 24px" }}>
+                {(() => {
+                  const attended = accountData?.member?.eventsAttendedCount || 0;
+                  if (attended < 2) {
+                    const needed = 2 - attended;
+                    return lang === "en"
+                      ? `You have been to ${attended} event. Come to ${needed} more and you can host.`
+                      : `Has asistido a ${attended} evento. Ven a ${needed} más y podrás ser anfitriona.`;
+                  }
+                  return lang === "en"
+                    ? "You have attended 2+ events and are eligible to host! Select an event below or submit a custom gathering proposal."
+                    : "¡Has asistido a más de 2 eventos y puedes ser anfitriona! Elige un evento a continuación o propone un encuentro.";
+                })()}
+              </p>
+
+              {/* Events List needing host matching mockup image 2 */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {[
+                  {
+                    id: "h1",
+                    titleEn: "Morning walk — Ciutadella Park",
+                    titleEs: "Paseo matutino — Parque de la Ciutadella",
+                    dateEn: "Wednesday 7 October · 10:00",
+                    dateEs: "Miércoles 7 de Octubre · 10:00",
+                    area: "Ciutat Vella",
+                    type: "Walks",
+                  },
+                  {
+                    id: "h2",
+                    titleEn: "Hosted coffee & conversation — Gràcia",
+                    titleEs: "Café con anfitriona y conversación — Gràcia",
+                    dateEn: "Friday 9 October · 10:30",
+                    dateEs: "Viernes 9 de Octubre · 10:30",
+                    area: "Gràcia",
+                    type: "Circles",
+                  },
+                  {
+                    id: "h3",
+                    titleEn: "Park social — Turó Park lawn",
+                    titleEs: "Encuentro en el parque — Turó Park",
+                    dateEn: "Wednesday 14 October · 17:30",
+                    dateEs: "Miércoles 14 de Octubre · 17:30",
+                    area: "Sarrià-Sant Gervasi",
+                    type: "Play dates",
+                  },
+                ].map((ev) => (
+                  <div
+                    key={ev.id}
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "16px",
+                      padding: "18px 20px",
+                      border: "1px solid rgba(57, 41, 42, 0.14)",
+                      borderRadius: "6px",
+                      backgroundColor: "#fdf8f2",
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                        <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#3b5e04", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "10px", padding: "2px 8px", backgroundColor: "rgba(86,139,5,0.06)", fontWeight: 600 }}>
+                          {ev.type}
+                        </span>
+                        <span style={{ fontSize: "11px", color: "#568b05", fontWeight: 600 }}>
+                          +2 credits reward
+                        </span>
+                      </div>
+                      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a", margin: "0 0 4px" }}>
+                        {lang === "en" ? ev.titleEn : ev.titleEs}
+                      </h3>
+                      <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)" }}>
+                        {lang === "en" ? ev.dateEn : ev.dateEs} · {ev.area}
+                      </div>
+                    </div>
+
+                    <Link
+                      href="/host#host-form"
+                      style={{
+                        border: "1px solid #568b05",
+                        backgroundColor: "#568b05",
+                        color: "#ffffff",
+                        padding: "9px 18px",
+                        borderRadius: "4px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "14.5px",
+                        textDecoration: "none",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {lang === "en" ? "Host this event" : "Ser anfitriona"}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ─── TAB 3: PERKS (NEW TAB!) ─── */}
         {activeTab === "perks" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -1297,94 +1443,114 @@ function AccountPageContent() {
         {activeTab === "membership" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             
-            {/* Membership Details Card */}
-            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "clamp(22px, 3vw, 30px)" }}>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "25px", lineHeight: "1.15", margin: "0 0 20px" }}>
-                {lang === "en" ? "Your membership" : "Tu membresía"}
+            {/* Membership Details Card for Pre-Membership Plan */}
+            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "clamp(26px, 4vw, 36px)" }}>
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  fontSize: "12px",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#7b1f2c",
+                  marginBottom: "12px",
+                }}
+              >
+                {lang === "en" ? "MEMBERSHIP OPENS JANUARY 2027" : "MEMBRESÍA ABRE EN ENERO DE 2027"}
+              </div>
+
+              <h2
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 400,
+                  fontSize: "clamp(26px, 4vw, 36px)",
+                  lineHeight: "1.15",
+                  margin: "0 0 14px",
+                  color: "#39292a",
+                }}
+              >
+                {lang === "en" ? "You do not have one yet — nobody does." : "Todavía no tienes ninguna — nadie la tiene aún."}
               </h2>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "14px" }}>
-                <div style={{ backgroundColor: "#f4ece0", borderRadius: "6px", padding: "18px 20px" }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)", marginBottom: "9px" }}>
-                    {lang === "en" ? "Plan" : "Plan"}
-                  </div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", color: "#39292a" }}>
-                    {lang === "en" ? "Membership" : "Membresía"}
-                  </div>
-                </div>
+              <p
+                style={{
+                  fontSize: "15.5px",
+                  lineHeight: "1.65",
+                  color: "rgba(57, 41, 42, 0.78)",
+                  margin: "0 0 24px",
+                  maxWidth: "58ch",
+                }}
+              >
+                {lang === "en"
+                  ? "€39 a month or €99 quarterly, twenty credits granted each month, and the partner list. As an early mother you join without a joining fee, and credits already in your wallet keep their full six-month life."
+                  : "39€ al mes o 99€ al trimestre, veinte créditos otorgados cada mes y la lista de partners. Como madre pionera te unes sin cuota de alta, y los créditos que ya tengas en tu monedero conservan su periodo completo de seis meses."}
+              </p>
 
-                <div style={{ backgroundColor: "#f4ece0", borderRadius: "6px", padding: "18px 20px" }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)", marginBottom: "9px" }}>
-                    {lang === "en" ? "Monthly Rate" : "Cuota mensual"}
-                  </div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", color: "#39292a" }}>
-                    {lang === "en"
-                      ? `€${((memberData?.monthlyPriceCents || 0) / 100).toFixed(0)}/mo`
-                      : `${((memberData?.monthlyPriceCents || 0) / 100).toFixed(0)} €/mes`}
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: "#f4ece0", borderRadius: "6px", padding: "18px 20px" }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)", marginBottom: "9px" }}>
-                    {lang === "en" ? "Status" : "Estado"}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{
-                      width: "8px",
-                      height: "8px",
-                      borderRadius: "50%",
-                      backgroundColor: memberData?.status === "active" ? "#456f04" : memberData?.status === "paused" ? "#a4761f" : "#993842"
-                    }} />
-                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", color: "#39292a" }}>
-                      {memberData?.status === "active"
-                        ? (lang === "en" ? "Active" : "Activa")
-                        : memberData?.status === "paused"
-                        ? (lang === "en" ? "Paused" : "Pausada")
-                        : (lang === "en" ? "Inactive" : "Inactiva")}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: "#f4ece0", borderRadius: "6px", padding: "18px 20px" }}>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)", marginBottom: "9px" }}>
-                    {lang === "en" ? "Credits Renew" : "Créditos se renuevan"}
-                  </div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a" }}>
-                    {(() => {
-                      if (memberData?.currentPeriodEnd) {
-                        const cp = new Date(memberData.currentPeriodEnd);
-                        if (!isNaN(cp.getTime())) return cp.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" });
-                      }
-                      if (memberData?.joinedAt) {
-                        const joined = new Date(memberData.joinedAt);
-                        if (!isNaN(joined.getTime())) {
-                          const nextMonth = new Date(joined);
-                          nextMonth.setMonth(nextMonth.getMonth() + 1);
-                          return nextMonth.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" });
-                        }
-                      }
-                      const d = new Date();
-                      d.setDate(d.getDate() + 30);
-                      return d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short" });
-                    })()}
-                  </div>
-                  <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)", marginTop: "4px" }}>
-                    {lang === "en" ? "+20 credits" : "+20 créditos"}
-                  </div>
+              {/* Countdown timer */}
+              <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", marginBottom: "20px" }}>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  {[
+                    { value: `${timeLeft.days}`, label: lang === "en" ? "DAYS" : "DÍAS" },
+                    { value: `${timeLeft.hours < 10 ? "0" : ""}${timeLeft.hours}`, label: lang === "en" ? "HOURS" : "HORAS" },
+                    { value: `${timeLeft.minutes < 10 ? "0" : ""}${timeLeft.minutes}`, label: lang === "en" ? "MINS" : "MINS" },
+                    { value: `${timeLeft.seconds < 10 ? "0" : ""}${timeLeft.seconds}`, label: lang === "en" ? "SECS" : "SECS" },
+                  ].map((u, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        minWidth: "62px",
+                        textAlign: "center",
+                        border: "1px solid rgba(123, 31, 44, 0.3)",
+                        borderRadius: "4px",
+                        padding: "9px 7px",
+                        backgroundColor: "#fdf8f2",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontWeight: 400,
+                          fontSize: "26px",
+                          lineHeight: 1,
+                          fontFeatureSettings: "'tnum'",
+                          color: "#7b1f2c",
+                        }}
+                      >
+                        {u.value}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "9.5px",
+                          letterSpacing: "0.12em",
+                          textTransform: "uppercase",
+                          color: "rgba(57, 41, 42, 0.65)",
+                          marginTop: "5px",
+                          fontFamily: "'Lora', Georgia, serif",
+                        }}
+                      >
+                        {u.label}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Secure Stripe Billing Portal Link */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 22px", alignItems: "baseline", marginTop: "20px", paddingTop: "18px", borderTop: "1px solid rgba(57,41,42,0.12)" }}>
-                <a
-                  href="#"
-                  onClick={handleUpdateCardClick}
-                  style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "underline", pointerEvents: portalLoading ? "none" : "auto" }}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
+                <span
+                  style={{
+                    fontSize: "14px",
+                    color: "#568b05",
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontWeight: 600,
+                    padding: "9px 16px",
+                    border: "1px solid rgba(86, 139, 5, 0.4)",
+                    backgroundColor: "rgba(86, 139, 5, 0.08)",
+                    borderRadius: "4px",
+                    whiteSpace: "nowrap",
+                  }}
                 >
-                  {portalLoading
-                    ? (lang === "en" ? "Loading Portal…" : "Cargando Portal…")
-                    : (lang === "en" ? "Update Credit Card" : "Actualizar tarjeta")}
-                </a>
+                  {lang === "en" ? "✓ Early Mother — No joining fee (€19 waived)" : "✓ Madre Pionera — Sin cuota de alta (19€ exentos)"}
+                </span>
               </div>
             </div>
 

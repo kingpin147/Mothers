@@ -269,7 +269,7 @@ export function Navigation() {
       </header>
 
       {/* Sticky Countdown Banner (Membership Opens Jan 2027) */}
-      <StickyCountdownBanner />
+      {!isEventsPage && <StickyCountdownBanner />}
 
       {/* Mobile Drawer Overlay Matching UI Extras #3 */}
       {mobileMenuOpen && (

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { buyGuestPass, buyExtraCredits, bookEvent, joinEventWaitlist } from "@/app/actions/booking";
+import { useSession, signIn } from "next-auth/react";
+import { buyGuestPass, buyExtraCredits, bookEvent, joinEventWaitlist, checkBookingEmailStatus, BookingEmailCheckResult } from "@/app/actions/booking";
 import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 import { subscribeToLetter } from "@/app/actions/publicWindow";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -41,6 +41,7 @@ export interface PublicEvent {
   categoryId?: string | null;
   stage?: string | null;
   targetStages?: string[] | null;
+  imageId?: string | null;
   status: string;
   creditCost: number;
   isFreeWalk?: boolean | null;
@@ -2121,13 +2122,14 @@ function EventCard({
 }: EventCardProps) {
   const eligible = isGuestPassEligible(ev, isMember);
   const isCancelled = ev.status === "cancelled";
-  // isPast: event date has passed (regardless of status label)
   const isPast = ev.status === "past" || ev.status === "completed" ||
     (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
   const isPending = ev.status === "published_pending" || ev.status === "pending";
-  // Use server-computed isFull value
   const isFull = ev.isFull || false;
   const isOpenList = !ev.capacityTotal || ev.isFreeWalk || ev.creditCost === 0;
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+
+  const catInfo = getCategoryInfo(ev, lang);
 
   const handleBookClick = () => {
     if (ev.isFreeWalk || ev.creditCost === 0) {
@@ -2145,7 +2147,6 @@ function EventCard({
         onMemberBook(ev);
       }
     } else {
-      // Signed out visitor clicking Book -> prompt to sign in to book place
       onOpenSignedOut(ev);
     }
   };
@@ -2160,20 +2161,46 @@ function EventCard({
     }
   };
 
-  const catInfo = getCategoryInfo(ev, lang);
-
   return (
     <article
       style={{
         border: `1px solid ${getCardBorder(ev, isPast)}`,
         borderRadius: "8px",
-        padding: "24px 22px",
+        padding: "20px 20px 24px",
         backgroundColor: getCardBg(ev, isPast),
         display: "flex",
         flexDirection: "column",
         gap: "12px",
       }}
     >
+      {/* 150px Photograph Header */}
+      <div
+        style={{
+          width: "100%",
+          height: "150px",
+          borderRadius: "6px",
+          overflow: "hidden",
+          backgroundColor: "rgba(57, 41, 42, 0.04)",
+          border: "1px dashed rgba(57, 41, 42, 0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {ev.imageId ? (
+          <img src={ev.imageId} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <div style={{ textAlign: "center", color: "rgba(57, 41, 42, 0.4)", fontSize: "13px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            <span>{lang === "en" ? "Event photograph" : "Fotografía del evento"}</span>
+          </div>
+        )}
+      </div>
+
       {/* Top Chips Stack */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start", width: "100%" }}>
         {/* Row 1: Category & Credit Cost */}
@@ -2191,7 +2218,7 @@ function EventCard({
           {/* Credit cost */}
           <span style={{ fontSize: "11.5px", color: "rgba(57,41,42,0.7)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 500, paddingTop: "3px" }}>
             {ev.creditCost === 0 || ev.isFreeWalk
-              ? (lang === "en" ? "Included" : "Incluido")
+              ? (lang === "en" ? "Included / Free" : "Incluido / Gratis")
               : `${ev.creditCost} ${lang === "en" ? "credits" : "créditos"}`}
           </span>
         </div>
@@ -2238,7 +2265,7 @@ function EventCard({
       </div>
 
       {/* Title */}
-      <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "19px", margin: 0, lineHeight: 1.3, color: "#39292a" }}>
+      <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "18.5px", margin: 0, lineHeight: 1.3, color: "#39292a" }}>
         {getEventDisplayTitle(ev, lang)}
       </h3>
 
@@ -2256,8 +2283,8 @@ function EventCard({
         </div>
       )}
 
-      {/* Meta Info */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: "13.5px", color: "rgba(57,41,42,0.65)" }}>
+      {/* Meta Info Snippet */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: "13.5px", color: "rgba(57,41,42,0.68)" }}>
         <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
           {formatEventDate(ev.startsAt, lang)}
@@ -2268,23 +2295,51 @@ function EventCard({
             {ev.neighbourhood}{ev.venueName ? ` · ${ev.venueName}` : ""}
           </span>
         )}
-        <span style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12.5px", color: "rgba(57,41,42,0.5)", fontStyle: "italic" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="14" height="14" style={{ flexShrink: 0 }}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-          {lang === "en" ? "Exact meeting point shared once you book" : "Punto de encuentro exacto compartido tras reservar"}
-        </span>
-        {ev.languages && ev.languages.length > 0 && (
-          <span style={{ display: "flex", alignItems: "center", gap: "7px" }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" /></svg>
-            {ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}
-          </span>
-        )}
       </div>
 
-      {/* Description */}
-      {getEventDisplayDesc(ev, lang) && (
-        <p style={{ fontSize: "14px", lineHeight: "1.55", color: "rgba(57,41,42,0.68)", margin: 0, flex: 1 }}>
-          {getEventDisplayDesc(ev, lang)}
-        </p>
+      {/* More Details Collapsible Toggle */}
+      <button
+        type="button"
+        onClick={() => setShowMoreDetails((prev) => !prev)}
+        style={{
+          background: "none",
+          border: "none",
+          color: "#7b1f2c",
+          padding: 0,
+          fontSize: "13px",
+          fontWeight: 600,
+          cursor: "pointer",
+          textAlign: "left",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "4px",
+          width: "fit-content",
+          marginTop: "2px",
+          textDecoration: "underline",
+        }}
+      >
+        <span>{lang === "en" ? (showMoreDetails ? "Less details" : "More details") : (showMoreDetails ? "Menos detalles" : "Más detalles")}</span>
+        <span style={{ fontSize: "10px" }}>{showMoreDetails ? "▲" : "▼"}</span>
+      </button>
+
+      {showMoreDetails && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingTop: "6px", borderTop: "1px dashed rgba(57,41,42,0.15)", marginTop: "4px" }}>
+          {getEventDisplayDesc(ev, lang) && (
+            <p style={{ fontSize: "13.5px", lineHeight: "1.55", color: "rgba(57,41,42,0.72)", margin: 0 }}>
+              {getEventDisplayDesc(ev, lang)}
+            </p>
+          )}
+          <span style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12.5px", color: "rgba(57,41,42,0.5)", fontStyle: "italic" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="14" height="14" style={{ flexShrink: 0 }}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+            {lang === "en" ? "Exact meeting point shared once you book" : "Punto de encuentro exacto compartido tras reservar"}
+          </span>
+          {ev.languages && ev.languages.length > 0 && (
+            <span style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12.5px", color: "rgba(57,41,42,0.6)" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" /></svg>
+              {ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}
+            </span>
+          )}
+        </div>
       )}
 
       {/* Status Bar / Capacity & Threshold */}
@@ -2565,6 +2620,8 @@ function EventCard({
                   >
                     {isBooking
                       ? (lang === "en" ? "Booking..." : "Reservando...")
+                      : isOpenList
+                      ? (lang === "en" ? "Join the list" : "Unirme a la lista")
                       : (lang === "en" ? "Book" : "Reservar")}
                   </button>
                 </>
@@ -2881,8 +2938,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     } else if (activeStatus === "pending") {
       if (!isPending || isPastEvent || isCancelled) return false;
     } else if (activeStatus === "all") {
-      // Default "all" view: exclude past events unless explicitly selected
-      if (isPastEvent) return false;
+      // Show ALL events (past and cancelled placed below by sorter)
     }
 
     return true;

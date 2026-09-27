@@ -29,10 +29,14 @@ export function StickyCountdownBanner() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("tm_pre_joined_list");
-    if (saved) setJoined(true);
+    const savedJoined = localStorage.getItem("tm_pre_joined_list");
+    if (savedJoined) setJoined(true);
+
+    const savedDismissed = localStorage.getItem("tm_banner_dismissed");
+    if (savedDismissed === "true") setDismissed(true);
 
     const updateCountdown = () => {
       setTimeLeft(calculateTimeLeft());
@@ -42,6 +46,14 @@ export function StickyCountdownBanner() {
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleDismiss = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setDismissed(true);
+    localStorage.setItem("tm_banner_dismissed", "true");
+  };
+
+  if (dismissed) return null;
 
   const handleJoinList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,37 +97,75 @@ export function StickyCountdownBanner() {
       <div
         id="countdown-banner"
         style={{
+          position: "relative",
           backgroundColor: "#39292a",
           color: "#f8efe2",
           fontFamily: "'Lora', Georgia, serif",
-          padding: "16px clamp(20px, 5vw, 64px)",
+          padding: "14px clamp(16px, 4vw, 48px)",
+          paddingRight: "clamp(44px, 6vw, 56px)", // Ensure space for top-right close button on mobile
           display: "flex",
           flexWrap: "wrap",
-          gap: "20px",
+          gap: "14px 20px",
           alignItems: "center",
           justifyContent: "space-between",
           borderBottom: "1px solid rgba(201, 162, 39, 0.25)",
         }}
       >
+        {/* Top-Right Absolute Close "✕" Button for Easy Mobile Tapping */}
+        <button
+          type="button"
+          onClick={handleDismiss}
+          aria-label={lang === "en" ? "Close announcement" : "Cerrar anuncio"}
+          style={{
+            position: "absolute",
+            top: "8px",
+            right: "8px",
+            width: "36px",
+            height: "36px",
+            background: "rgba(248, 239, 226, 0.08)",
+            border: "none",
+            borderRadius: "50%",
+            color: "rgba(248, 239, 226, 0.8)",
+            fontSize: "16px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10,
+            touchAction: "manipulation",
+            transition: "all 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(248, 239, 226, 0.2)";
+            e.currentTarget.style.color = "#f8efe2";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(248, 239, 226, 0.08)";
+            e.currentTarget.style.color = "rgba(248, 239, 226, 0.8)";
+          }}
+        >
+          ✕
+        </button>
+
         {/* Left Side: Headline and descriptive subtitle */}
-        <div style={{ flex: "1 1 320px", minWidth: "240px" }}>
+        <div style={{ flex: "1 1 280px", minWidth: "220px" }}>
           <div
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontWeight: 600,
-              fontSize: "12px",
-              letterSpacing: "0.16em",
+              fontSize: "11.5px",
+              letterSpacing: "0.14em",
               textTransform: "uppercase",
               color: "#c9a227",
-              marginBottom: "6px",
+              marginBottom: "4px",
             }}
           >
             {lang === "en" ? "MEMBERSHIP OPENS JANUARY 2027" : "MEMBRESÍA ABRE EN ENERO DE 2027"}
           </div>
           <p
             style={{
-              fontSize: "14.5px",
-              lineHeight: 1.55,
+              fontSize: "13.5px",
+              lineHeight: 1.45,
               color: "rgba(248, 239, 226, 0.88)",
               margin: 0,
               maxWidth: "52ch",
@@ -128,25 +178,25 @@ export function StickyCountdownBanner() {
         </div>
 
         {/* Right Side: 4 Countdown Boxes + CTA Button */}
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: "9px", flexWrap: "nowrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "nowrap" }}>
             {countdownUnits.map((u, idx) => (
               <div
                 key={idx}
                 style={{
-                  minWidth: "58px",
+                  minWidth: "48px",
                   textAlign: "center",
                   border: "1px solid rgba(201, 162, 39, 0.45)",
                   borderRadius: "4px",
-                  padding: "8px 6px",
-                  backgroundColor: "rgba(0, 0, 0, 0.12)",
+                  padding: "6px 4px",
+                  backgroundColor: "rgba(0, 0, 0, 0.14)",
                 }}
               >
                 <div
                   style={{
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: 400,
-                    fontSize: "26px",
+                    fontSize: "21px",
                     lineHeight: 1,
                     fontFeatureSettings: "'tnum'",
                     color: "#f8efe2",
@@ -156,11 +206,11 @@ export function StickyCountdownBanner() {
                 </div>
                 <div
                   style={{
-                    fontSize: "9.5px",
-                    letterSpacing: "0.12em",
+                    fontSize: "8.5px",
+                    letterSpacing: "0.1em",
                     textTransform: "uppercase",
                     color: "rgba(248, 239, 226, 0.65)",
-                    marginTop: "5px",
+                    marginTop: "3px",
                     fontFamily: "'Lora', Georgia, serif",
                   }}
                 >
@@ -173,18 +223,18 @@ export function StickyCountdownBanner() {
           {joined || session?.user ? (
             <span
               style={{
-                fontSize: "14px",
+                fontSize: "13px",
                 color: "#c9a227",
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontWeight: 600,
                 letterSpacing: "0.04em",
-                padding: "10px 16px",
+                padding: "8px 14px",
                 border: "1px solid rgba(201, 162, 39, 0.3)",
                 borderRadius: "4px",
                 whiteSpace: "nowrap",
               }}
             >
-              {lang === "en" ? "✓ You're on the list" : "✓ Ya estás en la lista"}
+              {lang === "en" ? "✓ On the list" : "✓ En la lista"}
             </span>
           ) : (
             <button
@@ -196,10 +246,10 @@ export function StickyCountdownBanner() {
                 background: "transparent",
                 color: "#c9a227",
                 borderRadius: "4px",
-                padding: "11px 22px",
+                padding: "9px 18px",
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontWeight: 600,
-                fontSize: "14.5px",
+                fontSize: "14px",
                 whiteSpace: "nowrap",
                 cursor: "pointer",
                 transition: "all 0.2s ease",

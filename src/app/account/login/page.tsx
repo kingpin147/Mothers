@@ -130,64 +130,141 @@ function LoginForm() {
     >
       <div
         style={{
-          maxWidth: "420px",
+          maxWidth: "920px",
           width: "100%",
-          textAlign: "center",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
+          gap: "clamp(32px, 5vw, 56px)",
+          alignItems: "center",
         }}
       >
-        {/* Page label */}
-        <div
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontWeight: 600,
-            fontSize: "12px",
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--color-accent, #7b1f2c)",
-            marginBottom: "14px",
-          }}
-        >
-          {lang === "en" ? "MEMBER ACCOUNT" : "CUENTA DE SOCIA"}
+        {/* Left Column: Account Intro & New Here Box */}
+        <div style={{ textAlign: "left" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontWeight: 600,
+              fontSize: "12px",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "var(--color-accent, #7b1f2c)",
+              marginBottom: "12px",
+            }}
+          >
+            {lang === "en" ? "YOUR ACCOUNT" : "TU CUENTA"}
+          </div>
+
+          <h1
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontSize: "clamp(36px, 5vw, 48px)",
+              fontWeight: 400,
+              lineHeight: 1.1,
+              color: "#39292a",
+              margin: "0 0 14px",
+            }}
+          >
+            {lang === "en" ? "Welcome back." : "Bienvenida de nuevo."}
+          </h1>
+
+          <p
+            style={{
+              fontSize: "16px",
+              lineHeight: "1.6",
+              color: "rgba(57,41,42,0.72)",
+              margin: "0 0 28px",
+              maxWidth: "42ch",
+            }}
+          >
+            {lang === "en"
+              ? "Sign in to see your bookings, your credits and your invite code."
+              : "Inicia sesión para ver tus reservas, tus créditos y tu código de invitación."}
+          </p>
+
+          {/* New Here Card */}
+          <div
+            style={{
+              backgroundColor: "rgba(86, 139, 5, 0.08)",
+              border: "1px solid rgba(86, 139, 5, 0.3)",
+              borderRadius: "8px",
+              padding: "24px 26px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+              maxWidth: "440px",
+            }}
+          >
+            <h3
+              style={{
+                fontFamily: "var(--font-heading)",
+                fontWeight: 600,
+                fontSize: "18px",
+                color: "#39292a",
+                margin: 0,
+              }}
+            >
+              {lang === "en" ? "New here?" : "¿Eres nueva?"}
+            </h3>
+
+            <p
+              style={{
+                fontSize: "14.5px",
+                lineHeight: "1.55",
+                color: "rgba(57,41,42,0.78)",
+                margin: 0,
+              }}
+            >
+              {lang === "en"
+                ? "Your account is created when you book your first event. Most mothers start with a free walk."
+                : "Tu cuenta se crea al reservar tu primer evento. La mayoría empieza con un paseo gratuito."}
+            </p>
+
+            <div style={{ marginTop: "4px" }}>
+              <Link
+                href="/events"
+                style={{
+                  display: "inline-block",
+                  padding: "11px 20px",
+                  backgroundColor: "#568b05",
+                  color: "#ffffff",
+                  border: "1px solid #568b05",
+                  borderRadius: "4px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "14.5px",
+                  textDecoration: "none",
+                  transition: "background-color 0.15s ease",
+                }}
+              >
+                {lang === "en" ? "Book your first event" : "Reserva tu primer evento"}
+              </Link>
+            </div>
+          </div>
         </div>
 
-        {/* Heading */}
-        <h1
-          style={{
-            fontFamily: "var(--font-heading)",
-            fontSize: "clamp(34px, 6vw, 46px)",
-            fontWeight: 400,
-            lineHeight: 1.1,
-            color: "#39292a",
-            margin: "0 0 14px",
-          }}
-        >
-          {lang === "en" ? "Welcome back." : "Bienvenida de nuevo."}
-        </h1>
-
-        {/* Subtitle */}
-        <p
-          style={{
-            fontSize: "15px",
-            lineHeight: "1.6",
-            color: "rgba(57,41,42,0.62)",
-            margin: "0 0 32px",
-          }}
-        >
-          {lang === "en"
-            ? "Log in to view your credits and your upcoming experiences."
-            : "Inicia sesión para ver tus créditos y tus próximas experiencias."}
-        </p>
-
-        {/* Card */}
+        {/* Right Column: Sign In Form Card */}
         <div
           style={{
-            backgroundColor: "#fdf9f2",
-            border: "1px solid rgba(57,41,42,0.14)",
+            backgroundColor: "#ffffff",
+            border: "1px solid rgba(57,41,42,0.16)",
             borderRadius: "8px",
-            padding: "clamp(28px, 5vw, 40px)",
+            boxShadow: "0 4px 20px rgba(57, 41, 42, 0.05)",
+            padding: "clamp(28px, 4vw, 38px)",
             textAlign: "left",
           }}
         >
+          <h2
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontWeight: 500,
+              fontSize: "26px",
+              color: "#39292a",
+              margin: "0 0 20px",
+            }}
+          >
+            {lang === "en" ? "Sign in" : "Iniciar sesión"}
+          </h2>
+
           {/* Error message */}
           {errorMsg && (
             <div
@@ -216,21 +293,23 @@ function LoginForm() {
                 htmlFor="login-email"
                 style={{
                   display: "block",
-                  fontSize: "13px",
+                  fontSize: "12.5px",
                   fontWeight: 600,
+                  letterSpacing: "0.05em",
+                  textTransform: "uppercase",
                   color: "#39292a",
                   marginBottom: "7px",
                   fontFamily: "var(--font-body)",
                 }}
               >
-                {lang === "en" ? "Email" : "Correo electrónico"}
+                {lang === "en" ? "EMAIL" : "CORREO ELECTRÓNICO"}
               </label>
               <input
                 id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={lang === "en" ? "you@email.com" : "tu@correo.com"}
+                placeholder={lang === "en" ? "rachel@aqg.gmail.com" : "tu@correo.com"}
                 required
                 autoFocus
                 style={inputStyle}
@@ -250,13 +329,15 @@ function LoginForm() {
                 <label
                   htmlFor="login-password"
                   style={{
-                    fontSize: "13px",
+                    fontSize: "12.5px",
                     fontWeight: 600,
+                    letterSpacing: "0.05em",
+                    textTransform: "uppercase",
                     color: "#39292a",
                     fontFamily: "var(--font-body)",
                   }}
                 >
-                  {lang === "en" ? "Password" : "Contraseña"}
+                  {lang === "en" ? "PASSWORD" : "CONTRASEÑA"}
                 </label>
                 <Link
                   href="/account/forgot-password"
@@ -343,64 +424,36 @@ function LoginForm() {
               style={{
                 width: "100%",
                 padding: "13px 24px",
-                marginTop: "4px",
+                marginTop: "6px",
                 border: "1px solid #7b1f2c",
-                backgroundColor: "transparent",
-                color: "#7b1f2c",
+                backgroundColor: "#7b1f2c",
+                color: "#f8efe2",
                 fontFamily: "var(--font-heading)",
                 fontWeight: 600,
-                fontSize: "15px",
+                fontSize: "15.5px",
                 borderRadius: "4px",
                 cursor: loading ? "wait" : "pointer",
                 letterSpacing: "0.02em",
-                transition: "background-color 0.15s ease, color 0.15s ease",
+                transition: "opacity 0.15s ease",
               }}
               onMouseEnter={(e) => {
                 if (!loading) {
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#7b1f2c";
-                  (e.currentTarget as HTMLButtonElement).style.color = "#f8efe2";
+                  (e.currentTarget as HTMLButtonElement).style.opacity = "0.92";
                 }
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color = "#7b1f2c";
+                (e.currentTarget as HTMLButtonElement).style.opacity = "1";
               }}
             >
               {loading
                 ? lang === "en"
-                  ? "Logging in..."
+                  ? "Signing in..."
                   : "Iniciando sesión..."
                 : lang === "en"
-                ? "Log in"
+                ? "Sign in"
                 : "Entrar"}
             </button>
           </form>
-
-          {/* Footer link */}
-          <p
-            style={{
-              fontSize: "13px",
-              color: "rgba(57,41,42,0.62)",
-              margin: "20px 0 0",
-              textAlign: "center",
-              lineHeight: 1.55,
-            }}
-          >
-            {lang === "en" ? "Not a member?" : "¿No eres socia?"}{" "}
-            <Link
-              href="/events"
-              style={{
-                color: "#7b1f2c",
-                textDecoration: "underline",
-                textUnderlineOffset: "2px",
-                fontWeight: 500,
-              }}
-            >
-              {lang === "en"
-                ? "Take a €35 Event Pass for a single event"
-                : "Compra un Event Pass por 35€ para un evento"}
-            </Link>
-          </p>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { hostRequest, person, booking, creditEntry, creditBatch, member } from "@/db/schema";
+import { hostRequest, person, booking, event, creditEntry, creditBatch, member } from "@/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { queueAndSendEmail, generateHostRequestStatusEmailHtml } from "@/lib/brevo";
@@ -26,14 +26,15 @@ export async function checkHostEligibility() {
     return { authenticated: false, eligible: false, reason: "user_not_found" };
   }
 
-  // Count attended events (need >= 2)
+  // Count attended events (need >= 2 past completed/attended events)
   const attendedCount = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(booking)
+    .innerJoin(event, eq(booking.eventId, event.id))
     .where(
       and(
         eq(booking.personId, user.id),
-        sql`${booking.status} IN ('attended', 'confirmed')`
+        sql`(${booking.status} = 'attended' OR (${booking.status} = 'confirmed' AND ${event.startsAt} < NOW()))`
       )
     );
 

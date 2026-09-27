@@ -46,13 +46,14 @@ export function CircleFeedClient({
   const { language: lang } = useLanguage();
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [customTagFilter, setCustomTagFilter] = useState<string | null>(null);
 
   // Composer State
   const [draft, setDraft] = useState("");
   const [composerTopic, setComposerTopic] = useState("postpartum");
   const [isAnon, setIsAnon] = useState(false);
   const [draftPhotos, setDraftPhotos] = useState<string[]>([]);
-  const [photoConsent, setPhotoConsent] = useState(true);
+  const [photoConsent, setPhotoConsent] = useState(false);
   const [notice, setNotice] = useState<{ text: string; color: string } | null>(null);
   const [posting, setPosting] = useState(false);
 
@@ -83,6 +84,7 @@ export function CircleFeedClient({
         compressedList.push(compressedDataUrl);
       }
       setDraftPhotos((prev) => [...prev, ...compressedList].slice(0, 4));
+      setPhotoConsent(false);
       setNotice(null);
     } catch (err: any) {
       setNotice({ text: err.message || "Failed to process image.", color: "#993842" });
@@ -630,6 +632,54 @@ export function CircleFeedClient({
             })}
           </div>
 
+          {(selectedFilter !== "all" || customTagFilter) && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 16px",
+                backgroundColor: "rgba(123, 31, 44, 0.05)",
+                border: "1px solid rgba(123, 31, 44, 0.2)",
+                borderRadius: "6px",
+                fontSize: "14px",
+                color: "#39292a",
+              }}
+            >
+              <span>
+                {lang === "en" ? (
+                  <>
+                    Showing <strong>{filteredPosts.length}</strong> posts on{" "}
+                    <strong>{customTagFilter || TOPICS.find((t) => t.id === selectedFilter)?.labelEn || selectedFilter}</strong>
+                  </>
+                ) : (
+                  <>
+                    Mostrando <strong>{filteredPosts.length}</strong> publicaciones en{" "}
+                    <strong>{customTagFilter || TOPICS.find((t) => t.id === selectedFilter)?.labelEs || selectedFilter}</strong>
+                  </>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFilter("all");
+                  setCustomTagFilter(null);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#7b1f2c",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "13.5px",
+                  textDecoration: "underline",
+                }}
+              >
+                {lang === "en" ? "Clear" : "Borrar"}
+              </button>
+            </div>
+          )}
+
           {/* Posts Feed */}
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {filteredPosts.length === 0 ? (
@@ -987,6 +1037,68 @@ export function CircleFeedClient({
 
         {/* Right Sidebar Column */}
         <aside style={{ flex: "0 1 320px", minWidth: "270px", display: "flex", flexDirection: "column", gap: "18px" }}>
+          {/* Talked About This Week Module (Image 1) */}
+          <div style={{ border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px", boxShadow: "0 2px 8px rgba(57, 41, 42, 0.04)" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "20px", marginBottom: "14px", color: "#39292a" }}>
+              {lang === "en" ? "Talked about this week" : "De lo que se habla esta semana"}
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {[
+                { tagEn: "Sleep regression at 4 months", tagEs: "Regresión de sueño a los 4 meses", topicId: "sleep" },
+                { tagEn: "Nursery lists for 2027", tagEs: "Lista de guarderías 2027", topicId: "schools" },
+                { tagEn: "Pelvic floor physios", tagEs: "Fisio de suelo pélvico", topicId: "postpartum" },
+                { tagEn: "Winter walks", tagEs: "Paseos de invierno", topicId: "friends" },
+                { tagEn: "Going back at 80%", tagEs: "Volver al 80%", topicId: "work" },
+                { tagEn: "Feeding in public", tagEs: "Lactancia en público", topicId: "feeding" },
+              ].map((item, idx) => {
+                const isActive = customTagFilter === item.tagEn;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      if (customTagFilter === item.tagEn) {
+                        setCustomTagFilter(null);
+                        setSelectedFilter("all");
+                      } else {
+                        setCustomTagFilter(item.tagEn);
+                        setSelectedFilter(item.topicId);
+                      }
+                    }}
+                    style={{
+                      border: isActive ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.22)",
+                      backgroundColor: isActive ? "rgba(123, 31, 44, 0.08)" : "#ffffff",
+                      color: isActive ? "#7b1f2c" : "#39292a",
+                      borderRadius: "18px",
+                      padding: "6px 14px",
+                      fontFamily: "'Lora', Georgia, serif",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      lineHeight: 1.35,
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.borderColor = "#7b1f2c";
+                        e.currentTarget.style.color = "#7b1f2c";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.22)";
+                        e.currentTarget.style.color = "#39292a";
+                      }
+                    }}
+                  >
+                    {lang === "en" ? item.tagEn : item.tagEs}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Eligibility / Welcome Card */}
           <div style={{ border: "1px solid rgba(57, 41, 42, 0.2)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", marginBottom: "10px" }}>
@@ -1092,34 +1204,29 @@ export function CircleFeedClient({
                 { label: "Winter walks", topic: "friends" },
                 { label: "Going back at 80%", topic: "work" },
                 { label: "Feeding in public", topic: "feeding" },
-              ].map((item, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setSelectedFilter(item.topic)}
-                  style={{
-                    border: "1px solid rgba(57, 41, 42, 0.22)",
-                    backgroundColor: "transparent",
-                    color: "#39292a",
-                    borderRadius: "14px",
-                    padding: "6px 13px",
-                    fontFamily: "'Lora', Georgia, serif",
-                    fontSize: "12.5px",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#7b1f2c";
-                    e.currentTarget.style.color = "#7b1f2c";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.22)";
-                    e.currentTarget.style.color = "#39292a";
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
+              ].map((item, idx) => {
+                const isActive = selectedFilter === item.topic;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedFilter(isActive ? "all" : item.topic)}
+                    style={{
+                      border: isActive ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.22)",
+                      backgroundColor: isActive ? "#7b1f2c" : "transparent",
+                      color: isActive ? "#fdf8f2" : "#39292a",
+                      borderRadius: "14px",
+                      padding: "6px 13px",
+                      fontFamily: "'Lora', Georgia, serif",
+                      fontSize: "12.5px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </aside>

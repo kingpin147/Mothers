@@ -410,36 +410,51 @@ export function HostClient({
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               {/* Format Picker */}
               <div>
-                <label style={{ display: "block", fontSize: "13.5px", fontWeight: 600, marginBottom: "8px" }}>
+                <label style={{ display: "block", fontSize: "13.5px", fontWeight: 600, marginBottom: "8px", color: "#39292a" }}>
                   Gathering format
                 </label>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {FORMAT_OPTIONS.map((opt) => (
-                    <label
-                      key={opt.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        padding: "10px 14px",
-                        border: format === opt.id ? "1px solid #568b05" : "1px solid rgba(57, 41, 42, 0.2)",
-                        borderRadius: "6px",
-                        backgroundColor: format === opt.id ? "rgba(86, 139, 5, 0.05)" : "#fdf8f2",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="format"
-                        value={opt.id}
-                        checked={format === opt.id}
-                        onChange={(e) => setFormat(e.target.value)}
-                        style={{ accentColor: "#568b05" }}
-                      />
-                      <span>{opt.label}</span>
-                    </label>
-                  ))}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {FORMAT_OPTIONS.map((opt) => {
+                    const isSelected = format === opt.id;
+                    return (
+                      <label
+                        key={opt.id}
+                        onClick={() => setFormat(opt.id)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "14px 18px",
+                          border: isSelected ? "1.5px solid #568b05" : "1px solid rgba(57, 41, 42, 0.18)",
+                          borderRadius: "6px",
+                          backgroundColor: isSelected ? "rgba(86, 139, 5, 0.05)" : "#fffdfa",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <span style={{ fontSize: "15px", fontFamily: "'Lora', Georgia, serif", color: "#39292a" }}>
+                          {opt.label}
+                        </span>
+
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <input
+                            type="radio"
+                            name="format"
+                            value={opt.id}
+                            checked={isSelected}
+                            onChange={() => setFormat(opt.id)}
+                            style={{
+                              width: "18px",
+                              height: "18px",
+                              accentColor: "#568b05",
+                              cursor: "pointer",
+                              margin: 0,
+                            }}
+                          />
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
