@@ -678,8 +678,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 </span>
                 <br />
                 {lang === "en"
-                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother, once you become a member (January 2027)</>
-                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre al hacerte socia (enero 2027)</>}
+                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother you bring, once you become a member (January 2027)</>
+                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre que traigas al hacerte socia (enero 2027)</>}
               </span>
             </div>
 

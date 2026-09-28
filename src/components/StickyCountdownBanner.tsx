@@ -368,53 +368,115 @@ export function StickyCountdownBanner() {
                 : "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento y se les eximirá de la cuota de alta de 19€."}
             </p>
 
-            <form onSubmit={handleJoinList} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <input
-                type="email"
-                required
-                placeholder={lang === "en" ? "Your email address" : "Tu correo electrónico"}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: "4px",
-                  border: "1px solid rgba(57, 41, 42, 0.25)",
-                  backgroundColor: "#ffffff",
-                  fontSize: "14.5px",
-                  color: "#39292a",
-                  fontFamily: "'Lora', Georgia, serif",
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
+            {joined ? (
+              <div style={{ padding: "8px 0" }}>
+                <h3
+                  style={{
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontWeight: 500,
+                    fontSize: "28px",
+                    margin: "0 0 10px",
+                    color: "#39292a",
+                    lineHeight: 1.15,
+                  }}
+                >
+                  {lang === "en" ? "You're on the list." : "Ya estás en la lista."}
+                </h3>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    lineHeight: 1.6,
+                    color: "rgba(57, 41, 42, 0.78)",
+                    margin: "0 0 18px",
+                  }}
+                >
+                  {lang === "en"
+                    ? "We'll write before membership opens in January 2027, and your €19 joining fee will be permanently waived."
+                    : "Te escribiremos antes de que abra la membresía en enero de 2027 y tu cuota de alta de 19€ quedará exonerada."}
+                </p>
+                <div
+                  style={{
+                    backgroundColor: "rgba(86, 139, 5, 0.12)",
+                    border: "1px solid rgba(86, 139, 5, 0.35)",
+                    borderRadius: "6px",
+                    padding: "12px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    color: "#3b5e04",
+                    fontSize: "14px",
+                  }}
+                >
+                  <span>{lang === "en" ? "You're in! We'll let you know when it's open." : "¡Ya estás dentro! Te avisaremos cuando abra."}</span>
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    style={{
+                      border: "none",
+                      background: "transparent",
+                      color: "#3b5e04",
+                      fontWeight: 600,
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                      padding: 0,
+                      fontSize: "14px",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {lang === "en" ? "Close" : "Cerrar"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleJoinList} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <input
+                  type="email"
+                  required
+                  placeholder={lang === "en" ? "Your email address" : "Tu correo electrónico"}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: "4px",
+                    border: "1px solid rgba(57, 41, 42, 0.25)",
+                    backgroundColor: "#ffffff",
+                    fontSize: "14.5px",
+                    color: "#39292a",
+                    fontFamily: "'Lora', Georgia, serif",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
 
-              {errorMsg && (
-                <div style={{ color: "#993842", fontSize: "13px" }}>{errorMsg}</div>
-              )}
+                {errorMsg && (
+                  <div style={{ color: "#993842", fontSize: "13px" }}>{errorMsg}</div>
+                )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  padding: "12px 20px",
-                  backgroundColor: "#7b1f2c",
-                  color: "#fdf8f2",
-                  border: "1px solid #7b1f2c",
-                  borderRadius: "4px",
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontWeight: 600,
-                  fontSize: "16px",
-                  cursor: loading ? "wait" : "pointer",
-                  letterSpacing: "0.04em",
-                  transition: "background 0.2s",
-                }}
-              >
-                {loading
-                  ? (lang === "en" ? "Saving..." : "Guardando...")
-                  : (lang === "en" ? "Join the list" : "Unirme a la lista")}
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    padding: "12px 20px",
+                    backgroundColor: "#7b1f2c",
+                    color: "#fdf8f2",
+                    border: "1px solid #7b1f2c",
+                    borderRadius: "4px",
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontWeight: 600,
+                    fontSize: "16px",
+                    cursor: loading ? "wait" : "pointer",
+                    letterSpacing: "0.04em",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  {loading
+                    ? (lang === "en" ? "Saving..." : "Guardando...")
+                    : (lang === "en" ? "Join the list" : "Unirme a la lista")}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}
