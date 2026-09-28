@@ -28,12 +28,13 @@ export function TopUpClient({
   const returnToParam = searchParams.get("return_to");
   const eventIdParam = searchParams.get("eventId");
   const initialShortfall = shortfallParam ? parseInt(shortfallParam, 10) : 0;
+  const roundedShortfall = initialShortfall > 0 ? Math.max(5, initialShortfall) : 0;
 
   const [selectedCredits, setSelectedCredits] = useState<number>(
-    initialShortfall > 0 ? Math.max(5, initialShortfall) : 10
+    roundedShortfall > 0 ? roundedShortfall : 10
   );
   const [customAmount, setCustomAmount] = useState<string>(
-    initialShortfall > 0 && !PACKS.some(p => p.credits === initialShortfall) ? String(initialShortfall) : ""
+    roundedShortfall > 0 && !PACKS.some(p => p.credits === roundedShortfall) ? String(roundedShortfall) : ""
   );
 
   const [loading, setLoading] = useState(false);

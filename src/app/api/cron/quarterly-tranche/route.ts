@@ -26,6 +26,16 @@ export async function GET(req: NextRequest) {
   const authError = verifyCronAuth(req);
   if (authError) return authError;
 
+  const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+  const clubSettings = await getPublicClubSettings();
+  if (!clubSettings.membershipLive) {
+    return NextResponse.json({
+      success: true,
+      skipped: true,
+      message: "Membership is not live. Quarterly tranche job skipped.",
+    });
+  }
+
   const startedAt = new Date();
   let granted = 0;
   let skipped = 0;

@@ -417,7 +417,9 @@ export function Navigation() {
               </>
             ) : (
               <>
-                <div
+                <Link
+                  href="/account"
+                  onClick={() => setMobileMenuOpen(false)}
                   style={{
                     minHeight: "48px",
                     display: "flex",
@@ -430,10 +432,11 @@ export function Navigation() {
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: 600,
                     fontSize: "16px",
+                    textDecoration: "none",
                   }}
                 >
-                  {lang === "en" ? "✓ You're on the list" : "✓ Estás en la lista"}
-                </div>
+                  {lang === "en" ? "Go to My Account" : "Ir a Mi Cuenta"}
+                </Link>
 
                 <button
                   type="button"
@@ -532,8 +535,8 @@ export function Navigation() {
             </h3>
             <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.8)", marginBottom: "16px" }}>
               {lang === "en"
-                ? "Get pre-launch invites and waive the €19 joining fee."
-                : "Recibe invitaciones de pre-lanzamiento y no pagues cuota de alta."}
+                ? "Get pre-launch invites and priority access when membership opens."
+                : "Recibe invitaciones de pre-lanzamiento y acceso prioritario cuando abra la membresía."}
             </p>
             <form onSubmit={handleMobileJoinList} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <input

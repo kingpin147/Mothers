@@ -299,6 +299,32 @@ export async function createCirclePost(data: {
     throw new Error("Maximum 4 photos allowed per post.");
   }
 
+  // Server-side validation of photo type and size (CI-04)
+  for (const photo of photos) {
+    if (typeof photo !== "string") {
+      throw new Error("Invalid photo format.");
+    }
+    if (photo.startsWith("data:")) {
+      const match = photo.match(/^data:([^;]+);base64,/);
+      if (!match) {
+        throw new Error("Invalid image data URL format.");
+      }
+      const mime = match[1].toLowerCase();
+      const validMimes = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/avif", "image/gif"];
+      if (!validMimes.includes(mime)) {
+        throw new Error(`Unsupported image type: ${mime}. Allowed: JPG, PNG, WebP, AVIF, GIF`);
+      }
+      // Check approximate size: base64 length * 0.75 <= 10MB (10 * 1024 * 1024)
+      const base64Data = photo.substring(match[0].length);
+      const approxSizeBytes = base64Data.length * 0.75;
+      if (approxSizeBytes > 10 * 1024 * 1024) {
+        throw new Error("Each photo must be under 10MB.");
+      }
+    } else if (!photo.startsWith("http://") && !photo.startsWith("https://") && !photo.startsWith("/")) {
+      throw new Error("Invalid photo URL.");
+    }
+  }
+
   if (photos.length > 0 && !data.photoConsent) {
     throw new Error("Parental photo consent is required when posting images.");
   }
@@ -445,4 +471,46 @@ export async function reportCirclePost(postId: string, reason: string, details?:
 
   revalidatePath("/circle");
   return { success: true };
+}
+
+export async function getTrendingCircleTags(): Promise<{ topic: string; label: string; score: number; postCount: number }[]> {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  
+  const postsLast7d = await db
+    .select({
+      topic: circlePost.topic,
+      heartsCount: circlePost.heartsCount,
+      repliesCount: circlePost.repliesCount,
+    })
+    .from(circlePost)
+    .where(
+      and(
+        gte(circlePost.createdAt, sevenDaysAgo),
+        sql`${circlePost.status} = 'visible'`
+      )
+    );
+
+  const topicScores: Record<string, { score: number; count: number }> = {};
+
+  for (const p of postsLast7d) {
+    if (!p.topic) continue;
+    if (!topicScores[p.topic]) {
+      topicScores[p.topic] = { score: 0, count: 0 };
+    }
+    // Ranking: posts × 3 + replies × 2 + hearts × 1 (§CI-06)
+    topicScores[p.topic].score += 3 + (p.repliesCount || 0) * 2 + (p.heartsCount || 0) * 1;
+    topicScores[p.topic].count += 1;
+  }
+
+  const sorted = Object.entries(topicScores)
+    .map(([topic, data]) => ({
+      topic,
+      label: TOPIC_LABELS[topic] || topic,
+      score: data.score,
+      postCount: data.count,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
+
+  return sorted;
 }

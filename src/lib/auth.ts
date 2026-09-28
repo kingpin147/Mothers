@@ -53,6 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           status: memberRecord?.status || "applicant",
           stage: memberRecord?.stage,
           neighbourhood: memberRecord?.neighbourhood,
+          profileDone: personRecord.profileDone ?? false,
           role: "member",
         };
       },
@@ -89,7 +90,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
@@ -98,6 +99,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.status = (user as any).status;
         token.stage = (user as any).stage;
         token.neighbourhood = (user as any).neighbourhood;
+        token.profileDone = (user as any).profileDone ?? false;
+      }
+      if (trigger === "update" && session) {
+        if (session.profileDone !== undefined) {
+          token.profileDone = session.profileDone;
+        }
       }
       return token;
     },
@@ -110,6 +117,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         (session.user as any).status = token.status;
         (session.user as any).stage = token.stage;
         (session.user as any).neighbourhood = token.neighbourhood;
+        (session.user as any).profileDone = token.profileDone ?? false;
       }
       return session;
     },

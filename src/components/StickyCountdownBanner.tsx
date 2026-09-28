@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useSession } from "next-auth/react";
 
+import { getPublicClubSettings } from "@/app/actions/adminSettings";
+
 // Countdown target: 6 Jan 2027 00:00 Europe/Madrid
 const TARGET_DATE = new Date("2027-01-06T00:00:00+01:00").getTime();
 
@@ -31,9 +33,14 @@ export function StickyCountdownBanner() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [dismissed, setDismissed] = useState(false);
+  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    getPublicClubSettings().then((s) => {
+      if (s.membershipLive) setIsLive(true);
+    }).catch(() => {});
+
     const savedJoined = localStorage.getItem("tm_pre_joined_list");
     if (savedJoined) setJoined(true);
 
@@ -55,7 +62,7 @@ export function StickyCountdownBanner() {
     localStorage.setItem("tm_banner_dismissed", "true");
   };
 
-  if (dismissed) return null;
+  if (dismissed || isLive) return null;
 
   const handleJoinList = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/resume-pauses",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/abandoned-checkout",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

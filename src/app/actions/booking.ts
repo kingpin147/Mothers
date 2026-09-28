@@ -17,7 +17,7 @@ import {
 import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { canBook, canRelease, canBuyPass } from "@/lib/access";
+import { canBook, canRelease } from "@/lib/access";
 import {
   getPersonWalletBalance,
   spendPersonCreditsFIFO,
@@ -31,6 +31,8 @@ import {
 import { getAppUrl } from "@/lib/urls";
 import crypto from "crypto";
 import { z } from "zod";
+
+import { getPublicClubSettings } from "@/app/actions/adminSettings";
 
 // ─── 1. UNIVERSAL EVENT BOOKING WITH FIFO WALLET (§7.1) ──────────────────────
 
@@ -50,6 +52,8 @@ export async function bookEvent(eventId: string) {
   let memberId = (session.user as any).memberId || null;
 
   try {
+    const clubSettings = await getPublicClubSettings();
+
     const result = await db.transaction(async (tx) => {
       // 1. SELECT ... FOR UPDATE on the event row
       const eventRows = await tx
@@ -87,8 +91,9 @@ export async function bookEvent(eventId: string) {
 
       const isMember = !!memberId;
 
-      // 3. Members-First Window check (§7.1)
+      // 3. Members-First Window check (§7.1) - only active when membership is live
       if (
+        clubSettings.membershipLive &&
         !isMember &&
         ev.nonMemberOpensAt &&
         new Date() < new Date(ev.nonMemberOpensAt)
@@ -100,19 +105,24 @@ export async function bookEvent(eventId: string) {
       let requiredCredits = 0;
       if (ev.isFreeWalk) {
         requiredCredits = 0;
+      } else if (!clubSettings.membershipLive) {
+        // Pre-launch mode: everyone pays the non-member credit cost (€2/credit)
+        requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
       } else if (isMember) {
         requiredCredits = ev.memberCredits > 0 ? ev.memberCredits : ev.creditCost;
       } else {
         requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
       }
 
-      // 5. Count existing active bookings for this person & on this event
+      // 5. Count existing active bookings for this person & on this event (excluding expired holds)
+      const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
+
       const [existingBooking, activeBookingsResult] = await Promise.all([
         tx.query.booking.findFirst({
           where: and(
             eq(booking.eventId, eventId),
             eq(booking.personId, personId),
-            inArray(booking.status, ["held", "confirmed"])
+            activeBookingCondition
           ),
         }),
         tx
@@ -121,7 +131,7 @@ export async function bookEvent(eventId: string) {
           .where(
             and(
               eq(booking.eventId, eventId),
-              inArray(booking.status, ["held", "confirmed"])
+              activeBookingCondition
             )
           ),
       ]);
@@ -323,6 +333,8 @@ export async function holdBookingForTopUp(eventId: string) {
   let memberId = (session.user as any).memberId || null;
 
   try {
+    const clubSettings = await getPublicClubSettings();
+
     const result = await db.transaction(async (tx) => {
       const ev = await tx.query.event.findFirst({
         where: eq(event.id, eventId),
@@ -330,11 +342,13 @@ export async function holdBookingForTopUp(eventId: string) {
 
       if (!ev) throw new Error("EVENT_NOT_FOUND");
 
+      const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
+
       const existingBooking = await tx.query.booking.findFirst({
         where: and(
           eq(booking.eventId, eventId),
           eq(booking.personId, personId),
-          inArray(booking.status, ["held", "confirmed"])
+          activeBookingCondition
         ),
       });
 
@@ -342,10 +356,28 @@ export async function holdBookingForTopUp(eventId: string) {
         return { bookingId: existingBooking.id };
       }
 
+      if (!memberId) {
+        const mem = await tx.query.member.findFirst({
+          where: eq(member.personId, personId),
+        });
+        if (mem && mem.status === "active") {
+          memberId = mem.id;
+        }
+      }
+
       const isMember = !!memberId;
-      const requiredCredits = isMember
-        ? ev.memberCredits > 0 ? ev.memberCredits : ev.creditCost
-        : ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+      let requiredCredits = 0;
+      if (ev.isFreeWalk) {
+        requiredCredits = 0;
+      } else if (!clubSettings.membershipLive) {
+        requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+      } else if (isMember) {
+        requiredCredits = ev.memberCredits > 0 ? ev.memberCredits : ev.creditCost;
+      } else {
+        requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+      }
+
+      const heldUntil = new Date(Date.now() + 10 * 60 * 1000); // 10-minute hold window
 
       const [inserted] = await tx
         .insert(booking)
@@ -355,6 +387,7 @@ export async function holdBookingForTopUp(eventId: string) {
           memberId,
           kind: isMember ? "member" : "guest",
           status: "held",
+          heldUntil,
           creditsCharged: requiredCredits,
           bookedAt: new Date(),
         })
@@ -473,7 +506,21 @@ export async function releaseBooking(bookingId: string) {
 
           notifyWaitlistPersonIds.push(topWaitlist.personId);
         } else {
-          // Less than 24h out: notify everyone
+          // Less than 24h out: broadcast offer to everyone on waitlist
+          const offerExpiresAt = new Date(ev.startsAt);
+          await tx
+            .update(eventWaitlist)
+            .set({
+              offeredAt: new Date(),
+              offerExpiresAt,
+            })
+            .where(
+              and(
+                eq(eventWaitlist.eventId, b.eventId),
+                sql`accepted_at IS NULL`
+              )
+            );
+
           for (const wl of allWaitlist) {
             notifyWaitlistPersonIds.push(wl.personId);
           }
@@ -528,145 +575,7 @@ export async function releaseBooking(bookingId: string) {
   }
 }
 
-// ─── 4. GUEST PASS PURCHASE ──────────────────────────────────────────────────
-
-const buyGuestPassSchema = z.object({
-  eventId: z.string().min(1),
-  firstName: z.string().min(1).trim(),
-  lastName: z.string().trim().default(""),
-  email: z.string().email().toLowerCase().trim(),
-  phoneE164: z.string().optional(),
-});
-
-export async function buyGuestPass(params: {
-  eventId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneE164?: string;
-}) {
-  try {
-    const parsed = buyGuestPassSchema.safeParse(params);
-    if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
-    const { eventId, firstName, lastName, email, phoneE164 } = parsed.data;
-
-    const result = await db.transaction(async (tx) => {
-      const eventRows = await tx
-        .select()
-        .from(event)
-        .where(eq(event.id, eventId))
-        .for("update");
-
-      if (eventRows.length === 0) throw new Error("EVENT_NOT_FOUND");
-      const ev = eventRows[0];
-
-      let personRecord = await tx.query.person.findFirst({
-        where: eq(person.email, email),
-      });
-
-      if (!personRecord) {
-        const inserted = await tx
-          .insert(person)
-          .values({
-            firstName,
-            lastName,
-            email,
-            phoneE164: phoneE164 || null,
-            isMother: true,
-            marketingOptIn: false,
-          })
-          .returning();
-        personRecord = inserted[0];
-      } else if (phoneE164 && !personRecord.phoneE164) {
-        await tx
-          .update(person)
-          .set({ phoneE164 })
-          .where(eq(person.id, personRecord.id));
-      }
-
-      const guestBookingsCount = await tx
-        .select({ count: sql<number>`count(*)` })
-        .from(booking)
-        .where(
-          and(
-            eq(booking.eventId, eventId),
-            eq(booking.kind, "guest"),
-            inArray(booking.status, ["held", "confirmed"])
-          )
-        );
-
-      const activeGuestBookingsCount = Number(guestBookingsCount[0]?.count || 0);
-
-      const passCheck = canBuyPass(
-        { isMother: personRecord.isMother, lifetimePassCount: 0 },
-        {
-          status: ev.status,
-          isSignature: ev.isSignature,
-          creditCost: ev.creditCost,
-          showEventPassCta: ev.showEventPassCta,
-          capacityGuest: ev.capacityGuest,
-          activeGuestBookingsCount,
-          guestOpenAt: ev.guestOpenAt,
-          guestCloseAt: ev.guestCloseAt,
-          startsAt: ev.startsAt,
-        }
-      );
-
-      if (!passCheck.allowed) {
-        throw new Error(passCheck.reasonCode || "GUEST_PASS_NOT_ALLOWED");
-      }
-
-      return {
-        personId: personRecord.id,
-        guestPriceCents: ev.guestPriceCents || 3500,
-        eventTitle: ev.title,
-        startsAt: ev.startsAt,
-      };
-    });
-
-    const { stripe } = await import("@/lib/stripe");
-    const origin = getAppUrl();
-
-    const stripeSession = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "payment",
-      customer_email: email,
-      line_items: [
-        {
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: `THE Mothers — Guest Pass: ${result.eventTitle}`,
-              description: `Single guest pass for ${new Date(result.startsAt).toLocaleDateString()} · THE Mothers Barcelona`,
-            },
-            unit_amount: result.guestPriceCents,
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        type: "guest_pass",
-        eventId,
-        personId: result.personId,
-        company: "THE Mothers",
-      },
-      custom_text: {
-        submit: {
-          message: "Official checkout for THE Mothers Barcelona.",
-        },
-      },
-      success_url: `${origin}/events?guest_pass_success=true`,
-      cancel_url: `${origin}/events?guest_pass_canceled=true`,
-    });
-
-    return { success: true, url: stripeSession.url };
-  } catch (error: any) {
-    console.error("buyGuestPass error:", error);
-    return { success: false, error: error?.message || "PURCHASE_FAILED" };
-  }
-}
-
-// ─── 5. BUY EXTRA CREDITS (FOR ALL ACCOUNT HOLDERS §20.3) ────────────────────
+// ─── 4. BUY EXTRA CREDITS (FOR ALL ACCOUNT HOLDERS §20.3) ────────────────────
 
 export async function buyExtraCredits(amount: number, eventId?: string) {
   if (!Number.isInteger(amount) || amount < 5 || amount > 100) {
@@ -731,7 +640,7 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
   }
 }
 
-// ─── 6. JOIN EVENT WAITLIST (§7.4) ───────────────────────────────────────────
+// ─── 5. JOIN EVENT WAITLIST (§7.4) ───────────────────────────────────────────
 
 export async function joinEventWaitlist(eventId: string) {
   const session = await auth();
@@ -774,16 +683,39 @@ export async function joinEventWaitlist(eventId: string) {
   }
 }
 
-// ─── 7. CLAIM WAITLIST OFFER (§7.4) ──────────────────────────────────────────
+// ─── 6. CLAIM WAITLIST OFFER (§7.4 / §B-08 / §B-03 / §B-05) ──────────────────
 
 export async function claimWaitlistOffer(waitlistId: string) {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
 
   const personId = (session.user as any).personId || session.user.id;
+  let memberId = (session.user as any).memberId || null;
 
   try {
+    const clubSettings = await getPublicClubSettings();
+
     const result = await db.transaction(async (tx) => {
+      // 1. Fetch Person and check suspension
+      const personRecord = await tx.query.person.findFirst({
+        where: eq(person.id, personId),
+      });
+
+      if (!personRecord) throw new Error("PERSON_NOT_FOUND");
+      if (personRecord.isSuspended) throw new Error("ACCOUNT_SUSPENDED");
+
+      if (!memberId) {
+        const mem = await tx.query.member.findFirst({
+          where: eq(member.personId, personId),
+        });
+        if (mem && mem.status === "active") {
+          memberId = mem.id;
+        }
+      }
+
+      const isMember = !!memberId;
+
+      // 2. Fetch waitlist record and verify offer
       const waitlistRow = await tx.query.eventWaitlist.findFirst({
         where: and(
           eq(eventWaitlist.id, waitlistId),
@@ -805,8 +737,41 @@ export async function claimWaitlistOffer(waitlistId: string) {
 
       if (!ev) throw new Error("EVENT_NOT_FOUND");
 
-      const cost = ev.creditCost || 0;
+      // 3. Capacity check (First to claim wins! §B-08)
+      const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
+      const activeBookingsCount = await tx
+        .select({ count: sql<number>`count(*)` })
+        .from(booking)
+        .where(
+          and(
+            eq(booking.eventId, ev.id),
+            activeBookingCondition
+          )
+        );
+
+      const currentActiveCount = Number(activeBookingsCount[0]?.count || 0);
+      const totalCapacity = (ev.capacityMember || 0) + (ev.capacityGuest || 0);
+      if (totalCapacity > 0 && currentActiveCount >= totalCapacity) {
+        throw new Error("EVENT_FULL");
+      }
+
+      // 4. Calculate cost based on membership status & live switch (§B-03)
+      let cost = 0;
+      if (ev.isFreeWalk) {
+        cost = 0;
+      } else if (!clubSettings.membershipLive) {
+        cost = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+      } else if (isMember) {
+        cost = ev.memberCredits > 0 ? ev.memberCredits : ev.creditCost;
+      } else {
+        cost = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+      }
+
       if (cost > 0) {
+        const currentBalance = await getPersonWalletBalance(personId, tx);
+        if (currentBalance < cost) {
+          throw new Error("INSUFFICIENT_CREDITS");
+        }
         await spendPersonCreditsFIFO(personId, cost, tx);
       }
 
@@ -820,14 +785,19 @@ export async function claimWaitlistOffer(waitlistId: string) {
         .values({
           eventId: ev.id,
           personId,
-          kind: "member",
+          memberId: memberId || null,
+          kind: isMember ? "member" : "guest",
           status: ev.status === "confirmed" ? "confirmed" : "held",
           creditsCharged: cost,
+          bookedAt: new Date(),
         })
         .returning();
 
       return { bookingId: newBooking[0].id };
     });
+
+    revalidatePath("/events");
+    revalidatePath("/account");
 
     return { success: true, bookingId: result.bookingId };
   } catch (error: any) {
@@ -873,11 +843,12 @@ export async function checkBookingEmailStatus(
 
     let isAlreadyBooked = false;
     if (eventId) {
+      const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
       const activeBooking = await db.query.booking.findFirst({
         where: and(
           eq(booking.eventId, eventId),
           eq(booking.personId, existingPerson.id),
-          inArray(booking.status, ["held", "confirmed"])
+          activeBookingCondition
         ),
       });
       if (activeBooking) {

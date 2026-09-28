@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession, signIn } from "next-auth/react";
-import { buyGuestPass, buyExtraCredits, bookEvent, joinEventWaitlist, checkBookingEmailStatus, BookingEmailCheckResult } from "@/app/actions/booking";
+import { buyExtraCredits, bookEvent, joinEventWaitlist, checkBookingEmailStatus, BookingEmailCheckResult } from "@/app/actions/booking";
 import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 import { subscribeToLetter } from "@/app/actions/publicWindow";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -664,23 +664,15 @@ export function EventPassModal({
     setError(null);
     setLoading(true);
     try {
-      const result = await buyGuestPass({
+      const { createTopUpCheckoutSession } = await import("@/app/actions/topup");
+      const result = await createTopUpCheckoutSession({
+        amount: Math.max(5, ev.creditCost || 5),
         eventId: ev.id,
-        firstName: firstName.trim(),
-        lastName: "",
-        email: email.trim(),
       });
       if (result.success && result.url) {
         window.location.href = result.url;
       } else {
-        if (result.error === "LIFETIME_PASS_LIMIT_REACHED") {
-          setStep("passes_exhausted");
-        } else if (result.error === "SIGNATURE_MEMBERS_ONLY" || result.error === "MAX_GUEST_CREDIT_EXCEEDED") {
-          onClose();
-          onOpenCeiling?.();
-        } else {
-          setError(result.error || (lang === "en" ? "Something went wrong." : "Algo falló."));
-        }
+        setError(result.error || (lang === "en" ? "Something went wrong." : "Algo falló."));
         setLoading(false);
       }
     } catch {
@@ -2581,26 +2573,6 @@ function EventCard({
                 ) : null
               ) : (
                 <>
-                  {eligible && (
-                    <button
-                      type="button"
-                      onClick={handleGuestPassClick}
-                      style={{
-                        border: "1px solid #7b1f2c",
-                        backgroundColor: "transparent",
-                        color: "#7b1f2c",
-                        padding: "10px 18px",
-                        borderRadius: "4px",
-                        fontFamily: "var(--font-heading)",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {lang === "en" ? "€35 Event Pass" : "Event Pass 35€"}
-                    </button>
-                  )}
                   <button
                     type="button"
                     onClick={handleBookClick}

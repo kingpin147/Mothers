@@ -42,47 +42,12 @@ export function canSeeEvent(
   viewer: { isMember: boolean; personId?: string } | null,
   event: {
     status: string;
-    isSignature: boolean;
-    creditCost: number;
-    showEventPassCta?: boolean;
-    guestOpenAt?: Date | null;
-    guestCloseAt?: Date | null;
   },
-  at: Date = new Date()
+  _at: Date = new Date()
 ): AccessResult {
-  // Members can see all draft/published/confirmed events if active
-  if (viewer?.isMember) {
-    if (event.status === "draft") {
-      return { allowed: false, reasonCode: "EVENT_DRAFT" };
-    }
-    return { allowed: true };
+  if (event.status === "draft") {
+    return { allowed: false, reasonCode: "EVENT_DRAFT" };
   }
-
-  // Guests:
-  if (event.status !== "confirmed") {
-    if (event.status === "published_pending" && event.showEventPassCta) {
-      // Allowed if operator flagged it
-    } else {
-      return { allowed: false, reasonCode: "GUEST_SEES_CONFIRMED_ONLY" };
-    }
-  }
-
-  if (event.isSignature) {
-    return { allowed: false, reasonCode: "SIGNATURE_MEMBERS_ONLY" };
-  }
-
-  if (event.creditCost > 18) {
-    return { allowed: false, reasonCode: "MAX_GUEST_CREDIT_EXCEEDED" }; // Events >18 credits are members only
-  }
-
-  if (event.guestOpenAt && at < new Date(event.guestOpenAt)) {
-    return { allowed: false, reasonCode: "GUEST_WINDOW_NOT_OPEN" };
-  }
-
-  if (event.guestCloseAt && at > new Date(event.guestCloseAt)) {
-    return { allowed: false, reasonCode: "GUEST_WINDOW_CLOSED" };
-  }
-
   return { allowed: true };
 }
 
@@ -123,49 +88,6 @@ export function canBook(
 
   if (viewer.creditBalance < event.creditCost) {
     return { allowed: false, reasonCode: "INSUFFICIENT_CREDITS" };
-  }
-
-  return { allowed: true };
-}
-
-export function canBuyPass(
-  person: {
-    isMother: boolean;
-    lifetimePassCount: number;
-  },
-  event: {
-    status: string;
-    isSignature: boolean;
-    creditCost: number;
-    showEventPassCta?: boolean;
-    capacityGuest: number;
-    activeGuestBookingsCount: number;
-    guestOpenAt?: Date | null;
-    guestCloseAt?: Date | null;
-    startsAt: Date;
-  },
-  at: Date = new Date()
-): AccessResult {
-  if (!person.isMother) {
-    return { allowed: false, reasonCode: "MOTHER_STATUS_REQUIRED" };
-  }
-
-  if (person.lifetimePassCount >= 2) {
-    return { allowed: false, reasonCode: "LIFETIME_PASS_LIMIT_REACHED" };
-  }
-
-  const seeCheck = canSeeEvent({ isMember: false }, event, at);
-  if (!seeCheck.allowed) return seeCheck;
-  
-  if (!event.guestOpenAt && !event.guestCloseAt) {
-    const daysUntil = Math.round((new Date(event.startsAt).getTime() - at.getTime()) / 86400000);
-    if (daysUntil < 2 || daysUntil > 14) {
-      return { allowed: false, reasonCode: "GUEST_WINDOW_NOT_OPEN" };
-    }
-  }
-
-  if (event.activeGuestBookingsCount >= event.capacityGuest) {
-    return { allowed: false, reasonCode: "GUEST_CAPACITY_FULL" };
   }
 
   return { allowed: true };

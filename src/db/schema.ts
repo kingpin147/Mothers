@@ -130,6 +130,7 @@ export const person = pgTable(
     godmotherCode: text("godmother_code").unique(),
     referredByPersonId: text("referred_by_person_id"),
     lateHostCancellations: integer("late_host_cancellations").default(0).notNull(),
+    lateHostCancelledAt: timestamp("late_host_cancelled_at", { withTimezone: true }),
     profileData: jsonb("profile_data").$type<{
       stages?: string[];
       neighbourhood?: string;
@@ -364,6 +365,7 @@ export const event = pgTable(
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     cancelReason: text("cancel_reason"),
+    thresholdAlertSentAt: timestamp("threshold_alert_sent_at", { withTimezone: true }),
     guestOpenAt: timestamp("guest_open_at", { withTimezone: true }),
     guestCloseAt: timestamp("guest_close_at", { withTimezone: true }),
     nonMemberOpensAt: timestamp("non_member_opens_at", { withTimezone: true }),
@@ -400,6 +402,7 @@ export const booking = pgTable(
     memberId: text("member_id").references(() => member.id),
     kind: bookingKindEnum("kind").notNull(),
     status: bookingStatusEnum("status").default("held").notNull(),
+    heldUntil: timestamp("held_until", { withTimezone: true }),
     creditsCharged: integer("credits_charged").default(0).notNull(),
     pendingReturnCredits: integer("pending_return_credits").default(0).notNull(),
     pendingReturnState: text("pending_return_state").default("none").notNull(), // 'none', 'awaiting_replacement', 'settled_returned', 'settled_unfilled'

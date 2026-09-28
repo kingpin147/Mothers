@@ -48,18 +48,26 @@ export async function checkHostEligibility() {
     return { authenticated: false, eligible: false, reason: "user_not_found" };
   }
 
-  // Count attended events (need >= 2 attended events, strictly marked as attended and not a no-show)
+  // Count attended events (need >= 2 attended events, or >= 3 if late host cancellation penalty active)
+  const penaltyActive = Boolean(user.lateHostCancelledAt && (user.lateHostCancellations || 0) > 0);
+  const attendanceCondition = penaltyActive
+    ? and(
+        eq(booking.personId, user.id),
+        eq(booking.status, "attended"),
+        eq(booking.noShow, false),
+        sql`${booking.attendedAt} > ${user.lateHostCancelledAt}`
+      )
+    : and(
+        eq(booking.personId, user.id),
+        eq(booking.status, "attended"),
+        eq(booking.noShow, false)
+      );
+
   const attendedCount = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(booking)
     .innerJoin(event, eq(booking.eventId, event.id))
-    .where(
-      and(
-        eq(booking.personId, user.id),
-        eq(booking.status, "attended"),
-        eq(booking.noShow, false)
-      )
-    );
+    .where(attendanceCondition);
 
   // Check no-shows in last 90 days from EVENT date
   const noShows = await db
@@ -77,9 +85,8 @@ export async function checkHostEligibility() {
   const totalAttended = attendedCount[0]?.count || 0;
   const totalNoShows = noShows[0]?.count || 0;
 
-  // Late host cancellation penalty check (§H-02): cannot host until attended 3 events
-  const hasLateHostPenalty = (user.lateHostCancellations || 0) > 0;
-  const requiredAttended = hasLateHostPenalty ? 3 : 2;
+  // Late host cancellation penalty check (§H-02): cannot host until attended 3 events after penalty
+  const requiredAttended = penaltyActive ? 3 : 2;
 
   const meetsAttendance = totalAttended >= requiredAttended;
   const meetsNoShows = totalNoShows === 0;
@@ -89,7 +96,7 @@ export async function checkHostEligibility() {
     eligible: meetsAttendance && meetsNoShows && !user.isPaused && !user.isSuspended,
     totalAttended,
     totalNoShows,
-    hasLateHostPenalty,
+    hasLateHostPenalty: penaltyActive,
     requiredAttended,
     isPaused: user.isPaused,
     isSuspended: user.isSuspended,
@@ -752,6 +759,42 @@ export async function updateAdminHostRequestStatus(params: {
     after: { status: params.status },
   });
 
+  revalidatePath("/admin/hosts");
+  return { success: true };
+}
+
+export async function recordLateHostCancellation(personId: string, eventId: string) {
+  const session = await auth();
+  const adminId = await assertAdminOrManager(session);
+
+  await db
+    .update(person)
+    .set({
+      lateHostCancellations: sql`COALESCE(${person.lateHostCancellations}, 0) + 1`,
+      lateHostCancelledAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(person.id, personId));
+
+  await db
+    .update(event)
+    .set({
+      hostPersonId: null,
+      needsHost: true,
+      updatedAt: new Date(),
+    })
+    .where(eq(event.id, eventId));
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "record_late_host_cancellation",
+    entity: "person",
+    entityId: personId,
+    after: { eventId, lateHostCancelledAt: new Date() },
+  });
+
+  revalidatePath("/admin/events");
   revalidatePath("/admin/hosts");
   return { success: true };
 }

@@ -6,11 +6,11 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { submitFirstVisitProfile, validateGodmotherCode } from "@/app/actions/memberAccount";
 
 export function FirstVisitProfileModal() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const { language: lang } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
 
-  // 8 Required Fields (§A-01)
+  // Required Fields (§A-01): stage and neighbourhood are required
   const [stages, setStages] = useState<string[]>([]);
   const [neighbourhood, setNeighbourhood] = useState("");
   const [hoping, setHoping] = useState<string[]>([]);
@@ -98,12 +98,15 @@ export function FirstVisitProfileModal() {
         hoping,
         availability,
         heard,
-        godmotherCode: godmotherCode.trim() || undefined,
+        godmotherCode: (heard === "friend_godmother" && godmotherCode.trim()) ? godmotherCode.trim() : undefined,
         social: social.trim() || undefined,
         why: why.trim() || undefined,
       });
 
       if (res.success) {
+        if (update) {
+          await update({ profileDone: true });
+        }
         setIsOpen(false);
         window.location.reload();
       } else {
@@ -207,12 +210,11 @@ export function FirstVisitProfileModal() {
             </label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
               {[
-                { id: "expecting", en: "Expecting / Pregnant", es: "Embarazada" },
-                { id: "newborn", en: "Newborn (0-6 months)", es: "Recién nacido (0-6 meses)" },
-                { id: "baby", en: "Baby (6-12 months)", es: "Bebé (6-12 meses)" },
-                { id: "toddler", en: "Toddler (1-3 years)", es: "Deambulador (1-3 años)" },
-                { id: "child", en: "Child (4+ years)", es: "Infantil (4+ años)" },
-                { id: "trying", en: "Trying to conceive", es: "Buscando embarazo" },
+                { id: "expecting", en: "Pregnant / Expecting", es: "Embarazada" },
+                { id: "babies", en: "Babies (0-12 months)", es: "Bebés (0-12 meses)" },
+                { id: "toddlers", en: "Toddlers (1-3 years)", es: "Deambuladores (1-3 años)" },
+                { id: "children36", en: "Children (3-6 years)", es: "Niños (3-6 años)" },
+                { id: "children610", en: "Older children (6-10 years)", es: "Niños mayores (6-10 años)" },
               ].map((s) => {
                 const active = stages.includes(s.id);
                 return (
@@ -357,7 +359,13 @@ export function FirstVisitProfileModal() {
             </label>
             <select
               value={heard}
-              onChange={(e) => setHeard(e.target.value)}
+              onChange={(e) => {
+                setHeard(e.target.value);
+                if (e.target.value !== "friend_godmother") {
+                  setGodmotherCode("");
+                  setGodmotherStatus({});
+                }
+              }}
               style={{
                 width: "100%",
                 padding: "9px 12px",
@@ -379,52 +387,54 @@ export function FirstVisitProfileModal() {
             </select>
           </div>
 
-          {/* 6. Godmother Code (Live Check) */}
-          <div>
-            <label style={{ display: "block", fontSize: "13.5px", fontWeight: 600, marginBottom: "6px" }}>
-              {isEn ? "6. Godmother referral code (Optional)" : "6. Código de Madrina (Opcional)"}
-            </label>
-            <div style={{ position: "relative" }}>
-              <input
-                type="text"
-                value={godmotherCode}
-                onChange={(e) => handleCheckGodmother(e.target.value.toUpperCase())}
-                placeholder="e.g. MOTHERS-MARIA-BCN"
-                style={{
-                  width: "100%",
-                  padding: "9px 12px",
-                  border: godmotherStatus.valid
-                    ? "1px solid #568b05"
-                    : godmotherStatus.error
-                    ? "1px solid #993842"
-                    : "1px solid rgba(57, 41, 42, 0.24)",
-                  borderRadius: "4px",
-                  backgroundColor: "#ffffff",
-                  fontFamily: "'Lora', Georgia, serif",
-                  fontSize: "14px",
-                  color: "#39292a",
-                  boxSizing: "border-box",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              />
+          {/* 6. Godmother Code (Live Check - only if friend_godmother chosen) */}
+          {heard === "friend_godmother" && (
+            <div>
+              <label style={{ display: "block", fontSize: "13.5px", fontWeight: 600, marginBottom: "6px" }}>
+                {isEn ? "6. Godmother referral code" : "6. Código de Madrina"}
+              </label>
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  value={godmotherCode}
+                  onChange={(e) => handleCheckGodmother(e.target.value.toUpperCase())}
+                  placeholder="e.g. MOTHERS-MARIA-BCN"
+                  style={{
+                    width: "100%",
+                    padding: "9px 12px",
+                    border: godmotherStatus.valid
+                      ? "1px solid #568b05"
+                      : godmotherStatus.error
+                      ? "1px solid #993842"
+                      : "1px solid rgba(57, 41, 42, 0.24)",
+                    borderRadius: "4px",
+                    backgroundColor: "#ffffff",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px",
+                    color: "#39292a",
+                    boxSizing: "border-box",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                />
+              </div>
+              {godmotherStatus.checking && (
+                <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.6)", marginTop: "4px", display: "block" }}>
+                  {isEn ? "Checking code..." : "Comprobando código..."}
+                </span>
+              )}
+              {godmotherStatus.valid && (
+                <span style={{ fontSize: "12.5px", color: "#568b05", marginTop: "4px", display: "block", fontWeight: 600 }}>
+                  ✓ {isEn ? `Referred by ${godmotherStatus.name}` : `Recomendada por ${godmotherStatus.name}`}
+                </span>
+              )}
+              {godmotherStatus.error && (
+                <span style={{ fontSize: "12px", color: "#993842", marginTop: "4px", display: "block" }}>
+                  ✕ {godmotherStatus.error}
+                </span>
+              )}
             </div>
-            {godmotherStatus.checking && (
-              <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.6)", marginTop: "4px", display: "block" }}>
-                {isEn ? "Checking code..." : "Comprobando código..."}
-              </span>
-            )}
-            {godmotherStatus.valid && (
-              <span style={{ fontSize: "12.5px", color: "#568b05", marginTop: "4px", display: "block", fontWeight: 600 }}>
-                ✓ {isEn ? `Referred by ${godmotherStatus.name}` : `Recomendada por ${godmotherStatus.name}`}
-              </span>
-            )}
-            {godmotherStatus.error && (
-              <span style={{ fontSize: "12px", color: "#993842", marginTop: "4px", display: "block" }}>
-                ✕ {godmotherStatus.error}
-              </span>
-            )}
-          </div>
+          )}
 
           {/* 7. Social handle */}
           <div>

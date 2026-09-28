@@ -594,7 +594,7 @@ export default function EventDetailPage() {
             }}
           >
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", whiteSpace: "nowrap", marginBottom: "6px" }}>
-              {lang === "en" ? "Coming before January 2027?" : "¿Vienes antes de enero de 2027?"}
+              {lang === "en" ? "Coming before launch?" : "¿Vienes antes del lanzamiento?"}
             </div>
             <p style={{ fontSize: "13px", lineHeight: 1.6, color: "#5c4708", margin: 0 }}>
               {lang === "en"

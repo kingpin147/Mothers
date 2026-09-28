@@ -10,61 +10,11 @@ import { getPersonWalletBalance } from "@/lib/ledger";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { type, eventId, memberId, token, amount, returnTo } = body;
+    const { type, eventId, memberId: rawMemberId, token, amount, plan, returnTo } = body;
     const origin = req.headers.get("origin") || getAppUrl();
+    let memberId = rawMemberId;
 
-    // ─── 1. GUEST PASS CHECKOUT ──────────────────────────────────────────────
-    if (type === "guest_pass") {
-      const session = await auth();
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-
-      if (!eventId) return NextResponse.json({ error: "Missing eventId" }, { status: 400 });
-
-      const eventRecord = await db.query.event.findFirst({
-        where: eq(event.id, eventId),
-      });
-
-      if (!eventRecord) return NextResponse.json({ error: "Event not found" }, { status: 404 });
-      if (!eventRecord.guestPriceCents) return NextResponse.json({ error: "Event does not allow guests" }, { status: 400 });
-
-      const stripeSession = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        mode: "payment",
-        customer_email: session.user.email || undefined,
-        line_items: [
-          {
-            price_data: {
-              currency: "eur",
-              product_data: {
-                name: `THE Mothers — Guest Pass: ${eventRecord.title}`,
-                description: `Single guest pass for ${new Date(eventRecord.startsAt).toLocaleDateString()} · THE Mothers Barcelona`,
-              },
-              unit_amount: eventRecord.guestPriceCents,
-            },
-            quantity: 1,
-          },
-        ],
-        metadata: {
-          type: "guest_pass",
-          eventId,
-          personId: ((session.user as any).personId || session.user.id) as string,
-          company: "THE Mothers",
-        },
-        custom_text: {
-          submit: {
-            message: "Official checkout for THE Mothers Barcelona.",
-          },
-        },
-        success_url: `${origin}/events?guest_pass_success=true`,
-        cancel_url: `${origin}/events?guest_pass_canceled=true`,
-      });
-
-      return NextResponse.json({ url: stripeSession.url });
-    }
-
-    // ─── 2. CREDIT TOP-UP CHECKOUT (FOR ALL PERSONS §20.3) ───────────────────
+    // ─── 1. CREDIT TOP-UP CHECKOUT (FOR ALL PERSONS §20.3) ───────────────────
     if (type === "extra_credits" || type === "credit_topup" || type === "topup") {
       const session = await auth();
       if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -127,10 +77,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ url: stripeSession.url });
     }
 
-    // ─── 3. MEMBERSHIP ACTIVATION CHECKOUT ───────────────────────────────────
-    if (type === "membership") {
-      if (!memberId) return NextResponse.json({ error: "Missing memberId" }, { status: 400 });
-
+    // ─── 2. MEMBERSHIP ACTIVATION / DIRECT SUBSCRIPTION CHECKOUT (§M-04 / §M-07) ───
+    if (type === "membership" || type === "subscribe") {
       let personId: string | null = null;
       let personEmail: string | null = null;
       let personRecord: any = null;
@@ -162,15 +110,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      // Fetch member
-      const memberRecord = await db.query.member.findFirst({
-        where: eq(member.id, memberId),
-      });
-
-      if (!memberRecord || memberRecord.personId !== personId) {
-        return NextResponse.json({ error: "Member not found" }, { status: 404 });
-      }
-
       personRecord = await db.query.person.findFirst({
         where: eq(person.id, personId),
       });
@@ -179,35 +118,64 @@ export async function POST(req: Request) {
         personEmail = personRecord.email;
       }
 
-      // Fetch application to get window
-      const appRecord = await db.query.application.findFirst({
-        where: eq(application.personId, memberRecord.personId),
-        orderBy: (app, { desc }) => [desc(app.submittedAt)],
-      });
+      // Fetch or create member record directly from My Account
+      let memberRecord = memberId
+        ? await db.query.member.findFirst({ where: eq(member.id, memberId) })
+        : await db.query.member.findFirst({ where: eq(member.personId, personId) });
 
-      let windowRecord = null;
-      if (appRecord?.windowId) {
-        windowRecord = await db.query.window.findFirst({
-          where: eq(window.id, appRecord.windowId),
-        });
+      const isQuarterly = plan === "quarterly" || memberRecord?.billingFrequency === "quarterly";
+
+      if (!memberRecord) {
+        const [newMem] = await db
+          .insert(member)
+          .values({
+            personId,
+            status: "applicant",
+            billingFrequency: isQuarterly ? "quarterly" : "monthly",
+            priceCents: isQuarterly ? 9900 : 3900,
+            monthlyPriceCents: 3900,
+          })
+          .returning();
+        memberRecord = newMem;
+        memberId = newMem.id;
+      } else {
+        memberId = memberRecord.id;
+        if (plan && (plan === "monthly" || plan === "quarterly")) {
+          await db
+            .update(member)
+            .set({
+              billingFrequency: isQuarterly ? "quarterly" : "monthly",
+              priceCents: isQuarterly ? 9900 : 3900,
+            })
+            .where(eq(member.id, memberRecord.id));
+        }
       }
 
-      const defaultMonthlyPrice = windowRecord?.monthlyPriceCents || 3900;
-      const defaultJoiningFee = windowRecord?.joiningFeeCents || 1900;
+      const defaultMonthlyPrice = 3900;
+      const defaultJoiningFee = 1900;
 
       // Check joining fee waiver:
       // Waived permanently if createdBeforeLaunch === true (§6.1, Pre-Membership Rule)
       const isFeeWaived = personRecord?.createdBeforeLaunch === true;
 
-      const isQuarterly = memberRecord.billingFrequency === "quarterly";
-      const unitAmount = memberRecord.priceCents > 0
-        ? memberRecord.priceCents
-        : (isQuarterly ? 9900 : defaultMonthlyPrice);
+      const unitAmount = isQuarterly ? 9900 : (memberRecord.priceCents > 0 ? memberRecord.priceCents : defaultMonthlyPrice);
 
-      // Check wallet credit discount on first payment (§5)
+      // Check wallet credit discount on first payment (§M-07 / §5)
       const walletBalance = await getPersonWalletBalance(personId);
       const creditDiscountCents = Math.min(walletBalance * 200, unitAmount);
       const creditsToConsume = Math.floor(creditDiscountCents / 200);
+
+      // Create one-off Stripe coupon if wallet discount applies (M-07)
+      let discounts: any[] | undefined = undefined;
+      if (creditDiscountCents > 0) {
+        const coupon = await stripe.coupons.create({
+          amount_off: creditDiscountCents,
+          currency: "eur",
+          duration: "once",
+          name: `Credits Discount (${creditsToConsume} credits)`,
+        });
+        discounts = [{ coupon: coupon.id }];
+      }
 
       const lineItems: any[] = [
         {
@@ -215,7 +183,9 @@ export async function POST(req: Request) {
             currency: "eur",
             product_data: {
               name: isQuarterly ? "THE Mothers — Quarterly Membership" : "THE Mothers — Monthly Membership",
-              description: "Full membership access including 20 monthly event credits · THE Mothers Barcelona",
+              description: isQuarterly
+                ? "Quarterly membership access including 60 event credits · THE Mothers Barcelona"
+                : "Full membership access including 20 monthly event credits · THE Mothers Barcelona",
             },
             unit_amount: unitAmount,
             recurring: {
@@ -259,6 +229,7 @@ export async function POST(req: Request) {
         mode: "subscription",
         customer: customerId,
         line_items: lineItems,
+        discounts,
         subscription_data: {
           metadata: {
             memberId,
@@ -283,7 +254,7 @@ export async function POST(req: Request) {
           },
         },
         success_url: `${origin}/account?membership_success=true`,
-        cancel_url: `${origin}/membership/activate/${token || ""}?canceled=true`,
+        cancel_url: `${origin}/account?membership_canceled=true`,
       });
 
       return NextResponse.json({ url: stripeSession.url });

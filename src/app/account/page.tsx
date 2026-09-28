@@ -243,7 +243,7 @@ function AccountPageContent() {
   const memberData = accountData?.member;
   const firstName = memberData?.firstName || user.name?.split(" ")[0] || "Member";
   const availableCredits = accountData?.credits?.available || 0;
-  const referralCode = `MOTHERS-${(memberData?.firstName || "MEMBER").toUpperCase().slice(0, 4)}-BCN`;
+  const referralCode = accountData?.member?.godmotherCode || `MOTHERS-${(memberData?.firstName || "MEMBER").toUpperCase().slice(0, 4)}-BCN`;
 
   const copyText = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -1058,7 +1058,7 @@ function AccountPageContent() {
             {/* Custom Styled Add Credits Top Up Form (Image 2) */}
             <div ref={topUpRef} style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", padding: "clamp(24px, 4vw, 32px)", backgroundColor: "#fff" }}>
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", margin: "0 0 6px" }}>
-                {lang === "en" ? "Add credits — €1 each" : "Añadir créditos — 1€ cada uno"}
+                {lang === "en" ? "Add credits — €2 each (min. 5)" : "Añadir créditos — 2€ cada uno (mín. 5)"}
               </div>
               <p style={{ fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.62)", margin: "0 0 22px", maxWidth: "56ch" }}>
                 {lang === "en"
@@ -1081,7 +1081,7 @@ function AccountPageContent() {
                   <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
                     <button
                       type="button"
-                      onClick={() => setTopUpAmount(Math.max(1, topUpAmount - 1))}
+                      onClick={() => setTopUpAmount(Math.max(5, topUpAmount - 1))}
                       style={{ width: "46px", height: "46px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", backgroundColor: "#f8efe2", color: "#39292a", fontSize: "20px", cursor: "pointer" }}
                     >
                       −
@@ -1104,7 +1104,7 @@ function AccountPageContent() {
                     {lang === "en" ? "TOTAL" : "TOTAL"}
                   </div>
                   <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "34px" }}>
-                    {lang === "en" ? `€${topUpAmount}` : `${topUpAmount}€`}
+                    {lang === "en" ? `€${topUpAmount * 2}` : `${topUpAmount * 2}€`}
                   </div>
                 </div>
               </div>
@@ -1425,16 +1425,18 @@ function AccountPageContent() {
                 </div>
               )}
 
-              <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#f8efe2", padding: "20px 24px", marginTop: "24px", display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "baseline", justifyContent: "space-between" }}>
-                <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", maxWidth: "42em" }}>
-                  {lang === "en"
-                    ? "Perks are for you and your household, not transferable. If a partner ever turns one down, write to us and we will sort it — and tell them."
-                    : "Las ventajas son para ti y tu casa, no transferibles. Si algún partner no la aplica, escríbenos y lo resolvemos — y hablamos con ellos."}
-                </p>
-                <Link href="/partners" style={{ fontSize: "14px", color: "#7b1f2c", textDecoration: "underline", fontWeight: 600 }}>
-                  {lang === "en" ? "See all partners" : "Ver todos los partners"}
-                </Link>
-              </div>
+              {accountData?.settings?.membershipLive && (
+                <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#f8efe2", padding: "20px 24px", marginTop: "24px", display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "baseline", justifyContent: "space-between" }}>
+                  <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", maxWidth: "42em" }}>
+                    {lang === "en"
+                      ? "Perks are for you and your household, not transferable. If a partner ever turns one down, write to us and we will sort it — and tell them."
+                      : "Las ventajas son para ti y tu casa, no transferibles. Si algún partner no la aplica, escríbenos y lo resolvemos — y hablamos con ellos."}
+                  </p>
+                  <Link href="/partners" style={{ fontSize: "14px", color: "#7b1f2c", textDecoration: "underline", fontWeight: 600 }}>
+                    {lang === "en" ? "See all partners" : "Ver todos los partners"}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1443,116 +1445,145 @@ function AccountPageContent() {
         {activeTab === "membership" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             
-            {/* Membership Details Card for Pre-Membership Plan */}
-            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "clamp(26px, 4vw, 36px)" }}>
-              <div
-                style={{
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontWeight: 600,
-                  fontSize: "12px",
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: "#7b1f2c",
-                  marginBottom: "12px",
-                }}
-              >
-                {lang === "en" ? "MEMBERSHIP OPENS JANUARY 2027" : "MEMBRESÍA ABRE EN ENERO DE 2027"}
-              </div>
-
-              <h2
-                style={{
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontWeight: 400,
-                  fontSize: "clamp(26px, 4vw, 36px)",
-                  lineHeight: "1.15",
-                  margin: "0 0 14px",
-                  color: "#39292a",
-                }}
-              >
-                {lang === "en" ? "You do not have one yet — nobody does." : "Todavía no tienes ninguna — nadie la tiene aún."}
-              </h2>
-
-              <p
-                style={{
-                  fontSize: "15.5px",
-                  lineHeight: "1.65",
-                  color: "rgba(57, 41, 42, 0.78)",
-                  margin: "0 0 24px",
-                  maxWidth: "58ch",
-                }}
-              >
-                {lang === "en"
-                  ? "€39 a month or €99 quarterly, twenty credits granted each month, and the partner list. As an early mother you join without a joining fee, and credits already in your wallet keep their full six-month life."
-                  : "39€ al mes o 99€ al trimestre, veinte créditos otorgados cada mes y la lista de partners. Como madre pionera te unes sin cuota de alta, y los créditos que ya tengas en tu monedero conservan su periodo completo de seis meses."}
-              </p>
-
-              {/* Countdown timer */}
-              <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", marginBottom: "20px" }}>
-                <div style={{ display: "flex", gap: "10px" }}>
-                  {[
-                    { value: `${timeLeft.days}`, label: lang === "en" ? "DAYS" : "DÍAS" },
-                    { value: `${timeLeft.hours < 10 ? "0" : ""}${timeLeft.hours}`, label: lang === "en" ? "HOURS" : "HORAS" },
-                    { value: `${timeLeft.minutes < 10 ? "0" : ""}${timeLeft.minutes}`, label: lang === "en" ? "MINS" : "MINS" },
-                    { value: `${timeLeft.seconds < 10 ? "0" : ""}${timeLeft.seconds}`, label: lang === "en" ? "SECS" : "SECS" },
-                  ].map((u, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        minWidth: "62px",
-                        textAlign: "center",
-                        border: "1px solid rgba(123, 31, 44, 0.3)",
-                        borderRadius: "4px",
-                        padding: "9px 7px",
-                        backgroundColor: "#fdf8f2",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontFamily: "'Cormorant Garamond', Georgia, serif",
-                          fontWeight: 400,
-                          fontSize: "26px",
-                          lineHeight: 1,
-                          fontFeatureSettings: "'tnum'",
-                          color: "#7b1f2c",
-                        }}
-                      >
-                        {u.value}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "9.5px",
-                          letterSpacing: "0.12em",
-                          textTransform: "uppercase",
-                          color: "rgba(57, 41, 42, 0.65)",
-                          marginTop: "5px",
-                          fontFamily: "'Lora', Georgia, serif",
-                        }}
-                      >
-                        {u.label}
-                      </div>
-                    </div>
-                  ))}
+            {/* When Membership is Live and User is Subscribed */}
+            {accountData?.settings?.membershipLive && accountData?.member?.hasActiveSubscription && (
+              <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "clamp(26px, 4vw, 36px)" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "12px" }}>
+                  {lang === "en" ? "ACTIVE MEMBERSHIP" : "MEMBRESÍA ACTIVA"}
+                </div>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400, fontSize: "clamp(26px, 4vw, 36px)", margin: "0 0 14px", color: "#39292a" }}>
+                  {accountData.member.status === "paused" ? (lang === "en" ? "Membership Paused" : "Membresía en Pausa") : (lang === "en" ? "The Mothers Club Membership" : "Membresía The Mothers Club")}
+                </h2>
+                <p style={{ fontSize: "15px", color: "rgba(57, 41, 42, 0.75)", margin: "0 0 20px" }}>
+                  {lang === "en" ? "Your membership grants 20 credits every month and full access to partner perks and member events." : "Tu membresía te otorga 20 créditos cada mes y acceso total a ventajas de partners y encuentros de socias."}
+                </p>
+                <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={handleUpdateCardClick}
+                    disabled={portalLoading}
+                    style={{ border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#f8efe2", padding: "10px 20px", borderRadius: "4px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                  >
+                    {portalLoading ? (lang === "en" ? "Opening..." : "Abriendo...") : (lang === "en" ? "Manage Billing & Payment Method" : "Gestionar Facturación y Método de Pago")}
+                  </button>
                 </div>
               </div>
+            )}
 
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
-                <span
+            {/* When Membership is Live and User is NOT Subscribed */}
+            {accountData?.settings?.membershipLive && !accountData?.member?.hasActiveSubscription && (
+              <div style={{ border: "1px solid #7b1f2c", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "clamp(26px, 4vw, 36px)" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "12px" }}>
+                  {lang === "en" ? "MEMBERSHIP AVAILABLE NOW" : "MEMBRESÍA DISPONIBLE AHORA"}
+                </div>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400, fontSize: "clamp(26px, 4vw, 36px)", margin: "0 0 14px", color: "#39292a" }}>
+                  {lang === "en" ? "Become a Member of The Mothers" : "Hazte Socia de The Mothers"}
+                </h2>
+                <p style={{ fontSize: "15.5px", lineHeight: "1.6", color: "rgba(57, 41, 42, 0.8)", margin: "0 0 24px", maxWidth: "58ch" }}>
+                  {lang === "en"
+                    ? "Choose monthly (€39/mo for 20 credits) or quarterly (€99/qtr for 60 credits). Wallet credits apply automatically as a discount at checkout."
+                    : "Elige mensual (39€/mes por 20 créditos) o trimestral (99€/trimestre por 60 créditos). Tus créditos se descuentan automáticamente."}
+                </p>
+                <div style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const res = await fetch("/api/stripe/checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ plan: "monthly" }),
+                      });
+                      const data = await res.json();
+                      if (data.url) window.location.href = data.url;
+                      else alert(data.error || "Subscription failed");
+                    }}
+                    style={{ border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#f8efe2", padding: "12px 24px", borderRadius: "4px", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}
+                  >
+                    {lang === "en" ? "Subscribe Monthly (€39 / mo)" : "Suscripción Mensual (39€ / mes)"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const res = await fetch("/api/stripe/checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ plan: "quarterly" }),
+                      });
+                      const data = await res.json();
+                      if (data.url) window.location.href = data.url;
+                      else alert(data.error || "Subscription failed");
+                    }}
+                    style={{ border: "1px solid #7b1f2c", backgroundColor: "transparent", color: "#7b1f2c", padding: "12px 24px", borderRadius: "4px", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}
+                  >
+                    {lang === "en" ? "Subscribe Quarterly (€99 / qtr · 60 credits)" : "Suscripción Trimestral (99€ / trim · 60 créditos)"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* When Membership is Not Live (Pre-Launch) */}
+            {!accountData?.settings?.membershipLive && (
+              <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "clamp(26px, 4vw, 36px)" }}>
+                <div
                   style={{
-                    fontSize: "14px",
-                    color: "#568b05",
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: 600,
-                    padding: "9px 16px",
-                    border: "1px solid rgba(86, 139, 5, 0.4)",
-                    backgroundColor: "rgba(86, 139, 5, 0.08)",
-                    borderRadius: "4px",
-                    whiteSpace: "nowrap",
+                    fontSize: "12px",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#7b1f2c",
+                    marginBottom: "12px",
                   }}
                 >
-                  {lang === "en" ? "✓ Early Mother — No joining fee (€19 waived)" : "✓ Madre Pionera — Sin cuota de alta (19€ exentos)"}
-                </span>
+                  {lang === "en" ? "PRE-LAUNCH ACCESS" : "ACCESO PREVIO AL LANZAMIENTO"}
+                </div>
+
+                <h2
+                  style={{
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontWeight: 400,
+                    fontSize: "clamp(26px, 4vw, 36px)",
+                    lineHeight: "1.15",
+                    margin: "0 0 14px",
+                    color: "#39292a",
+                  }}
+                >
+                  {lang === "en" ? "Pay-as-you-go credit model" : "Modelo de pago por créditos"}
+                </h2>
+
+                <p
+                  style={{
+                    fontSize: "15.5px",
+                    lineHeight: "1.65",
+                    color: "rgba(57, 41, 42, 0.78)",
+                    margin: "0 0 24px",
+                    maxWidth: "58ch",
+                  }}
+                >
+                  {lang === "en"
+                    ? "Until full club launch, all gatherings are booked with credits (€2 per credit) with no recurring fee. When memberships open, you will have first priority and your €19 joining fee is waived."
+                    : "Hasta el lanzamiento completo del club, todos los encuentros se reservan con créditos (2€ por crédito) sin cuota recurrente. Cuando se abra la membresía tendrás prioridad y tu cuota de alta de 19€ quedará exenta."}
+                </p>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      color: "#568b05",
+                      fontFamily: "'Cormorant Garamond', Georgia, serif",
+                      fontWeight: 600,
+                      padding: "9px 16px",
+                      border: "1px solid rgba(86, 139, 5, 0.4)",
+                      backgroundColor: "rgba(86, 139, 5, 0.08)",
+                      borderRadius: "4px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {lang === "en" ? "✓ Early Mother — No joining fee (€19 waived)" : "✓ Madre Pionera — Sin cuota de alta (19€ exentos)"}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Personal Details with Toggle Stage Buttons (No ranges, Multi-select) */}
             <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 30px)", backgroundColor: "#fffdfa" }}>

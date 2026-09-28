@@ -132,10 +132,8 @@ export async function saveClubSettingsAudit(
     godmotherBonusLife: "godmother_bonus_life",
     pauseAllowanceMonths: "pause_allowance_months",
     scheduleMembersFrom: "schedule_members_from",
-    scheduleGuestsOpen: "schedule_guests_open",
     scheduleEarlyWarning: "schedule_early_warning",
     scheduleDecisionPoint: "schedule_decision_point",
-    scheduleGuestsClose: "schedule_guests_close",
   };
 
   for (const [k, v] of Object.entries(settingsPatch)) {

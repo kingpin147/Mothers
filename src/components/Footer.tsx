@@ -4,14 +4,21 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 
+import { getPublicClubSettings } from "@/app/actions/adminSettings";
+
 export function Footer() {
   const { language: lang } = useLanguage();
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isMembershipLive, setIsMembershipLive] = useState(false);
 
   useEffect(() => {
+    getPublicClubSettings().then((s) => {
+      if (s.membershipLive) setIsMembershipLive(true);
+    }).catch(() => {});
+
     const saved = localStorage.getItem("tm_pre_newsletter_sub");
     if (saved) setSubmitted(true);
   }, []);
@@ -93,8 +100,8 @@ export function Footer() {
             </h2>
             <p style={{ fontSize: "14.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "54ch" }}>
               {lang === "en"
-                ? "What is coming up on the calendar, new writing in the Journal, and the January 2027 date before it is announced anywhere else. Nothing else in your inbox."
-                : "Novedades del calendario, nuevos artículos del Journal y la fecha de enero 2027 antes de su anuncio oficial. Nada más en tu bandeja de entrada."}
+                ? "What is coming up on the calendar, new writing in the Journal, and club updates before they are announced anywhere else. Nothing else in your inbox."
+                : "Novedades del calendario, nuevos artículos del Journal y las novedades del club antes de su anuncio oficial. Nada más en tu bandeja de entrada."}
             </p>
           </div>
 
@@ -264,6 +271,11 @@ export function Footer() {
               <Link href="/circle" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 The Circle
               </Link>
+              {isMembershipLive && (
+                <Link href="/partners" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
+                  {lang === "en" ? "Partners" : "Partners"}
+                </Link>
+              )}
               <Link href="/journal" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "Journal" : "Diario"}
               </Link>

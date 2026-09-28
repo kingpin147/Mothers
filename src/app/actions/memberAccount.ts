@@ -76,6 +76,25 @@ export async function getAccountData(targetMemberId?: string) {
       }
     }
 
+    if (personRecord && !personRecord.godmotherCode) {
+      const cleanFirst = (personRecord.firstName || "MEMBER").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5) || "MEMBER";
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const generatedCode = `MOTHERS-${cleanFirst}-${randomSuffix}`;
+      await db.update(person).set({ godmotherCode: generatedCode }).where(eq(person.id, personRecord.id));
+      personRecord.godmotherCode = generatedCode;
+    }
+
+    if (!memberRecord && personRecord) {
+      const [newMember] = await db.insert(member).values({
+        personId: personRecord.id,
+        status: "active",
+        monthlyPriceCents: 4500,
+        joiningFeePaidCents: 0,
+      }).returning();
+      memberRecord = newMember;
+      memberId = newMember.id;
+    }
+
     if (!memberRecord || !memberId) {
       return { success: false, error: "MEMBER_NOT_FOUND" };
     }
@@ -202,8 +221,12 @@ export async function getAccountData(targetMemberId?: string) {
       offerExpiresAt: w.offerExpiresAt ? new Date(w.offerExpiresAt).toISOString() : null,
     }));
 
+    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+    const settings = await getPublicClubSettings();
+
     return {
       success: true,
+      settings,
       member: {
         id: memberRecord.id,
         firstName: personRecord?.firstName || "",
@@ -219,6 +242,8 @@ export async function getAccountData(targetMemberId?: string) {
         cancelAtPeriodEnd: !!memberRecord.cancelAtPeriodEnd,
         currentPeriodEnd: memberRecord.currentPeriodEnd ? new Date(memberRecord.currentPeriodEnd).toISOString() : null,
         createdBeforeLaunch: !!personRecord?.createdBeforeLaunch,
+        godmotherCode: personRecord?.godmotherCode || `MOTHERS-${(personRecord?.firstName || "MEMBER").toUpperCase().slice(0, 4)}-BCN`,
+        hasActiveSubscription: !!memberRecord.stripeSubscriptionId && memberRecord.status === "active",
       },
       credits: {
         available: Math.max(0, currentBalance),

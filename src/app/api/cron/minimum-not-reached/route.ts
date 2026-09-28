@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   let alertsTriggered = 0;
 
   try {
-    // Find pending events that have reached decision date where quorum is not yet met
+    // Find pending events that have reached decision date where quorum is not yet met and alert has not been sent
     const pendingEvents = await db
       .select()
       .from(event)
@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
         and(
           eq(event.status, "published_pending"),
           sql`decision_at IS NOT NULL AND decision_at <= NOW()`,
-          sql`min_to_confirm > 0`
+          sql`min_to_confirm > 0`,
+          sql`threshold_alert_sent_at IS NULL`
         )
       );
 
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
         .where(
           and(
             eq(booking.eventId, ev.id),
-            sql`status IN ('held', 'confirmed')`
+            sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`
           )
         );
 
@@ -68,6 +69,11 @@ export async function GET(req: NextRequest) {
             eventDate: eventDateFormatted,
           }).catch((err) => console.error("Error sending minimum not reached alert:", err));
         }
+
+        await db
+          .update(event)
+          .set({ thresholdAlertSentAt: new Date(), updatedAt: new Date() })
+          .where(eq(event.id, ev.id));
 
         await db.insert(auditLog).values({
           actorType: "system",

@@ -38,15 +38,14 @@ export async function GET(req: NextRequest) {
     evaluated = pendingEvents.length;
 
     for (const ev of pendingEvents) {
-      // Count active member bookings
+      // Count all active bookings (kind = member or guest), excluding expired holds
       const counts = await db
         .select({ count: sql<number>`count(*)` })
         .from(booking)
         .where(
           and(
             eq(booking.eventId, ev.id),
-            eq(booking.kind, "member"),
-            sql`status IN ('held', 'confirmed')`
+            sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`
           )
         );
 
@@ -55,31 +54,25 @@ export async function GET(req: NextRequest) {
       if (activeBookings >= ev.minToConfirm) {
         // ── CONFIRM: threshold met ──────────────────────────────────────────
         await db.transaction(async (tx) => {
-          // Set guest window dates on confirmation
-          const guestOpenAt = new Date(); // opens now on confirmation
-          const guestCloseAt = new Date(
-            new Date(ev.startsAt).getTime() - 2 * 24 * 60 * 60 * 1000
-          ); // T-2
-
           await tx
             .update(event)
             .set({
               status: "confirmed",
               confirmedAt: new Date(),
-              guestOpenAt:
-                !ev.isSignature && ev.creditCost <= 18 ? guestOpenAt : null,
-              guestCloseAt:
-                !ev.isSignature && ev.creditCost <= 18 ? guestCloseAt : null,
               updatedAt: new Date(),
             })
             .where(eq(event.id, ev.id));
 
-          // Promote all held bookings to confirmed
+          // Promote all active held bookings to confirmed
           await tx
             .update(booking)
             .set({ status: "confirmed", updatedAt: new Date() })
             .where(
-              and(eq(booking.eventId, ev.id), eq(booking.status, "held"))
+              and(
+                eq(booking.eventId, ev.id),
+                eq(booking.status, "held"),
+                sql`(${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())`
+              )
             );
 
           await tx.insert(auditLog).values({
@@ -94,9 +87,8 @@ export async function GET(req: NextRequest) {
           });
         });
         confirmed++;
-      } else if (ev.decisionAt && new Date(ev.decisionAt) <= new Date()) {
-        // ── THRESHOLD MISSED (§B-07): Alert team in Admin for manual decision ────
-        const origin = process.env.NEXTAUTH_URL || "https://themothers.cc";
+      } else if (ev.decisionAt && new Date(ev.decisionAt) <= new Date() && !ev.thresholdAlertSentAt) {
+        // ── THRESHOLD MISSED (§B-07): Alert team in Admin for manual decision (once per event) ────
         const eventDateFormatted = new Date(ev.startsAt).toLocaleDateString("en-GB", {
           weekday: "short",
           day: "numeric",
@@ -113,6 +105,11 @@ export async function GET(req: NextRequest) {
           minRequired: ev.minToConfirm,
           eventDate: eventDateFormatted,
         }).catch((err) => console.error("Error sending minimum not reached email:", err));
+
+        await db
+          .update(event)
+          .set({ thresholdAlertSentAt: new Date(), updatedAt: new Date() })
+          .where(eq(event.id, ev.id));
 
         await db.insert(auditLog).values({
           actorType: "system",
