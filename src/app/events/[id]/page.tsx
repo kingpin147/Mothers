@@ -14,16 +14,11 @@ import {
   Lang,
   BookingSuccessModal,
   WaitlistModal,
-  EventPassModal,
   FreeWalkRsvpModal,
-  GuestPlacesNotOpenModal,
-  CeilingModal,
-  GuestFullModal,
   SignedOutMemberModal,
   TopUpModal,
   getEventDisplayTitle,
   getEventDisplayDesc,
-  isGuestPassEligible,
   getLanguageLabel,
 } from "@/app/events/EventsCalendar";
 
@@ -37,14 +32,10 @@ export default function EventDetailPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [fetchLoading, setFetchLoading] = useState(true);
 
-  // Dialog states for all 14 states
+  // Dialog states
   const [bookingSuccessEvent, setBookingSuccessEvent] = useState<PublicEvent | null>(null);
   const [waitlistSuccess, setWaitlistSuccess] = useState<{ event: PublicEvent; position: number } | null>(null);
-  const [eventPassEvent, setEventPassEvent] = useState<PublicEvent | null>(null);
   const [freeRsvpEvent, setFreeRsvpEvent] = useState<PublicEvent | null>(null);
-  const [guestNotOpenEvent, setGuestNotOpenEvent] = useState<PublicEvent | null>(null);
-  const [ceilingEvent, setCeilingEvent] = useState<PublicEvent | null>(null);
-  const [guestFullEvent, setGuestFullEvent] = useState<PublicEvent | null>(null);
   const [signedOutEvent, setSignedOutEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -214,7 +205,6 @@ export default function EventDetailPage() {
   const isCapped = !isFreeWalk && !!ev.capacityTotal && ev.capacityTotal > 0;
   const isFull = isCapped && ((ev.capacityRemaining ?? 1) <= 0 || ev.isFull);
   const isGathering = (ev.status === "pending" || ev.status === "published_pending") && (ev.minToConfirm ?? 0) > 0;
-  const passEligible = isGuestPassEligible(ev, isMember);
 
   const statusLabel = {
     confirmed: { en: "Confirmed", es: "Confirmado", color: "#285430", bg: "#e8f1e9" },
@@ -223,9 +213,6 @@ export default function EventDetailPage() {
     cancelled: { en: "Cancelled", es: "Cancelado", color: "#993842", bg: "#fbf1f1" },
     completed: { en: "Past Event", es: "Evento Pasado", color: "#606e76", bg: "#e9eaea" },
   }[ev.status] || { en: ev.status, es: ev.status, color: "#606e76", bg: "#f0f0f0" };
-
-  const guestPrice = ev.guestPriceCents ? Math.round(ev.guestPriceCents / 100) : 35;
-  const guestPassLabel = `€${guestPrice} Event Pass`;
 
   return (
     <div style={{ backgroundColor: "#fdf8f2", minHeight: "100vh", fontFamily: "'Lora', Georgia, serif", color: "#39292a" }}>
@@ -616,7 +603,7 @@ export default function EventDetailPage() {
         </aside>
       </section>
 
-      {/* ─── ALL 14 DIALOG MODALS ─── */}
+      {/* ─── MODALS ─── */}
       {/* States 01, 02, 05: Booked / Reserved / Free walk */}
       {bookingSuccessEvent && (
         <BookingSuccessModal
@@ -637,49 +624,12 @@ export default function EventDetailPage() {
         />
       )}
 
-      {/* States 14, 07, 08, 10: Event Pass multi-step flow */}
-      {eventPassEvent && (
-        <EventPassModal
-          event={eventPassEvent}
-          lang={lang}
-          onClose={() => setEventPassEvent(null)}
-          onOpenCeiling={() => setCeilingEvent(eventPassEvent)}
-        />
-      )}
-
       {/* State 06: Free walk — the open list */}
       {freeRsvpEvent && (
         <FreeWalkRsvpModal
           event={freeRsvpEvent}
           lang={lang}
           onClose={() => setFreeRsvpEvent(null)}
-        />
-      )}
-
-      {/* State 09: Guest places not open yet / closed / TBC */}
-      {guestNotOpenEvent && (
-        <GuestPlacesNotOpenModal
-          event={guestNotOpenEvent}
-          lang={lang}
-          onClose={() => setGuestNotOpenEvent(null)}
-        />
-      )}
-
-      {/* State 11: Members only / over the ceiling */}
-      {ceilingEvent && (
-        <CeilingModal
-          event={ceilingEvent}
-          lang={lang}
-          onClose={() => setCeilingEvent(null)}
-        />
-      )}
-
-      {/* State 12: Full — waitlist is members only */}
-      {guestFullEvent && (
-        <GuestFullModal
-          event={guestFullEvent}
-          lang={lang}
-          onClose={() => setGuestFullEvent(null)}
         />
       )}
 

@@ -241,9 +241,8 @@ function AccountPageContent() {
 
   const user = session.user as any;
   const memberData = accountData?.member;
-  const firstName = memberData?.firstName || user.name?.split(" ")[0] || "Member";
-  const availableCredits = accountData?.credits?.available || 0;
-  const referralCode = accountData?.member?.godmotherCode || `MOTHERS-${(memberData?.firstName || "MEMBER").toUpperCase().slice(0, 4)}-BCN`;
+  const referralCode = accountData?.member?.godmotherCode || "";
+  const availableCredits = accountData?.credits?.available ?? 0;
 
   const copyText = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -565,8 +564,8 @@ function AccountPageContent() {
                   </div>
                   <div style={{ fontSize: "14px", color: "#39292a", marginTop: "4px", lineHeight: "1.5" }}>
                     {lang === "en"
-                      ? "Because you joined before launch, there is no joining fee if you join before launch. You pay only pay-as-you-go credits for gatherings."
-                      : "Al haberte unido antes del lanzamiento, no pagarás cuota de alta si te unes antes del lanzamiento. Solo pagas los créditos por encuentro que utilices."}
+                      ? "You opened your account before launch, so you won't pay a joining fee. You pay only pay-as-you-go credits for gatherings."
+                      : "Abriste tu cuenta antes del lanzamiento, por lo que no pagarás cuota de alta. Solo pagas los créditos por encuentro que utilices."}
                   </div>
                 </div>
               </div>

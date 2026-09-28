@@ -82,10 +82,9 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
   const guestRsvps = data.guestRsvps || [];
 
   const placesTaken = bookings.length;
-  const maxCapacity = ev.capacityMember + ev.capacityGuest;
+  const maxCapacity = ev.capacityMember;
   
   const membersCount = bookings.filter((b: any) => b.booking.kind === 'member').length;
-  const guestCount = bookings.filter((b: any) => b.booking.kind === 'guest').length;
   const arrivedCount = bookings.filter((b: any) => b.booking.status === 'attended').length;
   const openListArrivedCount = guestRsvps.filter((r: any) => r.attendedAt).length;
   
@@ -142,10 +141,6 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.65)" }}>Members</div>
           </div>
           <div className="print-border" style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "16px 20px" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "28px", color: "#39292a", lineHeight: 1, marginBottom: "8px" }}>{guestCount} of {ev.capacityGuest}</div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.65)" }}>Guest places</div>
-          </div>
-          <div className="print-border" style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "16px 20px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "28px", color: arrivedCount === placesTaken ? GREEN : "#39292a", lineHeight: 1, marginBottom: "8px" }}>{arrivedCount}</div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.65)" }}>Arrived</div>
           </div>
@@ -178,9 +173,6 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
               const name = `${b.person.firstName} ${b.person.lastName}`;
               const phone = b.person.phoneE164 || b.person.whatsappE164 || "No phone given";
               const stageText = b.member?.stage || "Not a member";
-              
-              const isGuest = b.booking.kind === 'guest';
-              const isPass = b.booking.passId !== null;
 
               return (
                 <div key={b.booking.id} style={{ display: "grid", gridTemplateColumns: "2.5fr 1.5fr 3fr 100px", gap: "14px", padding: "18px", borderBottom: "1px solid rgba(57,41,42,0.1)", alignItems: "center", background: isAttended ? "rgba(63,102,4,0.03)" : "transparent" }}>
@@ -191,14 +183,8 @@ export default function AdminRosterPage({ params }: { params: Promise<{ id: stri
                   </div>
 
                   <div>
-                    {isGuest ? (
-                      <span style={{ display: "inline-block", border: `1px solid ${AMBER}`, color: AMBER, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Guest</span>
-                    ) : isPass ? (
-                      <span style={{ display: "inline-block", border: `1px solid ${AMBER}`, color: AMBER, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Event pass</span>
-                    ) : (
-                      <span style={{ display: "inline-block", border: `1px solid ${GREEN}`, color: GREEN, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Member</span>
-                    )}
-                    <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.55)" }}>{b.booking.creditsCharged > 0 ? `${b.booking.creditsCharged} credits taken` : (isPass ? '€35 paid' : '')}</div>
+                    <span style={{ display: "inline-block", border: `1px solid ${GREEN}`, color: GREEN, borderRadius: "3px", padding: "4px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.06em", whiteSpace: "nowrap", marginBottom: "4px" }}>Member</span>
+                    <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.55)" }}>{b.booking.creditsCharged > 0 ? `${b.booking.creditsCharged} credits taken` : 'Free RSVP'}</div>
                   </div>
 
                   <div style={{ fontSize: "13px", lineHeight: 1.5, color: "rgba(57,41,42,0.85)" }}>

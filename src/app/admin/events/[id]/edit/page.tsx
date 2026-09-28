@@ -497,30 +497,6 @@ export default function AdminEditEventPage() {
 
           <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
 
-          {/* GUESTS */}
-          <div style={{ opacity: guestOpacity }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "6px" }}>Guests</div>
-            <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.7)", margin: "0 0 12px", maxWidth: "70ch", textWrap: "pretty" }}>{guestIntro}</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "14px" }}>
-              <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Guest places</label>
-                <input type="number" value={guestPlaces} onChange={(e) => setGuestPlaces(e.target.value)} disabled={membersOnly} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Two by default. Zero closes the event to guests.</div>
-              </div>
-              <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Guest places while to be confirmed</label>
-                <input type="number" value={guestGathering} onChange={(e) => setGuestGathering(e.target.value)} placeholder="Blank — same as above" disabled={membersOnly} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>A higher cap while the event is short of its minimum. Drops back once confirmed; places already sold are always kept.</div>
-              </div>
-            </div>
-            <div style={{ marginTop: "16px", border: `1px solid ${passBorder}`, borderRadius: "6px", padding: "14px 16px", background: passBg }}>
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "11px", fontSize: "14px", lineHeight: 1.55, cursor: passCursor }}>
-                <input type="checkbox" checked={passCta} disabled={passDisabled} onChange={(e) => setPassCta(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", marginTop: "2px" }} />
-                <span><strong style={{ fontWeight: 600 }}>Show the €35 Event Pass button</strong><br /><span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)" }}>{passNote}</span></span>
-              </label>
-            </div>
-          </div>
-
           <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
 
           {/* SCHEDULE */}
@@ -535,7 +511,7 @@ export default function AdminEditEventPage() {
               </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: "12px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "12px" }}>
               {/* Members book from */}
               {(() => {
                 const preview = formatSchedulePreview(calculateDate(startsAt, schMembers));
@@ -553,23 +529,6 @@ export default function AdminEditEventPage() {
                 );
               })()}
 
-              {/* Guests open */}
-              {(() => {
-                const preview = formatSchedulePreview(calculateDate(startsAt, schGuestsOpen));
-                return (
-                  <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Guests open</div>
-                    <input type="text" value={schGuestsOpen} onChange={(e) => setSchGuestsOpen(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Every event, no exception</div>
-                    {preview && (
-                      <div style={{ fontSize: "11px", marginTop: "6px", color: preview.isPast ? "#b45309" : "#3f6604", fontWeight: 500 }}>
-                        {preview.isPast ? "↳ Opens now (immediate)" : `↳ ${preview.formatted}`}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
               {/* Decision point */}
               {(() => {
                 const preview = formatSchedulePreview(calculateDate(startsAt, schDecision));
@@ -581,23 +540,6 @@ export default function AdminEditEventPage() {
                     {preview && (
                       <div style={{ fontSize: "11.5px", marginTop: "6px", color: preview.isPast ? "#dc2626" : "#3f6604", fontWeight: 600 }}>
                         {preview.isPast ? `⚠️ In past: ${preview.formatted}` : `↳ ${preview.formatted}`}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Guests close */}
-              {(() => {
-                const preview = formatSchedulePreview(calculateDate(startsAt, schGuestsClose));
-                return (
-                  <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Guests close</div>
-                    <input type="text" value={schGuestsClose} onChange={(e) => setSchGuestsClose(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Members keep booking to start</div>
-                    {preview && (
-                      <div style={{ fontSize: "11px", marginTop: "6px", color: preview.isPast ? "#b45309" : "#3f6604", fontWeight: 500 }}>
-                        {preview.isPast ? "↳ Closes at start" : `↳ ${preview.formatted}`}
                       </div>
                     )}
                   </div>

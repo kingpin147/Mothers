@@ -44,21 +44,17 @@ export async function publishAdminEvent(eventId: string) {
 
   // Compute T-schedule defaults if not already present
   const starts = new Date(ev.startsAt);
-  const guestOpenAt = ev.guestOpenAt || (new Date(starts.getTime() - 14 * 86400000) > now ? new Date(starts.getTime() - 14 * 86400000) : now);
   let decisionAt = ev.decisionAt;
   if (!decisionAt) {
     const t7Default = new Date(starts.getTime() - 7 * 86400000);
     decisionAt = t7Default > now ? t7Default : new Date(Math.min(starts.getTime() - 3600000, Math.max(now.getTime() + 3600000, starts.getTime() - 2 * 86400000)));
   }
-  const guestCloseAt = ev.guestCloseAt || new Date(starts.getTime() - 2 * 86400000);
 
   await db.update(event).set({
     status: targetStatus,
     publishedAt: now,
     confirmedAt: targetStatus === "confirmed" ? now : ev.confirmedAt,
-    guestOpenAt,
     decisionAt,
-    guestCloseAt,
     updatedAt: now,
   }).where(eq(event.id, eventId));
 
@@ -317,12 +313,11 @@ export async function updateAdminEvent(eventId: string, data: {
   const venueChanged = (data.venueName && data.venueName !== existing.venueName) || (data.meetingPoint && data.meetingPoint !== existing.meetingPoint);
 
   const newMemberCap = data.capacityMember !== undefined ? data.capacityMember : existing.capacityMember;
-  const newGuestCap = data.capacityGuest !== undefined ? data.capacityGuest : existing.capacityGuest;
   const newMinConfirm = data.minToConfirm !== undefined ? data.minToConfirm : existing.minToConfirm;
   
-  const totalCap = newMemberCap + newGuestCap;
+  const totalCap = newMemberCap;
   if (totalCap > 0 && newMinConfirm > totalCap) {
-    return { success: false, error: "Minimum to confirm cannot exceed total capacity (member + guest)." };
+    return { success: false, error: "Minimum to confirm cannot exceed event room capacity." };
   }
 
   // Resolve categoryId if category name/string is supplied
@@ -578,16 +573,14 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
       if (p && p.email) {
         const { queueAndSendEmail } = await import("@/lib/brevo");
         
-        // Members get the member template, guests get the guest template
-        if (b.memberId) {
-          await queueAndSendEmail({
-            personId: p.id,
-            toEmail: p.email,
-            toName: p.firstName || "Member",
-            templateKey: "event_cancelled",
-            dedupeKey: `event_cancel_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
-            subject: `Update regarding ${ev.title}`,
-            htmlContent: `
+        await queueAndSendEmail({
+          personId: p.id,
+          toEmail: p.email,
+          toName: p.firstName || "Member",
+          templateKey: "event_cancelled",
+          dedupeKey: `event_cancel_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
+          subject: `Update regarding ${ev.title}`,
+          htmlContent: `
 <!DOCTYPE html>
 <html lang="en">
 <body style="margin:0;padding:0;background-color:#efeae1;">
@@ -608,144 +601,9 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
 </table>
 </body>
 </html>
-            `,
-            isTransactional: true,
-          });
-        } else {
-          await queueAndSendEmail({
-            personId: p.id,
-            toEmail: p.email,
-            toName: p.firstName || "Guest",
-            templateKey: "event_cancelled_guest",
-            dedupeKey: `event_cancel_guest_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
-            subject: `Update regarding ${ev.title}`,
-            htmlContent: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<meta name="supported-color-schemes" content="light dark">
-<title>An event will not go ahead — The Mothers</title>
-<!--[if mso]>
-<style>body,table,td,p,a{font-family:Georgia,'Times New Roman',serif !important;}</style>
-<![endif]-->
-<style>
-@media only screen and (max-width:620px){
-  .px{padding-left:24px !important;padding-right:24px !important;}
-  .h1{font-size:30px !important;line-height:36px !important;}
-}
-</style>
-</head>
-<body style="margin:0;padding:0;background-color:#efeae1;">
-<span style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">This one will not run — your €35 is on its way back to your card in full.</span>
-
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
-<tr>
-<td align="center" style="padding:32px 12px;">
-
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#faf7f1;border:1px solid #ddd4c6;">
-
-<tr>
-<td class="px" align="center" style="padding:34px 48px 26px;border-bottom:1px solid #ddd4c6;">
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:20px;mso-line-height-rule:exactly;letter-spacing:3px;text-transform:uppercase;color:#7b1f2c;">The Mothers</div>
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:1.5px;text-transform:uppercase;color:#8a807a;padding-top:7px;">Barcelona</div>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:38px 48px 0;">
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Event cancelled · refunded</div>
-<h1 class="h1" style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:42px;mso-line-height-rule:exactly;font-weight:normal;color:#2A1E20;">This one will not go ahead.</h1>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
-<p style="margin:0 0 16px;">Hello <span style="color:#7b1f2c;">${p.firstName || 'Guest'}</span>,</p>
-<p style="margin:0 0 16px;">We're sorry — <strong style="font-weight:normal;color:#7b1f2c;">${ev.title}</strong> will not run. Your €35 is refunded in full, to the card you paid with.</p>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:30px 48px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #ddd4c6;background-color:#f3efe6;">
-<tr>
-<td style="padding:22px 24px 14px;font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;">Your refund</td>
-</tr>
-<tr>
-<td style="padding:0 24px 22px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
-<tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Event</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">${ev.title}</td>
-</tr>
-<tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">Refunded</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;"><strong style="font-weight:normal;color:#7b1f2c;">€35</strong></td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:32px 48px 0;">
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">Worth knowing</div>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
-<tr>
-<td width="26" valign="top" style="width:26px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">01</td>
-<td valign="top" style="">Our walks and park socials are free, open to any mother, and never cancelled for numbers.</td>
-</tr>
-<tr>
-<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">02</td>
-<td valign="top" style="padding-top:10px;">Paid events need a minimum to be worth holding. We decide a week ahead precisely so this email is an inconvenience and not a wasted evening.</td>
-</tr>
-<tr>
-<td width="26" valign="top" style="width:26px;padding-top:10px;font-size:14px;line-height:25px;mso-line-height-rule:exactly;color:#7b1f2c;">03</td>
-<td valign="top" style="padding-top:10px;">Nothing you paid is retained. If the amount does not appear, reply and we will chase it.</td>
-</tr>
-</table>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:28px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#5c534e;">
-<p style="margin:0;">Reply to this email if anything is unclear — it reaches us directly.</p>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:26px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#2A1E20;">
-<p style="margin:0;">With our apologies,<br>The Mothers Team</p>
-</td>
-</tr>
-
-<tr>
-<td class="px" align="center" style="padding:32px 48px 34px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
-<tr><td style="border-top:1px solid #ddd4c6;font-size:0;line-height:0;">&nbsp;</td></tr>
-</table>
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:20px;mso-line-height-rule:exactly;color:#8a807a;padding-top:20px;">
-The Mothers · Carrer de Girona, 08009 Barcelona, Spain<br>
-<a href="mailto:hello@themothers.cc" style="color:#7b1f2c;text-decoration:underline;">hello@themothers.cc</a> &nbsp;·&nbsp;
-<a href="https://themothers.cc" style="color:#7b1f2c;text-decoration:underline;">themothers.cc</a>
-</div>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
-</body>
-</html>
-            `,
-            isTransactional: true,
-          });
-        }
+          `,
+          isTransactional: true,
+        });
       }
     }
 
@@ -780,32 +638,13 @@ The Mothers · Carrer de Girona, 08009 Barcelona, Spain<br>
       }
     }
 
-    // 3. Mark paid guest passes as refunded (§8)
-    const paidGuestPasses = await tx.query.eventPass.findMany({
-      where: and(
-        eq(eventPass.eventId, eventId),
-        eq(eventPass.status, "paid")
-      ),
-    });
-
-    for (const gp of paidGuestPasses) {
-      await tx
-        .update(eventPass)
-        .set({
-          status: "refunded",
-          refundedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(eventPass.id, gp.id));
-    }
-
     await tx.insert(auditLog).values({
       actorId: adminId,
       actorType: "admin",
       action: "cancel_event",
       entity: "event",
       entityId: eventId,
-      after: { reason: cancelReason, refundedBookingsCount: activeBookingsWithPerson.length, refundedPassesCount: paidGuestPasses.length },
+      after: { reason: cancelReason, refundedBookingsCount: activeBookingsWithPerson.length },
     });
   });
 

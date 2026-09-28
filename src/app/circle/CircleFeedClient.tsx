@@ -1166,10 +1166,10 @@ export function CircleFeedClient({
             </p>
           </div>
 
-          {/* From January 2027 Preview */}
-          <div style={{ border: "1px solid rgba(201, 162, 39, 0.5)", borderRadius: "8px", backgroundColor: "rgba(201, 162, 39, 0.08)", padding: "20px 22px" }}>
+          {/* After Launch Preview */}
+          <div style={{ backgroundColor: "#fdf8ec", border: "1px solid rgba(197, 142, 45, 0.35)", borderRadius: "8px", padding: "20px", marginBottom: "20px" }}>
             <div style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#5c4708", marginBottom: "6px" }}>
-              From January 2027
+              After Launch
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", color: "#39292a", marginBottom: "8px" }}>
               Behind closed doors

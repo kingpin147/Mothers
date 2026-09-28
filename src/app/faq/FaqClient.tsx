@@ -38,7 +38,7 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
   const groupDisplayTitles: Record<string, { en: string; es: string }> = {
     "Coming to an event now": { en: "Coming to an event now", es: "Asistir a un encuentro ahora" },
     "Credits and your wallet": { en: "Credits and your wallet", es: "Créditos y tu monedero" },
-    "Membership, from January 2027": { en: "Membership, from January 2027", es: "Membresía, desde enero 2027" },
+    "Membership after launch": { en: "Membership after launch", es: "Membresía tras el lanzamiento" },
     "The club itself": { en: "The club itself", es: "El club y funcionamiento" },
   };
 

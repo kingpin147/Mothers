@@ -25,7 +25,9 @@ export function StickyCountdownBanner() {
   const { language: lang } = useLanguage();
   const { data: session } = useSession();
 
-  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>(calculateTimeLeft);
+  const [launchDateStr, setLaunchDateStr] = useState<string>("");
+  const [targetDate, setTargetDate] = useState<number>(new Date("2027-01-06T00:00:00+01:00").getTime());
+  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [mounted, setMounted] = useState(false);
   const [joined, setJoined] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,6 +41,13 @@ export function StickyCountdownBanner() {
     setMounted(true);
     getPublicClubSettings().then((s) => {
       if (s.membershipLive) setIsLive(true);
+      if (s.expectedLaunch) {
+        const d = new Date(s.expectedLaunch);
+        if (!isNaN(d.getTime())) {
+          setTargetDate(d.getTime());
+          setLaunchDateStr(d.toLocaleDateString(lang === "es" ? "es-ES" : "en-GB", { month: "long", year: "numeric" }));
+        }
+      }
     }).catch(() => {});
 
     const savedJoined = localStorage.getItem("tm_pre_joined_list");
@@ -46,15 +55,23 @@ export function StickyCountdownBanner() {
 
     const savedDismissed = localStorage.getItem("tm_banner_dismissed");
     if (savedDismissed === "true") setDismissed(true);
+  }, [lang]);
 
+  useEffect(() => {
     const updateCountdown = () => {
-      setTimeLeft(calculateTimeLeft());
+      const now = new Date().getTime();
+      const diff = Math.max(0, targetDate - now);
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setTimeLeft({ days, hours, minutes, seconds });
     };
 
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [targetDate]);
 
   const handleDismiss = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -141,7 +158,9 @@ export function StickyCountdownBanner() {
                 marginBottom: "4px",
               }}
             >
-              {lang === "en" ? "MEMBERSHIP OPENS JANUARY 2027" : "MEMBRESÍA ABRE EN ENERO DE 2027"}
+              {lang === "en"
+                ? `MEMBERSHIP OPENS ${launchDateStr ? launchDateStr.toUpperCase() : "SOON"}`
+                : `MEMBRESÍA ABRE ${launchDateStr ? launchDateStr.toUpperCase() : "PRÓXIMAMENTE"}`}
             </div>
             <p
               style={{
@@ -346,7 +365,9 @@ export function StickyCountdownBanner() {
                 fontWeight: 600,
               }}
             >
-              {lang === "en" ? "Opening January 2027" : "Apertura en enero 2027"}
+              {lang === "en"
+                ? `Opening ${launchDateStr || "Soon"}`
+                : `Apertura ${launchDateStr ? `en ${launchDateStr}` : "próximamente"}`}
             </div>
 
             <h3

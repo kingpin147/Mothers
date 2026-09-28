@@ -25,8 +25,8 @@ export default function LegalPage() {
     title: isEn ? "Terms & Conditions" : "Términos y Condiciones",
     meta: isEn ? "Last updated 27 September 2026 · Barcelona, Spain" : "Última actualización: 27 de septiembre de 2026 · Barcelona, España",
     intro: isEn
-      ? "These Terms govern your use of themothers.cc and of the account, credit wallet and events offered on it. The Mothers is a club for mothers in Barcelona. Membership is not yet on sale; until it opens in January 2027 the calendar is open to every mother on the terms below. By opening an account or booking a place you agree to be bound by these Terms."
-      : "Estos Términos regulan el uso de themothers.cc, así como de la cuenta, monedero de créditos y eventos ofrecidos en la web. The Mothers es un club para madres en Barcelona. La membresía aún no está a la venta; hasta su apertura en enero de 2027 el calendario está abierto a todas las madres según los términos que figuran a continuación. Al crear una cuenta o reservar una plaza, aceptas quedar vinculada por estos Términos.",
+      ? "These Terms govern your use of themothers.cc and of the account, credit wallet and events offered on it. The Mothers is a club for mothers in Barcelona. Membership is not yet on sale; until it opens the calendar is open to every mother on the terms below. By opening an account or booking a place you agree to be bound by these Terms."
+      : "Estos Términos regulan el uso de themothers.cc, así como de la cuenta, monedero de créditos y eventos ofrecidos en la web. The Mothers es un club para madres en Barcelona. La membresía aún no está a la venta; hasta su apertura el calendario está abierto a todas las madres según los términos que figuran a continuación. Al crear una cuenta o reservar una plaza, aceptas quedar vinculada por estos Términos.",
     sections: isEn
       ? [
           {
@@ -77,7 +77,7 @@ export default function LegalPage() {
           {
             n: "10",
             title: "When membership opens",
-            body: "Membership is expected to open in January 2027, at the rates published on the site at the time. Nothing on this page is an offer of membership or a promise of a place, and the terms of membership will be published in full before anyone is asked to pay for it. Accounts opened before membership opens will not pay a joining fee.",
+            body: "Membership is expected to open at the rates published on the site at the time. Nothing on this page is an offer of membership or a promise of a place, and the terms of membership will be published in full before anyone is asked to pay for it. Accounts opened before membership opens will not pay a joining fee.",
           },
           {
             n: "11",
@@ -159,7 +159,7 @@ export default function LegalPage() {
           {
             n: "10",
             title: "Apertura de membresía",
-            body: "La apertura de la membresía oficial está prevista para enero de 2027 a las tarifas vigentes en ese momento. Las cuentas creadas antes de la apertura disfrutarán de la exención permanente de la cuota de inscripción.",
+            body: "La apertura de la membresía oficial está prevista a las tarifas vigentes en ese momento. Las cuentas creadas antes de la apertura disfrutarán de la exención permanente de la cuota de inscripción.",
           },
           {
             n: "11",
@@ -210,7 +210,7 @@ export default function LegalPage() {
           {
             n: "02",
             title: "How we use it",
-            body: "To run your account and wallet, to confirm and manage your bookings, to send the practical emails an event needs — confirmations, meeting points, changes, and the reminder before credits expire — and, if you asked for it, the monthly letter. We will write to you once before January 2027 to tell you membership is opening; you can decline that at any time. We never use your data to sell to you on behalf of a partner without your direct request.",
+            body: "To run your account and wallet, to confirm and manage your bookings, to send the practical emails an event needs — confirmations, meeting points, changes, and the reminder before credits expire — and, if you asked for it, the monthly letter. We will write to you before membership opens to tell you membership is opening; you can decline that at any time. We never use your data to sell to you on behalf of a partner without your direct request.",
           },
           {
             n: "03",
@@ -262,7 +262,7 @@ export default function LegalPage() {
           {
             n: "02",
             title: "Cómo lo usamos",
-            body: "Para gestionar tu cuenta y monedero, confirmar reservas, enviar avisos y puntos de encuentro, y avisar 30 días antes de la caducidad de créditos. Te informaremos puntualmente antes de enero de 2027 de la apertura de la membresía.",
+            body: "Para gestionar tu cuenta y monedero, confirmar reservas, enviar avisos y puntos de encuentro, y avisar 30 días antes de la caducidad de créditos. Te informaremos puntualmente antes de la apertura de la membresía.",
           },
           {
             n: "03",

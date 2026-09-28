@@ -215,7 +215,6 @@ export default function AdminFinancePage() {
           {[
             { value: eur(sum(paid)), label: "Taken in " + monthLabel, color: "#39292a", note: `${paid.length} payments` },
             { value: eur(sum(subs)), label: "Recurring subscriptions", color: "#39292a", note: `${subs.length} payments` },
-            { value: eur(sum(passes)), label: "Event Passes", color: "#39292a", note: `${passes.length} passes` },
             { value: eur(sum(joining)), label: "Joining fees", color: "#39292a", note: `${joining.length} first payments` },
             { value: eur(sum(refunds)), label: "Refunded", color: WINE, note: `${refunds.length} refunds` },
             { value: eur(sum(failed)), label: "Failed, unrecovered", color: AMBER, note: `${failed.length} to chase` },
@@ -320,7 +319,6 @@ export default function AdminFinancePage() {
                 <option value="all">Every kind</option>
                 <option value="Subscription">Subscriptions</option>
                 <option value="Joining fee">Joining fees</option>
-                <option value="Event Pass">Event Passes</option>
                 <option value="Extra credits">Extra credits</option>
                 <option value="Refund">Refunds</option>
               </select>
@@ -416,7 +414,6 @@ export default function AdminFinancePage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
               {[
                 { label: "Subscriptions", value: eur(sum(subs)), pct: pct(sum(subs)) },
-                { label: "Event Passes", value: eur(sum(passes)), pct: pct(sum(passes)) },
                 { label: "Joining fees", value: eur(sum(joining)), pct: pct(sum(joining)) },
                 { label: "Extra credits", value: eur(sum(extra)), pct: pct(sum(extra)) },
                 { label: "Refunded", value: `−${eur(sum(refunds))}`, pct: pct(sum(refunds)) },

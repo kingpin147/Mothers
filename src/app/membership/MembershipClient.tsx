@@ -4,20 +4,9 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 
-// Countdown target: January 2027
-const TARGET_DATE = new Date("2027-01-06T00:00:00+01:00").getTime();
-
-interface MembershipClientProps {
-  initialWindowOpen?: boolean;
-  initialSpotsRemaining?: number;
-  nextWindowDate?: string | null;
-  autoOpenApply?: boolean;
-  publicSettings?: any;
-}
-
-function calculateTimeLeft() {
+function calculateTimeLeft(targetMs: number) {
   const now = new Date().getTime();
-  const diff = Math.max(0, TARGET_DATE - now);
+  const diff = Math.max(0, targetMs - now);
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -25,6 +14,14 @@ function calculateTimeLeft() {
   const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
   return { days, hours, minutes, seconds };
+}
+
+interface MembershipClientProps {
+  initialWindowOpen?: boolean;
+  initialSpotsRemaining?: number;
+  nextWindowDate?: string | null;
+  autoOpenApply?: boolean;
+  publicSettings?: any;
 }
 
 export default function MembershipClient({
@@ -37,7 +34,14 @@ export default function MembershipClient({
   const { language: lang } = useLanguage();
   const isEn = lang === "en";
 
-  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>(calculateTimeLeft);
+  const [targetDateMs, setTargetDateMs] = useState<number>(() => {
+    if (publicSettings?.expectedLaunch) {
+      return new Date(publicSettings.expectedLaunch).getTime();
+    }
+    return new Date("2027-01-06T00:00:00+01:00").getTime();
+  });
+
+  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>(() => calculateTimeLeft(targetDateMs));
   const [mounted, setMounted] = useState(false);
   const [waitlisted, setWaitlisted] = useState(false);
   const [modalOpen, setModalOpen] = useState(autoOpenApply);
@@ -58,17 +62,25 @@ export default function MembershipClient({
     import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
       getPublicClubSettings().then((s) => {
         if (s.membershipLive) setIsLive(true);
+        if (s.expectedLaunch) {
+          const ms = new Date(s.expectedLaunch).getTime();
+          if (!isNaN(ms)) {
+            setTargetDateMs(ms);
+          }
+        }
       }).catch(() => {});
     });
+  }, []);
 
+  useEffect(() => {
     const updateCountdown = () => {
-      setTimeLeft(calculateTimeLeft());
+      setTimeLeft(calculateTimeLeft(targetDateMs));
     };
 
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [targetDateMs]);
 
   const handlePrevWay = () => {
     if (waysRailRef.current) {

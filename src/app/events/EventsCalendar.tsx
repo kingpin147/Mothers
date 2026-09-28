@@ -1533,7 +1533,7 @@ export function TopUpModal({
               {lang === "en" ? `Add ${shortfall} ${shortfall === 1 ? "credit" : "credits"} — €2 each` : `Añadir ${shortfall} ${shortfall === 1 ? "crédito" : "créditos"} — 2€ cada uno`}
             </span>
             <span style={{ fontFamily: "var(--font-heading)", fontSize: "14.5px", color: "#7b1f2c", fontWeight: 600 }}>
-              &euro;{shortfall}
+              &euro;{shortfall * 2}
             </span>
           </div>
         </div>
@@ -2060,11 +2060,7 @@ export function GuestPassSuccessModal({
 interface EventCardProps {
   ev: PublicEvent;
   lang: Lang;
-  onOpenEventPass: (ev: PublicEvent) => void;
   onOpenFreeRsvp: (ev: PublicEvent) => void;
-  onOpenGuestNotOpen: (ev: PublicEvent) => void;
-  onOpenCeiling: (ev: PublicEvent) => void;
-  onOpenGuestFull: (ev: PublicEvent) => void;
   onOpenSignedOut: (ev: PublicEvent) => void;
   onOpenTopUp: (ev: PublicEvent) => void;
   onMemberBook: (ev: PublicEvent) => void;
@@ -2077,11 +2073,7 @@ interface EventCardProps {
 function EventCard({
   ev,
   lang,
-  onOpenEventPass,
   onOpenFreeRsvp,
-  onOpenGuestNotOpen,
-  onOpenCeiling,
-  onOpenGuestFull,
   onOpenSignedOut,
   onOpenTopUp,
   onMemberBook,
@@ -2090,7 +2082,6 @@ function EventCard({
   isMember,
   creditBalance = 0,
 }: EventCardProps) {
-  const eligible = isGuestPassEligible(ev, isMember);
   const isCancelled = ev.status === "cancelled";
   const isPast = ev.status === "past" || ev.status === "completed" ||
     (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
@@ -2118,16 +2109,6 @@ function EventCard({
       }
     } else {
       onOpenSignedOut(ev);
-    }
-  };
-
-  const handleGuestPassClick = () => {
-    if (eligible) {
-      onOpenEventPass(ev);
-    } else if (ev.creditCost > 18 || ev.isSignature) {
-      onOpenCeiling(ev);
-    } else {
-      onOpenGuestNotOpen(ev);
     }
   };
 
@@ -2397,21 +2378,7 @@ function EventCard({
                 ? `Places left: ${isFull ? 0 : (ev.capacityRemaining ?? ev.capacityTotal)} of ${ev.capacityTotal}`
                 : `Plazas libres: ${isFull ? 0 : (ev.capacityRemaining ?? ev.capacityTotal)} de ${ev.capacityTotal}`}
             </div>
-            {/* Note: Guest places closed if inside T-2 */}
-            {(() => {
-              const now = new Date();
-              const starts = new Date(ev.startsAt);
-              const diffDays = (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-              const isGuestClosed = !isMember && !ev.isSignature && (ev.creditCost <= 18) && (diffDays < 2 || (ev.guestCloseAt && now > new Date(ev.guestCloseAt)));
-              if (isGuestClosed && !isFull) {
-                return (
-                  <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
-                    {lang === "en" ? "Guest places have closed." : "Las plazas de invitada se han cerrado."}
-                  </div>
-                );
-              }
-              return null;
-            })()}
+
 
             {/* Member full waitlist note */}
             {isMember && isFull && (
@@ -2595,15 +2562,9 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [currentCreditBalance, setCurrentCreditBalance] = useState<number>(creditBalance);
   const [bookingLoadingId, setBookingLoadingId] = useState<string | null>(null);
   
-  // Modals state management for all 14 dialogs
-  const [guestPassSuccessModal, setGuestPassSuccessModal] = useState<boolean>(false);
   const [bookingSuccessEvent, setBookingSuccessEvent] = useState<PublicEvent | null>(null);
   const [waitlistSuccess, setWaitlistSuccess] = useState<{ event: PublicEvent; position: number } | null>(null);
-  const [eventPassEvent, setEventPassEvent] = useState<PublicEvent | null>(null);
   const [freeRsvpEvent, setFreeRsvpEvent] = useState<PublicEvent | null>(null);
-  const [guestNotOpenEvent, setGuestNotOpenEvent] = useState<PublicEvent | null>(null);
-  const [ceilingEvent, setCeilingEvent] = useState<PublicEvent | null>(null);
-  const [guestFullEvent, setGuestFullEvent] = useState<PublicEvent | null>(null);
   const [signedOutEvent, setSignedOutEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -2615,16 +2576,6 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   useEffect(() => {
     setCurrentCreditBalance(creditBalance);
   }, [creditBalance]);
-
-  // Check for guest_pass_success in URL params
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const query = new URLSearchParams(window.location.search);
-      if (query.get("guest_pass_success") === "true") {
-        setGuestPassSuccessModal(true);
-      }
-    }
-  }, []);
 
   // Intent preservation for returning signed-in members (§3 State 13)
   useEffect(() => {
@@ -3698,11 +3649,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                 key={ev.id}
                 ev={ev}
                 lang={lang}
-                onOpenEventPass={setEventPassEvent}
                 onOpenFreeRsvp={setFreeRsvpEvent}
-                onOpenGuestNotOpen={setGuestNotOpenEvent}
-                onOpenCeiling={(e) => setCeilingEvent(e)}
-                onOpenGuestFull={setGuestFullEvent}
                 onOpenSignedOut={setSignedOutEvent}
                 onOpenTopUp={(e) => setTopUpEvent(e)}
                 onMemberBook={handleMemberBook}
@@ -3716,15 +3663,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         )}
       </section>
 
-      {/* ─── MODALS (ALL 14 DIALOG STATES COVERED) ─── */}
-      {/* Guest Pass Confirmed (Stripe checkout return) */}
-      {guestPassSuccessModal && (
-        <GuestPassSuccessModal
-          lang={lang}
-          onClose={() => setGuestPassSuccessModal(false)}
-        />
-      )}
-
+      {/* ─── MODALS ─── */}
       {/* States 01, 02, 05: Booked / Reserved / Free walk */}
       {bookingSuccessEvent && (
         <BookingSuccessModal
@@ -3745,49 +3684,12 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         />
       )}
 
-      {/* States 14, 07, 08, 10: Event Pass multi-step flow */}
-      {eventPassEvent && (
-        <EventPassModal
-          event={eventPassEvent}
-          lang={lang}
-          onClose={() => setEventPassEvent(null)}
-          onOpenCeiling={() => setCeilingEvent(eventPassEvent)}
-        />
-      )}
-
       {/* State 06: Free walk — the open list */}
       {freeRsvpEvent && (
         <FreeWalkRsvpModal
           event={freeRsvpEvent}
           lang={lang}
           onClose={() => setFreeRsvpEvent(null)}
-        />
-      )}
-
-      {/* State 09: Guest places not open yet / closed / TBC */}
-      {guestNotOpenEvent && (
-        <GuestPlacesNotOpenModal
-          event={guestNotOpenEvent}
-          lang={lang}
-          onClose={() => setGuestNotOpenEvent(null)}
-        />
-      )}
-
-      {/* State 11: Members only / over the ceiling */}
-      {ceilingEvent && (
-        <CeilingModal
-          event={ceilingEvent}
-          lang={lang}
-          onClose={() => setCeilingEvent(null)}
-        />
-      )}
-
-      {/* State 12: Full — waitlist is members only */}
-      {guestFullEvent && (
-        <GuestFullModal
-          event={guestFullEvent}
-          lang={lang}
-          onClose={() => setGuestFullEvent(null)}
         />
       )}
 

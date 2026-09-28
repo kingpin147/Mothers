@@ -421,14 +421,10 @@ export async function getAdminDashboardMetrics() {
             opening_monthly_price_cents: "Opening monthly price",
             standard_monthly_price_cents: "Standard monthly price",
             quarterly_fee_cents: "Quarterly fee",
-            joining_fee_free_places: "Joining fee free places",
             monthly_grant_credits: "Monthly credits grant",
             rollover_cap_credits: "Rollover ceiling",
             referral_bonus_credits: "Godmother join bonus",
             godmother_three_month_bonus: "Godmother 3-month bonus",
-            guest_pass_price_cents: "Guest pass price",
-            pass_credit_ceiling: "Guest pass credit ceiling",
-            max_lifetime_guest_passes: "Max lifetime guest passes",
             pause_allowance_months: "Annual pause allowance",
           };
 
@@ -479,11 +475,8 @@ export async function getAdminDashboardMetrics() {
       if (log.action === "duplicate_event") {
         return "Duplicated event template";
       }
-      if (log.action === "open_guest_window") {
-        return "Opened guest booking window";
-      }
 
-      // 3. Bookings & Guest Tickets
+      // 3. Bookings & Attendance
       if (log.action === "book_event") {
         return "Booked seat using member credits";
       }
@@ -495,12 +488,6 @@ export async function getAdminDashboardMetrics() {
       }
       if (log.action === "manual_booking_cancelled") {
         return "Manually removed attendee from event and refunded credits";
-      }
-      if (log.action === "admin_guest_pass_issued") {
-        return "Issued complimentary guest ticket pass";
-      }
-      if (log.action === "guest_pass_refunded" || log.action === "release_guest_pass") {
-        return "Refunded guest ticket pass";
       }
       if (log.action === "phone_email_collision_flagged") {
         return "Flagged duplicate phone/email registration";

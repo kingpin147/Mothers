@@ -10,7 +10,7 @@ export interface FaqItemData {
 export const FAQ_GROUPS = [
   "Coming to an event now",
   "Credits and your wallet",
-  "Membership, from January 2027",
+  "Membership after launch",
   "The club itself",
 ] as const;
 
@@ -18,14 +18,14 @@ export type FaqGroupName = (typeof FAQ_GROUPS)[number];
 
 export const FAQ_GROUP_NOTES: Record<string, { en: string; es: string }> = {
   "Coming to an event now": {
-    en: "Everything on the calendar is open to everyone until January 2027.",
-    es: "Todo el calendario está abierto a todas hasta enero de 2027.",
+    en: "Everything on the calendar is open to everyone until membership opens.",
+    es: "Todo el calendario está abierto a todas hasta la apertura de la membresía.",
   },
   "Credits and your wallet": {
     en: "One wallet, no subscription, nothing that renews.",
     es: "Un único monedero, sin suscripción ni cobros recurrentes.",
   },
-  "Membership, from January 2027": {
+  "Membership after launch": {
     en: "What is coming, and what it means for anyone who came early.",
     es: "Lo que viene y las ventajas para quienes nos acompañen desde el inicio.",
   },
@@ -54,9 +54,9 @@ export const CANONICAL_FAQS: FaqItemData[] = [
   {
     group: "Coming to an event now",
     qEn: "What does an event cost?",
-    aEn: "Walks and park socials are free. A hosted coffee or brunch is 1 credit, a class or an expert session 6 to 9, a supper 7 to 12, and a signature moment 16 to 28. Every card shows its price in credits. From January 2027 each event has a member price and a non-member price, and cards show both.",
+    aEn: "Walks and park socials are free. A hosted coffee or brunch is 1 credit, a class or an expert session 6 to 9, a supper 7 to 12, and a signature moment 16 to 28. Every card shows its price in credits. After launch, each event has a member price and a non-member price, and cards show both.",
     qEs: "¿Cuánto cuesta un evento?",
-    aEs: "Los paseos y encuentros en el parque son gratuitos. Un café o brunch con anfitriona cuesta 1 crédito, una clase o taller con especialista entre 6 y 9, una cena entre 7 y 12, y un Signature moment entre 16 y 28. Cada ficha muestra su precio en créditos. A partir de enero de 2027 cada evento tendrá precio para socias y precio general.",
+    aEs: "Los paseos y encuentros en el parque son gratuitos. Un café o brunch con anfitriona cuesta 1 crédito, una clase o taller con especialista entre 6 y 9, una cena entre 7 y 12, y un Signature moment entre 16 y 28. Cada ficha muestra su precio en créditos. Tras el lanzamiento, cada evento tendrá precio para socias y precio general.",
   },
   {
     group: "Coming to an event now",
@@ -104,43 +104,43 @@ export const CANONICAL_FAQS: FaqItemData[] = [
   },
   {
     group: "Credits and your wallet",
-    qEn: "What happens to my credits in January 2027?",
+    qEn: "What happens to my credits when membership launches?",
     aEn: "They stay yours, with their six-month life intact, and you can spend them down exactly as before. What changes is that new credits come with membership, so a wallet without one will not be topped up again.",
-    qEs: "¿Qué pasará con mis créditos en enero de 2027?",
+    qEs: "¿Qué pasará con mis créditos cuando se lance la membresía?",
     aEs: "Seguirán siendo tuyos con su período de validez de 6 meses íntegro y podrás utilizarlos exactamente igual. La diferencia tras el lanzamiento es que los nuevos créditos vendrán incluidos con la membresía.",
   },
 
-  // 3. Membership, from January 2027
+  // 3. Membership after launch
   {
-    group: "Membership, from January 2027",
+    group: "Membership after launch",
     qEn: "Why not sell memberships now?",
     aEn: "Because a membership is a promise about a calendar, a community and a partner list, and all three should be real before anyone pays monthly for them. Until then you pay for the event you come to, and nothing else.",
     qEs: "¿Por qué no vender membresías ahora?",
     aEs: "Porque una membresía es un compromiso sobre un calendario consolidado, una comunidad activa y una red de colaboradoras de confianza. Todo ello debe estar vivo y demostrado antes de cobrar cuotas periódicas. Hasta entonces solo abonas la experiencia a la que asistes.",
   },
   {
-    group: "Membership, from January 2027",
+    group: "Membership after launch",
     qEn: "What will it cost?",
     aEn: "€39 a month or €99 every three months — one membership, one rate, two rhythms. Twenty credits are granted at the start of each month, so the calendar stays reachable all quarter rather than filling up in week one. Mothers who open an account before launch join without a joining fee.",
     qEs: "¿Cuánto costará la membresía?",
     aEs: "39€ al mes o 99€ cada tres meses: una sola membresía con dos ritmos de pago. Incluye 20 créditos mensuales. Todas las cuentas registradas antes del lanzamiento oficial disfrutarán de la exención de la cuota de inscripción.",
   },
   {
-    group: "Membership, from January 2027",
+    group: "Membership after launch",
     qEn: "Can I still come without membership?",
     aEn: "Yes. Members and non-members book the same events with credits — non-members pay the non-member price. Some events with limited places open to members first, and to everyone else from a date shown on the card.",
     qEs: "¿Podré asistir a eventos sin ser socia tras el lanzamiento?",
     aEs: "Sí. Socias y no socias podrán reservar eventos con créditos: las no socias abonarán la tarifa general. Ciertos encuentros con aforo muy reducido abrirán primero para socias y posteriormente al público general.",
   },
   {
-    group: "Membership, from January 2027",
+    group: "Membership after launch",
     qEn: "Am I first in line?",
-    aEn: "Anyone who has booked an event before January 2027 hears from us before membership opens publicly.",
+    aEn: "Anyone who has booked an event before launch hears from us before membership opens publicly.",
     qEs: "¿Tendré prioridad para unirme?",
-    aEs: "Cualquier madre que haya reservado un evento antes de enero de 2027 recibirá la invitación prioritaria antes de abrir las plazas al público.",
+    aEs: "Cualquier madre que haya reservado un evento antes del lanzamiento oficial recibirá la invitación prioritaria antes de abrir las plazas al público.",
   },
   {
-    group: "Membership, from January 2027",
+    group: "Membership after launch",
     qEn: "Will there still be free events?",
     aEn: "Walks and park socials stay free for members. Without membership you can still come to all of them, at a small non-member price in credits — every card shows both prices.",
     qEs: "¿Seguirá habiendo eventos gratuitos?",
@@ -193,9 +193,9 @@ export const CANONICAL_FAQS: FaqItemData[] = [
   {
     group: "The club itself",
     qEn: "Who are the partners?",
-    aEn: "One trusted specialist per category — a yoga studio, a sleep consultancy, a lactation service, a career coach, the places we book again and again. They run the sessions, and from January 2027 members get standing offers with them.",
+    aEn: "One trusted specialist per category — a yoga studio, a sleep consultancy, a lactation service, a career coach, the places we book again and again. They run the sessions, and after launch members get standing offers with them.",
     qEs: "¿Quiénes son los partners colaboradores?",
-    aEs: "Un colaborador especialista de referencia por categoría: estudios de yoga, asesoría de sueño, consultoría de lactancia, coaches profesionales. Imparten las sesiones y a partir de enero de 2027 ofrecerán ventajas exclusivas a las socias.",
+    aEs: "Un colaborador especialista de referencia por categoría: estudios de yoga, asesoría de sueño, consultoría de lactancia, coaches profesionales. Imparten las sesiones y tras el lanzamiento ofrecerán ventajas exclusivas a las socias.",
   },
   {
     group: "The club itself",

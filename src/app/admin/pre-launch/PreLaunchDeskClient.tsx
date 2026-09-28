@@ -155,7 +155,7 @@ export function PreLaunchDeskClient({ initialData }: PreLaunchDeskProps) {
           Pre-launch desk
         </h1>
         <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: "0 0 22px", maxWidth: "64ch" }}>
-          The operations desk running until membership opens in January 2027. Manage host applications, mark event attendance, moderate Circle posts, and audit pre-launch accounts.
+          The operations desk running until membership opens. Manage host applications, mark event attendance, moderate Circle posts, and audit pre-launch accounts.
         </p>
 
         {/* ─── STAT CARDS ─── */}
@@ -545,7 +545,7 @@ export function PreLaunchDeskClient({ initialData }: PreLaunchDeskProps) {
         {activeTab === "accounts" && (
           <div>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: "0 0 14px", maxWidth: "72ch" }}>
-              Accounts created before launch permanently waive the €19 joining fee. The list contains mothers subscribed to hear first when membership opens.
+              Accounts created before launch have no joining fee. The list contains mothers subscribed to hear first when membership opens.
             </p>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 480px), 1fr))", gap: "20px", alignItems: "start" }}>

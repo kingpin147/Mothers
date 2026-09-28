@@ -88,38 +88,14 @@ export async function POST(req: Request) {
         );
       }
 
-      let personId: string | null = null;
-      let personEmail: string | null = null;
-      let personRecord: any = null;
-
-      if (token) {
-        const appRecord = await db.query.application.findFirst({
-          where: eq(application.paymentLinkToken, token),
-        });
-
-        if (!appRecord || appRecord.status !== "accepted") {
-          return NextResponse.json({ error: "Invalid activation token" }, { status: 403 });
-        }
-
-        if (appRecord.acceptExpiresAt && new Date() > new Date(appRecord.acceptExpiresAt)) {
-          return NextResponse.json({ error: "Activation token expired" }, { status: 403 });
-        }
-
-        personId = appRecord.personId;
-      } else {
-        const session = await auth();
-        if (!session?.user?.id) {
-          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-        personId = (session.user as any).personId || session.user.id;
-        personEmail = session.user.email || null;
-      }
-
-      if (!personId) {
+      const session = await auth();
+      if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+      const personId = (session.user as any).personId || session.user.id;
+      let personEmail = session.user.email || null;
 
-      personRecord = await db.query.person.findFirst({
+      const personRecord = await db.query.person.findFirst({
         where: eq(person.id, personId),
       });
 

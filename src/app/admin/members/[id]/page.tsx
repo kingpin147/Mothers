@@ -206,10 +206,8 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
     : 'She stays a member to the end of the period already paid for and keeps every booking made. Credits do not carry past the end. This is reversible only by her rejoining in a window.';
   const statusConfirm = statusOpen === 'pause' ? 'Pause it' : 'End it';
 
-  // Determine Godmother stats matching member account format (MOTHERS-XXXX-BCN)
-  const godmotherCode = godmotherStats && godmotherStats.length > 0
-    ? godmotherStats[0].code
-    : `MOTHERS-${(member.firstName || "MEMBER").toUpperCase().slice(0, 4)}-BCN`;
+  // Determine Godmother stats
+  const godmotherCode = member.godmotherCode || (godmotherStats && godmotherStats.length > 0 ? godmotherStats[0].code : "");
   const friendsJoined = (godmotherStats || []).filter((g: any) => g.status === 'paid' || g.status === 'qualified').length;
   const bonusEarned = (godmotherStats || []).filter((g: any) => g.status === 'paid').length * 5;
 

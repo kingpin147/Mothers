@@ -224,6 +224,18 @@ export async function getAccountData(targetMemberId?: string) {
     const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
     const settings = await getPublicClubSettings();
 
+    let finalGodmotherCode = personRecord?.godmotherCode;
+    if (!finalGodmotherCode && personRecord?.id) {
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const namePrefix = (personRecord.firstName || "MEMBER").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4).padEnd(4, "X");
+      finalGodmotherCode = `MOTHERS-${namePrefix}${randomSuffix}-BCN`;
+      try {
+        await db.update(person).set({ godmotherCode: finalGodmotherCode }).where(eq(person.id, personRecord.id));
+      } catch (err) {
+        console.warn("Could not persist generated godmother code:", err);
+      }
+    }
+
     return {
       success: true,
       settings,
@@ -242,7 +254,7 @@ export async function getAccountData(targetMemberId?: string) {
         cancelAtPeriodEnd: !!memberRecord.cancelAtPeriodEnd,
         currentPeriodEnd: memberRecord.currentPeriodEnd ? new Date(memberRecord.currentPeriodEnd).toISOString() : null,
         createdBeforeLaunch: !!personRecord?.createdBeforeLaunch,
-        godmotherCode: personRecord?.godmotherCode || `MOTHERS-${(personRecord?.firstName || "MEMBER").toUpperCase().slice(0, 4)}-BCN`,
+        godmotherCode: finalGodmotherCode,
         hasActiveSubscription: !!memberRecord.stripeSubscriptionId && memberRecord.status === "active",
       },
       credits: {

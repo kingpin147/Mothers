@@ -141,18 +141,9 @@ export async function acceptApplication(applicationId: string) {
   });
 
   // Check joining fee waiver
-  const [totalAcceptedCount, recentPass] = await Promise.all([
-    db.select({ count: sql<number>`count(*)` }).from(member).where(sql`status IN ('active', 'accepted_awaiting_payment')`),
-    db.query.eventPass.findFirst({
-      where: and(
-        eq(eventPass.personId, personRecord.id),
-        sql`purchased_at >= NOW() - INTERVAL '30 days'`
-      ),
-    }),
-  ]);
+  const totalAcceptedCount = await db.select({ count: sql<number>`count(*)` }).from(member).where(sql`status IN ('active', 'accepted_awaiting_payment')`);
 
-  const isFirst50 = Number(totalAcceptedCount[0]?.count || 0) <= 50;
-  const hasRecentPass = !!recentPass;
+  const isFirst50 = Number(totalAcceptedCount[0]?.count || 0) <= 50 || personRecord.createdBeforeLaunch === true;
 
   let paymentBreakdownHtml = "";
   if (isFirst50) {
@@ -164,24 +155,6 @@ export async function acceptApplication(applicationId: string) {
 <tr>
 <td style="padding:6px 0;border-top:1px solid #ddd4c6;">First month</td>
 <td align="right" style="padding:6px 0;border-top:1px solid #ddd4c6;">€39</td>
-</tr>
-<tr>
-<td style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;font-weight:bold;">Total today</td>
-<td align="right" style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;color:#7b1f2c;font-weight:bold;">€39</td>
-</tr>`;
-  } else if (hasRecentPass) {
-    paymentBreakdownHtml = `
-<tr>
-<td style="padding:6px 0;">Joining fee — one time</td>
-<td align="right" style="padding:6px 0;">€19</td>
-</tr>
-<tr>
-<td style="padding:6px 0;border-top:1px solid #ddd4c6;">First month</td>
-<td align="right" style="padding:6px 0;border-top:1px solid #ddd4c6;">€39</td>
-</tr>
-<tr>
-<td style="padding:6px 0;border-top:1px solid #ddd4c6;">Event Pass credit (last 30 days)</td>
-<td align="right" style="padding:6px 0;border-top:1px solid #ddd4c6;color:#568b05;">−€19</td>
 </tr>
 <tr>
 <td style="padding:8px 0 0;border-top:1px solid #ddd4c6;font-size:17px;font-weight:bold;">Total today</td>

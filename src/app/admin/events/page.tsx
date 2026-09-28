@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MoreHorizontal, Users, CheckCircle, Edit2, Copy, Printer, X, Eye } from "lucide-react";
 import { getAdminEvents, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, publishAdminEvent } from "@/app/actions/adminEvents";
 import { deleteEvent } from "@/app/actions/events";
-import { getEventAttendees, adminMarkAttendance, adminManualBookMember, adminCancelMemberBooking, adminCancelGuestPass, adminRemoveGuestRsvp, adminAddGuestRsvp } from "@/app/actions/adminEventsControl";
+import { getEventAttendees, adminMarkAttendance, adminManualBookMember, adminCancelMemberBooking, adminRemoveGuestRsvp, adminAddGuestRsvp } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
 import ThemeLoader from "@/components/ThemeLoader";
@@ -64,13 +64,7 @@ export default function AdminEventsPage() {
   const [activeEventRoster, setActiveEventRoster] = useState<any | null>(null);
   const [rosterLoading, setRosterLoading] = useState(false);
   const [memberBookings, setMemberBookings] = useState<any[]>([]);
-  const [guestPasses, setGuestPasses] = useState<any[]>([]);
   const [guestRsvps, setGuestRsvps] = useState<any[]>([]);
-
-  // Guest Pass Form in Modal
-  const [guestForm, setGuestForm] = useState({ firstName: "", lastName: "", email: "" });
-  const [issuingPass, setIssuingPass] = useState(false);
-  const [generatedTicketUrl, setGeneratedTicketUrl] = useState<string | null>(null);
 
   // Free Walk / Open List RSVP Form in Modal
   const [guestRsvpForm, setGuestRsvpForm] = useState({ firstName: "", lastName: "", email: "", whatsappE164: "" });
@@ -118,13 +112,11 @@ export default function AdminEventsPage() {
   const openRosterModal = async (ev: any) => {
     setActiveEventRoster(ev);
     setRosterLoading(true);
-    setGeneratedTicketUrl(null);
     const res = await getEventAttendees(ev.id);
     setRosterLoading(false);
     if (res.success) {
       const mb = res.memberBookings || [];
       setMemberBookings(mb);
-      setGuestPasses(res.guestPasses || []);
       setGuestRsvps(res.guestRsvps || []);
       const available = allMembers.filter(m => !mb.some((b: any) => b.email === m.email));
       if (available.length > 0) {
@@ -141,7 +133,6 @@ export default function AdminEventsPage() {
       const refreshed = await getEventAttendees(activeEventRoster.id);
       if (refreshed.success) {
         setMemberBookings(refreshed.memberBookings || []);
-        setGuestPasses(refreshed.guestPasses || []);
         setGuestRsvps(refreshed.guestRsvps || []);
       }
     }
@@ -195,20 +186,6 @@ export default function AdminEventsPage() {
       loadData();
     } else {
       alert(res.error || "Failed to remove member.");
-    }
-  };
-
-  const handleCancelGuestPass = async (passId: string) => {
-    if (!confirm("Are you sure you want to remove this guest and mark their pass as refunded?")) return;
-    const res = await adminCancelGuestPass(passId);
-    if (res.success && activeEventRoster) {
-      const refreshed = await getEventAttendees(activeEventRoster.id);
-      if (refreshed.success) {
-        setGuestPasses(refreshed.guestPasses || []);
-      }
-      loadData();
-    } else {
-      alert(res.error || "Failed to cancel guest pass.");
     }
   };
 
@@ -331,10 +308,7 @@ export default function AdminEventsPage() {
     const min = ev.minToConfirm || 0;
     const booked = ev.bookingsCount || 0;
     const memberBooked = ev.memberBookingsCount || 0;
-    const guestBooked = ev.guestBookingsCount || 0;
-    const capGathering = ev.capacityGuestGathering;
     const isGathering = ev.status === "published_pending" || ev.status === "gathering";
-    const capInForce = isGathering && capGathering ? capGathering : ev.capacityGuest;
 
     let tMarker = "";
     let tColor = MUTED;
@@ -355,7 +329,7 @@ export default function AdminEventsPage() {
       tMarker = "Tomorrow";
       tColor = MUTED;
     } else if (daysUntil <= 2) {
-      tMarker = `T-${daysUntil} · guests closed`;
+      tMarker = `T-${daysUntil} · final days`;
       tColor = MUTED;
     } else if (daysUntil <= 7) {
       tMarker = `T-7 · ${booked >= min ? "minimum met" : "decide today"}`;
@@ -370,19 +344,6 @@ export default function AdminEventsPage() {
 
     const fillRatio = min > 0 ? booked / min : 1;
     const fillColor = fillRatio >= 1 ? GREEN : fillRatio < 0.5 ? WINE : AMBER;
-
-    const passActive = ev.showEventPassCta && !ev.isSignature && daysUntil > 2 && ev.status !== "cancelled" && ev.status !== "completed";
-    const passLabel = ev.isSignature
-      ? "No pass — members only"
-      : passActive
-      ? "Pass button on"
-      : daysUntil <= 2 && ev.status === "confirmed"
-      ? "Pass button off — guests closed"
-      : ev.isFreeWalk
-      ? "No pass needed"
-      : "Pass button off";
-
-    const passColor = passActive ? GREEN : MUTED;
 
     const isPast = ev.status === "completed" || ev.status === "past" ||
       (ev.endsAt ? new Date(ev.endsAt) < now : new Date(ev.startsAt) < now);
@@ -430,12 +391,8 @@ export default function AdminEventsPage() {
       tColor,
       fillRatio,
       fillColor,
-      passLabel,
-      passColor,
       statusNote,
       memberBooked,
-      guestBooked,
-      capInForce,
       isGathering,
       showDecision: isGathering && !isPast,
       statusColor: isPast ? MUTED : (STATUS_COLORS[ev.status] || MUTED),
@@ -679,7 +636,7 @@ export default function AdminEventsPage() {
               <div>Event</div>
               <div>When · schedule</div>
               <div>Booked / min</div>
-              <div>Guests · pass</div>
+              <div>Capacity</div>
               <div>Credits</div>
               <div>Status</div>
               <div>Actions</div>
@@ -757,9 +714,9 @@ export default function AdminEventsPage() {
                         <span style={{ border: "1px solid rgba(182,130,53,0.55)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", color: "#8a6220" }}>
                           {r.displayStage}
                         </span>
-                        {(r.isSignature || r.capacityGuest === 0) && (
+                        {(r.isSignature || r.capacityMember === 0) && (
                           <span style={{ border: "1px solid rgba(123,31,44,0.45)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", color: WINE }}>
-                            Members only
+                            Signature
                           </span>
                         )}
                       </div>
@@ -780,20 +737,17 @@ export default function AdminEventsPage() {
                         {r.displayState === "draft" ? "—" : r.minToConfirm > 0 ? `${r.bookingsCount} / ${r.minToConfirm}` : String(r.bookingsCount)}
                       </div>
                       <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
-                        {r.displayState === "draft" ? "minimum not set" : r.minToConfirm > 0 ? (r.bookingsCount === 0 ? "nothing yet" : `${r.memberBooked} members, ${r.guestBooked} guest`) : "no minimum · RSVP list"}
+                        {r.displayState === "draft" ? "minimum not set" : r.minToConfirm > 0 ? (r.bookingsCount === 0 ? "nothing yet" : `${r.bookingsCount} booked`) : "no minimum · RSVP list"}
                       </div>
                     </div>
 
-                    {/* Column 4: Guests · Pass */}
+                    {/* Column 4: Capacity */}
                     <div>
-                      <div style={{ fontSize: "13px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>
-                        {r.isSignature || r.capacityGuest === 0 ? "None — members only" : `${r.guestBooked} of ${r.capInForce}`}
+                      <div style={{ fontSize: "13px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
+                        {r.capacityMember} places
                       </div>
                       <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.65)", marginTop: "3px" }}>
-                        {r.isSignature ? "closed to guests" : r.capInForce !== r.capacityGuest ? `to be confirmed cap ${r.capInForce} in force` : "standing cap"}
-                      </div>
-                      <div style={{ marginTop: "6px", fontSize: "11.5px", lineHeight: 1.4, color: r.passColor }}>
-                        {r.passLabel}
+                        {r.isSignature ? "Signature gathering" : r.isFreeWalk ? "Free open walk" : "Club gathering"}
                       </div>
                     </div>
 
@@ -1090,7 +1044,7 @@ export default function AdminEventsPage() {
                 <strong style={{ fontWeight: 600 }}>Booked / min</strong> — members plus guests already booked, against the minimum this event needs to run. Amber under half at T-10, wine at the decision point.
               </div>
               <div>
-                <strong style={{ fontWeight: 600 }}>Guests · pass</strong> — guest places taken against whichever cap is in force: the standing figure, or the higher gathering figure while the event is short. Below it, whether the €35 Event Pass button is shown.
+                <strong style={{ fontWeight: 600 }}>Capacity</strong> — total places available for this event.
               </div>
               <div>
                 <strong style={{ fontWeight: 600 }}>When · schedule</strong> — the date, and where the event sits in its own T-schedule. Set per event, not hard-coded.
@@ -1108,9 +1062,6 @@ export default function AdminEventsPage() {
               </div>
               <div>
                 Cancelled events stay on the calendar with their reason. <strong style={{ fontWeight: 600 }}>There is no delete</strong> — archive only, and never once a booking exists.
-              </div>
-              <div>
-                Two Event Passes per person is global, set in settings. It never appears in the event editor.
               </div>
               <div>
                 A past event offers a roster and a duplicate. It cannot be cancelled.
@@ -1202,7 +1153,7 @@ export default function AdminEventsPage() {
                                   fontWeight: 600,
                                   textTransform: "uppercase",
                                   backgroundColor: isReleased ? "#fef2f2" : b.status === "attended" ? "#eef8f0" : b.status === "no_show" ? "#fef2f2" : "#f4ece2",
-                                  color: isReleased ? "#b91c1c" : b.status === "attended" ? "#1e6833" : b.status === "no_show" ? "#b91c1c" : WINE
+                                  color: isReleased ? "#b91c1c" : b.status === "attended" ? "#1e6833" : b.status === "no_show" ? "#b91c1c" : WINE,
                                 }}>
                                   {isReleased ? "Refunded / Released" : b.status}
                                 </span>
@@ -1333,82 +1284,6 @@ export default function AdminEventsPage() {
                                     >
                                       ✕ Remove
                                     </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                )}
-
-                {/* 3. Guest Passes List (For Paid Events) */}
-                {(!activeEventRoster.isFreeWalk && activeEventRoster.creditCost > 0) && (
-                  <div>
-                    <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
-                      <span>Guest Passes ({guestPasses.filter((gp: any) => gp.status !== "refunded" && gp.status !== "released").length})</span>
-                      <span style={{ fontSize: "13px", color: MUTED, fontWeight: 400 }}>Pass Capacity: {activeEventRoster.capacityGuest}</span>
-                    </h3>
-
-                    {guestPasses.length === 0 ? (
-                      <p style={{ fontSize: "13px", color: MUTED, padding: "12px", backgroundColor: "#fbf8f3", borderRadius: "4px" }}>
-                        No guest passes issued yet.
-                      </p>
-                    ) : (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                        <thead>
-                          <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
-                            <th style={{ padding: "8px 12px" }}>Guest</th>
-                            <th style={{ padding: "8px 12px" }}>Price</th>
-                            <th style={{ padding: "8px 12px" }}>Ticket Portal Link</th>
-                            <th style={{ padding: "8px 12px", textAlign: "right" }}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {guestPasses.map((gp) => {
-                            const isRefunded = gp.status === "refunded" || gp.status === "released";
-                            return (
-                              <tr key={gp.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)", opacity: isRefunded ? 0.6 : 1 }}>
-                                <td style={{ padding: "10px 12px" }}>
-                                  <div style={{ fontWeight: 600 }}>{gp.firstName} {gp.lastName}</div>
-                                  <div style={{ fontSize: "11.5px", color: MUTED }}>{gp.email}</div>
-                                </td>
-                                <td style={{ padding: "10px 12px", fontWeight: 600 }}>€{(gp.pricePaidCents / 100).toFixed(2)}</td>
-                                <td style={{ padding: "10px 12px" }}>
-                                  <a
-                                    href={gp.ticketUrl || `/ticket/${gp.id}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{ color: WINE, fontSize: "12px", textDecoration: "underline", display: "inline-flex", alignItems: "center" }}
-                                  >
-                                    Open Guest Ticket <ForwardArrow />
-                                  </a>
-                                </td>
-                                <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                                  <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                                    <span style={{
-                                      padding: "2px 6px",
-                                      borderRadius: "3px",
-                                      fontSize: "11px",
-                                      fontWeight: 600,
-                                      textTransform: "uppercase",
-                                      backgroundColor: isRefunded ? "#fef2f2" : "#eef8f0",
-                                      color: isRefunded ? "#b91c1c" : "#1e6833"
-                                    }}>
-                                      {isRefunded ? "Refunded" : gp.status}
-                                    </span>
-                                    {!isRefunded && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleCancelGuestPass(gp.id)}
-                                        title="Remove guest and mark pass refunded"
-                                        style={{ backgroundColor: "#fdf2f2", color: "#993842", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "3px", padding: "4px 9px", fontSize: "11px", fontWeight: 600, cursor: "pointer" }}
-                                      >
-                                        ✕ Remove &amp; Refund
-                                      </button>
-                                    )}
                                   </div>
                                 </td>
                               </tr>

@@ -235,6 +235,7 @@ export async function getAdminMemberDetail(memberId: string) {
       isSuspended: person.isSuspended,
       suspendedReason: person.suspendedReason,
       createdBeforeLaunch: person.createdBeforeLaunch,
+      godmotherCode: person.godmotherCode,
     })
     .from(member)
     .innerJoin(person, eq(member.personId, person.id))
@@ -272,12 +273,25 @@ export async function getAdminMemberDetail(memberId: string) {
         isSuspended: personRec.isSuspended,
         suspendedReason: personRec.suspendedReason,
         createdBeforeLaunch: personRec.createdBeforeLaunch !== false,
+        godmotherCode: personRec.godmotherCode,
       };
     }
   }
 
   if (!memberData) {
     return { success: false, error: "MEMBER_NOT_FOUND" };
+  }
+
+  if (!memberData.godmotherCode && targetPersonId) {
+    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const namePrefix = (memberData.firstName || "MEMBER").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4).padEnd(4, "X");
+    const generatedCode = `MOTHERS-${namePrefix}${randomSuffix}-BCN`;
+    try {
+      await db.update(person).set({ godmotherCode: generatedCode }).where(eq(person.id, targetPersonId));
+      memberData.godmotherCode = generatedCode;
+    } catch (err) {
+      console.warn("Could not persist godmother code for admin member:", err);
+    }
   }
 
   // 2. Fetch Ledger, Godmother Stats, Attendance, Contact History concurrently
