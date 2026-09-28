@@ -123,7 +123,7 @@ export const CANONICAL_FAQS: FaqItemData[] = [
     qEn: "What will it cost?",
     aEn: "€39 a month or €99 every three months — one membership, one rate, two rhythms. Twenty credits are granted at the start of each month, so the calendar stays reachable all quarter rather than filling up in week one. Mothers who open an account before launch join without a joining fee.",
     qEs: "¿Cuánto costará la membresía?",
-    aEs: "39€ al mes o 99€ cada tres meses: una sola membresía con dos ritmos de pago. Incluye 20 créditos mensuales. Todas las cuentas registradas antes del lanzamiento oficial disfrutarán de la exención de la cuota de inscripción (19€ gratis).",
+    aEs: "39€ al mes o 99€ cada tres meses: una sola membresía con dos ritmos de pago. Incluye 20 créditos mensuales. Todas las cuentas registradas antes del lanzamiento oficial disfrutarán de la exención de la cuota de inscripción.",
   },
   {
     group: "Membership, from January 2027",

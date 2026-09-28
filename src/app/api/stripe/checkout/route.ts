@@ -77,8 +77,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ url: stripeSession.url });
     }
 
-    // ─── 2. MEMBERSHIP ACTIVATION / DIRECT SUBSCRIPTION CHECKOUT (§M-04 / §M-07) ───
+    // ─── 2. MEMBERSHIP ACTIVATION / DIRECT SUBSCRIPTION CHECKOUT (§M-04 / §M-07 / §N-08) ───
     if (type === "membership" || type === "subscribe") {
+      const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+      const clubSettings = await getPublicClubSettings();
+      if (!clubSettings.membershipLive) {
+        return NextResponse.json(
+          { error: "Membership subscriptions are not available before launch." },
+          { status: 400 }
+        );
+      }
+
       let personId: string | null = null;
       let personEmail: string | null = null;
       let personRecord: any = null;

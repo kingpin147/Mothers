@@ -33,9 +33,9 @@ export async function publishAdminEvent(eventId: string) {
     return { success: false, error: "Member capacity cannot be negative." };
   }
 
-  const totalCap = ev.capacityMember + ev.capacityGuest;
+  const totalCap = ev.capacityMember;
   if (totalCap > 0 && ev.minToConfirm > totalCap) {
-    return { success: false, error: "Minimum to confirm cannot exceed total capacity (member + guest)." };
+    return { success: false, error: "Minimum to confirm cannot exceed event room capacity." };
   }
 
   // If minToConfirm is 0, skips pending and goes directly to confirmed (§4.3)
@@ -195,9 +195,9 @@ export async function createAdminEvent(data: {
     }
   }
 
-  const totalCap = data.capacityMember + data.capacityGuest;
+  const totalCap = data.capacityMember;
   if (totalCap > 0 && (data.minToConfirm || 0) > totalCap) {
-    return { success: false, error: "Minimum to confirm cannot exceed total capacity (member + guest)." };
+    return { success: false, error: "Minimum to confirm cannot exceed event room capacity." };
   }
 
   const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}-${Date.now().toString().slice(-4)}`;

@@ -13,6 +13,16 @@ export async function POST(req: Request) {
     if (type !== "membership") {
       return NextResponse.json({ error: "Only membership payment intents are supported" }, { status: 400 });
     }
+
+    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+    const clubSettings = await getPublicClubSettings();
+    if (!clubSettings.membershipLive) {
+      return NextResponse.json(
+        { error: "Membership subscriptions are not available before launch." },
+        { status: 400 }
+      );
+    }
+
     if (!memberId) return NextResponse.json({ error: "Missing memberId" }, { status: 400 });
 
     let personId: string | null = null;

@@ -34,12 +34,15 @@ export async function joinWaitlist(rawData: {
 
     // 2. If not, create person
     if (!personId) {
+      const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+      const clubSettings = await getPublicClubSettings();
       const [newPerson] = await db
         .insert(person)
         .values({
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
+          createdBeforeLaunch: !clubSettings.membershipLive,
         })
         .returning();
       personId = newPerson.id;

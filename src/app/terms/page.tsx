@@ -159,7 +159,7 @@ export default function LegalPage() {
           {
             n: "10",
             title: "Apertura de membresía",
-            body: "La apertura de la membresía oficial está prevista para enero de 2027 a las tarifas vigentes en ese momento. Las cuentas creadas antes de la apertura disfrutarán de la exención permanente de la cuota de inscripción (19€).",
+            body: "La apertura de la membresía oficial está prevista para enero de 2027 a las tarifas vigentes en ese momento. Las cuentas creadas antes de la apertura disfrutarán de la exención permanente de la cuota de inscripción.",
           },
           {
             n: "11",

@@ -428,49 +428,24 @@ export async function getPublicEventById(rawId: string) {
     });
     const timeStr = `${starts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} – ${ends.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
 
-    // Count active bookings for this event
-    const [memberCount, guestCount] = await Promise.all([
-      db.select({ count: sql<number>`count(*)::int` }).from(booking)
-        .where(and(eq(booking.eventId, id), eq(booking.kind, "member"), sql`${booking.status} IN ('held','confirmed')`)),
-      db.select({ count: sql<number>`count(*)::int` }).from(booking)
-        .where(and(eq(booking.eventId, id), eq(booking.kind, "guest"), sql`${booking.status} IN ('held','confirmed')`)),
-    ]);
+    // Count active bookings for this event (single capacity field: capacityMember)
+    const activeBookingsCount = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(booking)
+      .where(and(eq(booking.eventId, id), sql`${booking.status} IN ('held','confirmed')`));
 
-    const bookedMember = Number(memberCount[0]?.count || 0);
-    const bookedGuest = Number(guestCount[0]?.count || 0);
-    const placesTaken = bookedMember + bookedGuest;
+    const placesTaken = Number(activeBookingsCount[0]?.count || 0);
+    const bookedMember = placesTaken;
+    const bookedGuest = 0;
 
-    const memberCap = ev.capacityMember || 0;
-    const guestCap = ev.capacityGuest || 0;
-    const capSum = memberCap + guestCap;
-    const capacityTotal = capSum > 0 ? capSum : null;
+    const capacityTotal = ev.capacityMember > 0 ? ev.capacityMember : null;
     const capacityRemaining = capacityTotal !== null ? Math.max(0, capacityTotal - placesTaken) : null;
     const isFull = capacityTotal !== null && capacityTotal > 0 && capacityRemaining !== null && capacityRemaining <= 0;
-    const isGuestFull = guestCap > 0 && bookedGuest >= guestCap;
+    const isGuestFull = false;
     const spotsRemaining = capacityRemaining;
+    const guestPassEligible = false;
 
-    // Guest pass eligibility: confirmed, non-signature, ≤18 credits, inside guest window, not full, and not guest full
     const now = new Date();
-    let guestPassEligible =
-      ev.status === "confirmed" &&
-      !ev.isSignature &&
-      ev.creditCost <= 18 &&
-      !isGuestFull &&
-      !isFull;
-
-    if (guestPassEligible) {
-      if (ev.guestOpenAt && now < new Date(ev.guestOpenAt)) {
-        guestPassEligible = false;
-      } else if (ev.guestCloseAt && now > new Date(ev.guestCloseAt)) {
-        guestPassEligible = false;
-      } else if (!ev.guestOpenAt && !ev.guestCloseAt) {
-        const daysUntil = Math.round((starts.getTime() - now.getTime()) / 86400000);
-        if (daysUntil < 2 || daysUntil > 14) {
-          guestPassEligible = false;
-        }
-      }
-    }
-
     const daysUntil = Math.round((starts.getTime() - now.getTime()) / 86400000);
 
     return {

@@ -54,10 +54,17 @@ export default function EventDetailPage() {
   const [isAlreadyBooked, setIsAlreadyBooked] = useState(false);
   const [isAlreadyWaitlisted, setIsAlreadyWaitlisted] = useState(false);
   const [userWaitlistPos, setUserWaitlistPos] = useState<number | null>(null);
+  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("tm_lang");
     if (saved === "es" || saved === "en") setLang(saved as Lang);
+
+    import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
+      getPublicClubSettings().then((s) => {
+        if (s.membershipLive) setIsLive(true);
+      }).catch(() => {});
+    });
   }, []);
 
   const loadEvent = useCallback(() => {
@@ -418,9 +425,13 @@ export default function EventDetailPage() {
                 </p>
               )}
               <p style={{ margin: 0 }}>
-                {lang === "en"
-                  ? "Until January 2027 this event is open to every mother, member or not. You book for yourself, and the place is yours the moment it is confirmed."
-                  : "Hasta enero de 2027 este evento está abierto a todas las madres, socias o no. Reservas para ti y la plaza es tuya en cuanto se confirma."}
+                {isLive
+                  ? (lang === "en"
+                    ? "This event is open to members and non-members. You book for yourself, and the place is yours the moment it is confirmed."
+                    : "Este evento está abierto a socias y no socias. Reservas para ti y la plaza es tuya en cuanto se confirma.")
+                  : (lang === "en"
+                    ? "Before membership launch, this event is open to every mother, member or not. You book for yourself, and the place is yours the moment it is confirmed."
+                    : "Antes del lanzamiento de la membresía, este evento está abierto a todas las madres, socias o no. Reservas para ti y la plaza es tuya en cuanto se confirma.")}
               </p>
             </div>
           </div>

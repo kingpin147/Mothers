@@ -16,13 +16,13 @@ const STRINGS = {
     dateLabel: 'Date', whereLabel: 'Meeting point', paidLabel: 'Paid',
     keepNote: 'Arrive a few minutes early if you can, and someone will be looking out for you. The group will mostly know each other — come as you are.',
     joinKicker: 'After the event',
-    joinBody: 'If this turns out to be your kind of room, we waive the joining fee when you join within 30 days of the event — so your first payment is just the month itself, €39 — and you begin with 20 credits.',
+    joinBody: 'If this turns out to be your kind of room, discover what membership includes — enjoy member prices on every event and 20 monthly credits.',
     joinCta: 'See what membership includes',
     changeKicker: 'If your plans change',
     changeBody: 'Changing your mind is not refunded, but the place should not sit empty. Release it here and it goes to the next mother waiting. If the event itself does not go ahead, you are refunded in full without doing anything.',
     releaseCta: 'Release my place',
     releaseConfirmTitle: 'Release your place?',
-    releaseConfirmBody: 'This frees your seat for another mother. It cannot be undone, and the €35 is not refunded — you would need to book again if you change your mind. (If we cancel the event, you are refunded in full automatically.)',
+    releaseConfirmBody: 'This frees your seat for another mother. It cannot be undone — you would need to book again if you change your mind. (If we cancel the event, you are refunded in full automatically.)',
     releaseConfirmCta: 'Yes, release it',
     releaseKeep: 'Keep my place',
     releasedKicker: 'Place released',
@@ -32,7 +32,7 @@ const STRINGS = {
     releasedSecondary: 'Look at membership',
     expiredKicker: 'This link has expired',
     expiredTitle: 'That event has passed.',
-    expiredBody: 'Event Pass links close once the event is over. If you came, we hope it was a good table. If something went wrong, write to us — we read every message.',
+    expiredBody: 'Ticket links close once the event is over. If you came, we hope it was a good table. If something went wrong, write to us — we read every message.',
     help: 'Anything at all,',
     footer: 'A private membership club for mothers · Barcelona',
     demoKicker: 'Prototype states',
@@ -48,13 +48,13 @@ const STRINGS = {
     dateLabel: 'Fecha', whereLabel: 'Punto de encuentro', paidLabel: 'Pagado',
     keepNote: 'Llega unos minutos antes si puedes, y alguien estará pendiente de ti. La mayoría del grupo ya se conoce — ven tal como eres.',
     joinKicker: 'Después del evento',
-    joinBody: 'Si esta resulta ser tu sala, te quitamos la cuota de inscripción si te unes en los 30 días siguientes al evento — tu primer pago es solo el mes, 39€ — y empiezas con 20 créditos.',
+    joinBody: 'Si esta resulta ser tu sala, descubre todo lo que incluye la membresía — disfruta de tarifa de socia en cada encuentro y 20 créditos mensuales.',
     joinCta: 'Ver qué incluye la membresía',
     changeKicker: 'Si te cambian los planes',
     changeBody: 'Si cambias de idea no hay devolución, pero la plaza no debería quedarse vacía. Libérala aquí y pasa a la siguiente madre en espera. Si el evento no se celebra, te devolvemos el importe íntegro sin que tengas que hacer nada.',
     releaseCta: 'Liberar mi plaza',
     releaseConfirmTitle: '¿Liberar tu plaza?',
-    releaseConfirmBody: 'Esto deja tu sitio libre para otra madre. No se puede deshacer y los 35€ no se devuelven — tendrías que reservar de nuevo si cambias de idea.',
+    releaseConfirmBody: 'Esto deja tu sitio libre para otra madre. No se puede deshacer — tendrías que reservar de nuevo si cambias de idea.',
     releaseConfirmCta: 'Sí, liberarla',
     releaseKeep: 'Quedarme con mi plaza',
     releasedKicker: 'Plaza liberada',
@@ -80,14 +80,14 @@ const DEMO = {
     title: "MoM's date — Vermut on Bonavista",
     meetingPoint: 'Carrer de Bonavista 6 — the back room, ask for The Mothers',
     neighbourhood: 'Gràcia',
-    paid: '€35 · card ending 4242'
+    paid: 'Credits · confirmed'
   },
   es: {
     name: 'Alex',
     title: "MoM's date — Vermut en Bonavista",
     meetingPoint: 'Carrer de Bonavista 6 — la sala del fondo, pregunta por The Mothers',
     neighbourhood: 'Gràcia',
-    paid: '35€ · tarjeta terminada en 4242'
+    paid: 'Créditos · confirmada'
   }
 };
 

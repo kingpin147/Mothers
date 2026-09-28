@@ -48,11 +48,18 @@ export default function MembershipClient({
   const [subSuccess, setSubSuccess] = useState(false);
 
   const waysRailRef = useRef<HTMLDivElement>(null);
+  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem("tm_pre_joined_list");
     if (saved) setWaitlisted(true);
+
+    import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
+      getPublicClubSettings().then((s) => {
+        if (s.membershipLive) setIsLive(true);
+      }).catch(() => {});
+    });
 
     const updateCountdown = () => {
       setTimeLeft(calculateTimeLeft());
@@ -246,7 +253,9 @@ export default function MembershipClient({
               marginBottom: "14px",
             }}
           >
-            {isEn ? "Membership · opening January 2027" : "Membresía · apertura enero 2027"}
+            {isLive
+              ? (isEn ? "Membership · Now open" : "Membresía · Abierta")
+              : (isEn ? "Membership · opening soon" : "Membresía · próxima apertura")}
           </div>
 
           <h1
@@ -424,8 +433,8 @@ export default function MembershipClient({
 
           <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(248,239,226,0.82)", margin: "14px 0 20px" }}>
             {isEn
-              ? "To join without a joining fee, open your account before January 2027 — it is created the first time you book an event, even a free walk."
-              : "Para unirte sin cuota de alta, abre tu cuenta antes de enero de 2027 — se crea la primera vez que reservas un evento, incluso un paseo gratuito."}
+              ? "No joining fee if you join before launch — your account is created the first time you book an event, even a free walk."
+              : "Sin cuota de alta si te unes antes del lanzamiento — se crea tu cuenta la primera vez que reservas un evento, incluso un paseo gratuito."}
           </p>
 
           <div
@@ -845,9 +854,13 @@ export default function MembershipClient({
                 maxWidth: "50ch",
               }}
             >
-              {isEn
-                ? "Ask for advice at three in the morning, share a win, find the mother down the street. The Circle is open to read today — and from January 2027, members get a private room of their own."
-                : "Pide consejo a las tres de la mañana, comparte un logro o encuentra a una madre de tu misma calle. The Circle está abierto para leer hoy — y a partir de enero de 2027, las socias tendrán su propia sala privada."}
+              {isLive
+                ? (isEn
+                  ? "Ask for advice at three in the morning, share a win, find the mother down the street. Members enjoy their own private rooms and discussions."
+                  : "Pide consejo a las tres de la mañana, comparte un logro o encuentra a una madre de tu misma calle. Las socias disfrutan de sus propias salas y debates privados.")
+                : (isEn
+                  ? "Ask for advice at three in the morning, share a win, find the mother down the street. The Circle is open to read today — and from launch, members get a private room of their own."
+                  : "Pide consejo a las tres de la mañana, comparte un logro o encuentra a una madre de tu misma calle. The Circle está abierto para leer hoy — y a partir del lanzamiento, las socias tendrán su propia sala privada.")}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
               <Link
@@ -1141,8 +1154,8 @@ export default function MembershipClient({
                 </h3>
                 <p style={{ fontSize: "14.5px", color: "rgba(57, 41, 42, 0.75)", margin: 0 }}>
                   {isEn
-                    ? "We will write to you before membership opens in January 2027."
-                    : "Te escribiremos antes de que abra la membresía en enero de 2027."}
+                    ? "We will write to you before membership opens."
+                    : "Te escribiremos antes de que abra la membresía."}
                 </p>
               </div>
             ) : (
@@ -1158,7 +1171,9 @@ export default function MembershipClient({
                     marginBottom: "8px",
                   }}
                 >
-                  {isEn ? "Early Access" : "Acceso preferente"}
+                  {isLive
+                    ? (isEn ? "Stay in touch" : "Mantente al día")
+                    : (isEn ? "Early Access" : "Acceso preferente")}
                 </div>
                 <h3
                   style={{
@@ -1173,8 +1188,8 @@ export default function MembershipClient({
                 </h3>
                 <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 20px" }}>
                   {isEn
-                    ? "Hear first when founding memberships open in January 2027 and lock in zero joining fee."
-                    : "Sé la primera en enterarte cuando abran las membresías fundadoras en enero de 2027 y ahórrate la cuota de alta."}
+                    ? "Hear first when memberships open. No joining fee if you join before launch."
+                    : "Sé la primera en enterarte cuando abran las membresías. Sin cuota de alta si te unes antes del lanzamiento."}
                 </p>
 
                 <form onSubmit={handleJoinListSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

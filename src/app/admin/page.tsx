@@ -151,7 +151,7 @@ export default function AdminDashboardPage() {
     { kicker: 'Queue 01 · Membership', title: 'Applications & intake', body: 'Read one at a time, accept with the 72-hour payment link, or decline to the waitlist.', cta: 'Open the queue', href: '/admin/applications' },
     { kicker: 'Queue 02 · Events', title: 'Calendar & thresholds', body: 'Publish gatherings, set minimums and decision points, confirm or cancel with automatic refunds.', cta: 'Open the calendar', href: '/admin/events' },
     { kicker: 'Queue 03 · Member care', title: 'Directory & credit ledger', body: 'Search by name, stage or neighbourhood, spot at-risk accounts, adjust credits with a reason.', cta: 'Open the directory', href: '/admin/members' },
-    { kicker: 'Queue 04 · Finance', title: 'Payments & revenue', body: 'Subscriptions, €35 Event Passes, €19 joining fees, refunds and shop orders.', cta: 'Open the ledger', href: '/admin/finance' }
+    { kicker: 'Queue 04 · Finance', title: 'Payments & revenue', body: 'Subscriptions, credit top-ups, member fees, refunds and shop orders.', cta: 'Open the ledger', href: '/admin/finance' }
   ];
   const cms = [
     { label: 'The Circle — Reports & Moderation Queue', href: '/admin/reports' },

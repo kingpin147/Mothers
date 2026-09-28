@@ -120,7 +120,7 @@ export const person = pgTable(
     locale: text("locale").default("es").notNull(),
     isMother: boolean("is_mother").default(true).notNull(),
     marketingOptIn: boolean("marketing_opt_in").default(false).notNull(),
-    createdBeforeLaunch: boolean("created_before_launch").default(true).notNull(),
+    createdBeforeLaunch: boolean("created_before_launch").default(false).notNull(),
     isPaused: boolean("is_paused").default(false).notNull(),
     pausedReason: text("paused_reason"),
     isSuspended: boolean("is_suspended").default(false).notNull(),

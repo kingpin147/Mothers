@@ -1235,11 +1235,14 @@ export async function saveJournalPost(rawData: {
           // Ensure Person record exists for foreign key constraint in emailLog
           let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
           if (!personRecord) {
+            const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+            const clubSettings = await getPublicClubSettings();
             const [p] = await db.insert(person).values({
               firstName: sub.name || "Subscriber",
               lastName: "",
               email: cleanEmail,
               source: "subscriber",
+              createdBeforeLaunch: !clubSettings.membershipLive,
             }).returning();
             personRecord = p;
           }

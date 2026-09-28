@@ -38,24 +38,60 @@ export async function GET(req: NextRequest) {
       holdsCleaned++;
     }
 
-    // 2. Check for abandoned bookings created 1-2 hours ago to send a gentle reminder
+    // 2. Check for abandoned bookings created in the last 24 hours to send Place Still Open reminder (§N-11)
     const abandonedCandidates = await db
       .select({
         bookingId: booking.id,
         personId: booking.personId,
         eventId: booking.eventId,
         createdAt: booking.createdAt,
+        personEmail: person.email,
+        personFirstName: person.firstName,
+        eventTitle: event.title,
+        eventStartsAt: event.startsAt,
+        eventStatus: event.status,
       })
       .from(booking)
       .innerJoin(event, eq(booking.eventId, event.id))
+      .innerJoin(person, eq(booking.personId, person.id))
       .where(
         and(
           eq(booking.status, "released"),
           sql`${booking.releasedAt} IS NOT NULL`,
           sql`${booking.createdAt} >= NOW() - INTERVAL '24 hours'`,
-          sql`${booking.createdAt} <= NOW() - INTERVAL '30 minutes'`
+          sql`${booking.createdAt} <= NOW() - INTERVAL '30 minutes'`,
+          sql`${event.startsAt} > NOW()`,
+          sql`${event.status} IN ('confirmed', 'published_pending')`
         )
       );
+
+    const { sendPlaceStillOpenEmail } = await import("@/lib/brevo");
+
+    for (const cand of abandonedCandidates) {
+      // Ensure the mother hasn't subsequently confirmed another booking for this event
+      const activeBooking = await db.query.booking.findFirst({
+        where: and(
+          eq(booking.personId, cand.personId),
+          eq(booking.eventId, cand.eventId),
+          sql`${booking.status} IN ('held', 'confirmed')`
+        ),
+      });
+
+      if (activeBooking) continue;
+
+      try {
+        await sendPlaceStillOpenEmail({
+          personId: cand.personId,
+          email: cand.personEmail,
+          firstName: cand.personFirstName || "Friend",
+          eventTitle: cand.eventTitle,
+          eventId: cand.eventId,
+        });
+        remindersSent++;
+      } catch (sendErr) {
+        console.warn(`[abandoned-checkout] Failed to send reminder to ${cand.personEmail}:`, sendErr);
+      }
+    }
 
     await db.insert(jobRun).values({
       jobKey: "abandoned_checkout_cleaner",

@@ -219,20 +219,17 @@ export default function AdminEditEventPage() {
     setLoadingAction(status);
 
     const parsedMember = memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces);
-    const parsedGuest = membersOnly ? 0 : (parseInt(guestPlaces) || 0);
-    const totalCap = parsedMember === 0 ? 0 : (parsedMember + parsedGuest);
+    const totalCap = parsedMember;
     const parsedMin = minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0);
 
     if (totalCap > 0 && parsedMin > totalCap) {
-      alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Room Capacity (${totalCap} = ${parsedMember} members + ${parsedGuest} guests).`);
+      alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Room Capacity (${totalCap}).`);
       setLoadingAction(null);
       return;
     }
 
     const start = new Date(startsAt);
     const resolvedDecisionAt = calculateDate(startsAt, schDecision);
-    const resolvedGuestOpenAt = calculateDate(startsAt, schGuestsOpen);
-    const resolvedGuestCloseAt = calculateDate(startsAt, schGuestsClose);
 
     if (status === "published_pending" && parsedMin > 0) {
       if (resolvedDecisionAt && resolvedDecisionAt.getTime() <= Date.now()) {
@@ -260,16 +257,13 @@ export default function AdminEditEventPage() {
       endsAt: new Date(endsAt),
       creditCost: freeEvent ? 0 : (parseInt(creditCost) || 0),
       capacityMember: memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces),
-      capacityGuest: membersOnly ? 0 : (parseInt(guestPlaces) || 0),
-      capacityGuestGathering: membersOnly ? 0 : (parseInt(guestGathering) || undefined),
+      capacityGuest: 0,
       minToConfirm: minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
       description,
       languages: langs,
       targetStages: stages,
-      showEventPassCta: passCta,
+      showEventPassCta: false,
       changeNote: changeNote.trim() || undefined,
-      guestOpenAt: resolvedGuestOpenAt,
-      guestCloseAt: resolvedGuestCloseAt,
       decisionAt: resolvedDecisionAt,
       status: status as any,
     });

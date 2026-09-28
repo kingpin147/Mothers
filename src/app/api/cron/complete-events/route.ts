@@ -112,7 +112,7 @@ export async function GET(req: NextRequest) {
 </style>
 </head>
 <body style="margin:0;padding:0;background-color:#efeae1;">
-<span style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">It was good to have you. Your €35 comes off your membership for the next thirty days.</span>
+<span style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">It was good to have you at ${ev.title}.</span>
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
 <tr>
@@ -137,7 +137,7 @@ export async function GET(req: NextRequest) {
 <td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
 <p style="margin:0 0 16px;"><span style="color:#7b1f2c;">${attendee.firstName || "Member"}</span>,</p>
 <p style="margin:0 0 16px;">Thank you for coming to <span style="color:#7b1f2c;">${ev.title}</span>. I hope you left with at least one number in your phone — that is the only measure of these nights that matters to us.</p>
-<p style="margin:0;">If you want to keep going, here is what is coming up for mothers at your stage. You have one Event Pass left — after that it is membership, or the free walks, which are always open to you.</p>
+<p style="margin:0;">If you want to keep going, explore what is coming up next on our calendar, or join our community.</p>
 </td>
 </tr>
 
@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
 <tr>
 <td style="padding:0 24px 20px;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
 <div style="padding:10px 0;border-top:1px solid #ddd4c6;">
-<span style="color:#2A1E20;">See all upcoming walks & gatherings</span><br>
+<a href="${getAppUrl()}/events" style="color:#2A1E20;text-decoration:none;font-weight:bold;">See all upcoming walks & gatherings</a><br>
 <span style="color:#8a807a;font-size:14px;">Barcelona · Free & Member Events</span>
 </div>
 </td>
@@ -164,12 +164,12 @@ export async function GET(req: NextRequest) {
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #ddd4c6;background-color:#f3efe6;">
 <tr>
 <td style="padding:22px 24px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
-<div style="font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:10px;">Your €35 is waiting</div>
-<p style="margin:0 0 14px;font-size:15px;line-height:25px;mso-line-height-rule:exactly;">Join within <strong style="font-weight:normal;color:#7b1f2c;">thirty days</strong> of last night and the €35 you already paid comes off your membership — against the €19 joining fee first, then your first month.</p>
+<div style="font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:10px;">Membership</div>
+<p style="margin:0 0 14px;font-size:15px;line-height:25px;mso-line-height-rule:exactly;">Enjoy member rates on every event, monthly credit allowances, and our private community circle.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td bgcolor="#7b1f2c" style="border-radius:4px;">
-<a href="${getAppUrl()}/membership" style="display:block;padding:14px 30px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">Join The Mothers</a>
+<a href="${getAppUrl()}/membership" style="display:block;padding:14px 30px;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:22px;mso-line-height-rule:exactly;color:#faf7f1;text-decoration:none;">Explore Membership</a>
 </td>
 </tr>
 </table>
@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
 <tr>
 <td class="px" style="padding:30px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#5c534e;">
 <p style="margin:0 0 14px;">And if it was not for you, that is genuinely fine — tell me why and it will make the next one better. Reply straight to this email.</p>
-<p style="margin:0;">Either way, our walks stay free and open to you. No membership, no pass, just come.</p>
+<p style="margin:0;">Either way, our walks stay free and open to you. Just come.</p>
 </td>
 </tr>
 

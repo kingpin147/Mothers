@@ -565,8 +565,8 @@ function AccountPageContent() {
                   </div>
                   <div style={{ fontSize: "14px", color: "#39292a", marginTop: "4px", lineHeight: "1.5" }}>
                     {lang === "en"
-                      ? "Because you joined before our January 2027 membership launch, your €19 joining fee is permanently waived. You pay only pay-as-you-go credits for gatherings."
-                      : "Al haberte unido antes del lanzamiento de enero de 2027, tu cuota de alta de 19€ queda exenta permanentemente. Solo pagas los créditos por encuentro que utilices."}
+                      ? "Because you joined before launch, there is no joining fee if you join before launch. You pay only pay-as-you-go credits for gatherings."
+                      : "Al haberte unido antes del lanzamiento, no pagarás cuota de alta si te unes antes del lanzamiento. Solo pagas los créditos por encuentro que utilices."}
                   </div>
                 </div>
               </div>
@@ -1561,8 +1561,8 @@ function AccountPageContent() {
                   }}
                 >
                   {lang === "en"
-                    ? "Until full club launch, all gatherings are booked with credits (€2 per credit) with no recurring fee. When memberships open, you will have first priority and your €19 joining fee is waived."
-                    : "Hasta el lanzamiento completo del club, todos los encuentros se reservan con créditos (2€ por crédito) sin cuota recurrente. Cuando se abra la membresía tendrás prioridad y tu cuota de alta de 19€ quedará exenta."}
+                    ? "Until full club launch, all gatherings are booked with credits (€2 per credit) with no recurring fee. No joining fee if you join before launch."
+                    : "Hasta el lanzamiento completo del club, todos los encuentros se reservan con créditos (2€ por crédito) sin cuota recurrente. Sin cuota de alta si te unes antes del lanzamiento."}
                 </p>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
@@ -1579,7 +1579,7 @@ function AccountPageContent() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {lang === "en" ? "✓ Early Mother — No joining fee (€19 waived)" : "✓ Madre Pionera — Sin cuota de alta (19€ exentos)"}
+                    {lang === "en" ? "✓ Early Mother — No joining fee if you join before launch" : "✓ Madre Pionera — Sin cuota de alta si te unes antes del lanzamiento"}
                   </span>
                 </div>
               </div>

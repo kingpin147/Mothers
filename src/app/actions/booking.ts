@@ -141,7 +141,7 @@ export async function bookEvent(eventId: string) {
       }
 
       const currentActiveCount = Number(activeBookingsResult[0]?.count || 0);
-      const totalCapacity = (ev.capacityMember || 0) + (ev.capacityGuest || 0);
+      const totalCapacity = ev.capacityMember || 0;
       if (totalCapacity > 0 && currentActiveCount >= totalCapacity) {
         throw new Error("EVENT_FULL");
       }
@@ -750,7 +750,7 @@ export async function claimWaitlistOffer(waitlistId: string) {
         );
 
       const currentActiveCount = Number(activeBookingsCount[0]?.count || 0);
-      const totalCapacity = (ev.capacityMember || 0) + (ev.capacityGuest || 0);
+      const totalCapacity = ev.capacityMember || 0;
       if (totalCapacity > 0 && currentActiveCount >= totalCapacity) {
         throw new Error("EVENT_FULL");
       }

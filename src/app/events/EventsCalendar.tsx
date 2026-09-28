@@ -236,30 +236,8 @@ export function getEventDisplayDesc(ev: PublicEvent, lang: Lang): string | null 
   return ev.description;
 }
 
-export function isGuestPassEligible(ev: PublicEvent, isMember: boolean): boolean {
-  if (isMember) return false;
-  if (ev.creditCost === 0 || ev.isFreeWalk) return false;
-  if (ev.isSignature || ev.creditCost > 18) return false;
-  if (ev.status === "cancelled" || ev.status === "completed") return false;
-  if (ev.isFull || ev.isGuestFull) return false;
-
-  // If explicitly activated by admin in the backend:
-  if (ev.showEventPassCta) return true;
-
-  if (ev.status !== "confirmed") return false;
-
-  const starts = new Date(ev.startsAt);
-  const now = new Date();
-
-  if (ev.guestOpenAt && now < new Date(ev.guestOpenAt)) return false;
-  if (ev.guestCloseAt && now > new Date(ev.guestCloseAt)) return false;
-
-  if (!ev.guestOpenAt && !ev.guestCloseAt) {
-    const diffDays = (starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-    return diffDays >= 2 && diffDays <= 14;
-  }
-
-  return true;
+export function isGuestPassEligible(_ev: PublicEvent, _isMember: boolean): boolean {
+  return false;
 }
 
 function getCategoryInfo(ev: PublicEvent, lang: Lang): { key: string; label: string } {

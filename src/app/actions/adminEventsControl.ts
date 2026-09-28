@@ -400,77 +400,12 @@ export async function adminManualBookMember(data: {
   return { success: true };
 }
 
-const adminIssueGuestPassSchema = z.object({
-  eventId: z.string().min(1),
-  firstName: z.string().min(1).trim(),
-  lastName: z.string().trim().default(""),
-  email: z.string().trim().toLowerCase().email(),
-});
+// ─── 4. ADMIN ISSUE GUEST PASS (DEPRECATED) ──────────────────────────────────
 
-// ─── 4. ADMIN ISSUE GUEST PASS DIRECTLY ──────────────────────────────────────
-
-export async function adminIssueGuestPass(data: {
-  eventId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-}) {
-  const parsed = adminIssueGuestPassSchema.safeParse(data);
-  if (!parsed.success) { console.error("Parse Error:", parsed.error); return { success: false, error: "INVALID_INPUT" }; }
-  const validData = parsed.data;
-
-  const { adminId } = await verifyAdmin();
-  const cleanEmail = validData.email;
-
-  // 1. Find or create Person
-  let p = await db.query.person.findFirst({
-    where: eq(person.email, cleanEmail),
-  });
-
-  if (!p) {
-    const createdPerson = await db
-      .insert(person)
-      .values({
-        firstName: validData.firstName,
-        lastName: validData.lastName,
-        email: cleanEmail,
-        isMother: true,
-        source: "admin_guest_pass",
-      })
-      .returning();
-    p = createdPerson[0];
-  }
-
-  // 2. Generate 32-byte cryptographic token
-  const ticketToken = crypto.randomBytes(32).toString("hex");
-  const ticketTokenHash = crypto.createHash("sha256").update(ticketToken).digest("hex");
-  const creditExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-  const createdPass = await db
-    .insert(eventPass)
-    .values({
-      eventId: validData.eventId,
-      personId: p.id,
-      ticketTokenHash,
-      priceCents: 3500,
-      status: "paid",
-      creditExpiresAt,
-    })
-    .returning();
-
-  await db.insert(auditLog).values({
-    actorId: adminId,
-    actorType: "admin",
-    action: "admin_guest_pass_issued",
-    entity: "event_pass",
-    entityId: createdPass[0].id,
-    after: { email: cleanEmail, eventId: validData.eventId },
-  });
-
+export async function adminIssueGuestPass(_data: any) {
   return {
-    success: true,
-    ticketToken,
-    ticketUrl: `${getAppUrl()}/ticket/${ticketToken}`,
+    success: false,
+    error: "Event passes have been discontinued. All bookings use member or non-member credits.",
   };
 }
 

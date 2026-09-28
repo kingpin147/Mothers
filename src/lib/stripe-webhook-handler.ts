@@ -10,7 +10,6 @@ import {
   creditBatch,
   event as eventTable,
   booking,
-  eventPass,
   application,
 } from "@/db/schema";
 import { eq, and, or, sql, inArray } from "drizzle-orm";
@@ -496,7 +495,7 @@ async function handleMembershipCheckout({
     const initialCredits = isQuarterly ? 60 : 20;
     await grantCreditsToPerson(mem.personId, initialCredits, "subscription", 6, tx);
 
-    // 6. Godmother referral bonus (§10 / §A-03): Grant +5 credits to Godmother if referred
+    // 6. Godmother referral bonus (§10 / §A-03): Grant referral bonus credits from admin setting
     const godmotherPersonId =
       personRecord.referredByPersonId ||
       (mem.referredByMemberId
@@ -504,7 +503,11 @@ async function handleMembershipCheckout({
         : null);
 
     if (godmotherPersonId) {
-      await grantCreditsToPerson(godmotherPersonId, 5, "godmother", 6, tx);
+      const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+      const clubSettings = await getPublicClubSettings();
+      const bonusCredits = clubSettings.referralBonusCredits || 5;
+
+      await grantCreditsToPerson(godmotherPersonId, bonusCredits, "godmother", 6, tx);
 
       const godmother = await tx.query.person.findFirst({
         where: eq(person.id, godmotherPersonId),
@@ -519,13 +522,13 @@ async function handleMembershipCheckout({
         const htmlContent = renderPublicEmailTemplate("Email - Godmother Credited.html", {
           first_name: godmother.firstName || "Godmother",
           friend_first_name: personRecord.firstName || "Your friend",
-          bonus: 5,
+          bonus: bonusCredits,
           balance: newBalance,
           account_url: `${origin}/account`,
         }) || `
           <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #fdf8f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
             <h2 style="color: #7b1f2c; margin-top: 0;">${isEsGm ? "¡Gracias por compartir The Mothers!" : "Thank you for sharing The Mothers!"}</h2>
-            <p>${isEsGm ? `Tu amiga ${personRecord.firstName} se ha unido. Hemos añadido <strong>5 créditos</strong> a tu cuenta.` : `Your friend ${personRecord.firstName} has joined. We've added <strong>5 credits</strong> to your wallet.`}</p>
+            <p>${isEsGm ? `Tu amiga ${personRecord.firstName} se ha unido. Hemos añadido <strong>${bonusCredits} créditos</strong> a tu cuenta.` : `Your friend ${personRecord.firstName} has joined. We've added <strong>${bonusCredits} credits</strong> to your wallet.`}</p>
             <p style="margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
           </div>
         `;
@@ -536,7 +539,7 @@ async function handleMembershipCheckout({
           toName: `${godmother.firstName || ""} ${godmother.lastName || ""}`.trim() || "Godmother",
           templateKey: "godmother_credited",
           dedupeKey: `godmother_reward_${mem.personId}`,
-          subject: isEsGm ? "+5 créditos por tu recomendación — The Mothers" : "+5 credits for your referral — The Mothers",
+          subject: isEsGm ? `+${bonusCredits} créditos por tu recomendación — The Mothers` : `+${bonusCredits} credits for your referral — The Mothers`,
           htmlContent,
           isTransactional: true,
         });

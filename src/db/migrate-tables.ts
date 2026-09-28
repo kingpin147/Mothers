@@ -292,7 +292,7 @@ async function main() {
 
     // 12. Pre-membership columns & tables
     await sql.unsafe(`
-      ALTER TABLE person ADD COLUMN IF NOT EXISTS created_before_launch boolean DEFAULT true NOT NULL;
+      ALTER TABLE person ADD COLUMN IF NOT EXISTS created_before_launch boolean DEFAULT false NOT NULL;
       ALTER TABLE person ADD COLUMN IF NOT EXISTS is_paused boolean DEFAULT false NOT NULL;
       ALTER TABLE person ADD COLUMN IF NOT EXISTS paused_reason text;
 

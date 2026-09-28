@@ -98,9 +98,20 @@ export async function subscribeToLetter(rawEmail: string) {
     });
 
     // 2. Record in person & waitlistEntry
+    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+    const clubSettings = await getPublicClubSettings();
     let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
     if (!personRecord) {
-      const [p] = await db.insert(person).values({ firstName: "", lastName: "", email: cleanEmail, source: "letter" }).returning();
+      const [p] = await db
+        .insert(person)
+        .values({
+          firstName: "",
+          lastName: "",
+          email: cleanEmail,
+          source: "letter",
+          createdBeforeLaunch: !clubSettings.membershipLive,
+        })
+        .returning();
       personRecord = p;
     }
     const existing = await db.query.waitlistEntry.findFirst({ where: eq(waitlistEntry.personId, personRecord.id) });
@@ -141,9 +152,20 @@ export async function subscribeToComingSoon(rawEmail: string, rawName?: string) 
     });
 
     // 2. Record in person & waitlistEntry
+    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+    const clubSettings = await getPublicClubSettings();
     let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
     if (!personRecord) {
-      const [p] = await db.insert(person).values({ firstName: name || "", lastName: "", email: cleanEmail, source: "coming_soon" }).returning();
+      const [p] = await db
+        .insert(person)
+        .values({
+          firstName: name || "",
+          lastName: "",
+          email: cleanEmail,
+          source: "coming_soon",
+          createdBeforeLaunch: !clubSettings.membershipLive,
+        })
+        .returning();
       personRecord = p;
     }
     const existing = await db.query.waitlistEntry.findFirst({ where: eq(waitlistEntry.personId, personRecord.id) });

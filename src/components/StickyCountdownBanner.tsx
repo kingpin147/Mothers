@@ -371,8 +371,8 @@ export function StickyCountdownBanner() {
               }}
             >
               {lang === "en"
-                ? "Mothers on this list receive pre-launch invitations and waive the €19 joining fee."
-                : "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento y se les eximirá de la cuota de alta de 19€."}
+                ? "Mothers on this list receive pre-launch invitations. No joining fee if you join before launch."
+                : "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento. Sin cuota de alta si te unes antes del lanzamiento."}
             </p>
 
             {joined ? (
@@ -398,8 +398,8 @@ export function StickyCountdownBanner() {
                   }}
                 >
                   {lang === "en"
-                    ? "We'll write before membership opens in January 2027, and your €19 joining fee will be permanently waived."
-                    : "Te escribiremos antes de que abra la membresía en enero de 2027 y tu cuota de alta de 19€ quedará exonerada."}
+                    ? "We'll write before membership opens, and there is no joining fee if you join before launch."
+                    : "Te escribiremos antes de la apertura de la membresía y no pagarás cuota de alta si te unes antes del lanzamiento."}
                 </p>
                 <div
                   style={{

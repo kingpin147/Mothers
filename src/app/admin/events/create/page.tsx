@@ -154,20 +154,17 @@ export default function AdminCreateEventPage() {
     setLoadingAction(status);
     
     const parsedMember = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
-    const parsedGuest = membersOnly ? 0 : (noCeiling ? 0 : (parseInt(guestPlaces) || 0));
-    const totalCap = noCeiling ? 0 : (parsedMember + parsedGuest);
+    const totalCap = noCeiling ? 0 : parsedMember;
     const parsedMin = noMinimum ? 0 : (parseInt(minToConfirm) || 0);
 
     if (!noCeiling && totalCap > 0 && parsedMin > totalCap) {
-      alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Room Capacity (${totalCap} = ${parsedMember} members + ${parsedGuest} guests).`);
+      alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Room Capacity (${totalCap}).`);
       setLoadingAction(null);
       return;
     }
 
     const start = new Date(startsAt);
     const resolvedDecisionAt = calculateDate(startsAt, schDecision);
-    const resolvedGuestOpenAt = calculateDate(startsAt, schGuestsOpen);
-    const resolvedGuestCloseAt = calculateDate(startsAt, schGuestsClose);
 
     if (status === "published_pending" && parsedMin > 0) {
       if (resolvedDecisionAt && resolvedDecisionAt.getTime() <= Date.now()) {
@@ -196,16 +193,13 @@ export default function AdminCreateEventPage() {
       creditCost: freeEvent ? 0 : (parseInt(creditCost) || 0),
       // 0 = uncapped (no ceiling). When noCeiling is checked, store 0 explicitly.
       capacityMember: noCeiling ? 0 : (memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces)),
-      // When noCeiling is on, guests are also uncapped (they share the same unlimited event).
-      capacityGuest: membersOnly ? 0 : (noCeiling ? 0 : (parseInt(guestPlaces) || 0)),
+      capacityGuest: 0,
       minToConfirm: noMinimum || minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0),
       description,
       status,
       languages: langs,
       targetStages: stages,
-      showEventPassCta: passCta,
-      guestOpenAt: resolvedGuestOpenAt,
-      guestCloseAt: resolvedGuestCloseAt,
+      showEventPassCta: false,
       decisionAt: resolvedDecisionAt,
       publishedAt: status === "published_pending" ? new Date() : undefined,
     });

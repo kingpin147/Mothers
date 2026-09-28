@@ -61,10 +61,17 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("tm_pre_joined_list");
     if (saved) setWaitlisted(true);
+
+    import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
+      getPublicClubSettings().then((s) => {
+        if (s.membershipLive) setIsLive(true);
+      }).catch(() => {});
+    });
   }, []);
 
   const handleJoinList = async (e: React.FormEvent) => {
@@ -678,8 +685,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 </span>
                 <br />
                 {lang === "en"
-                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother you bring, once you become a member (January 2027)</>
-                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre que traigas al hacerte socia (enero 2027)</>}
+                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother you bring, once you become a member{isLive ? "" : " (from launch)"}</>
+                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre que traigas al hacerte socia{isLive ? "" : " (desde el lanzamiento)"}</>}
               </span>
             </div>
 
@@ -695,7 +702,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
         </div>
       </section>
 
-      {/* ─── 5. FROM JANUARY 2027 (VISUAL 4-CARD GRID) ─── */}
+      {/* ─── 5. MEMBERSHIP / PREVIEW (VISUAL 4-CARD GRID) ─── */}
       <section
         style={{
           maxWidth: "1160px",
@@ -726,7 +733,9 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                   marginBottom: "8px",
                 }}
               >
-                {lang === "en" ? "FROM JANUARY 2027" : "DESDE ENERO DE 2027"}
+                {isLive
+                  ? (lang === "en" ? "MEMBERSHIP" : "MEMBRESÍA")
+                  : (lang === "en" ? "FROM LAUNCH" : "DESDE EL LANZAMIENTO")}
               </div>
 
               <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(26px, 3.4vw, 36px)", lineHeight: 1.15, margin: 0 }}>
@@ -943,7 +952,9 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 fontWeight: 600,
               }}
             >
-              {lang === "en" ? "Opening January 2027" : "Apertura en enero 2027"}
+              {isLive
+                ? (lang === "en" ? "Stay in touch" : "Mantente al día")
+                : (lang === "en" ? "Early access" : "Acceso preferente")}
             </div>
 
             <h3
@@ -968,8 +979,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               }}
             >
               {lang === "en"
-                ? "Mothers on this list receive pre-launch invitations and waive the €19 joining fee."
-                : "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento y se les eximirá de la cuota de alta de 19€."}
+                ? "Mothers on this list receive pre-launch invitations. No joining fee if you join before launch."
+                : "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento. Sin cuota de alta si te unes antes del lanzamiento."}
             </p>
 
             <form onSubmit={handleJoinList} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

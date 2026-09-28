@@ -328,7 +328,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
               {
                 key: "single",
                 label: "One price for everyone",
-                note: "Until January 2027. Everyone pays the member price; one figure on every card.",
+                note: "Before launch, everyone pays the non-member price; one figure on every card.",
                 example: "4 credits",
               },
               {

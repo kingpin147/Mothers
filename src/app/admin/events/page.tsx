@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MoreHorizontal, Users, CheckCircle, Edit2, Copy, Printer, X, Eye } from "lucide-react";
 import { getAdminEvents, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, publishAdminEvent } from "@/app/actions/adminEvents";
 import { deleteEvent } from "@/app/actions/events";
-import { getEventAttendees, adminMarkAttendance, adminIssueGuestPass, adminManualBookMember, adminCancelMemberBooking, adminCancelGuestPass, adminRemoveGuestRsvp, adminAddGuestRsvp } from "@/app/actions/adminEventsControl";
+import { getEventAttendees, adminMarkAttendance, adminManualBookMember, adminCancelMemberBooking, adminCancelGuestPass, adminRemoveGuestRsvp, adminAddGuestRsvp } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
 import ThemeLoader from "@/components/ThemeLoader";
@@ -209,29 +209,6 @@ export default function AdminEventsPage() {
       loadData();
     } else {
       alert(res.error || "Failed to cancel guest pass.");
-    }
-  };
-
-  const handleIssueGuest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!guestForm.firstName || !guestForm.email || !activeEventRoster) return;
-    setIssuingPass(true);
-    const res = await adminIssueGuestPass({
-      eventId: activeEventRoster.id,
-      firstName: guestForm.firstName,
-      lastName: guestForm.lastName,
-      email: guestForm.email,
-    });
-    setIssuingPass(false);
-    if (res.success) {
-      setGeneratedTicketUrl(res.ticketUrl || null);
-      setGuestForm({ firstName: "", lastName: "", email: "" });
-      const refreshed = await getEventAttendees(activeEventRoster.id);
-      if (refreshed.success) {
-        setGuestPasses(refreshed.guestPasses || []);
-      }
-    } else {
-      alert("Failed to issue guest pass.");
     }
   };
 
@@ -1515,50 +1492,6 @@ export default function AdminEventsPage() {
                           {addingRsvp ? "Adding..." : "+ Add to Open List"}
                         </button>
                       </form>
-                    </div>
-                  )}
-
-                  {/* Direct Guest Pass Issue (Only if event has credit cost) */}
-                  {(!activeEventRoster.isFreeWalk && activeEventRoster.creditCost > 0) && (
-                    <div style={{ backgroundColor: "#fbf8f3", padding: "18px", borderRadius: "6px", border: "1px solid rgba(57,41,42,0.15)" }}>
-                      <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Issue €35 Guest Ticket Pass</h4>
-                      <p style={{ fontSize: "12px", color: MUTED, margin: "0 0 12px" }}>Generates a unique payment link. The guest is only confirmed once they complete checkout.</p>
-                      <form onSubmit={handleIssueGuest} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                          <input
-                            type="text"
-                            placeholder="First Name"
-                            value={guestForm.firstName}
-                            onChange={(e) => setGuestForm({ ...guestForm, firstName: e.target.value })}
-                            required
-                            style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
-                          />
-                          <input
-                            type="text"
-                            placeholder="Last Name"
-                            value={guestForm.lastName}
-                            onChange={(e) => setGuestForm({ ...guestForm, lastName: e.target.value })}
-                            style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
-                          />
-                        </div>
-                        <input
-                          type="email"
-                          placeholder="guest@example.com"
-                          value={guestForm.email}
-                          onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
-                          required
-                          style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
-                        />
-                        <button type="submit" disabled={issuingPass} style={{ backgroundColor: "#fff", color: WINE, border: `1px solid ${WINE}`, borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                          {issuingPass ? "Generating..." : <>Generate Guest Ticket <ForwardArrow /></>}
-                        </button>
-                      </form>
-
-                      {generatedTicketUrl && (
-                        <div style={{ marginTop: "10px", padding: "8px 12px", backgroundColor: "#eef8f0", border: "1px solid #bbf7d0", borderRadius: "4px", fontSize: "12px" }}>
-                          ✓ Ticket Created! <a href={generatedTicketUrl} target="_blank" rel="noreferrer" style={{ fontWeight: 600, color: "#1e6833", textDecoration: "underline" }}>View Ticket Link</a>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
