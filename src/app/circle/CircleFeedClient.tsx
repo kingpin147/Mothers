@@ -38,10 +38,12 @@ export function CircleFeedClient({
   initialPosts,
   currentUser,
   eligibility,
+  trendingTopics = [],
 }: {
   initialPosts: PostItem[];
   currentUser: any;
   eligibility: { canPost: boolean; reason?: string; totalBookings?: number };
+  trendingTopics?: { topic: string; label: string; score: number; postCount: number }[];
 }) {
   const { language: lang } = useLanguage();
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
@@ -1044,21 +1046,28 @@ export function CircleFeedClient({
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-              {[
-                { tagEn: "Sleep regression at 4 months", tagEs: "Regresión de sueño a los 4 meses", topicId: "sleep" },
-                { tagEn: "Nursery lists for 2027", tagEs: "Lista de guarderías 2027", topicId: "schools" },
-                { tagEn: "Pelvic floor physios", tagEs: "Fisio de suelo pélvico", topicId: "postpartum" },
-                { tagEn: "Winter walks", tagEs: "Paseos de invierno", topicId: "friends" },
-                { tagEn: "Going back at 80%", tagEs: "Volver al 80%", topicId: "work" },
-                { tagEn: "Feeding in public", tagEs: "Lactancia en público", topicId: "feeding" },
-              ].map((item, idx) => {
-                const isActive = customTagFilter === item.tagEn;
+              {(trendingTopics && trendingTopics.length > 0
+                ? trendingTopics.map((t) => ({
+                    tagEn: t.label,
+                    tagEs: TOPICS.find((x) => x.id === t.topic)?.labelEs || t.label,
+                    topicId: t.topic,
+                  }))
+                : [
+                    { tagEn: "Sleep regression at 4 months", tagEs: "Regresión de sueño a los 4 meses", topicId: "sleep" },
+                    { tagEn: "Nursery lists for 2027", tagEs: "Lista de guarderías 2027", topicId: "schools" },
+                    { tagEn: "Pelvic floor physios", tagEs: "Fisio de suelo pélvico", topicId: "postpartum" },
+                    { tagEn: "Winter walks", tagEs: "Paseos de invierno", topicId: "friends" },
+                    { tagEn: "Going back at 80%", tagEs: "Volver al 80%", topicId: "work" },
+                    { tagEn: "Feeding in public", tagEs: "Lactancia en público", topicId: "feeding" },
+                  ]
+              ).map((item, idx) => {
+                const isActive = selectedFilter === item.topicId || customTagFilter === item.tagEn;
                 return (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => {
-                      if (customTagFilter === item.tagEn) {
+                      if (selectedFilter === item.topicId) {
                         setCustomTagFilter(null);
                         setSelectedFilter("all");
                       } else {
@@ -1189,45 +1198,6 @@ export function CircleFeedClient({
             >
               What membership will be →
             </Link>
-          </div>
-
-          {/* Talked About This Week */}
-          <div style={{ border: "1px solid rgba(57, 41, 42, 0.2)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", marginBottom: "12px" }}>
-              {lang === "en" ? "Talked about this week" : "Temas más comentados"}
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
-              {[
-                { label: "Sleep regression at 4 months", topic: "sleep" },
-                { label: "Nursery lists for 2027", topic: "schools" },
-                { label: "Pelvic floor physios", topic: "postpartum" },
-                { label: "Winter walks", topic: "friends" },
-                { label: "Going back at 80%", topic: "work" },
-                { label: "Feeding in public", topic: "feeding" },
-              ].map((item, idx) => {
-                const isActive = selectedFilter === item.topic;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setSelectedFilter(isActive ? "all" : item.topic)}
-                    style={{
-                      border: isActive ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.22)",
-                      backgroundColor: isActive ? "#7b1f2c" : "transparent",
-                      color: isActive ? "#fdf8f2" : "#39292a",
-                      borderRadius: "14px",
-                      padding: "6px 13px",
-                      fontFamily: "'Lora', Georgia, serif",
-                      fontSize: "12.5px",
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </aside>
       </section>

@@ -44,18 +44,13 @@ export async function getPublicEvents() {
           startsAt: event.startsAt,
           endsAt: event.endsAt,
           creditCost: event.creditCost,
-          guestPriceCents: event.guestPriceCents,
           capacityMember: event.capacityMember,
-          capacityGuest: event.capacityGuest,
           minToConfirm: event.minToConfirm,
           isSignature: event.isSignature,
           isFreeWalk: event.isFreeWalk,
           status: event.status,
           childcare: event.childcare,
           languages: event.languages,
-          showEventPassCta: event.showEventPassCta,
-          guestOpenAt: event.guestOpenAt,
-          guestCloseAt: event.guestCloseAt,
           decisionAt: event.decisionAt,
           cancelReason: event.cancelReason,
           needsHost: event.needsHost,
@@ -184,12 +179,9 @@ export async function getPublicEvents() {
       const placesTaken = bookedMember + bookedGuest;
 
       const memberCap = ev.capacityMember || 0;
-      const guestCap = ev.capacityGuest || 0;
-      const capSum = memberCap + guestCap;
-      const capacityTotal = capSum > 0 ? capSum : null;
+      const capacityTotal = memberCap > 0 ? memberCap : null;
       const capacityRemaining = capacityTotal !== null ? Math.max(0, capacityTotal - placesTaken) : null;
       const isFull = capacityTotal !== null && capacityTotal > 0 && capacityRemaining !== null && capacityRemaining <= 0;
-      const isGuestFull = guestCap > 0 && bookedGuest >= guestCap;
 
       const audienceType = ev.childcare === "adults_only" ? "moms_only" : "moms_child";
       
@@ -228,7 +220,6 @@ export async function getPublicEvents() {
         capacityTotal,
         capacityRemaining,
         isFull,
-        isGuestFull,
         audienceType,
         languages: ev.languages || ["es", "en"],
         targetStages: stagesMap.get(ev.id) || [],
@@ -391,16 +382,12 @@ export async function getPublicEventById(rawId: string) {
         startsAt: event.startsAt,
         endsAt: event.endsAt,
         creditCost: event.creditCost,
-        guestPriceCents: event.guestPriceCents,
         capacityMember: event.capacityMember,
-        capacityGuest: event.capacityGuest,
         minToConfirm: event.minToConfirm,
         isSignature: event.isSignature,
         isFreeWalk: event.isFreeWalk,
         status: event.status,
         stageAffinity: eventCategory.stageAffinity,
-        guestOpenAt: event.guestOpenAt,
-        guestCloseAt: event.guestCloseAt,
         decisionAt: event.decisionAt,
         childcare: event.childcare,
         languages: event.languages,

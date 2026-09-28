@@ -173,7 +173,6 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
     payment_receipt: "Payment receipt",
     payment_failed: "Payment failed notification",
     password_reset: "Password reset link",
-    guest_pass_issued: "Guest pass confirmation",
     ticket_released: "Seat released confirmation",
     booking_confirmed: "Event booking confirmation",
     event_booking_confirmed: "Event booking confirmation",

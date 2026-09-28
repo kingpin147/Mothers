@@ -110,6 +110,10 @@ export async function POST(req: Request) {
 
       const isQuarterly = plan === "quarterly" || memberRecord?.billingFrequency === "quarterly";
 
+      const defaultMonthlyPrice = clubSettings.monthlyFeeCents ?? 3900;
+      const defaultQuarterlyPrice = clubSettings.quarterlyFeeCents ?? 9900;
+      const defaultJoiningFee = clubSettings.joiningFeeCents ?? 1900;
+
       if (!memberRecord) {
         const [newMem] = await db
           .insert(member)
@@ -117,8 +121,8 @@ export async function POST(req: Request) {
             personId,
             status: "applicant",
             billingFrequency: isQuarterly ? "quarterly" : "monthly",
-            priceCents: isQuarterly ? 9900 : 3900,
-            monthlyPriceCents: 3900,
+            priceCents: isQuarterly ? defaultQuarterlyPrice : defaultMonthlyPrice,
+            monthlyPriceCents: defaultMonthlyPrice,
           })
           .returning();
         memberRecord = newMem;
@@ -130,20 +134,17 @@ export async function POST(req: Request) {
             .update(member)
             .set({
               billingFrequency: isQuarterly ? "quarterly" : "monthly",
-              priceCents: isQuarterly ? 9900 : 3900,
+              priceCents: isQuarterly ? defaultQuarterlyPrice : defaultMonthlyPrice,
             })
             .where(eq(member.id, memberRecord.id));
         }
       }
 
-      const defaultMonthlyPrice = 3900;
-      const defaultJoiningFee = 1900;
-
       // Check joining fee waiver:
       // Waived permanently if createdBeforeLaunch === true (§6.1, Pre-Membership Rule)
       const isFeeWaived = personRecord?.createdBeforeLaunch === true;
 
-      const unitAmount = isQuarterly ? 9900 : (memberRecord.priceCents > 0 ? memberRecord.priceCents : defaultMonthlyPrice);
+      const unitAmount = isQuarterly ? defaultQuarterlyPrice : (memberRecord.priceCents > 0 ? memberRecord.priceCents : defaultMonthlyPrice);
 
       // Check wallet credit discount on first payment (§M-07 / §5)
       const walletBalance = await getPersonWalletBalance(personId);

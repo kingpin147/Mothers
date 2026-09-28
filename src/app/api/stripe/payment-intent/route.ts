@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
-import { member, application, window, person, eventPass } from "@/db/schema";
+import { member, person } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth"; 
+import { auth } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { type, memberId, token } = body;
+    const { type, memberId } = body;
 
     if (type !== "membership") {
       return NextResponse.json({ error: "Only membership payment intents are supported" }, { status: 400 });
@@ -25,36 +25,12 @@ export async function POST(req: Request) {
 
     if (!memberId) return NextResponse.json({ error: "Missing memberId" }, { status: 400 });
 
-    let personId: string | null = null;
-    let personEmail: string | null = null;
-    let personRecord: any = null;
-
-    if (token) {
-      const appRecord = await db.query.application.findFirst({
-        where: eq(application.paymentLinkToken, token),
-      });
-
-      if (!appRecord || appRecord.status !== "accepted") {
-        return NextResponse.json({ error: "Invalid activation token" }, { status: 403 });
-      }
-
-      if (appRecord.acceptExpiresAt && new Date() > new Date(appRecord.acceptExpiresAt)) {
-        return NextResponse.json({ error: "Activation token expired" }, { status: 403 });
-      }
-
-      personId = appRecord.personId;
-    } else {
-      const session = await auth();
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      personId = (session.user as any).personId || session.user.id;
-      personEmail = session.user.email || null;
-    }
-
-    if (!personId) {
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const personId = (session.user as any).personId || session.user.id;
+    let personEmail = session.user.email || null;
 
     const memberRecord = await db.query.member.findFirst({
       where: eq(member.id, memberId),
@@ -64,7 +40,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Member not found" }, { status: 404 });
     }
 
-    personRecord = await db.query.person.findFirst({
+    const personRecord = await db.query.person.findFirst({
       where: eq(person.id, personId),
     });
 
@@ -72,20 +48,9 @@ export async function POST(req: Request) {
       personEmail = personRecord.email;
     }
 
-    const appRecord = await db.query.application.findFirst({
-      where: eq(application.personId, memberRecord.personId),
-      orderBy: (app, { desc }) => [desc(app.submittedAt)],
-    });
-
-    let windowRecord = null;
-    if (appRecord?.windowId) {
-      windowRecord = await db.query.window.findFirst({
-        where: eq(window.id, appRecord.windowId),
-      });
-    }
-
-    const defaultMonthlyPrice = windowRecord?.monthlyPriceCents || 3900;
-    const defaultJoiningFee = windowRecord?.joiningFeeCents || 1900;
+    const defaultMonthlyPrice = clubSettings.monthlyFeeCents ?? 3900;
+    const defaultQuarterlyPrice = clubSettings.quarterlyFeeCents ?? 9900;
+    const defaultJoiningFee = clubSettings.joiningFeeCents ?? 1900;
 
     // Ensure customer exists in Stripe
     let customerId = memberRecord.stripeCustomerId;
@@ -109,28 +74,11 @@ export async function POST(req: Request) {
     const isQuarterly = memberRecord.billingFrequency === "quarterly";
     const amountCents = memberRecord.priceCents > 0 
       ? memberRecord.priceCents 
-      : (isQuarterly ? 9900 : defaultMonthlyPrice);
+      : (isQuarterly ? defaultQuarterlyPrice : defaultMonthlyPrice);
 
-    const [totalAcceptedCount, pastPasses] = await Promise.all([
-      db.select({ count: sql<number>`count(*)` }).from(member).where(sql`status IN ('active', 'accepted_awaiting_payment')`),
-      db.query.eventPass.findMany({
-        where: and(
-          eq(eventPass.personId, personId),
-          sql`purchased_at >= NOW() - INTERVAL '30 days'`
-        ),
-      }),
-    ]);
-    
-    // Check joining fee waiver rules:
-    // 1. Founding members (first 50) get fee waived
-    // 2. Member who attended an event in last 30 days gets fee credited
-    const isFirst50 = Number(totalAcceptedCount[0]?.count || 0) <= 50;
-    const hasRecentPass = pastPasses.length > 0;
-
-    let finalJoiningFee = defaultJoiningFee;
-    if (isFirst50 || hasRecentPass) {
-      finalJoiningFee = 0;
-    }
+    // Joining fee waived if account opened before launch
+    const shouldWaiveJoiningFee = personRecord?.createdBeforeLaunch === true;
+    const finalJoiningFee = shouldWaiveJoiningFee ? 0 : defaultJoiningFee;
 
     // Create the subscription as incomplete
     const subscription = await stripe.subscriptions.create({

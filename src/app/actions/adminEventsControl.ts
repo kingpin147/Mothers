@@ -4,7 +4,6 @@ import { db } from "@/db";
 import {
   event,
   booking,
-  eventPass,
   person,
   member,
   creditEntry,
@@ -60,34 +59,7 @@ export async function getEventAttendees(eventId: string) {
     )
     .orderBy(desc(booking.createdAt));
 
-  // 2. Fetch Guest Event Passes
-  const guestPassesRaw = await db
-    .select({
-      id: eventPass.id,
-      status: eventPass.status,
-      ticketTokenHash: eventPass.ticketTokenHash,
-      pricePaidCents: eventPass.priceCents,
-      createdAt: eventPass.purchasedAt,
-      firstName: person.firstName,
-      lastName: person.lastName,
-      email: person.email,
-    })
-    .from(eventPass)
-    .innerJoin(person, eq(eventPass.personId, person.id))
-    .where(
-      and(
-        eq(eventPass.eventId, eventId),
-        sql`${eventPass.status} IN ('paid', 'used')`
-      )
-    )
-    .orderBy(desc(eventPass.purchasedAt));
-
-  const guestPasses = guestPassesRaw.map((gp) => ({
-    ...gp,
-    ticketUrl: `/ticket/${gp.id}`,
-  }));
-
-  // 3. Fetch Free Open List RSVPs
+  // 2. Fetch Free Open List RSVPs
   const guestRsvps = await db
     .select({
       id: guestRsvp.id,
@@ -106,7 +78,7 @@ export async function getEventAttendees(eventId: string) {
   return {
     success: true,
     memberBookings,
-    guestPasses,
+    guestPasses: [],
     guestRsvps,
   };
 }
@@ -150,26 +122,6 @@ export async function getEventRosterDetail(eventId: string) {
     )
     .orderBy(desc(booking.createdAt));
 
-  const guestPasses = await db
-    .select({
-      id: eventPass.id,
-      status: eventPass.status,
-      pricePaidCents: eventPass.priceCents,
-      createdAt: eventPass.purchasedAt,
-      firstName: person.firstName,
-      lastName: person.lastName,
-      email: person.email,
-    })
-    .from(eventPass)
-    .innerJoin(person, eq(eventPass.personId, person.id))
-    .where(
-      and(
-        eq(eventPass.eventId, eventId),
-        sql`${eventPass.status} IN ('paid', 'used', 'refunded', 'released')`
-      )
-    )
-    .orderBy(desc(eventPass.purchasedAt));
-
   const guestRsvps = await db
     .select({
       id: guestRsvp.id,
@@ -204,14 +156,14 @@ export async function getEventRosterDetail(eventId: string) {
     event: ev,
     hostUser,
     memberBookings,
-    guestPasses,
+    guestPasses: [],
     guestRsvps,
     waitlist,
   };
 }
 
 const adminMarkAttendanceSchema = z.object({
-  type: z.enum(["member", "guest", "rsvp"]),
+  type: z.enum(["member", "rsvp"]),
   id: z.string().min(1),
   status: z.enum(["attended", "no_show", "confirmed", "released"]),
 });
@@ -219,7 +171,7 @@ const adminMarkAttendanceSchema = z.object({
 // ─── 2. ADMIN MARK ATTENDANCE (CHECK-IN / NO-SHOW) ──────────────────────────
 
 export async function adminMarkAttendance(
-  type: "member" | "guest" | "rsvp",
+  type: "member" | "rsvp",
   id: string,
   status: "attended" | "no_show" | "confirmed" | "released"
 ) {
@@ -234,12 +186,6 @@ export async function adminMarkAttendance(
       .update(booking)
       .set({ status, updatedAt: new Date() })
       .where(eq(booking.id, id));
-  } else if (type === "guest") {
-    const passStatus = status === "attended" ? "used" : status === "released" ? "refunded" : "paid";
-    await db
-      .update(eventPass)
-      .set({ status: passStatus, updatedAt: new Date() })
-      .where(eq(eventPass.id, id));
   } else if (type === "rsvp") {
     await db
       .update(guestRsvp)
@@ -253,7 +199,7 @@ export async function adminMarkAttendance(
     actorId: adminId,
     actorType: "admin",
     action: `mark_attendance_${status}`,
-    entity: type === "member" ? "booking" : type === "guest" ? "event_pass" : "guest_rsvp",
+    entity: type === "member" ? "booking" : "guest_rsvp",
     entityId: id,
   });
 
@@ -400,16 +346,7 @@ export async function adminManualBookMember(data: {
   return { success: true };
 }
 
-// ─── 4. ADMIN ISSUE GUEST PASS (DEPRECATED) ──────────────────────────────────
-
-export async function adminIssueGuestPass(_data: any) {
-  return {
-    success: false,
-    error: "Event passes have been discontinued. All bookings use member or non-member credits.",
-  };
-}
-
-// ─── 5. MEMBER CREDIT LEDGER DETAIL & STATUS OVERRIDE ────────────────────────
+// ─── 4. MEMBER CREDIT LEDGER DETAIL & STATUS OVERRIDE ────────────────────────
 
 export async function getMemberLedgerDetails(memberId: string) {
   await verifyAdmin();
@@ -525,55 +462,5 @@ export async function adminCancelMemberBooking(bookingId: string) {
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "CANCEL_FAILED" };
-  }
-}
-
-export async function adminCancelGuestPass(passId: string) {
-  const { adminId } = await verifyAdmin();
-  if (!passId) return { success: false, error: "INVALID_INPUT" };
-
-  try {
-    await db.transaction(async (tx) => {
-      const pass = await tx.query.eventPass.findFirst({
-        where: eq(eventPass.id, passId),
-      });
-      if (!pass) throw new Error("Guest pass not found");
-      if (pass.status === "refunded" || pass.status === "released") throw new Error("Pass already cancelled or refunded");
-
-      const now = new Date();
-      await tx
-        .update(eventPass)
-        .set({ status: "refunded", refundedAt: now, updatedAt: now })
-        .where(eq(eventPass.id, passId));
-
-      // Release any matching booking
-      await tx
-        .update(booking)
-        .set({ status: "released", releasedAt: now, updatedAt: now })
-        .where(
-          and(
-            eq(booking.eventId, pass.eventId),
-            eq(booking.personId, pass.personId),
-            sql`${booking.status} IN ('held', 'confirmed')`
-          )
-        );
-
-      await tx.insert(auditLog).values({
-        actorId: adminId,
-        actorType: "admin",
-        action: "guest_pass_refunded",
-        entity: "event_pass",
-        entityId: pass.id,
-        after: { status: "refunded", refundedAt: now },
-      });
-    });
-
-    const { revalidatePath } = await import("next/cache");
-    revalidatePath("/admin/events");
-    revalidatePath("/events");
-
-    return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || "REFUND_FAILED" };
   }
 }

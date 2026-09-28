@@ -21,7 +21,6 @@ import {
 import {
   queueAndSendEmail,
   generateSubscriptionConfirmationEmailHtml,
-  generateGuestPassEmailHtml,
   generateBookingConfirmedEmailHtml,
   generatePaymentReceiptEmailHtml,
 } from "@/lib/brevo";

@@ -4,16 +4,13 @@ describe('Events, Ticketing & Booking Rules', () => {
   it('Calculates T-schedule milestones from event start date', () => {
     const startsAt = new Date('2026-09-20T10:00:00Z');
     
-    // T-14: Guest window opens 14 days before
-    const guestOpenAt = new Date(startsAt.getTime() - 14 * 24 * 60 * 60 * 1000);
+    // T-10: Early warning check 10 days before
+    const earlyWarningAt = new Date(startsAt.getTime() - 10 * 24 * 60 * 60 * 1000);
     // T-7: Threshold decision check 7 days before
     const decisionAt = new Date(startsAt.getTime() - 7 * 24 * 60 * 60 * 1000);
-    // T-2: Guest window closes 2 days before
-    const guestCloseAt = new Date(startsAt.getTime() - 2 * 24 * 60 * 60 * 1000);
 
-    expect(guestOpenAt.toISOString()).toBe('2026-09-06T10:00:00.000Z');
+    expect(earlyWarningAt.toISOString()).toBe('2026-09-10T10:00:00.000Z');
     expect(decisionAt.toISOString()).toBe('2026-09-13T10:00:00.000Z');
-    expect(guestCloseAt.toISOString()).toBe('2026-09-18T10:00:00.000Z');
   });
 
   it('Evaluates member booking cancellation refund policy (>24h vs <24h)', () => {
@@ -32,22 +29,30 @@ describe('Events, Ticketing & Booking Rules', () => {
     expect(eligibleForFullRefundLate).toBe(false);
   });
 
-  it('Formats ticket currency symbol and amount by locale', () => {
-    const price = 35;
-    const formatPrice = (p: number, loc: 'en' | 'es') => {
-      return loc === 'en' ? `€${p}` : `${p}€`;
+  it('Calculates credit top-up pricing (€2 per credit, minimum 5)', () => {
+    const topUpPricePerCreditCents = 200;
+    const minTopUpCredits = 5;
+
+    const calcTotalCents = (qty: number) => {
+      const validQty = Math.max(minTopUpCredits, qty);
+      return validQty * topUpPricePerCreditCents;
     };
 
-    expect(formatPrice(price, 'en')).toBe('€35');
-    expect(formatPrice(price, 'es')).toBe('35€');
+    expect(calcTotalCents(5)).toBe(1000); // €10
+    expect(calcTotalCents(10)).toBe(2000); // €20
+    expect(calcTotalCents(3)).toBe(1000); // Minimum enforced to 5 credits (€10)
   });
 
-  it('Validates 2 Event Pass max limit per guest email', () => {
-    const pastPurchases = ['pass_1', 'pass_2'];
-    const canPurchaseAnother = pastPurchases.length < 2;
-    expect(canPurchaseAnother).toBe(false);
+  it('Determines waitlist offer acceptance duration (24h vs 2h close to event)', () => {
+    const computeOfferExpiryHours = (eventStartsAt: Date, offerTime: Date) => {
+      const hoursToEvent = (eventStartsAt.getTime() - offerTime.getTime()) / (1000 * 60 * 60);
+      return hoursToEvent <= 48 ? 2 : 24;
+    };
 
-    const singlePurchase = ['pass_1'];
-    expect(singlePurchase.length < 2).toBe(true);
+    const eventDate = new Date('2026-09-20T18:00:00Z');
+    // Offer sent 5 days before -> 24h window
+    expect(computeOfferExpiryHours(eventDate, new Date('2026-09-15T18:00:00Z'))).toBe(24);
+    // Offer sent 24h before -> 2h window
+    expect(computeOfferExpiryHours(eventDate, new Date('2026-09-19T18:00:00Z'))).toBe(2);
   });
 });

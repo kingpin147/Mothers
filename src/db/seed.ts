@@ -571,14 +571,14 @@ async function seed() {
       await sql`
         INSERT INTO event (
           id, title, slug, category_id, description, neighbourhood, venue_name,
-          meeting_point, starts_at, ends_at, credit_cost, guest_price_cents,
-          capacity_member, capacity_guest, capacity_guest_gathering, min_to_confirm,
-          is_signature, is_free_walk, childcare, status, languages, show_event_pass_cta, partner_id
+          meeting_point, starts_at, ends_at, credit_cost,
+          capacity_member, min_to_confirm,
+          is_signature, is_free_walk, childcare, status, languages, partner_id
         ) VALUES (
           ${ev.id}, ${ev.title}, ${ev.slug}, ${ev.categoryId}, ${ev.description}, ${ev.neighbourhood}, ${ev.venueName},
-          ${ev.meetingPoint}, ${new Date(ev.startsAt)}, ${new Date(ev.endsAt)}, ${ev.creditCost}, ${ev.guestPriceCents},
-          ${ev.capacityMember}, ${ev.capacityGuest}, ${ev.capacityGuestGathering || null}, ${ev.minToConfirm},
-          ${ev.isSignature}, ${ev.isFreeWalk}, ${ev.childcare}, ${ev.status}, ${ev.languages}, ${ev.showEventPassCta}, ${ev.partnerId}
+          ${ev.meetingPoint}, ${new Date(ev.startsAt)}, ${new Date(ev.endsAt)}, ${ev.creditCost},
+          ${ev.capacityMember}, ${ev.minToConfirm},
+          ${ev.isSignature}, ${ev.isFreeWalk}, ${ev.childcare}, ${ev.status}, ${ev.languages}, ${ev.partnerId}
         )
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
@@ -591,17 +591,13 @@ async function seed() {
           starts_at = EXCLUDED.starts_at,
           ends_at = EXCLUDED.ends_at,
           credit_cost = EXCLUDED.credit_cost,
-          guest_price_cents = EXCLUDED.guest_price_cents,
           capacity_member = EXCLUDED.capacity_member,
-          capacity_guest = EXCLUDED.capacity_guest,
-          capacity_guest_gathering = EXCLUDED.capacity_guest_gathering,
           min_to_confirm = EXCLUDED.min_to_confirm,
           is_signature = EXCLUDED.is_signature,
           is_free_walk = EXCLUDED.is_free_walk,
           childcare = EXCLUDED.childcare,
           status = EXCLUDED.status,
           languages = EXCLUDED.languages,
-          show_event_pass_cta = EXCLUDED.show_event_pass_cta,
           partner_id = EXCLUDED.partner_id;
       `;
     }

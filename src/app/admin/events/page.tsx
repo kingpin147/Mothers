@@ -838,7 +838,7 @@ export default function AdminEventsPage() {
                         }}>
                           <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginBottom: "7px" }}>
                             {r.bookingsCount > 0
-                              ? `Cancelling returns every credit held by ${r.bookingsCount} booking${r.bookingsCount === 1 ? "" : "s"}, keeps their original expiry, and refunds any Event Pass. Members read the reason below.`
+                              ? `Cancelling returns every credit held by ${r.bookingsCount} booking${r.bookingsCount === 1 ? "" : "s"} and keeps their original expiry. Members read the reason below.`
                               : "Nobody has booked, so nothing is refunded. Members read the reason below."}
                           </div>
                           <input

@@ -34,7 +34,6 @@ export const BREVO_TEMPLATES = {
   PAYMENT_RECEIPT: "payment_receipt",
   PAYMENT_FAILED: "payment_failed",
   PASSWORD_RESET: "password_reset",
-  GUEST_PASS_ISSUED: "guest_pass_issued",
   TICKET_RELEASED: "ticket_released",
   EVENT_BOOKING_CONFIRMED: "event_booking_confirmed",
   EVENT_REMINDER_24H: "event_reminder_24h",
@@ -298,128 +297,6 @@ export function generateSubscriptionConfirmationEmailHtml(params: {
     <a href="mailto:hello@themothers.cc" style="color:#7b1f2c;text-decoration:underline;">hello@themothers.cc</a> &nbsp;·&nbsp;
     <a href="https://themothers.cc" style="color:#7b1f2c;text-decoration:underline;">themothers.cc</a>
   </div>
-</td>
-</tr>
-
-</table>
-
-</td>
-</tr>
-</table>
-</body>
-</html>`;
-}
-
-export function generateGuestPassEmailHtml(params: {
-  firstName: string;
-  eventTitle: string;
-  eventDate: string;
-  meetingPoint: string;
-  neighbourhood?: string;
-  amountPaidEur?: number;
-  last4?: string;
-  passNumber?: number;
-  receiptNumber?: string;
-  ticketUrl: string;
-  isEs?: boolean;
-}): string {
-  const isEs = params.isEs || false;
-  const passNum = params.passNumber || 1;
-  const amount = params.amountPaidEur || 35;
-  const receipt = params.receiptNumber || `TM-${Math.floor(1000 + Math.random() * 9000)}`;
-  const cardNote = params.last4 ? `card ending ${params.last4}` : (isEs ? "tarjeta de pago" : "payment card");
-
-  return `<!DOCTYPE html>
-<html lang="${isEs ? "es" : "en"}">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${isEs ? "Tu Event Pass — The Mothers" : "Your Event Pass — The Mothers"}</title>
-<style>
-@media only screen and (max-width:620px){
-  .px{padding-left:24px !important;padding-right:24px !important;}
-  .h1{font-size:30px !important;line-height:36px !important;}
-}
-</style>
-</head>
-<body style="margin:0;padding:0;background-color:#efeae1;font-family:Georgia,'Times New Roman',serif;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
-<tr>
-<td align="center" style="padding:32px 12px;">
-
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#faf7f1;border:1px solid #ddd4c6;">
-
-<tr>
-<td class="px" align="center" style="padding:34px 48px 26px;border-bottom:1px solid #ddd4c6;">
-<div style="font-size:15px;line-height:20px;letter-spacing:3px;text-transform:uppercase;color:#7b1f2c;">The Mothers</div>
-<div style="font-size:11px;line-height:16px;letter-spacing:1.5px;text-transform:uppercase;color:#8a807a;padding-top:7px;">Barcelona</div>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:38px 48px 0;">
-<div style="font-size:11px;line-height:16px;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:14px;">${isEs ? "Tu Event Pass — confirmado" : "Your Event Pass — confirmed"}</div>
-<h1 class="h1" style="margin:0;font-size:34px;line-height:42px;font-weight:normal;color:#2A1E20;">${isEs ? "Tu plaza está reservada." : "Your place is booked."}</h1>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:22px 48px 0;font-size:16px;line-height:27px;color:#2A1E20;">
-<p style="margin:0 0 16px;">${isEs ? "Hola" : "Hello"} <span style="color:#7b1f2c;">${params.firstName}</span>,</p>
-<p style="margin:0 0 16px;">${isEs ? "Tienes tu asiento en la mesa. No hay nada más que gestionar ni cuenta que configurar — <strong style=\"font-weight:normal;color:#7b1f2c;\">este correo es tu ticket</strong>. Guárdalo bien." : "You have a seat at the table. There is nothing else to arrange and no account to set up — <strong style=\"font-weight:normal;color:#7b1f2c;\">this email is your ticket</strong>. Keep it somewhere you'll find it."}</p>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:30px 48px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #ddd4c6;background-color:#f3efe6;">
-<tr>
-<td style="padding:22px 24px 14px;font-size:11px;line-height:16px;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;">${isEs ? "Dónde y cuándo" : "Where and when"}</td>
-</tr>
-<tr>
-<td style="padding:0 24px 22px;color:#2A1E20;">
-<div style="font-size:20px;line-height:28px;padding-bottom:12px;">${params.eventTitle}</div>
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size:15px;line-height:24px;color:#2A1E20;">
-<tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">${isEs ? "Fecha" : "Date"}</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">${params.eventDate}</td>
-</tr>
-<tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">${isEs ? "Punto de encuentro" : "Meeting point"}</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">${params.meetingPoint}${params.neighbourhood ? `<br><span style="color:#8a807a;font-size:14px;">${params.neighbourhood}</span>` : ""}</td>
-</tr>
-<tr>
-<td width="96" valign="top" style="width:96px;padding:7px 0;border-top:1px solid #ddd4c6;font-size:13px;color:#8a807a;">${isEs ? "Pagado" : "Paid"}</td>
-<td valign="top" style="padding:7px 0;border-top:1px solid #ddd4c6;">€${amount} · ${cardNote}<br><span style="color:#8a807a;font-size:14px;">Event Pass [${passNum}] of 2 · receipt [${receipt}]</span></td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-
-<tr>
-<td class="px" style="padding:28px 48px 0;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0">
-<tr>
-<td bgcolor="#7b1f2c" style="border-radius:4px;">
-<a href="${params.ticketUrl}" style="display:block;padding:16px 34px;font-size:16px;line-height:22px;color:#faf7f1;text-decoration:none;">${isEs ? "Ver o liberar mi plaza" : "View or release my place"}</a>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-
-<tr>
-<td class="px" align="center" style="padding:32px 48px 34px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%;">
-<tr><td style="border-top:1px solid #ddd4c6;font-size:0;line-height:0;">&nbsp;</td></tr>
-</table>
-<div style="font-size:12px;line-height:20px;color:#8a807a;padding-top:20px;">
-The Mothers · Carrer de Girona, 08009 Barcelona, Spain<br>
-<a href="mailto:hello@themothers.cc" style="color:#7b1f2c;text-decoration:underline;">hello@themothers.cc</a>
-</div>
 </td>
 </tr>
 

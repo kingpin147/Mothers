@@ -159,15 +159,10 @@ export async function createAdminEvent(data: {
   endsAt: Date;
   creditCost: number;
   capacityMember: number;
-  capacityGuest: number;
-  capacityGuestGathering?: number;
   minToConfirm?: number;
   isSignature?: boolean;
   status?: "draft" | "published_pending";
   languages?: string[];
-  showEventPassCta?: boolean;
-  guestOpenAt?: Date;
-  guestCloseAt?: Date;
   decisionAt?: Date;
   publishedAt?: Date;
   targetStages?: string[];
@@ -219,17 +214,12 @@ export async function createAdminEvent(data: {
         endsAt: data.endsAt,
         creditCost: data.creditCost,
         capacityMember: data.capacityMember,
-        capacityGuest: data.capacityGuest,
-        capacityGuestGathering: data.capacityGuestGathering,
         minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 0,
         isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
         isFreeWalk: data.creditCost === 0,
-        showEventPassCta: !!data.showEventPassCta,
         partnerId: data.partnerId || data.host || null,
         status: data.status === "draft" ? "draft" : (data.minToConfirm === 0 ? "confirmed" : "published_pending"),
         languages: data.languages || [],
-        guestOpenAt: data.guestOpenAt,
-        guestCloseAt: data.guestCloseAt,
         decisionAt: safeDecisionAt,
         publishedAt: data.status === "draft" ? undefined : new Date(),
         confirmedAt: data.status !== "draft" && data.minToConfirm === 0 ? new Date() : undefined,
@@ -283,15 +273,10 @@ export async function updateAdminEvent(eventId: string, data: {
   endsAt?: Date;
   creditCost?: number;
   capacityMember?: number;
-  capacityGuest?: number;
-  capacityGuestGathering?: number;
   minToConfirm?: number;
   isSignature?: boolean;
-  showEventPassCta?: boolean;
   languages?: string[];
   targetStages?: string[];
-  guestOpenAt?: Date | null;
-  guestCloseAt?: Date | null;
   decisionAt?: Date | null;
   changeNote?: string;
   status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
@@ -348,15 +333,10 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.endsAt !== undefined && { endsAt: data.endsAt }),
       ...(data.creditCost !== undefined && { creditCost: data.creditCost, isFreeWalk: data.creditCost === 0 }),
       ...(data.capacityMember !== undefined && { capacityMember: data.capacityMember }),
-      ...(data.capacityGuest !== undefined && { capacityGuest: data.capacityGuest }),
-      ...(data.capacityGuestGathering !== undefined && { capacityGuestGathering: data.capacityGuestGathering }),
       ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
       ...(isSig !== undefined && { isSignature: isSig }),
-      ...(data.showEventPassCta !== undefined && { showEventPassCta: !!data.showEventPassCta }),
       ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
       ...(data.languages !== undefined && { languages: data.languages }),
-      ...(data.guestOpenAt !== undefined && { guestOpenAt: data.guestOpenAt }),
-      ...(data.guestCloseAt !== undefined && { guestCloseAt: data.guestCloseAt }),
       ...(data.decisionAt !== undefined && { decisionAt: data.decisionAt }),
       ...(data.status !== undefined && {
         status: data.status,
@@ -692,7 +672,6 @@ export async function duplicateAdminEvent(eventId: string) {
       endsAt,
       creditCost: orig.creditCost,
       capacityMember: orig.capacityMember,
-      capacityGuest: orig.capacityGuest,
       minToConfirm: orig.minToConfirm,
       isSignature: orig.isSignature,
       isFreeWalk: orig.isFreeWalk,

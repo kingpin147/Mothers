@@ -10,7 +10,6 @@ describe('Brevo Transactional Emails & Templates', () => {
     expect(BREVO_TEMPLATES.PAYMENT_RECEIPT).toBeDefined();
     expect(BREVO_TEMPLATES.PAYMENT_FAILED).toBeDefined();
     expect(BREVO_TEMPLATES.PASSWORD_RESET).toBeDefined();
-    expect(BREVO_TEMPLATES.GUEST_PASS_ISSUED).toBeDefined();
     expect(BREVO_TEMPLATES.TICKET_RELEASED).toBeDefined();
     expect(BREVO_TEMPLATES.EVENT_BOOKING_CONFIRMED).toBeDefined();
     expect(BREVO_TEMPLATES.EVENT_REMINDER_48H).toBeDefined();

@@ -193,13 +193,11 @@ export default function AdminCreateEventPage() {
       creditCost: freeEvent ? 0 : (parseInt(creditCost) || 0),
       // 0 = uncapped (no ceiling). When noCeiling is checked, store 0 explicitly.
       capacityMember: noCeiling ? 0 : (memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces)),
-      capacityGuest: 0,
       minToConfirm: noMinimum || minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0),
       description,
       status,
       languages: langs,
       targetStages: stages,
-      showEventPassCta: false,
       decisionAt: resolvedDecisionAt,
       publishedAt: status === "published_pending" ? new Date() : undefined,
     });
