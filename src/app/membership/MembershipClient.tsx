@@ -38,6 +38,7 @@ export default function MembershipClient({
   const isEn = lang === "en";
 
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>(calculateTimeLeft);
+  const [mounted, setMounted] = useState(false);
   const [waitlisted, setWaitlisted] = useState(false);
   const [modalOpen, setModalOpen] = useState(autoOpenApply);
   const [email, setEmail] = useState("");
@@ -49,6 +50,7 @@ export default function MembershipClient({
   const waysRailRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     const saved = localStorage.getItem("tm_pre_joined_list");
     if (saved) setWaitlisted(true);
 
@@ -115,7 +117,8 @@ export default function MembershipClient({
         "Stage groups by trimester, age and neighbourhood",
         "20 credits a month, rolling over",
         "Access to all events",
-        "Partner perks",
+        "5 credits through the Godmother programme for each friend who joins",
+        "Partner perks and standing privileges",
         "Access to The Mothers Circle forum, including the members' room",
         "Priority booking on everything",
       ]
@@ -124,6 +127,7 @@ export default function MembershipClient({
         "Grupos por trimestre, edad y barrio",
         "20 créditos al mes, acumulables",
         "Acceso a todos los eventos",
+        "5 créditos por el programa Madrinas por cada amiga que se una",
         "Ventajas y descuentos exclusivos con partners",
         "Acceso al foro The Mothers Circle, incluida la sala de socias",
         "Prioridad de reserva en todo",
@@ -137,7 +141,7 @@ export default function MembershipClient({
           tagBorder: "rgba(86,139,5,0.45)",
           tagBg: "rgba(86,139,5,0.08)",
           title: "Easy connection",
-          body: "Walks, park socials & hosted meetups. The walks and park socials are usually included in the plan but can cost a few credits depending on the partners involved.",
+          body: "Walks, park socials & hosted meetups.",
         },
         {
           tag: "Credits",
@@ -179,7 +183,7 @@ export default function MembershipClient({
           tagBorder: "rgba(86,139,5,0.45)",
           tagBg: "rgba(86,139,5,0.08)",
           title: "Easy connection",
-          body: "Paseos, encuentros en el parque y quedadas organizadas. Los paseos suelen estar incluidos en el plan pero pueden costar algún crédito según el colaborador.",
+          body: "Paseos, encuentros en el parque y quedadas con anfitriona.",
         },
         {
           tag: "Créditos",
@@ -194,7 +198,7 @@ export default function MembershipClient({
           tagColor: "#7b1f2c",
           tagBorder: "rgba(123,31,44,0.35)",
           tagBg: "transparent",
-          title: "MoM's date",
+          title: "Mother's date",
           body: "Cenas, bienestar, cultura — una mujer en primer lugar.",
         },
         {
@@ -203,7 +207,7 @@ export default function MembershipClient({
           tagBorder: "rgba(123,31,44,0.35)",
           tagBg: "transparent",
           title: "Learn & Grow",
-          body: "Charlas de expertas, talleres y clases magistrales.",
+          body: "Charlas con expertas, talleres y masterclasses.",
         },
         {
           tag: "Créditos",
@@ -211,7 +215,7 @@ export default function MembershipClient({
           tagBorder: "rgba(123,31,44,0.35)",
           tagBg: "transparent",
           title: "Signature moments",
-          body: "Momentos de temporada y sesiones 1:1 con especialistas.",
+          body: "Encuentros de temporada y sesiones individuales con especialistas.",
         },
       ];
 
@@ -286,6 +290,7 @@ export default function MembershipClient({
                 }}
               >
                 <div
+                  suppressHydrationWarning
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 400,
@@ -295,7 +300,7 @@ export default function MembershipClient({
                     color: "#7b1f2c",
                   }}
                 >
-                  {u.value}
+                  {mounted ? u.value : "--"}
                 </div>
                 <div
                   style={{
@@ -1047,7 +1052,7 @@ export default function MembershipClient({
                 textDecoration: "none",
               }}
             >
-              {isEn ? "Read the questions" : "Preguntas frecuentes"}
+              FAQ
             </Link>
           </div>
         </div>

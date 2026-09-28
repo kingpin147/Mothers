@@ -47,8 +47,8 @@ export function Footer() {
       {/* ─── 1. THE LETTER (NEWSLETTER) SECTION ─── */}
       <section
         style={{
-          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-          padding: "clamp(34px, 5vw, 58px) clamp(20px, 5vw, 64px)",
+          borderTop: "1px solid rgba(57, 41, 42, 0.14)",
+          padding: "clamp(36px, 4.5vw, 52px) clamp(20px, 5vw, 64px)",
         }}
       >
         <div
@@ -57,13 +57,13 @@ export function Footer() {
             margin: "0 auto",
             display: "flex",
             flexWrap: "wrap",
-            gap: "36px",
-            alignItems: "flex-start",
+            gap: "clamp(24px, 4vw, 48px)",
+            alignItems: "center",
             justifyContent: "space-between",
           }}
         >
           {/* Left copy */}
-          <div style={{ flex: "1 1 380px", minWidth: "280px" }}>
+          <div style={{ flex: "1 1 420px", minWidth: "280px", maxWidth: "620px" }}>
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -72,7 +72,7 @@ export function Footer() {
                 letterSpacing: "0.16em",
                 textTransform: "uppercase",
                 color: "#7b1f2c",
-                marginBottom: "10px",
+                marginBottom: "8px",
               }}
             >
               {lang === "en" ? "The letter" : "La carta"}
@@ -81,8 +81,8 @@ export function Footer() {
               style={{
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontWeight: 400,
-                fontSize: "clamp(26px, 3.2vw, 36px)",
-                lineHeight: 1.15,
+                fontSize: "clamp(24px, 2.8vw, 34px)",
+                lineHeight: 1.2,
                 margin: "0 0 10px",
                 color: "#39292a",
               }}
@@ -91,7 +91,7 @@ export function Footer() {
                 ? "One letter a month, and first word when membership opens."
                 : "Una carta al mes, y las primeras novedades cuando abra la membresía."}
             </h2>
-            <p style={{ fontSize: "15px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.7)", margin: 0, maxWidth: "52ch" }}>
+            <p style={{ fontSize: "14.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "54ch" }}>
               {lang === "en"
                 ? "What is coming up on the calendar, new writing in the Journal, and the January 2027 date before it is announced anywhere else. Nothing else in your inbox."
                 : "Novedades del calendario, nuevos artículos del Journal y la fecha de enero 2027 antes de su anuncio oficial. Nada más en tu bandeja de entrada."}
@@ -99,10 +99,10 @@ export function Footer() {
           </div>
 
           {/* Right form / confirmation */}
-          <div style={{ flex: "1 1 320px", minWidth: "270px" }}>
+          <div style={{ flex: "0 1 390px", width: "100%", minWidth: "280px", maxWidth: "420px" }}>
             {!submitted ? (
               <form onSubmit={handleSubscribe}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                <div style={{ display: "flex", gap: "8px", width: "100%" }}>
                   <input
                     type="email"
                     required
@@ -113,14 +113,14 @@ export function Footer() {
                     }}
                     placeholder={lang === "en" ? "you@email.com" : "tu@correo.com"}
                     style={{
-                      flex: "1 1 200px",
-                      minWidth: "180px",
+                      flex: "1 1 auto",
+                      minWidth: 0,
                       border: "1px solid rgba(57, 41, 42, 0.28)",
                       borderRadius: "4px",
                       backgroundColor: "#ffffff",
-                      padding: "12px 14px",
+                      padding: "11px 14px",
                       fontFamily: "'Lora', Georgia, serif",
-                      fontSize: "14.5px",
+                      fontSize: "14px",
                       color: "#39292a",
                       outline: "none",
                       boxSizing: "border-box",
@@ -134,7 +134,7 @@ export function Footer() {
                       backgroundColor: "transparent",
                       color: "#7b1f2c",
                       borderRadius: "4px",
-                      padding: "12px 22px",
+                      padding: "11px 22px",
                       fontFamily: "'Cormorant Garamond', Georgia, serif",
                       fontWeight: 600,
                       fontSize: "15px",
@@ -156,11 +156,11 @@ export function Footer() {
 
                 <div
                   style={{
-                    fontSize: "12.5px",
+                    fontSize: "12px",
                     lineHeight: 1.5,
-                    color: errorMsg ? "#993842" : "rgba(57, 41, 42, 0.72)",
-                    marginTop: "10px",
-                    minHeight: "18px",
+                    color: errorMsg ? "#993842" : "rgba(57, 41, 42, 0.65)",
+                    marginTop: "8px",
+                    minHeight: "16px",
                   }}
                 >
                   {errorMsg ||
@@ -174,14 +174,14 @@ export function Footer() {
                 style={{
                   border: "1px solid rgba(86, 139, 5, 0.45)",
                   borderRadius: "6px",
-                  padding: "16px 18px",
+                  padding: "14px 18px",
                   backgroundColor: "rgba(86, 139, 5, 0.07)",
                 }}
               >
-                <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "17px", marginBottom: "5px", color: "#3b5e04" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "16.5px", marginBottom: "4px", color: "#3b5e04" }}>
                   {lang === "en" ? "You are on the list." : "Ya estás en la lista."}
                 </div>
-                <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
+                <p style={{ fontSize: "13px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
                   {lang === "en"
                     ? "The next letter goes out at the start of the month, and you will hear about membership before it opens."
                     : "La próxima carta sale a primeros de mes y sabrás sobre la apertura de membresía antes de su lanzamiento."}
@@ -211,17 +211,17 @@ export function Footer() {
         >
           {/* Brand Column */}
           <div style={{ flex: "1 1 260px", minWidth: "220px" }}>
-            <Link href="/" style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px", textDecoration: "none" }}>
+            <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", textDecoration: "none" }}>
               <img
                 src="/assets/logo-mark-alpha.png"
                 alt="The Mothers"
-                style={{ height: "48px", width: "auto", display: "block" }}
+                style={{ height: "54px", width: "auto", display: "block" }}
               />
               <span
                 aria-hidden="true"
                 style={{
                   width: "1px",
-                  height: "22px",
+                  height: "26px",
                   backgroundColor: "rgba(57, 41, 42, 0.28)",
                   display: "inline-block",
                   flex: "none",
@@ -230,7 +230,7 @@ export function Footer() {
               <img
                 src="/assets/logo-wordmark-alpha.png"
                 alt="The Mothers"
-                style={{ height: "13px", width: "auto", display: "block" }}
+                style={{ height: "13.5px", width: "auto", display: "block" }}
               />
             </Link>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "34ch" }}>
@@ -294,11 +294,32 @@ export function Footer() {
                 {lang === "en" ? "Legal" : "Legal"}
               </div>
               <Link href="/legal" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Terms & Privacy" : "Términos y Privacidad"}
+                {lang === "en" ? "Terms & Conditions" : "Términos y Condiciones"}
               </Link>
-              <Link href="/privacy" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
+              <Link href="/legal#privacy" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "Privacy Policy" : "Política de Privacidad"}
               </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new CustomEvent("tm_open_cookie_settings"));
+                  }
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  fontSize: "14px",
+                  color: "#39292a",
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  textDecoration: "none",
+                }}
+              >
+                {lang === "en" ? "Cookie settings" : "Preferencias de cookies"}
+              </button>
             </div>
 
             {/* Get in touch */}
@@ -359,8 +380,7 @@ export function Footer() {
         {/* Bottom Copyright Row */}
         <div
           style={{
-            maxWidth: "1160px",
-            margin: "26px auto 0",
+            marginTop: "26px",
             paddingTop: "18px",
             borderTop: "1px solid rgba(57, 41, 42, 0.12)",
             display: "flex",

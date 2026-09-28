@@ -693,3 +693,36 @@ export async function deleteMyAccountGDPR() {
   return { success: true };
 }
 
+export async function updateProfileDetails(formData: {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  stage?: string;
+  neighbourhood?: string;
+  childrenAges?: string;
+  profileDone?: boolean;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "AUTH_REQUIRED" };
+  }
+  const personId = (session.user as any).personId || session.user.id;
+  await db
+    .update(person)
+    .set({
+      ...(formData.firstName ? { firstName: formData.firstName } : {}),
+      ...(formData.lastName ? { lastName: formData.lastName } : {}),
+      ...(formData.phone ? { phoneE164: formData.phone } : {}),
+      profileDone: true,
+      profileData: {
+        stages: formData.stage ? [formData.stage] : [],
+        neighbourhood: formData.neighbourhood,
+        why: formData.childrenAges,
+      },
+      updatedAt: new Date(),
+    })
+    .where(eq(person.id, personId));
+
+  return { success: true };
+}
+

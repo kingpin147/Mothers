@@ -6,70 +6,6 @@ import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
-const updateClubSettingsSchema = z.object({
-  joiningFeeCents: z.number().int().nonnegative().optional(),
-  openingMonthlyPriceCents: z.number().int().nonnegative().optional(),
-  openingQuarterlyPriceCents: z.number().int().nonnegative().optional(),
-  quarterlyFeeCents: z.number().int().nonnegative().optional(),
-  standardMonthlyPriceCents: z.number().int().nonnegative().optional(),
-  joiningFeeFreePlaces: z.number().int().nonnegative().optional(),
-  passToMemberDays: z.number().int().nonnegative().optional(),
-  
-  guestPassPriceCents: z.number().int().nonnegative().optional(),
-  passCreditCeiling: z.number().int().nonnegative().optional(),
-  maxLifetimeGuestPasses: z.number().int().nonnegative().optional(),
-  guestPlacesDefault: z.number().int().nonnegative().optional(),
-  guestsOpenDays: z.number().int().nonnegative().optional(),
-  guestsCloseDays: z.number().int().nonnegative().optional(),
-  
-  monthlyGrantCredits: z.number().int().nonnegative().optional(),
-  creditLifeMonths: z.number().int().nonnegative().optional(),
-  rolloverCapCredits: z.number().int().nonnegative().optional(),
-  expiryWarningDays: z.number().int().nonnegative().optional(),
-  topUpPriceCents: z.number().int().nonnegative().optional(),
-  releaseDeadlineHours: z.number().int().nonnegative().optional(),
-  
-  referralBonusCredits: z.number().int().nonnegative().optional(),
-  godmotherThreeMonthBonus: z.number().int().nonnegative().optional(),
-  godmotherFriendsLimit: z.number().int().nonnegative().optional(),
-  godmotherBonusLife: z.number().int().nonnegative().optional(),
-  
-  answerAppHours: z.number().int().nonnegative().optional(),
-  paymentLinkHours: z.number().int().nonnegative().optional(),
-  pauseAllowanceMonths: z.number().int().nonnegative().optional(),
-  placesOffered: z.number().int().nonnegative().optional(),
-  rateHeldMonths: z.number().int().nonnegative().optional(),
-  
-  scheduleMembersFrom: z.number().int().nonnegative().optional(),
-  scheduleGuestsOpen: z.number().int().nonnegative().optional(),
-  scheduleEarlyWarning: z.number().int().nonnegative().optional(),
-  scheduleDecisionPoint: z.number().int().nonnegative().optional(),
-  scheduleGuestsClose: z.number().int().nonnegative().optional(),
-});
-
-const createMembershipWindowSchema = z.object({
-  opensAt: z.string().min(1, "Opens at date is required"),
-  closesAt: z.string().min(1, "Closes at date is required"),
-  placesOffered: z.number().int().positive("Places offered must be at least 1"),
-  openingMonthlyPriceCents: z.number().int().nonnegative(),
-  openingQuarterlyPriceCents: z.number().int().nonnegative(),
-  standardMonthlyPriceCents: z.number().int().nonnegative(),
-  standardQuarterlyPriceCents: z.number().int().nonnegative(),
-});
-
-const setMembershipWindowStatusSchema = z.object({
-  windowId: z.string().trim().min(1, "Window ID is required"),
-  status: z.enum(["open", "closed"]),
-});
-
-const adminUpdateMemberProfileSchema = z.object({
-  memberId: z.string().trim().min(1, "Member ID is required"),
-  stage: z.string(),
-  neighbourhood: z.string(),
-  phone: z.string().optional(),
-  notesInternal: z.string().optional(),
-});
-
 async function verifyAdmin() {
   const session = await auth();
   const role = (session?.user as any)?.role;
@@ -77,7 +13,7 @@ async function verifyAdmin() {
   if (!role || !allowed.includes(role)) {
     throw new Error("UNAUTHORIZED_ADMIN");
   }
-  return { adminId: session?.user?.id, role };
+  return { adminId: session?.user?.id || "admin", role };
 }
 
 // ─── 1. GET & UPDATE CLUB SETTINGS ──────────────────────────────────────────
@@ -98,34 +34,30 @@ export async function getClubSettings() {
   return {
     success: true,
     settings: {
+      membershipLive: settingsMap["membership_live"] ?? false,
+      expectedLaunch: settingsMap["expected_launch"] ?? "2027-01-06",
+      priceDisplay: settingsMap["price_display"] ?? "single",
+
+      joiningFeeCents: settingsMap["joining_fee_cents"] ?? 1900,
+      monthlyFeeCents: settingsMap["monthly_fee_cents"] ?? 3900,
       quarterlyFeeCents: settingsMap["quarterly_fee_cents"] ?? 9900,
-      joiningFeeFreePlaces: settingsMap["joining_fee_free_places"] ?? (currentWindow?.placesOffered ?? 50),
+      joiningFeeFreePlaces: settingsMap["joining_fee_free_places"] ?? 50,
+
+      nonMemberWalkCredits: settingsMap["non_member_walk_credits"] ?? 3,
+      nonMemberMarkup: settingsMap["non_member_markup"] ?? 1.5,
+
       monthlyGrantCredits: settingsMap["monthly_grant_credits"] ?? 20,
-      rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? 0,
-      referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 5,
-      guestPassPriceCents: settingsMap["guest_pass_price_cents"] ?? 3500,
-      maxLifetimeGuestPasses: settingsMap["max_lifetime_guest_passes"] ?? 2,
-      
-      passToMemberDays: settingsMap["pass_to_member_days"] ?? 30,
-      passCreditCeiling: settingsMap["pass_credit_ceiling"] ?? 18,
-      guestPlacesDefault: settingsMap["guest_places_default"] ?? 2,
-      guestsOpenDays: settingsMap["guests_open_days"] ?? 14,
-      guestsCloseDays: settingsMap["guests_close_days"] ?? 2,
-      
+      quarterlyGrantCredits: settingsMap["quarterly_grant_credits"] ?? 60,
       creditLifeMonths: settingsMap["credit_life_months"] ?? 6,
+      rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? null,
       expiryWarningDays: settingsMap["expiry_warning_days"] ?? 30,
       topUpPriceCents: settingsMap["top_up_price_cents"] ?? 100,
       releaseDeadlineHours: settingsMap["release_deadline_hours"] ?? 48,
-      
-      godmotherThreeMonthBonus: settingsMap["godmother_three_month_bonus"] ?? 15,
-      godmotherFriendsLimit: settingsMap["godmother_friends_limit"] ?? 0,
+
+      referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 5,
       godmotherBonusLife: settingsMap["godmother_bonus_life"] ?? 6,
-      
-      answerAppHours: settingsMap["answer_app_hours"] ?? 72,
-      paymentLinkHours: settingsMap["payment_link_hours"] ?? 72,
       pauseAllowanceMonths: settingsMap["pause_allowance_months"] ?? 2,
-      rateHeldMonths: settingsMap["rate_held_months"] ?? 12,
-      
+
       scheduleMembersFrom: settingsMap["schedule_members_from"] ?? 28,
       scheduleGuestsOpen: settingsMap["schedule_guests_open"] ?? 14,
       scheduleEarlyWarning: settingsMap["schedule_early_warning"] ?? 10,
@@ -136,86 +68,57 @@ export async function getClubSettings() {
   };
 }
 
-export async function updateClubSettings(rawData: {
-  joiningFeeCents?: number;
-  openingMonthlyPriceCents?: number;
-  openingQuarterlyPriceCents?: number;
-  quarterlyFeeCents?: number;
-  standardMonthlyPriceCents?: number;
-  joiningFeeFreePlaces?: number;
-  passToMemberDays?: number;
-  
-  guestPassPriceCents?: number;
-  passCreditCeiling?: number;
-  maxLifetimeGuestPasses?: number;
-  guestPlacesDefault?: number;
-  guestsOpenDays?: number;
-  guestsCloseDays?: number;
-  
-  monthlyGrantCredits?: number;
-  creditLifeMonths?: number;
-  rolloverCapCredits?: number;
-  expiryWarningDays?: number;
-  topUpPriceCents?: number;
-  releaseDeadlineHours?: number;
-  
-  referralBonusCredits?: number;
-  godmotherThreeMonthBonus?: number;
-  godmotherFriendsLimit?: number;
-  godmotherBonusLife?: number;
-  
-  answerAppHours?: number;
-  paymentLinkHours?: number;
-  pauseAllowanceMonths?: number;
-  placesOffered?: number;
-  rateHeldMonths?: number;
-  
-  scheduleMembersFrom?: number;
-  scheduleGuestsOpen?: number;
-  scheduleEarlyWarning?: number;
-  scheduleDecisionPoint?: number;
-  scheduleGuestsClose?: number;
-}) {
-  const parsed = updateClubSettingsSchema.safeParse(rawData);
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_INPUT" };
-  }
-  const data = parsed.data;
-
+export async function saveClubSettingsAudit(
+  settingsPatch: Record<string, any>,
+  auditInfo?: { summary: string; flaggedPages: string }
+) {
   const { adminId } = await verifyAdmin();
 
-  const settingEntries = [
-    { key: "quarterly_fee_cents", value: data.quarterlyFeeCents ?? data.openingQuarterlyPriceCents },
-    { key: "joining_fee_free_places", value: data.joiningFeeFreePlaces ?? data.placesOffered },
-    { key: "pass_to_member_days", value: data.passToMemberDays },
-    { key: "guest_pass_price_cents", value: data.guestPassPriceCents },
-    { key: "pass_credit_ceiling", value: data.passCreditCeiling },
-    { key: "max_lifetime_guest_passes", value: data.maxLifetimeGuestPasses },
-    { key: "guest_places_default", value: data.guestPlacesDefault },
-    { key: "guests_open_days", value: data.guestsOpenDays },
-    { key: "guests_close_days", value: data.guestsCloseDays },
-    { key: "monthly_grant_credits", value: data.monthlyGrantCredits },
-    { key: "credit_life_months", value: data.creditLifeMonths },
-    { key: "rollover_cap_credits", value: data.rolloverCapCredits },
-    { key: "expiry_warning_days", value: data.expiryWarningDays },
-    { key: "top_up_price_cents", value: data.topUpPriceCents },
-    { key: "release_deadline_hours", value: data.releaseDeadlineHours },
-    { key: "referral_bonus_credits", value: data.referralBonusCredits },
-    { key: "godmother_three_month_bonus", value: data.godmotherThreeMonthBonus },
-    { key: "godmother_friends_limit", value: data.godmotherFriendsLimit },
-    { key: "godmother_bonus_life", value: data.godmotherBonusLife },
-    { key: "answer_app_hours", value: data.answerAppHours },
-    { key: "payment_link_hours", value: data.paymentLinkHours },
-    { key: "pause_allowance_months", value: data.pauseAllowanceMonths },
-    { key: "rate_held_months", value: data.rateHeldMonths },
-    { key: "schedule_members_from", value: data.scheduleMembersFrom },
-    { key: "schedule_guests_open", value: data.scheduleGuestsOpen },
-    { key: "schedule_early_warning", value: data.scheduleEarlyWarning },
-    { key: "schedule_decision_point", value: data.scheduleDecisionPoint },
-    { key: "schedule_guests_close", value: data.scheduleGuestsClose },
-  ].filter(s => s.value !== undefined);
+  // Read previous settings to save before/after
+  const prevRows = await db.select().from(setting);
+  const prevMap: Record<string, any> = {};
+  for (const s of prevRows) {
+    prevMap[s.key] = s.value;
+  }
 
-  for (const s of settingEntries) {
+  const entriesToUpdate: { key: string; value: any }[] = [];
+
+  const keyMapping: Record<string, string> = {
+    membershipLive: "membership_live",
+    expectedLaunch: "expected_launch",
+    priceDisplay: "price_display",
+    joiningFee: "joining_fee_cents",
+    monthlyFee: "monthly_fee_cents",
+    quarterlyFee: "quarterly_fee_cents",
+    nonMemberWalkCredits: "non_member_walk_credits",
+    nonMemberMarkup: "non_member_markup",
+    monthlyCredits: "monthly_grant_credits",
+    quarterlyCredits: "quarterly_grant_credits",
+    creditExpiryMonths: "credit_life_months",
+    rolloverCeiling: "rollover_cap_credits",
+    expiryWarningDays: "expiry_warning_days",
+    topUpCreditPrice: "top_up_price_cents",
+    releaseDeadlineHours: "release_deadline_hours",
+    godmotherBonusReferrer: "referral_bonus_credits",
+    godmotherBonusLife: "godmother_bonus_life",
+    pauseAllowanceMonths: "pause_allowance_months",
+    scheduleMembersFrom: "schedule_members_from",
+    scheduleGuestsOpen: "schedule_guests_open",
+    scheduleEarlyWarning: "schedule_early_warning",
+    scheduleDecisionPoint: "schedule_decision_point",
+    scheduleGuestsClose: "schedule_guests_close",
+  };
+
+  for (const [k, v] of Object.entries(settingsPatch)) {
+    const dbKey = keyMapping[k] || k;
+    let dbValue = v;
+    if (k === "joiningFee" || k === "monthlyFee" || k === "quarterlyFee" || k === "topUpCreditPrice") {
+      if (typeof v === "number") dbValue = v * 100;
+    }
+    entriesToUpdate.push({ key: dbKey, value: dbValue });
+  }
+
+  for (const s of entriesToUpdate) {
     await db
       .insert(setting)
       .values(s)
@@ -225,40 +128,92 @@ export async function updateClubSettings(rawData: {
       });
   }
 
-  // Update open window if places / pricing provided
-  if (data.placesOffered !== undefined || data.openingMonthlyPriceCents !== undefined || data.joiningFeeCents !== undefined) {
-    const openWindow = await db.query.window.findFirst({
-      where: eq(window.status, "open"),
+  if (auditInfo) {
+    await db.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "update_club_settings",
+      entity: "setting",
+      entityId: "global_settings",
+      before: prevMap,
+      after: { ...prevMap, ...settingsPatch },
+    });
+  }
+
+  return { success: true };
+}
+
+export async function setMembershipLiveMode(live: boolean, switchDualPrice: boolean = false) {
+  const { adminId } = await verifyAdmin();
+
+  await db
+    .insert(setting)
+    .values({ key: "membership_live", value: live })
+    .onConflictDoUpdate({
+      target: setting.key,
+      set: { value: live, updatedAt: new Date() },
     });
 
-    if (openWindow) {
-      await db
-        .update(window)
-        .set({
-          placesOffered: data.placesOffered ?? openWindow.placesOffered,
-          monthlyPriceCents: data.openingMonthlyPriceCents ?? openWindow.monthlyPriceCents,
-          joiningFeeCents: data.joiningFeeCents ?? openWindow.joiningFeeCents,
-          updatedAt: new Date(),
-        })
-        .where(eq(window.id, openWindow.id));
-    }
+  if (!live && switchDualPrice) {
+    await db
+      .insert(setting)
+      .values({ key: "price_display", value: "dual" })
+      .onConflictDoUpdate({
+        target: setting.key,
+        set: { value: "dual", updatedAt: new Date() },
+      });
+  } else if (!live) {
+    await db
+      .insert(setting)
+      .values({ key: "price_display", value: "single" })
+      .onConflictDoUpdate({
+        target: setting.key,
+        set: { value: "single", updatedAt: new Date() },
+      });
   }
 
   await db.insert(auditLog).values({
     actorId: adminId,
     actorType: "admin",
-    action: "update_club_settings",
+    action: live ? "activate_membership_plan" : "deactivate_membership_plan",
     entity: "setting",
-    entityId: "global",
-    after: data,
+    entityId: "membership_live",
+    after: { membership_live: live, price_display: switchDualPrice ? "dual" : "single" },
   });
 
   return { success: true };
 }
 
+export async function setPriceDisplayMode(mode: "single" | "dual") {
+  const { adminId } = await verifyAdmin();
+
+  await db
+    .insert(setting)
+    .values({ key: "price_display", value: mode })
+    .onConflictDoUpdate({
+      target: setting.key,
+      set: { value: mode, updatedAt: new Date() },
+    });
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "set_price_display_mode",
+    entity: "setting",
+    entityId: "price_display",
+    after: { price_display: mode },
+  });
+
+  return { success: true };
+}
+
+// ─── 2. MEMBERSHIP WINDOWS ──────────────────────────────────────────────────
+
 export async function getMembershipWindows() {
   await verifyAdmin();
-  const windows = await db.select().from(window).orderBy(desc(window.createdAt));
+  const windows = await db.query.window.findMany({
+    orderBy: [desc(window.opensAt)],
+  });
   return { success: true, windows };
 }
 
@@ -271,48 +226,28 @@ export async function createMembershipWindow(rawData: {
   standardMonthlyPriceCents: number;
   standardQuarterlyPriceCents: number;
 }) {
-  const parsed = createMembershipWindowSchema.safeParse(rawData);
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message || "INVALID_WINDOW" };
-  }
-  const data = parsed.data;
-
   const { adminId } = await verifyAdmin();
-  if (new Date(data.closesAt) <= new Date(data.opensAt) || data.placesOffered < 1) {
-    return { success: false, error: "INVALID_WINDOW" };
-  }
 
-  const existingOpen = await db.query.window.findFirst({ where: eq(window.status, "open") });
-  if (existingOpen) return { success: false, error: "WINDOW_ALREADY_OPEN" };
+  const opens = new Date(rawData.opensAt);
+  const closes = new Date(rawData.closesAt);
 
-  const [created] = await db.insert(window).values({
-    opensAt: new Date(data.opensAt),
-    closesAt: new Date(data.closesAt),
-    placesOffered: data.placesOffered,
-    joiningFeeCents: 1900,
-    monthlyPriceCents: data.openingMonthlyPriceCents,
-    launchRate: true,
-    lockMonths: 12,
-    status: "draft",
-  }).returning();
-
-  await db.insert(setting).values({
-    key: `window_prices_${created.id}`,
-    value: {
-      openingMonthlyPriceCents: data.openingMonthlyPriceCents,
-      openingQuarterlyPriceCents: data.openingQuarterlyPriceCents,
-      standardMonthlyPriceCents: data.standardMonthlyPriceCents,
-      standardQuarterlyPriceCents: data.standardQuarterlyPriceCents,
-    },
-  }).onConflictDoUpdate({
-    target: setting.key,
-    set: { value: {
-      openingMonthlyPriceCents: data.openingMonthlyPriceCents,
-      openingQuarterlyPriceCents: data.openingQuarterlyPriceCents,
-      standardMonthlyPriceCents: data.standardMonthlyPriceCents,
-      standardQuarterlyPriceCents: data.standardQuarterlyPriceCents,
-    }, updatedAt: new Date() },
-  });
+  const [created] = await db
+    .insert(window)
+    .values({
+      opensAt: opens,
+      closesAt: closes,
+      placesOffered: rawData.placesOffered,
+      joiningFeeCents: 1900,
+      monthlyPriceCents: rawData.standardMonthlyPriceCents,
+      tierPrices: {
+        openingMonthly: rawData.openingMonthlyPriceCents,
+        openingQuarterly: rawData.openingQuarterlyPriceCents,
+        standardMonthly: rawData.standardMonthlyPriceCents,
+        standardQuarterly: rawData.standardQuarterlyPriceCents,
+      },
+      status: "draft",
+    })
+    .returning();
 
   await db.insert(auditLog).values({
     actorId: adminId,
@@ -320,37 +255,42 @@ export async function createMembershipWindow(rawData: {
     action: "create_membership_window",
     entity: "window",
     entityId: created.id,
-    after: data,
+    after: created,
   });
+
   return { success: true, window: created };
 }
 
-export async function setMembershipWindowStatus(rawWindowId: string, rawStatus: "open" | "closed") {
-  const parsed = setMembershipWindowStatusSchema.safeParse({ windowId: rawWindowId, status: rawStatus });
-  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
-  const { windowId, status } = parsed.data;
-
+export async function setMembershipWindowStatus(windowId: string, status: "open" | "closed") {
   const { adminId } = await verifyAdmin();
-  const target = await db.query.window.findFirst({ where: eq(window.id, windowId) });
-  if (!target) return { success: false, error: "WINDOW_NOT_FOUND" };
+
   if (status === "open") {
-    const openWindow = await db.query.window.findFirst({ where: eq(window.status, "open") });
-    if (openWindow && openWindow.id !== windowId) return { success: false, error: "WINDOW_ALREADY_OPEN" };
+    // Close other open windows
+    await db
+      .update(window)
+      .set({ status: "closed", updatedAt: new Date() })
+      .where(eq(window.status, "open"));
   }
-  await db.update(window).set({ status, updatedAt: new Date() }).where(eq(window.id, windowId));
+
+  const [updated] = await db
+    .update(window)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(window.id, windowId))
+    .returning();
+
   await db.insert(auditLog).values({
     actorId: adminId,
     actorType: "admin",
-    action: `${status}_membership_window`,
+    action: "set_membership_window_status",
     entity: "window",
     entityId: windowId,
-    before: { status: target.status },
     after: { status },
   });
-  return { success: true };
+
+  return { success: true, window: updated };
 }
 
-// ─── 2. UPDATE MEMBER PROFILE (STAGE / AREA / NOTES) ─────────────────────────
+// ─── 3. ADMIN UPDATE MEMBER PROFILE ─────────────────────────────────────────
 
 export async function adminUpdateMemberProfile(rawData: {
   memberId: string;
@@ -359,44 +299,40 @@ export async function adminUpdateMemberProfile(rawData: {
   phone?: string;
   notesInternal?: string;
 }) {
-  const parsed = adminUpdateMemberProfileSchema.safeParse(rawData);
-  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
-  const data = parsed.data;
-
   const { adminId } = await verifyAdmin();
 
-  const targetMember = await db.query.member.findFirst({
-    where: eq(member.id, data.memberId),
+  const mem = await db.query.member.findFirst({
+    where: eq(member.id, rawData.memberId),
   });
-  if (!targetMember) return { success: false, error: "MEMBER_NOT_FOUND" };
+  if (!mem) return { success: false, error: "Member not found" };
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(member)
-      .set({
-        stage: data.stage,
-        neighbourhood: data.neighbourhood,
-        updatedAt: new Date(),
-      })
-      .where(eq(member.id, data.memberId));
+  await db
+    .update(member)
+    .set({
+      stage: rawData.stage,
+      neighbourhood: rawData.neighbourhood,
+      updatedAt: new Date(),
+    })
+    .where(eq(member.id, rawData.memberId));
 
-    await tx
+  if (rawData.phone !== undefined || rawData.notesInternal !== undefined) {
+    await db
       .update(person)
       .set({
-        phoneE164: data.phone || null,
-        notesInternal: data.notesInternal || null,
+        phoneE164: rawData.phone,
+        notesInternal: rawData.notesInternal,
         updatedAt: new Date(),
       })
-      .where(eq(person.id, targetMember.personId));
+      .where(eq(person.id, mem.personId));
+  }
 
-    await tx.insert(auditLog).values({
-      actorId: adminId,
-      actorType: "admin",
-      action: "update_member_profile",
-      entity: "member",
-      entityId: data.memberId,
-      after: data,
-    });
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "admin_update_member_profile",
+    entity: "member",
+    entityId: rawData.memberId,
+    after: rawData,
   });
 
   return { success: true };

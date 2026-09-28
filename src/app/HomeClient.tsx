@@ -640,7 +640,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               </Link>
 
               <Link
-                href="/membership#faq"
+                href="/faq"
                 style={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
                   fontWeight: 600,

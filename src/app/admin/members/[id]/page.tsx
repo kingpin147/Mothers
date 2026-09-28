@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { getAdminMemberDetail, contactMember, pauseMember, resumeMember, cancelMember, adjustMemberCredits } from "@/app/actions/adminCms";
+import { getAdminMemberDetail, contactMember, pauseMember, resumeMember, cancelMember, adjustMemberCredits, toggleSuspendAccount, adminDeleteAccountGDPR } from "@/app/actions/adminCms";
 import { BackArrow } from "@/components/Icons";
 
 const WINE = "#7b1f2c";
@@ -446,22 +446,75 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {/* Godmother Card */}
-        <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px 22px" }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 6px" }}>Godmother</h2>
-          <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 12px", maxWidth: "70ch", textWrap: "pretty" }}>Automatic, with a code derived from her name. Five credits when a friend joins, fifteen more at three months.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))", gap: "12px" }}>
-            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{godmotherCode}</div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", margin: "5px 0 0", lineHeight: 1.4 }}>Her code</div>
+        {/* Account Controls: Suspension & GDPR Deletion */}
+        <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px 22px", marginTop: "18px" }}>
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 8px" }}>Account controls</h2>
+          <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px" }}>
+            Account management for house rules enforcement and data protection regulations.
+          </p>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid rgba(57,41,42,0.1)", paddingTop: "14px" }}>
+            <div>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={async () => {
+                  const isCurrentlySuspended = !!member.isSuspended;
+                  const reasonPrompt = !isCurrentlySuspended ? prompt("Reason for suspension:") : "";
+                  if (!isCurrentlySuspended && reasonPrompt === null) return;
+                  setIsSubmitting(true);
+                  await toggleSuspendAccount(member.personId || member.id, !isCurrentlySuspended, reasonPrompt || undefined);
+                  setIsSubmitting(false);
+                  loadData();
+                }}
+                style={{
+                  border: member.isSuspended ? "1px solid #568b05" : "1px solid #993842",
+                  background: "transparent",
+                  color: member.isSuspended ? "#3b5e04" : "#993842",
+                  borderRadius: "4px",
+                  padding: "9px 16px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                {member.isSuspended ? "Lift suspension (Reactivate)" : "Suspend account"}
+              </button>
+              <p style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)", margin: "6px 0 0" }}>
+                {member.isSuspended ? `Suspended: "${member.suspendedReason || 'House rules'}"` : "Blocks booking and Circle posting; freezes credits."}
+              </p>
             </div>
-            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{friendsJoined}</div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", margin: "5px 0 0", lineHeight: 1.4 }}>{friendsJoined === 1 ? "Friend joined" : "Friends joined"}</div>
-            </div>
-            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>{bonusEarned}</div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)", margin: "5px 0 0", lineHeight: 1.4 }}>Bonus credits earned</div>
+
+            <div>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={async () => {
+                  if (!confirm(`Permanently delete ${member.firstName}'s account under GDPR? Personal data will be erased, active bookings cancelled, and Circle posts anonymized.`)) return;
+                  setIsSubmitting(true);
+                  await adminDeleteAccountGDPR(member.personId || member.id);
+                  setIsSubmitting(false);
+                  alert("Account permanently deleted and personal data erased.");
+                  window.location.href = "/admin/members";
+                }}
+                style={{
+                  border: "1px solid #7b1f2c",
+                  background: "transparent",
+                  color: "#7b1f2c",
+                  borderRadius: "4px",
+                  padding: "9px 16px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete account (GDPR)
+              </button>
+              <p style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)", margin: "6px 0 0" }}>
+                Permanent erasure of personal data under GDPR Article 17.
+              </p>
             </div>
           </div>
         </div>
@@ -470,3 +523,4 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
     </div>
   );
 }
+

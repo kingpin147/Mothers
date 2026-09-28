@@ -58,6 +58,13 @@ export async function getPublicEvents() {
           guestCloseAt: event.guestCloseAt,
           decisionAt: event.decisionAt,
           cancelReason: event.cancelReason,
+          needsHost: event.needsHost,
+          hostPersonId: event.hostPersonId,
+          memberCredits: event.memberCredits,
+          nonMemberCredits: event.nonMemberCredits,
+          cancellationWindowHours: event.cancellationWindowHours,
+          nonMemberOpensAt: event.nonMemberOpensAt,
+          isRan: event.isRan,
         })
         .from(event)
         .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
@@ -397,6 +404,13 @@ export async function getPublicEventById(rawId: string) {
         decisionAt: event.decisionAt,
         childcare: event.childcare,
         languages: event.languages,
+        needsHost: event.needsHost,
+        hostPersonId: event.hostPersonId,
+        memberCredits: event.memberCredits,
+        nonMemberCredits: event.nonMemberCredits,
+        cancellationWindowHours: event.cancellationWindowHours,
+        nonMemberOpensAt: event.nonMemberOpensAt,
+        isRan: event.isRan,
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))

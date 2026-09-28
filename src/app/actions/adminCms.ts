@@ -23,10 +23,13 @@ import {
   event,
   auditLog,
   godmotherReferral,
-  emailLog
+  emailLog,
+  circlePost,
+  circleReply,
 } from "@/db/schema";
 import { eq, desc, and, or, sql, ne, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const adjustCreditsSchema = z.object({
@@ -63,13 +66,15 @@ const savePerkSchema = z.object({
 
 const saveFaqSchema = z.object({
   id: z.string().optional(),
+  groupName: z.string().optional(),
   category: z.string().optional(),
   questionEn: z.string().trim().min(1, "Question (EN) is required"),
   answerEn: z.string().trim().min(1, "Answer (EN) is required"),
-  questionEs: z.string().trim().min(1, "Question (ES) is required"),
-  answerEs: z.string().trim().min(1, "Answer (ES) is required"),
+  questionEs: z.string().optional(),
+  answerEs: z.string().optional(),
   sortOrder: z.number().int().optional(),
   active: z.boolean().optional(),
+  policyQuote: z.string().optional(),
 });
 
 const saveJournalPostSchema = z.object({
@@ -207,7 +212,7 @@ export async function getAdminMemberDetail(memberId: string) {
   await verifyAdminRole();
 
   // 1. Core Profile
-  const memberData = await db
+  let memberData = await db
     .select({
       id: member.id,
       personId: member.personId,
@@ -226,13 +231,50 @@ export async function getAdminMemberDetail(memberId: string) {
       lastName: person.lastName,
       email: person.email,
       phone: person.phoneE164,
-      languages: person.locale, // Or actual languages field if added
+      languages: person.locale,
+      isSuspended: person.isSuspended,
+      suspendedReason: person.suspendedReason,
+      createdBeforeLaunch: person.createdBeforeLaunch,
     })
     .from(member)
     .innerJoin(person, eq(member.personId, person.id))
-    .where(eq(member.id, memberId))
+    .where(or(eq(member.id, memberId), eq(member.personId, memberId)))
     .limit(1)
     .then(res => res[0]);
+
+  let targetPersonId = memberData?.personId || memberId;
+
+  if (!memberData) {
+    const personRec = await db.query.person.findFirst({
+      where: eq(person.id, memberId),
+    });
+    if (personRec) {
+      targetPersonId = personRec.id;
+      memberData = {
+        id: personRec.id,
+        personId: personRec.id,
+        status: (personRec.isSuspended ? "banned" : personRec.isPaused ? "paused" : "applicant") as any,
+        stage: "Pre-launch account",
+        neighbourhood: "Barcelona",
+        joinedAt: personRec.createdAt,
+        monthlyPriceCents: 0,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        atRiskSince: null,
+        pauseMonthsUsedYear: 0,
+        priceLockedUntil: null,
+        children: null,
+        firstName: personRec.firstName,
+        lastName: personRec.lastName,
+        email: personRec.email,
+        phone: personRec.phoneE164,
+        languages: personRec.locale,
+        isSuspended: personRec.isSuspended,
+        suspendedReason: personRec.suspendedReason,
+        createdBeforeLaunch: personRec.createdBeforeLaunch !== false,
+      };
+    }
+  }
 
   if (!memberData) {
     return { success: false, error: "MEMBER_NOT_FOUND" };
@@ -900,13 +942,15 @@ export async function getAdminFaqs() {
 
 export async function saveFaq(rawData: {
   id?: string;
+  groupName?: string;
   category?: string;
   questionEn: string;
   answerEn: string;
-  questionEs: string;
-  answerEs: string;
+  questionEs?: string;
+  answerEs?: string;
   sortOrder?: number;
   active?: boolean;
+  policyQuote?: string;
 }): Promise<{ success: boolean; error?: string }> {
   const parsed = saveFaqSchema.safeParse(rawData);
   if (!parsed.success) {
@@ -916,16 +960,19 @@ export async function saveFaq(rawData: {
 
   try {
     await verifyAdminRole();
+    const grp = data.groupName || data.category || "Coming to an event now";
 
     if (data.id) {
       await db
         .update(faqItem)
         .set({
-          category: data.category || "General",
+          groupName: grp,
+          category: grp,
           questionEn: data.questionEn,
           answerEn: data.answerEn,
-          questionEs: data.questionEs,
-          answerEs: data.answerEs,
+          questionEs: data.questionEs || "",
+          answerEs: data.answerEs || "",
+          policyQuote: data.policyQuote || null,
           sortOrder: data.sortOrder || 0,
           active: data.active !== undefined ? data.active : true,
           updatedAt: new Date(),
@@ -933,11 +980,13 @@ export async function saveFaq(rawData: {
         .where(eq(faqItem.id, data.id));
     } else {
       await db.insert(faqItem).values({
-        category: data.category || "General",
+        groupName: grp,
+        category: grp,
         questionEn: data.questionEn,
         answerEn: data.answerEn,
-        questionEs: data.questionEs,
-        answerEs: data.answerEs,
+        questionEs: data.questionEs || "",
+        answerEs: data.answerEs || "",
+        policyQuote: data.policyQuote || null,
         sortOrder: data.sortOrder || 0,
         active: data.active !== undefined ? data.active : true,
       });
@@ -1478,6 +1527,81 @@ export async function getPublicJournalArticle(slug: string) {
     console.error("Error fetching public journal article:", error);
     return null;
   }
+}
+
+export async function toggleSuspendAccount(personId: string, suspend: boolean, reason?: string) {
+  await verifyAdminRole();
+  await db
+    .update(person)
+    .set({
+      isSuspended: suspend,
+      suspendedAt: suspend ? new Date() : null,
+      suspendedReason: suspend ? (reason || "Suspended by admin for house rules violation") : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(person.id, personId));
+
+  // If suspending, cancel/freeze active future bookings
+  if (suspend) {
+    await db
+      .update(booking)
+      .set({ status: "released" })
+      .where(and(eq(booking.personId, personId), sql`${booking.status} IN ('held', 'confirmed')`));
+  }
+
+  revalidatePath("/admin/members");
+  revalidatePath(`/admin/members/${personId}`);
+  revalidatePath("/admin/pre-launch");
+  return { success: true };
+}
+
+export async function adminDeleteAccountGDPR(personId: string) {
+  await verifyAdminRole();
+
+  // 1. Anonymize circle posts and delete attached photos
+  await db
+    .update(circlePost)
+    .set({
+      isAnonymous: true,
+      anonymousArea: "Barcelona",
+      photos: [],
+      updatedAt: new Date(),
+    })
+    .where(eq(circlePost.personId, personId));
+
+  // 2. Anonymize circle replies
+  await db
+    .update(circleReply)
+    .set({
+      isAnonymous: true,
+      anonymousArea: "Barcelona",
+      updatedAt: new Date(),
+    })
+    .where(eq(circleReply.personId, personId));
+
+  // 3. Cancel active future bookings & forfeit remaining credits
+  await db
+    .update(booking)
+    .set({ status: "released" })
+    .where(and(eq(booking.personId, personId), sql`${booking.status} IN ('held', 'confirmed')`));
+
+  // 4. Scrub personal details (GDPR Right to Erasure)
+  await db
+    .update(person)
+    .set({
+      firstName: "Deleted",
+      lastName: "Mother",
+      phoneE164: null,
+      whatsappE164: null,
+      email: `deleted_${personId.slice(0, 8)}@themothers.cc`,
+      deletedAt: new Date(),
+      isSuspended: true,
+    })
+    .where(eq(person.id, personId));
+
+  revalidatePath("/admin/members");
+  revalidatePath("/admin/pre-launch");
+  return { success: true };
 }
 
 

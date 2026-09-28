@@ -96,176 +96,184 @@ export function Navigation() {
     <div style={{ position: "sticky", top: 0, zIndex: 100 }}>
       <header
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
           padding: "16px clamp(20px, 5vw, 64px)",
           borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
           backgroundColor: isEventsPage ? "var(--color-bg-events, #fefdf9)" : "var(--color-bg, #fdf8f2)",
         }}
       >
-        {/* Brand Lockup */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-          <img
-            src="/assets/logo-mark-alpha.png"
-            alt="The Mothers"
-            style={{ height: isAdminRoute ? "46px" : "54px", width: "auto", display: "block" }}
-          />
-          <span
-            aria-hidden="true"
-            style={{
-              width: "1px",
-              height: isAdminRoute ? "22px" : "26px",
-              background: "rgba(57, 41, 42, 0.28)",
-              display: "inline-block",
-              flex: "none",
-            }}
-          />
-          <img
-            src="/assets/logo-wordmark-alpha.png"
-            alt="The Mothers"
-            style={{ height: isAdminRoute ? "12px" : "13.5px", width: "auto", display: "block" }}
-          />
-        </Link>
-
-        {/* Desktop Navigation */}
-        <nav
-          className="desktop-nav"
+        <div
           style={{
+            maxWidth: "1160px",
+            margin: "0 auto",
             display: "flex",
             alignItems: "center",
-            gap: "clamp(16px, 2.2vw, 32px)",
+            justifyContent: "space-between",
+            width: "100%",
           }}
         >
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href || (link.href !== "/" && pathname?.startsWith(link.href));
-            return (
+          {/* Brand Lockup */}
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+            <img
+              src="/assets/logo-mark-alpha.png"
+              alt="The Mothers"
+              style={{ height: isAdminRoute ? "46px" : "54px", width: "auto", display: "block" }}
+            />
+            <span
+              aria-hidden="true"
+              style={{
+                width: "1px",
+                height: isAdminRoute ? "22px" : "26px",
+                background: "rgba(57, 41, 42, 0.28)",
+                display: "inline-block",
+                flex: "none",
+              }}
+            />
+            <img
+              src="/assets/logo-wordmark-alpha.png"
+              alt="The Mothers"
+              style={{ height: isAdminRoute ? "12px" : "13.5px", width: "auto", display: "block" }}
+            />
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav
+            className="desktop-nav"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "clamp(16px, 2.2vw, 32px)",
+            }}
+          >
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href || (link.href !== "/" && pathname?.startsWith(link.href));
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  style={{
+                    color: isActive ? "#7b1f2c" : "var(--color-text, #39292a)",
+                    fontSize: "15.5px",
+                    fontWeight: isActive ? 600 : 400,
+                    textDecoration: "none",
+                    fontFamily: "'Lora', Georgia, serif",
+                  }}
+                >
+                  {lang === "en" ? link.labelEn : link.labelEs}
+                </Link>
+              );
+            })}
+
+            {/* Language Toggle */}
+            <button
+              onClick={() => switchLang(lang === "en" ? "es" : "en")}
+              style={{
+                border: "1px solid rgba(57, 41, 42, 0.2)",
+                background: "transparent",
+                color: "var(--color-text, #39292a)",
+                padding: "5px 9px",
+                borderRadius: "4px",
+                fontSize: "14px",
+                fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "'Lora', Georgia, serif",
+              }}
+            >
+              {lang === "en" ? "ES" : "EN"}
+            </button>
+
+            {/* Login / Members Area CTA */}
+            {session?.user ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {(() => {
+                  const role = (session.user as any)?.role;
+                  const isAdminUser = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
+                  const accountHref = isAdminUser ? "/admin" : "/account";
+                  const accountLabel = isAdminUser
+                    ? (lang === "en" ? "Admin" : "Admin")
+                    : memberCredits !== null
+                      ? `${lang === "en" ? "My account" : "Mi cuenta"} · ${Math.max(0, memberCredits)} ${lang === "en" ? "credits" : "créditos"}`
+                      : (lang === "en" ? "My Account" : "Mi Cuenta");
+
+                  return (
+                    <Link
+                      href={accountHref}
+                      style={{
+                        border: "1px solid #7b1f2c",
+                        color: "#7b1f2c",
+                        padding: "7px 14px",
+                        borderRadius: "4px",
+                        fontWeight: 500,
+                        fontSize: "15px",
+                        textDecoration: "none",
+                        fontFamily: "'Lora', Georgia, serif",
+                      }}
+                    >
+                      {accountLabel}
+                    </Link>
+                  );
+                })()}
+                <button
+                  onClick={async () => {
+                    await signOut({ redirect: false });
+                    window.location.href = "/";
+                  }}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "rgba(57, 41, 42, 0.65)",
+                    fontSize: "14.5px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    padding: "6px 8px",
+                    fontFamily: "'Lora', Georgia, serif",
+                  }}
+                >
+                  {lang === "en" ? "Log Out" : "Salir"}
+                </button>
+              </div>
+            ) : (
               <Link
-                key={link.href}
-                href={link.href}
+                href="/account/login"
                 style={{
-                  color: isActive ? "#7b1f2c" : "var(--color-text, #39292a)",
-                  fontSize: "15.5px",
-                  fontWeight: isActive ? 600 : 400,
+                  border: "1px solid #7b1f2c",
+                  color: "#7b1f2c",
+                  padding: "7px 14px",
+                  borderRadius: "4px",
+                  fontWeight: 500,
+                  fontSize: "15px",
                   textDecoration: "none",
                   fontFamily: "'Lora', Georgia, serif",
                 }}
               >
-                {lang === "en" ? link.labelEn : link.labelEs}
+                {lang === "en" ? "Login" : "Acceder"}
               </Link>
-            );
-          })}
+            )}
+          </nav>
 
-          {/* Language Toggle */}
+          {/* Mobile Hamburger Button */}
           <button
-            onClick={() => switchLang(lang === "en" ? "es" : "en")}
+            type="button"
+            aria-label="Toggle menu"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="mobile-burger-btn"
             style={{
-              border: "1px solid rgba(57, 41, 42, 0.2)",
+              display: "none",
               background: "transparent",
-              color: "var(--color-text, #39292a)",
-              padding: "5px 9px",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: 500,
+              border: "none",
               cursor: "pointer",
-              fontFamily: "'Lora', Georgia, serif",
+              padding: "8px",
+              color: "var(--color-text, #39292a)",
             }}
           >
-            {lang === "en" ? "ES" : "EN"}
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="1.8" fill="none">
+              {mobileMenuOpen ? (
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+              ) : (
+                <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" strokeLinejoin="round" />
+              )}
+            </svg>
           </button>
-
-          {/* Login / Members Area CTA */}
-          {session?.user ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              {(() => {
-                const role = (session.user as any)?.role;
-                const isAdminUser = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
-                const accountHref = isAdminUser ? "/admin" : "/account";
-                const accountLabel = isAdminUser
-                  ? (lang === "en" ? "Admin" : "Admin")
-                  : memberCredits !== null
-                    ? `${lang === "en" ? "My account" : "Mi cuenta"} · ${Math.max(0, memberCredits)} ${lang === "en" ? "credits" : "créditos"}`
-                    : (lang === "en" ? "My Account" : "Mi Cuenta");
-
-                return (
-                  <Link
-                    href={accountHref}
-                    style={{
-                      border: "1px solid #7b1f2c",
-                      color: "#7b1f2c",
-                      padding: "7px 14px",
-                      borderRadius: "4px",
-                      fontWeight: 500,
-                      fontSize: "15px",
-                      textDecoration: "none",
-                      fontFamily: "'Lora', Georgia, serif",
-                    }}
-                  >
-                    {accountLabel}
-                  </Link>
-                );
-              })()}
-              <button
-                onClick={async () => {
-                  await signOut({ redirect: false });
-                  window.location.href = "/";
-                }}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: "rgba(57, 41, 42, 0.65)",
-                  fontSize: "14.5px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  padding: "6px 8px",
-                  fontFamily: "'Lora', Georgia, serif",
-                }}
-              >
-                {lang === "en" ? "Log Out" : "Salir"}
-              </button>
-            </div>
-          ) : (
-            <Link
-              href="/account/login"
-              style={{
-                border: "1px solid #7b1f2c",
-                color: "#7b1f2c",
-                padding: "7px 14px",
-                borderRadius: "4px",
-                fontWeight: 500,
-                fontSize: "15px",
-                textDecoration: "none",
-                fontFamily: "'Lora', Georgia, serif",
-              }}
-            >
-              {lang === "en" ? "Login" : "Acceder"}
-            </Link>
-          )}
-        </nav>
-
-        {/* Mobile Hamburger Button */}
-        <button
-          type="button"
-          aria-label="Toggle menu"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="mobile-burger-btn"
-          style={{
-            display: "none",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            padding: "8px",
-            color: "var(--color-text, #39292a)",
-          }}
-        >
-          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="1.8" fill="none">
-            {mobileMenuOpen ? (
-              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-            ) : (
-              <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" strokeLinejoin="round" />
-            )}
-          </svg>
-        </button>
+        </div>
       </header>
 
       {/* Sticky Countdown Banner (Membership Opens Jan 2027) */}

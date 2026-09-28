@@ -123,6 +123,20 @@ export const person = pgTable(
     createdBeforeLaunch: boolean("created_before_launch").default(true).notNull(),
     isPaused: boolean("is_paused").default(false).notNull(),
     pausedReason: text("paused_reason"),
+    isSuspended: boolean("is_suspended").default(false).notNull(),
+    suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+    suspendedReason: text("suspended_reason"),
+    profileDone: boolean("profile_done").default(false).notNull(),
+    profileData: jsonb("profile_data").$type<{
+      stages?: string[];
+      neighbourhood?: string;
+      hoping?: string[];
+      free?: string[];
+      heard?: string;
+      referralCode?: string;
+      social?: { platform: string; handle: string };
+      why?: string;
+    }>(),
     source: text("source"),
     notesInternal: text("notes_internal"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -325,10 +339,17 @@ export const event = pgTable(
     showEventPassCta: boolean("show_event_pass_cta").default(false).notNull(),
     minToConfirm: integer("min_to_confirm").default(0).notNull(),
     creditCost: integer("credit_cost").notNull(), // required, explicit
+    memberCredits: integer("member_credits").default(0).notNull(),
+    nonMemberCredits: integer("non_member_credits").default(0).notNull(),
     guestPriceCents: integer("guest_price_cents").default(3500).notNull(),
     childcare: text("childcare").default("child_inclusive").notNull(), // 'child_inclusive', 'childcare_on_site', 'adults_only'
     isSignature: boolean("is_signature").default(false).notNull(),
     isFreeWalk: boolean("is_free_walk").default(false).notNull(),
+    needsHost: boolean("needs_host").default(false).notNull(),
+    hostPersonId: text("host_person_id").references(() => person.id),
+    isRan: boolean("is_ran").default(false).notNull(),
+    ranAt: timestamp("ran_at", { withTimezone: true }),
+    cancellationWindowHours: integer("cancellation_window_hours").default(24).notNull(),
     partnerId: text("partner_id"),
     hostAdminId: text("host_admin_id").references(() => adminUser.id),
     imageId: text("image_id"),
@@ -338,6 +359,7 @@ export const event = pgTable(
     cancelReason: text("cancel_reason"),
     guestOpenAt: timestamp("guest_open_at", { withTimezone: true }),
     guestCloseAt: timestamp("guest_close_at", { withTimezone: true }),
+    nonMemberOpensAt: timestamp("non_member_opens_at", { withTimezone: true }),
     decisionAt: timestamp("decision_at", { withTimezone: true }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     languages: text("languages").array(),
@@ -598,12 +620,15 @@ export const faqItem = pgTable(
   "faq_item",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    groupName: text("group_name").default("Coming to an event now").notNull(),
     questionEn: text("question_en").notNull(),
     answerEn: text("answer_en").notNull(),
-    questionEs: text("question_es").notNull(),
-    answerEs: text("answer_es").notNull(),
+    questionEs: text("question_es"),
+    answerEs: text("answer_es"),
     category: text("category").default("general").notNull(),
+    policyQuote: text("policy_quote"),
     sortOrder: integer("sort_order").default(0).notNull(),
+    isPublished: boolean("is_published").default(true).notNull(),
     active: boolean("active").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -904,20 +929,26 @@ export const hostRequest = pgTable(
   "host_request",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    eventId: text("event_id").references(() => event.id, { onDelete: "cascade" }),
     personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
-    format: text("format").notNull(), // 'walk', 'park_social', 'hosted_coffee'
-    neighbourhood: text("neighbourhood").notNull(),
-    preferredDays: text("preferred_days").notNull(),
+    format: text("format"), // 'walk', 'park_social', 'hosted_coffee'
+    neighbourhood: text("neighbourhood"),
+    preferredDays: text("preferred_days"),
     languages: jsonb("languages").$type<string[]>().default([]).notNull(),
-    reason: text("reason").notNull(),
+    reason: text("reason"),
     charterAgreed: boolean("charter_agreed").default(true).notNull(),
-    status: text("status").default("submitted").notNull(), // 'submitted', 'call_scheduled', 'approved', 'declined'
+    status: text("status").default("pending").notNull(), // 'pending', 'confirmed', 'declined'
+    creditsAwarded: integer("credits_awarded").default(0).notNull(),
     reviewedByAdminId: text("reviewed_by_admin_id").references(() => adminUser.id),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  }
+  },
+  (table) => [
+    index("idx_host_request_event").on(table.eventId),
+    index("idx_host_request_person").on(table.personId),
+  ]
 );
 
 // ─── 12. THE CIRCLE (FORUM & MODERATION) ────────────────────────────────────
