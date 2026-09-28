@@ -10,7 +10,14 @@ const PUBLIC_ACCOUNT_PATHS = [
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "f47ac10b58cc4372a5670e02b2c3d4793f18e9a2";
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+
+  if (!secret) {
+    // Fail closed if secrets are not configured in environment
+    if (pathname.startsWith("/admin") || pathname.startsWith("/account") || pathname === "/uat") {
+      return new NextResponse("Server authentication configuration missing.", { status: 500 });
+    }
+  }
 
   const isSecure = request.url.startsWith("https://") || process.env.NODE_ENV === "production";
 
@@ -82,4 +89,3 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/admin/:path*", "/account/:path*", "/api/cron/:path*", "/uat"],
 };
-

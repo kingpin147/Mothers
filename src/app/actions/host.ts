@@ -1,12 +1,33 @@
 "use server";
 
 import { db } from "@/db";
-import { hostRequest, person, booking, event, creditEntry, creditBatch, member } from "@/db/schema";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { hostRequest, person, booking, event, creditBatch, member, auditLog, adminUser } from "@/db/schema";
+import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { queueAndSendEmail, generateHostRequestStatusEmailHtml } from "@/lib/brevo";
 import { getAppUrl } from "@/lib/urls";
 import { revalidatePath } from "next/cache";
+import { grantCreditsToPerson, getPersonWalletBalance } from "@/lib/ledger";
+
+// Helper for admin role check
+async function assertAdminOrManager(session: any): Promise<string> {
+  if (!session?.user?.id) {
+    throw new Error("UNAUTHORIZED");
+  }
+  const adminId = session.user.id as string;
+  const role = (session.user as any).role;
+  if (role === "admin" || role === "owner" || role === "manager") {
+    return adminId;
+  }
+  // Also check adminUser table
+  const adminRec = await db.query.adminUser.findFirst({
+    where: eq(adminUser.id, adminId),
+  });
+  if (adminRec && (adminRec.role === "owner" || adminRec.role === "manager")) {
+    return adminId;
+  }
+  throw new Error("FORBIDDEN_ADMIN_ONLY");
+}
 
 export async function checkHostEligibility() {
   const session = await auth();
@@ -18,15 +39,16 @@ export async function checkHostEligibility() {
     };
   }
 
+  const personId = (session.user as any).personId || session.user.id;
   const user = await db.query.person.findFirst({
-    where: eq(person.id, session.user.id),
+    where: eq(person.id, personId),
   });
 
   if (!user) {
     return { authenticated: false, eligible: false, reason: "user_not_found" };
   }
 
-  // Count attended events (need >= 2 past completed/attended events)
+  // Count attended events (need >= 2 attended events, strictly marked as attended and not a no-show)
   const attendedCount = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(booking)
@@ -34,26 +56,32 @@ export async function checkHostEligibility() {
     .where(
       and(
         eq(booking.personId, user.id),
-        sql`(${booking.status} = 'attended' OR (${booking.status} = 'confirmed' AND ${event.startsAt} < NOW()))`
+        eq(booking.status, "attended"),
+        eq(booking.noShow, false)
       )
     );
 
-  // Check no-shows in last 90 days
+  // Check no-shows in last 90 days from EVENT date
   const noShows = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(booking)
+    .innerJoin(event, eq(booking.eventId, event.id))
     .where(
       and(
         eq(booking.personId, user.id),
         eq(booking.noShow, true),
-        sql`${booking.createdAt} >= NOW() - INTERVAL '90 days'`
+        sql`${event.startsAt} >= NOW() - INTERVAL '90 days'`
       )
     );
 
   const totalAttended = attendedCount[0]?.count || 0;
   const totalNoShows = noShows[0]?.count || 0;
 
-  const meetsAttendance = totalAttended >= 2;
+  // Late host cancellation penalty check (§H-02): cannot host until attended 3 events
+  const hasLateHostPenalty = (user.lateHostCancellations || 0) > 0;
+  const requiredAttended = hasLateHostPenalty ? 3 : 2;
+
+  const meetsAttendance = totalAttended >= requiredAttended;
   const meetsNoShows = totalNoShows === 0;
 
   return {
@@ -61,11 +89,13 @@ export async function checkHostEligibility() {
     eligible: meetsAttendance && meetsNoShows && !user.isPaused && !user.isSuspended,
     totalAttended,
     totalNoShows,
+    hasLateHostPenalty,
+    requiredAttended,
     isPaused: user.isPaused,
     isSuspended: user.isSuspended,
     user: {
       id: user.id,
-      name: `${user.firstName} ${user.lastName}`,
+      name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Member",
       email: user.email,
     },
   };
@@ -74,7 +104,7 @@ export async function checkHostEligibility() {
 export async function getUpcomingEventsNeedingHost() {
   try {
     const session = await auth();
-    const personId = session?.user?.id;
+    const personId = session?.user?.id ? ((session.user as any).personId || session.user.id) : null;
 
     const events = await db
       .select({
@@ -135,6 +165,8 @@ export async function submitHostRequest(data: {
     throw new Error("You must be logged in to apply to become a host.");
   }
 
+  const personId = (session.user as any).personId || session.user.id;
+
   if (!data.charterAgreed) {
     throw new Error("You must agree to the Host Charter to submit.");
   }
@@ -144,7 +176,7 @@ export async function submitHostRequest(data: {
   }
 
   const user = await db.query.person.findFirst({
-    where: eq(person.id, session.user.id),
+    where: eq(person.id, personId),
   });
 
   if (!user) {
@@ -154,7 +186,7 @@ export async function submitHostRequest(data: {
   const [reqRecord] = await db
     .insert(hostRequest)
     .values({
-      personId: session.user.id,
+      personId,
       format: data.format || "walk",
       neighbourhood: data.neighbourhood || "Barcelona",
       preferredDays: data.preferredDays || "Weekday mornings",
@@ -165,7 +197,6 @@ export async function submitHostRequest(data: {
     })
     .returning();
 
-  // Send Host Application Received Email
   const origin = getAppUrl();
   const isEs = user.locale === "es";
   const subject = isEs
@@ -182,7 +213,7 @@ export async function submitHostRequest(data: {
   await queueAndSendEmail({
     personId: user.id,
     toEmail: user.email,
-    toName: `${user.firstName} ${user.lastName}`,
+    toName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Member",
     templateKey: "host_request_status",
     dedupeKey: `host_request_received_${reqRecord.id}`,
     subject,
@@ -199,8 +230,9 @@ export async function applyToHostEvent(eventId: string) {
     return { success: false, error: "You must be signed in to request to host an event." };
   }
 
+  const personId = (session.user as any).personId || session.user.id;
   const user = await db.query.person.findFirst({
-    where: eq(person.id, session.user.id),
+    where: eq(person.id, personId),
   });
 
   if (!user) {
@@ -250,26 +282,32 @@ export async function applyToHostEvent(eventId: string) {
     .where(
       and(
         eq(booking.personId, user.id),
-        sql`(${booking.status} = 'attended' OR (${booking.status} = 'confirmed' AND ${event.startsAt} < NOW()))`
+        eq(booking.status, "attended"),
+        eq(booking.noShow, false)
       )
     );
 
   const noShowsRes = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(booking)
+    .innerJoin(event, eq(booking.eventId, event.id))
     .where(
       and(
         eq(booking.personId, user.id),
         eq(booking.noShow, true),
-        sql`${booking.createdAt} >= NOW() - INTERVAL '90 days'`
+        sql`${event.startsAt} >= NOW() - INTERVAL '90 days'`
       )
     );
 
   const attended = attendedRes[0]?.count || 0;
   const noShows = noShowsRes[0]?.count || 0;
+  const requiredAttended = (user.lateHostCancellations || 0) > 0 ? 3 : 2;
 
-  if (attended < 2) {
-    return { success: false, error: `You need to attend at least 2 events before hosting (attended: ${attended}).` };
+  if (attended < requiredAttended) {
+    return {
+      success: false,
+      error: `You need to attend at least ${requiredAttended} events before hosting (attended: ${attended}).`,
+    };
   }
 
   if (noShows > 0) {
@@ -305,19 +343,26 @@ export async function applyToHostEvent(eventId: string) {
     ? `Hemos recibido tu solicitud para ser anfitriona — ${ev.title}`
     : `Host request received — ${ev.title}`;
 
+  const { renderPublicEmailTemplate } = await import("@/lib/brevo");
+  const htmlContent = renderPublicEmailTemplate("Email - Host Request Received.html", {
+    first_name: user.firstName || "Mother",
+    event_title: ev.title,
+    event_url: `${origin}/events/${ev.id}`,
+  }) || generateHostRequestStatusEmailHtml({
+    firstName: user.firstName || "Mother",
+    status: "received",
+    appUrl: origin,
+    isEs,
+  });
+
   await queueAndSendEmail({
     personId: user.id,
     toEmail: user.email,
-    toName: `${user.firstName} ${user.lastName}`,
+    toName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Member",
     templateKey: "host_request_received",
     dedupeKey: `host_req_recv_${reqRecord.id}`,
     subject,
-    htmlContent: generateHostRequestStatusEmailHtml({
-      firstName: user.firstName || "Mother",
-      status: "received",
-      appUrl: origin,
-      isEs,
-    }),
+    htmlContent,
     isTransactional: true,
   });
 
@@ -335,9 +380,11 @@ export async function withdrawHostRequest(requestId: string) {
     return { success: false, error: "Unauthorized." };
   }
 
+  const personId = (session.user as any).personId || session.user.id;
+
   const [reqRecord] = await db
     .delete(hostRequest)
-    .where(and(eq(hostRequest.id, requestId), eq(hostRequest.personId, session.user.id)))
+    .where(and(eq(hostRequest.id, requestId), eq(hostRequest.personId, personId)))
     .returning();
 
   if (!reqRecord) {
@@ -358,9 +405,7 @@ export async function decideHostRequest(params: {
   adminNotes?: string;
 }) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Admin authorization required." };
-  }
+  const adminId = await assertAdminOrManager(session);
 
   const reqRecord = await db.query.hostRequest.findFirst({
     where: eq(hostRequest.id, params.requestId),
@@ -378,12 +423,14 @@ export async function decideHostRequest(params: {
     ? await db.query.event.findFirst({ where: eq(event.id, reqRecord.eventId) })
     : null;
 
+  const { renderPublicEmailTemplate } = await import("@/lib/brevo");
+
   if (params.decision === "accept") {
     await db
       .update(hostRequest)
       .set({
         status: "confirmed",
-        reviewedByAdminId: session.user.id,
+        reviewedByAdminId: adminId,
         reviewedAt: new Date(),
         notes: params.adminNotes || null,
       })
@@ -399,30 +446,79 @@ export async function decideHostRequest(params: {
     if (applicant && ev) {
       const origin = getAppUrl();
       const isEs = applicant.locale === "es";
+
+      // Fetch confirmed attendee names for roster
+      const attendeeBookings = await db
+        .select({
+          firstName: person.firstName,
+          lastName: person.lastName,
+        })
+        .from(booking)
+        .innerJoin(person, eq(booking.personId, person.id))
+        .where(
+          and(
+            eq(booking.eventId, ev.id),
+            sql`${booking.status} IN ('held', 'confirmed')`
+          )
+        );
+
+      const attendeeNames = attendeeBookings
+        .map((a) => (a.firstName ? `${a.firstName} ${a.lastName ? a.lastName[0] + "." : ""}`.trim() : "Member"))
+        .join(", ") || "Attendees will appear as they book";
+
+      const eventDate = new Date(ev.startsAt).toLocaleDateString(isEs ? "es-ES" : "en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      const eventTime = new Date(ev.startsAt).toLocaleTimeString(isEs ? "es-ES" : "en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const htmlContent = renderPublicEmailTemplate("Email - Host Request Accepted.html", {
+        first_name: applicant.firstName || "Mother",
+        event_title: ev.title,
+        event_date: eventDate,
+        event_time: eventTime,
+        meeting_point: ev.meetingPoint || ev.venueName || "Barcelona",
+        attendee_names: attendeeNames,
+        event_url: `${origin}/events/${ev.id}`,
+      }) || generateHostRequestStatusEmailHtml({
+        firstName: applicant.firstName || "Mother",
+        status: "approved",
+        appUrl: origin,
+        isEs,
+      });
+
       await queueAndSendEmail({
         personId: applicant.id,
         toEmail: applicant.email,
-        toName: `${applicant.firstName} ${applicant.lastName}`,
+        toName: `${applicant.firstName || ""} ${applicant.lastName || ""}`.trim() || "Member",
         templateKey: "host_request_accepted",
         dedupeKey: `host_accept_${reqRecord.id}`,
         subject: isEs
           ? `¡Confirmada como anfitriona! — ${ev.title}`
           : `You're hosting ${ev.title} — here's the meeting point`,
-        htmlContent: generateHostRequestStatusEmailHtml({
-          firstName: applicant.firstName || "Mother",
-          status: "approved",
-          appUrl: origin,
-          isEs,
-        }),
+        htmlContent,
         isTransactional: true,
       });
     }
+
+    await db.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "host_request_approved",
+      entity: "host_request",
+      entityId: reqRecord.id,
+      after: { eventId: ev?.id, personId: applicant?.id },
+    });
   } else {
     await db
       .update(hostRequest)
       .set({
         status: "declined",
-        reviewedByAdminId: session.user.id,
+        reviewedByAdminId: adminId,
         reviewedAt: new Date(),
         notes: params.adminNotes || null,
       })
@@ -431,24 +527,39 @@ export async function decideHostRequest(params: {
     if (applicant && ev) {
       const origin = getAppUrl();
       const isEs = applicant.locale === "es";
+
+      const htmlContent = renderPublicEmailTemplate("Email - Host Request Declined.html", {
+        first_name: applicant.firstName || "Mother",
+        event_title: ev.title,
+      }) || generateHostRequestStatusEmailHtml({
+        firstName: applicant.firstName || "Mother",
+        status: "declined",
+        appUrl: origin,
+        isEs,
+      });
+
       await queueAndSendEmail({
         personId: applicant.id,
         toEmail: applicant.email,
-        toName: `${applicant.firstName} ${applicant.lastName}`,
+        toName: `${applicant.firstName || ""} ${applicant.lastName || ""}`.trim() || "Member",
         templateKey: "host_request_declined",
         dedupeKey: `host_decline_${reqRecord.id}`,
         subject: isEs
           ? `Actualización de anfitriona — ${ev.title}`
           : `Host request update — ${ev.title}`,
-        htmlContent: generateHostRequestStatusEmailHtml({
-          firstName: applicant.firstName || "Mother",
-          status: "declined",
-          appUrl: origin,
-          isEs,
-        }),
+        htmlContent,
         isTransactional: true,
       });
     }
+
+    await db.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "host_request_declined",
+      entity: "host_request",
+      entityId: reqRecord.id,
+      after: { eventId: ev?.id, personId: applicant?.id },
+    });
   }
 
   revalidatePath("/admin/pre-launch");
@@ -463,9 +574,7 @@ export async function markEventAsRun(params: {
   noShowPersonIds?: string[];
 }) {
   const session = await auth();
-  if (!session?.user?.id) {
-    return { success: false, error: "Admin authorization required." };
-  }
+  const adminId = await assertAdminOrManager(session);
 
   const ev = await db.query.event.findFirst({
     where: eq(event.id, params.eventId),
@@ -500,46 +609,67 @@ export async function markEventAsRun(params: {
     .set({ isRan: true, ranAt: new Date(), status: "completed" })
     .where(eq(event.id, params.eventId));
 
+  // Host reward (§H-05): +2 credits + 50% of credits charged to host for their ticket
   if (ev.hostPersonId) {
     const hostPerson = await db.query.person.findFirst({
       where: eq(person.id, ev.hostPersonId),
     });
 
     if (hostPerson) {
-      const halfTicketCredits = Math.floor((ev.creditCost || 0) * 0.5);
-      const totalCreditsAwarded = 2 + halfTicketCredits;
-      const sixMonthsExpiry = new Date();
-      sixMonthsExpiry.setMonth(sixMonthsExpiry.getMonth() + 6);
-
-      await db.insert(creditBatch).values({
-        personId: hostPerson.id,
-        amount: totalCreditsAwarded,
-        remaining: totalCreditsAwarded,
-        source: "hosting",
-        expiresAt: sixMonthsExpiry,
+      const hostBooking = await db.query.booking.findFirst({
+        where: and(
+          eq(booking.eventId, ev.id),
+          eq(booking.personId, hostPerson.id)
+        ),
       });
+
+      const creditsCharged = hostBooking?.creditsCharged || 0;
+      const halfTicketCredits = Math.floor(creditsCharged * 0.5);
+      const totalCreditsAwarded = 2 + halfTicketCredits;
+
+      await grantCreditsToPerson(hostPerson.id, totalCreditsAwarded, "host_reward", 6);
 
       await db
         .update(hostRequest)
         .set({ creditsAwarded: totalCreditsAwarded })
         .where(and(eq(hostRequest.eventId, params.eventId), eq(hostRequest.personId, hostPerson.id)));
 
+      const newBalance = await getPersonWalletBalance(hostPerson.id);
       const origin = getAppUrl();
       const isEs = hostPerson.locale === "es";
+
+      const { renderPublicEmailTemplate } = await import("@/lib/brevo");
+      const htmlContent = renderPublicEmailTemplate("Email - Host Thank You.html", {
+        first_name: hostPerson.firstName || "Mother",
+        event_title: ev.title,
+        half_credits: halfTicketCredits,
+        balance: newBalance,
+        host_url: `${origin}/host`,
+      }) || `<p>Thank you for hosting ${ev.title}. We've credited ${totalCreditsAwarded} credits to your wallet.</p>`;
+
       await queueAndSendEmail({
         personId: hostPerson.id,
         toEmail: hostPerson.email,
-        toName: `${hostPerson.firstName} ${hostPerson.lastName}`,
+        toName: `${hostPerson.firstName || ""} ${hostPerson.lastName || ""}`.trim() || "Host",
         templateKey: "host_thank_you",
         dedupeKey: `host_ty_${params.eventId}_${hostPerson.id}`,
         subject: isEs
           ? `¡Gracias por ser anfitriona! — +${totalCreditsAwarded} créditos añadidos`
           : `Thanks for hosting — +${totalCreditsAwarded} credits added`,
-        htmlContent: `<p>Thank you for hosting ${ev.title}. We've credited ${totalCreditsAwarded} credits to your wallet.</p>`,
+        htmlContent,
         isTransactional: true,
       });
     }
   }
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "event_marked_ran",
+    entity: "event",
+    entityId: ev.id,
+    after: { noShowCount: params.noShowPersonIds?.length || 0 },
+  });
 
   revalidatePath("/admin/pre-launch");
   revalidatePath("/admin/events");
@@ -555,9 +685,7 @@ export async function updateAdminHostRequestStatus(params: {
   callDateFormatted?: string;
 }) {
   const session = await auth();
-  if (!session?.user?.id || (session.user as any).role !== "admin") {
-    throw new Error("Admin authorization required.");
-  }
+  const adminId = await assertAdminOrManager(session);
 
   const [reqRecord] = await db
     .update(hostRequest)
@@ -565,7 +693,7 @@ export async function updateAdminHostRequestStatus(params: {
       status: params.status,
       notes: params.notes || null,
       reviewedAt: new Date(),
-      reviewedByAdminId: session.user.id,
+      reviewedByAdminId: adminId,
     })
     .where(eq(hostRequest.id, params.requestId))
     .returning();
@@ -606,7 +734,7 @@ export async function updateAdminHostRequestStatus(params: {
     await queueAndSendEmail({
       personId: applicant.id,
       toEmail: applicant.email,
-      toName: `${applicant.firstName} ${applicant.lastName}`,
+      toName: `${applicant.firstName || ""} ${applicant.lastName || ""}`.trim() || "Member",
       templateKey: "host_request_status",
       dedupeKey: `host_status_${reqRecord.id}_${params.status}_${Date.now().toString().slice(0, 7)}`,
       subject,
@@ -614,6 +742,15 @@ export async function updateAdminHostRequestStatus(params: {
       isTransactional: true,
     });
   }
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "host_application_status_updated",
+    entity: "host_request",
+    entityId: reqRecord.id,
+    after: { status: params.status },
+  });
 
   revalidatePath("/admin/hosts");
   return { success: true };

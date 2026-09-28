@@ -46,7 +46,7 @@ export async function getPreLaunchDeskData() {
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(circleReport)
-        .where(eq(circleReport.status, "open")),
+        .where(sql`${circleReport.status} IN ('pending', 'open')`),
     ]);
 
     const stats = [

@@ -1,112 +1,85 @@
 "use server";
 
 import { db } from "@/db";
-import { creditBatch, creditEntry, person, booking, member } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { person, booking, event } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
-import { queueAndSendEmail, generatePaymentReceiptEmailHtml } from "@/lib/brevo";
+import { stripe } from "@/lib/stripe";
 import { getAppUrl } from "@/lib/urls";
 
-export async function processCreditTopUp(data: {
+export async function createTopUpCheckoutSession(data: {
   amount: number;
-  paymentMethod?: string;
-  targetEventId?: string;
+  eventId?: string;
+  returnTo?: string;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("You must be logged in to buy credits.");
+    return { success: false, error: "AUTH_REQUIRED" };
   }
 
-  const creditsCount = Math.floor(Number(data.amount));
-  if (isNaN(creditsCount) || creditsCount <= 0) {
-    throw new Error("Invalid credit amount.");
+  const creditAmount = Math.floor(Number(data.amount));
+  if (isNaN(creditAmount) || creditAmount < 5 || creditAmount > 100) {
+    return { success: false, error: "INVALID_AMOUNT_MIN_5" };
   }
 
-  const user = await db.query.person.findFirst({
-    where: eq(person.id, session.user.id),
+  const personId = (session.user as any).personId || session.user.id;
+  const personRecord = await db.query.person.findFirst({
+    where: eq(person.id, personId),
   });
 
-  if (!user) {
-    throw new Error("User not found.");
+  if (!personRecord) {
+    return { success: false, error: "USER_NOT_FOUND" };
   }
 
-  // 6 months expiry from now
-  const expiresAt = new Date();
-  expiresAt.setMonth(expiresAt.getMonth() + 6);
+  try {
+    const origin = getAppUrl();
+    const eventId = data.eventId || undefined;
+    const returnTo = data.returnTo || undefined;
 
-  // 1. Create credit batch
-  const [batch] = await db
-    .insert(creditBatch)
-    .values({
-      personId: user.id,
-      amount: creditsCount,
-      remaining: creditsCount,
-      expiresAt,
-      source: "purchase",
-    })
-    .returning();
-
-  // 2. Also ensure member record exists or creditEntry is logged for backward compatibility
-  const existingMember = await db.query.member.findFirst({
-    where: eq(member.personId, user.id),
-  });
-
-  if (existingMember) {
-    await db.insert(creditEntry).values({
-      memberId: existingMember.id,
-      amount: creditsCount,
-      type: "purchase",
-      sourceType: "topup",
-      sourceId: batch.id,
-      reason: `Purchased ${creditsCount} credits (€${creditsCount * 2})`,
-      expiresAt,
+    const stripeSession = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      customer_email: personRecord.email || session.user.email || undefined,
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: `THE Mothers — ${creditAmount} Event Credits`,
+              description: `€2.00 / credit · 6-month validity · THE Mothers Barcelona`,
+            },
+            unit_amount: 200, // €2.00 in cents
+          },
+          quantity: creditAmount,
+        },
+      ],
+      metadata: {
+        type: "topup",
+        personId: personRecord.id,
+        creditAmount: String(creditAmount),
+        eventId: eventId || "",
+        company: "THE Mothers",
+      },
+      custom_text: {
+        submit: {
+          message: "Official checkout for THE Mothers Barcelona.",
+        },
+      },
+      success_url: eventId
+        ? `${origin}/events/${eventId}?topup_success=true&credits=${creditAmount}`
+        : returnTo
+        ? `${origin}${returnTo}?topup_success=true&credits=${creditAmount}`
+        : `${origin}/account?credits_purchased=true&amount=${creditAmount}`,
+      cancel_url: eventId
+        ? `${origin}/events/${eventId}`
+        : returnTo
+        ? `${origin}${returnTo}`
+        : `${origin}/topup`,
     });
+
+    return { success: true, url: stripeSession.url };
+  } catch (err: any) {
+    console.error("createTopUpCheckoutSession error:", err);
+    return { success: false, error: err?.message || "CHECKOUT_FAILED" };
   }
-
-  // 3. Send Payment Receipt Email (§11)
-  const amountEur = creditsCount * 2;
-  const isEs = user.locale === "es";
-  const origin = getAppUrl();
-  const orderId = `TM-${batch.id.substring(0, 8).toUpperCase()}`;
-  const expiryDateFormatted = expiresAt.toLocaleDateString(isEs ? "es-ES" : "en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  const subject = isEs
-    ? `Recibo de compra — ${creditsCount} créditos`
-    : `Your receipt — ${creditsCount} credits`;
-
-  const htmlContent = generatePaymentReceiptEmailHtml({
-    firstName: user.firstName || "Member",
-    orderId,
-    amountEur,
-    creditsPurchased: creditsCount,
-    expiryDateFormatted,
-    appUrl: origin,
-    isEs,
-  });
-
-  await queueAndSendEmail({
-    personId: user.id,
-    toEmail: user.email,
-    toName: `${user.firstName} ${user.lastName}`,
-    templateKey: "payment_receipt",
-    dedupeKey: `topup_receipt_${batch.id}`,
-    subject,
-    htmlContent,
-    isTransactional: true,
-  });
-
-  revalidatePath("/account");
-  revalidatePath("/events");
-
-  return {
-    success: true,
-    batchId: batch.id,
-    creditsAdded: creditsCount,
-    expiresAt: expiresAt.toISOString(),
-  };
 }

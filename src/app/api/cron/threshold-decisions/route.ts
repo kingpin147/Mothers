@@ -95,83 +95,35 @@ export async function GET(req: NextRequest) {
         });
         confirmed++;
       } else if (ev.decisionAt && new Date(ev.decisionAt) <= new Date()) {
-        // ── CANCEL: threshold NOT met at decision_at ────────────────────────
-        await db.transaction(async (tx) => {
-          await tx
-            .update(event)
-            .set({
-              status: "cancelled",
-              cancelledAt: new Date(),
-              cancelReason: `Threshold not met: ${activeBookings}/${ev.minToConfirm} bookings at decision date`,
-              updatedAt: new Date(),
-            })
-            .where(eq(event.id, ev.id));
+        // ── THRESHOLD MISSED (§B-07): Alert team in Admin for manual decision ────
+        const origin = process.env.NEXTAUTH_URL || "https://themothers.cc";
+        const eventDateFormatted = new Date(ev.startsAt).toLocaleDateString("en-GB", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        });
 
-          // Release all active bookings and return credits
-          const activeBookingRows = await tx
-            .select()
-            .from(booking)
-            .where(
-              and(
-                eq(booking.eventId, ev.id),
-                sql`status IN ('held', 'confirmed')`
-              )
-            );
+        const { sendMinimumNotReachedEmail } = await import("@/lib/brevo");
+        const adminEmail = process.env.ADMIN_ALERT_EMAIL || "hello@themothers.cc";
 
-          for (const b of activeBookingRows) {
-            await tx
-              .update(booking)
-              .set({
-                status: "cancelled_event",
-                cancelledAt: new Date(),
-                updatedAt: new Date(),
-              })
-              .where(eq(booking.id, b.id));
+        await sendMinimumNotReachedEmail({
+          adminEmail,
+          eventTitle: ev.title,
+          activeBookings,
+          minRequired: ev.minToConfirm,
+          eventDate: eventDateFormatted,
+        }).catch((err) => console.error("Error sending minimum not reached email:", err));
 
-            // Return credits for member bookings
-            if (b.memberId && b.creditsCharged > 0) {
-              // Find the original spend entry for this booking
-              const spendEntry = await tx.query.creditEntry.findFirst({
-                where: and(
-                  eq(creditEntry.memberId, b.memberId),
-                  eq(creditEntry.type, "spend"),
-                  eq(creditEntry.sourceId, b.eventId)
-                ),
-              });
-
-              if (spendEntry) {
-                await returnCredits(
-                  b.memberId,
-                  spendEntry.id,
-                  "return_cancellation",
-                  `Event cancelled (threshold not met): ${ev.title}`,
-                  tx
-                );
-              } else {
-                // Fallback: direct return entry
-                await tx.insert(creditEntry).values({
-                  memberId: b.memberId,
-                  amount: b.creditsCharged,
-                  type: "return_cancellation",
-                  sourceType: "event",
-                  sourceId: ev.id,
-                  reason: `Event cancelled (threshold not met): ${ev.title}`,
-                });
-              }
-            }
-          }
-
-          await tx.insert(auditLog).values({
-            actorType: "system",
-            action: "threshold_cancel",
-            entity: "event",
-            entityId: ev.id,
-            after: {
-              activeBookings,
-              minRequired: ev.minToConfirm,
-              bookingsCancelled: activeBookingRows.length,
-            },
-          });
+        await db.insert(auditLog).values({
+          actorType: "system",
+          action: "threshold_decision_pending_team_alert",
+          entity: "event",
+          entityId: ev.id,
+          after: {
+            activeBookings,
+            minRequired: ev.minToConfirm,
+            decisionAt: ev.decisionAt,
+          },
         });
         cancelled++;
       }

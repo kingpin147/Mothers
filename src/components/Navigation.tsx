@@ -82,6 +82,28 @@ export function Navigation() {
     }
   };
 
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 10) {
+        setHeaderVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 60) {
+        // scrolling down -> hide
+        setHeaderVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        // scrolling up -> show
+        setHeaderVisible(true);
+      }
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
   // Nav links per pre-membership page map
   const navLinks = [
     { href: "/membership", labelEn: "Membership", labelEs: "Membresía" },
@@ -93,7 +115,15 @@ export function Navigation() {
   const isAdminRoute = pathname?.startsWith("/admin");
 
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 100 }}>
+    <div
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
+        transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+        transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+      }}
+    >
       <header
         style={{
           padding: "16px clamp(20px, 5vw, 64px)",
@@ -276,8 +306,8 @@ export function Navigation() {
         </div>
       </header>
 
-      {/* Sticky Countdown Banner (Membership Opens Jan 2027) */}
-      {!isEventsPage && <StickyCountdownBanner />}
+      {/* Sticky Countdown Banner on every page (§S-03) */}
+      <StickyCountdownBanner />
 
       {/* Mobile Drawer Overlay Matching UI Extras #3 */}
       {mobileMenuOpen && (

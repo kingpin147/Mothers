@@ -270,9 +270,6 @@ export function Footer() {
               <Link href="/host" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "Become a host" : "Sé anfitriona"}
               </Link>
-              <Link href="/partners" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "For Partners" : "Para Partners"}
-              </Link>
               <Link href="/faq" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "FAQ" : "Preguntas"}
               </Link>

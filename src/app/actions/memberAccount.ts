@@ -609,44 +609,95 @@ export async function revealPerkCode(rawPerkId: string) {
 }
 
 
-// Lightweight credit-balance fetch used by the Navigation bar
+// Lightweight credit-balance fetch used by the Navigation bar (Unified FIFO Wallet §C-02)
 export async function getMyCredits(): Promise<{ balance: number }> {
   try {
     const session = await auth();
     if (!session?.user) return { balance: 0 };
 
-    let memberId = (session.user as any).memberId;
+    const personId = (session.user as any).personId || session.user.id;
+    if (!personId) return { balance: 0 };
 
-    // Fall back to look-up by personId or email if memberId isn't on the session token
-    if (!memberId) {
-      const personId = (session.user as any).personId || session.user.id;
-      let personRec = personId
-        ? await db.query.person.findFirst({ where: eq(person.id, personId) })
-        : null;
-      if (!personRec && session.user.email) {
-        personRec = await db.query.person.findFirst({
-          where: eq(person.email, session.user.email.toLowerCase().trim()),
-        });
-      }
-      if (personRec) {
-        const memberRec = await db.query.member.findFirst({
-          where: eq(member.personId, personRec.id),
-        });
-        memberId = memberRec?.id;
-      }
-    }
-
-    if (!memberId) return { balance: 0 };
-
-    const rows = await db
-      .select({ total: sql<number>`COALESCE(SUM(${creditEntry.amount}), 0)` })
-      .from(creditEntry)
-      .where(eq(creditEntry.memberId, memberId));
-
-    return { balance: Number(rows[0]?.total ?? 0) };
+    const { getPersonWalletBalance } = await import("@/lib/ledger");
+    const balance = await getPersonWalletBalance(personId);
+    return { balance };
   } catch {
     return { balance: 0 };
   }
+}
+
+export async function validateGodmotherCode(code: string) {
+  if (!code || !code.trim()) {
+    return { valid: false, error: "Please enter a code" };
+  }
+
+  const normalized = code.trim().toUpperCase();
+  const session = await auth();
+  const currentPersonId = session?.user?.id ? ((session.user as any).personId || session.user.id) : null;
+
+  const match = await db.query.person.findFirst({
+    where: eq(person.godmotherCode, normalized),
+  });
+
+  if (!match) {
+    return { valid: false, error: "Invalid Godmother code" };
+  }
+
+  if (currentPersonId && match.id === currentPersonId) {
+    return { valid: false, error: "You cannot use your own referral code" };
+  }
+
+  return {
+    valid: true,
+    godmotherName: match.firstName || "A Mother in Barcelona",
+    godmotherPersonId: match.id,
+  };
+}
+
+export async function submitFirstVisitProfile(formData: {
+  stages: string[];
+  neighbourhood: string;
+  hoping: string[];
+  availability: string[];
+  heard: string;
+  godmotherCode?: string;
+  social?: string;
+  why?: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "AUTH_REQUIRED" };
+  }
+  const personId = (session.user as any).personId || session.user.id;
+
+  let referredByPersonId: string | null = null;
+  if (formData.godmotherCode && formData.godmotherCode.trim()) {
+    const check = await validateGodmotherCode(formData.godmotherCode);
+    if (check.valid && check.godmotherPersonId) {
+      referredByPersonId = check.godmotherPersonId;
+    }
+  }
+
+  await db
+    .update(person)
+    .set({
+      profileDone: true,
+      ...(referredByPersonId ? { referredByPersonId } : {}),
+      profileData: {
+        stages: formData.stages,
+        neighbourhood: formData.neighbourhood,
+        hoping: formData.hoping,
+        availability: formData.availability,
+        heard: formData.heard,
+        godmotherCode: formData.godmotherCode,
+        social: formData.social,
+        why: formData.why,
+      },
+      updatedAt: new Date(),
+    })
+    .where(eq(person.id, personId));
+
+  return { success: true };
 }
 
 export async function deleteMyAccountGDPR() {

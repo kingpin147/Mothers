@@ -9,8 +9,12 @@
       "schedule": "0 2 * * *"
     },
     {
-      "path": "/api/cron/open-guest-windows",
-      "schedule": "0 1 * * *"
+      "path": "/api/cron/minimum-not-reached",
+      "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/cron/after-first-event",
+      "schedule": "0 10 * * *"
     },
     {
       "path": "/api/cron/expire-offers",
@@ -47,10 +51,6 @@
     {
       "path": "/api/cron/resume-pauses",
       "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/retention",
-      "schedule": "0 3 1 * *"
     }
   ]
 }

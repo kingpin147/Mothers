@@ -5,13 +5,15 @@ import { event, member, window, application, eventPass, person } from "@/db/sche
 import { eq, sql, and } from "drizzle-orm";
 import { auth } from "@/lib/auth"; 
 import { getAppUrl } from "@/lib/urls"; 
+import { getPersonWalletBalance } from "@/lib/ledger";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { type, eventId, memberId, token, amount } = body;
+    const { type, eventId, memberId, token, amount, returnTo } = body;
     const origin = req.headers.get("origin") || getAppUrl();
 
+    // ─── 1. GUEST PASS CHECKOUT ──────────────────────────────────────────────
     if (type === "guest_pass") {
       const session = await auth();
       if (!session?.user?.id) {
@@ -20,7 +22,6 @@ export async function POST(req: Request) {
 
       if (!eventId) return NextResponse.json({ error: "Missing eventId" }, { status: 400 });
 
-      // Fetch dynamic price from event
       const eventRecord = await db.query.event.findFirst({
         where: eq(event.id, eventId),
       });
@@ -28,7 +29,6 @@ export async function POST(req: Request) {
       if (!eventRecord) return NextResponse.json({ error: "Event not found" }, { status: 404 });
       if (!eventRecord.guestPriceCents) return NextResponse.json({ error: "Event does not allow guests" }, { status: 400 });
 
-      // Create checkout session for guest pass
       const stripeSession = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         mode: "payment",
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
         metadata: {
           type: "guest_pass",
           eventId,
-          personId: session.user.id as string,
+          personId: ((session.user as any).personId || session.user.id) as string,
           company: "THE Mothers",
         },
         custom_text: {
@@ -64,53 +64,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ url: stripeSession.url });
     }
 
-    if (type === "extra_credits" || type === "credit_topup") {
+    // ─── 2. CREDIT TOP-UP CHECKOUT (FOR ALL PERSONS §20.3) ───────────────────
+    if (type === "extra_credits" || type === "credit_topup" || type === "topup") {
       const session = await auth();
       if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
       const creditAmount = parseInt(String(amount || 10), 10);
-      if (!Number.isInteger(creditAmount) || creditAmount < 1 || creditAmount > 100) {
-        return NextResponse.json({ error: "Invalid credit amount" }, { status: 400 });
+      if (!Number.isInteger(creditAmount) || creditAmount < 5 || creditAmount > 100) {
+        return NextResponse.json({ error: "Minimum top-up is 5 credits (€10.00)" }, { status: 400 });
       }
 
-      let targetMemberId = memberId || (session.user as any).memberId;
       const personId = (session.user as any).personId || session.user.id;
+      const personRecord = await db.query.person.findFirst({
+        where: eq(person.id, personId),
+      });
 
-      if (!targetMemberId && personId) {
-        const mem = await db.query.member.findFirst({ where: eq(member.personId, personId) });
-        if (mem) targetMemberId = mem.id;
+      if (!personRecord) {
+        return NextResponse.json({ error: "User account not found" }, { status: 404 });
       }
-
-      if (!targetMemberId) return NextResponse.json({ error: "Member account required" }, { status: 400 });
-
-      const memberRecord = await db.query.member.findFirst({ where: eq(member.id, targetMemberId) });
-      if (!memberRecord || memberRecord.status !== "active") {
-        return NextResponse.json({ error: "Active membership required" }, { status: 400 });
-      }
-
-      const personRecord = await db.query.person.findFirst({ where: eq(person.id, memberRecord.personId) });
 
       const stripeSession = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         mode: "payment",
-        customer_email: personRecord?.email || session.user.email || undefined,
+        customer_email: personRecord.email || session.user.email || undefined,
         line_items: [
           {
             price_data: {
               currency: "eur",
               product_data: {
-                name: `THE Mothers — ${creditAmount} Extra Event Credits`,
-                description: `€1/credit · 6-month validity · THE Mothers Barcelona`,
+                name: `THE Mothers — ${creditAmount} Event Credits`,
+                description: `€2.00 / credit · 6-month validity · THE Mothers Barcelona`,
               },
-              unit_amount: creditAmount * 100, // €1 per credit
+              unit_amount: 200, // €2.00 per credit in cents
             },
-            quantity: 1,
+            quantity: creditAmount,
           },
         ],
         metadata: {
-          type: "extra_credits",
-          memberId: targetMemberId,
-          personId: memberRecord.personId,
+          type: "topup",
+          personId: personRecord.id,
           creditAmount: String(creditAmount),
           eventId: eventId || "",
           company: "THE Mothers",
@@ -121,16 +113,21 @@ export async function POST(req: Request) {
           },
         },
         success_url: eventId
-          ? `${origin}/events/${eventId}?booking_success=true`
-          : `${origin}/account?credits_purchased=true`,
+          ? `${origin}/events/${eventId}?topup_success=true&credits=${creditAmount}`
+          : returnTo
+          ? `${origin}${returnTo}?topup_success=true&credits=${creditAmount}`
+          : `${origin}/account?credits_purchased=true&amount=${creditAmount}`,
         cancel_url: eventId
           ? `${origin}/events/${eventId}`
-          : `${origin}/account`,
+          : returnTo
+          ? `${origin}${returnTo}`
+          : `${origin}/topup`,
       });
 
       return NextResponse.json({ url: stripeSession.url });
     }
 
+    // ─── 3. MEMBERSHIP ACTIVATION CHECKOUT ───────────────────────────────────
     if (type === "membership") {
       if (!memberId) return NextResponse.json({ error: "Missing memberId" }, { status: 400 });
 
@@ -182,7 +179,7 @@ export async function POST(req: Request) {
         personEmail = personRecord.email;
       }
 
-      // Fetch application to get windowId
+      // Fetch application to get window
       const appRecord = await db.query.application.findFirst({
         where: eq(application.personId, memberRecord.personId),
         orderBy: (app, { desc }) => [desc(app.submittedAt)],
@@ -198,26 +195,19 @@ export async function POST(req: Request) {
       const defaultMonthlyPrice = windowRecord?.monthlyPriceCents || 3900;
       const defaultJoiningFee = windowRecord?.joiningFeeCents || 1900;
 
-      // Check joining fee waiver (§6.1):
-      // Waived if: (1) First 50 accepted members, OR (2) Purchased Event Pass in last 30 days
-      const [totalMembers, recentPass] = await Promise.all([
-        db.select({ count: sql<number>`count(*)` }).from(member).where(sql`status IN ('active', 'accepted_awaiting_payment')`),
-        db.query.eventPass.findFirst({
-          where: and(
-            eq(eventPass.personId, personId),
-            sql`purchased_at >= NOW() - INTERVAL '30 days'`
-          ),
-        }),
-      ]);
-
-      const isFirst50 = Number(totalMembers[0]?.count || 0) <= 50;
-      const hasRecentPass = !!recentPass;
-      const isFeeWaived = isFirst50 || hasRecentPass;
+      // Check joining fee waiver:
+      // Waived permanently if createdBeforeLaunch === true (§6.1, Pre-Membership Rule)
+      const isFeeWaived = personRecord?.createdBeforeLaunch === true;
 
       const isQuarterly = memberRecord.billingFrequency === "quarterly";
       const unitAmount = memberRecord.priceCents > 0
         ? memberRecord.priceCents
         : (isQuarterly ? 9900 : defaultMonthlyPrice);
+
+      // Check wallet credit discount on first payment (§5)
+      const walletBalance = await getPersonWalletBalance(personId);
+      const creditDiscountCents = Math.min(walletBalance * 200, unitAmount);
+      const creditsToConsume = Math.floor(creditDiscountCents / 200);
 
       const lineItems: any[] = [
         {
@@ -237,7 +227,7 @@ export async function POST(req: Request) {
         }
       ];
 
-      // Add joining fee if not waived and present
+      // Add €19 joining fee if NOT waived
       if (!isFeeWaived && defaultJoiningFee > 0) {
         lineItems.push({
           price_data: {
@@ -274,6 +264,7 @@ export async function POST(req: Request) {
             memberId,
             personId,
             isQuarterly: String(isQuarterly),
+            creditsToConsume: String(creditsToConsume),
             company: "THE Mothers",
           }
         },
@@ -283,6 +274,7 @@ export async function POST(req: Request) {
           personId,
           isQuarterly: String(isQuarterly),
           feeWaived: String(isFeeWaived),
+          creditsToConsume: String(creditsToConsume),
           company: "THE Mothers",
         },
         custom_text: {

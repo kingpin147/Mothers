@@ -127,14 +127,19 @@ export const person = pgTable(
     suspendedAt: timestamp("suspended_at", { withTimezone: true }),
     suspendedReason: text("suspended_reason"),
     profileDone: boolean("profile_done").default(false).notNull(),
+    godmotherCode: text("godmother_code").unique(),
+    referredByPersonId: text("referred_by_person_id"),
+    lateHostCancellations: integer("late_host_cancellations").default(0).notNull(),
     profileData: jsonb("profile_data").$type<{
       stages?: string[];
       neighbourhood?: string;
       hoping?: string[];
       free?: string[];
+      availability?: string[];
       heard?: string;
       referralCode?: string;
-      social?: { platform: string; handle: string };
+      godmotherCode?: string;
+      social?: { platform: string; handle: string } | string;
       why?: string;
     }>(),
     source: text("source"),
@@ -145,6 +150,7 @@ export const person = pgTable(
   },
   (table) => [
     index("idx_person_email").on(table.email),
+    index("idx_person_godmother_code").on(table.godmotherCode),
   ]
 );
 
@@ -350,6 +356,7 @@ export const event = pgTable(
     isRan: boolean("is_ran").default(false).notNull(),
     ranAt: timestamp("ran_at", { withTimezone: true }),
     cancellationWindowHours: integer("cancellation_window_hours").default(24).notNull(),
+    cancellationRefundPercent: integer("cancellation_refund_percent").default(100).notNull(),
     partnerId: text("partner_id"),
     hostAdminId: text("host_admin_id").references(() => adminUser.id),
     imageId: text("image_id"),

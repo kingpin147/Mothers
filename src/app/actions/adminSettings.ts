@@ -16,6 +16,39 @@ async function verifyAdmin() {
   return { adminId: session?.user?.id || "admin", role };
 }
 
+// ─── 0. PUBLIC SETTINGS READER (§M-01) ───────────────────────────────────────
+
+export async function getPublicClubSettings() {
+  try {
+    const settingsRows = await db.select().from(setting);
+    const settingsMap: Record<string, any> = {};
+    for (const s of settingsRows) {
+      settingsMap[s.key] = s.value;
+    }
+    return {
+      membershipLive: Boolean(settingsMap["membership_live"] ?? false),
+      priceDisplay: (settingsMap["price_display"] as "single" | "dual") ?? "single",
+      topUpPriceCents: Number(settingsMap["top_up_price_cents"] ?? 200),
+      expectedLaunch: settingsMap["expected_launch"] ?? "2027-01-06",
+      joiningFeeCents: Number(settingsMap["joining_fee_cents"] ?? 1900),
+      monthlyFeeCents: Number(settingsMap["monthly_fee_cents"] ?? 3900),
+      quarterlyFeeCents: Number(settingsMap["quarterly_fee_cents"] ?? 9900),
+      referralBonusCredits: Number(settingsMap["referral_bonus_credits"] ?? 5),
+    };
+  } catch {
+    return {
+      membershipLive: false,
+      priceDisplay: "single" as const,
+      topUpPriceCents: 200,
+      expectedLaunch: "2027-01-06",
+      joiningFeeCents: 1900,
+      monthlyFeeCents: 3900,
+      quarterlyFeeCents: 9900,
+      referralBonusCredits: 5,
+    };
+  }
+}
+
 // ─── 1. GET & UPDATE CLUB SETTINGS ──────────────────────────────────────────
 
 export async function getClubSettings() {
@@ -41,9 +74,7 @@ export async function getClubSettings() {
       joiningFeeCents: settingsMap["joining_fee_cents"] ?? 1900,
       monthlyFeeCents: settingsMap["monthly_fee_cents"] ?? 3900,
       quarterlyFeeCents: settingsMap["quarterly_fee_cents"] ?? 9900,
-      joiningFeeFreePlaces: settingsMap["joining_fee_free_places"] ?? 50,
 
-      nonMemberWalkCredits: settingsMap["non_member_walk_credits"] ?? 3,
       nonMemberMarkup: settingsMap["non_member_markup"] ?? 1.5,
 
       monthlyGrantCredits: settingsMap["monthly_grant_credits"] ?? 20,
@@ -51,7 +82,7 @@ export async function getClubSettings() {
       creditLifeMonths: settingsMap["credit_life_months"] ?? 6,
       rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? null,
       expiryWarningDays: settingsMap["expiry_warning_days"] ?? 30,
-      topUpPriceCents: settingsMap["top_up_price_cents"] ?? 100,
+      topUpPriceCents: settingsMap["top_up_price_cents"] ?? 200,
       releaseDeadlineHours: settingsMap["release_deadline_hours"] ?? 48,
 
       referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 5,
@@ -59,10 +90,8 @@ export async function getClubSettings() {
       pauseAllowanceMonths: settingsMap["pause_allowance_months"] ?? 2,
 
       scheduleMembersFrom: settingsMap["schedule_members_from"] ?? 28,
-      scheduleGuestsOpen: settingsMap["schedule_guests_open"] ?? 14,
       scheduleEarlyWarning: settingsMap["schedule_early_warning"] ?? 10,
       scheduleDecisionPoint: settingsMap["schedule_decision_point"] ?? 7,
-      scheduleGuestsClose: settingsMap["schedule_guests_close"] ?? 2,
     },
     currentWindow: currentWindow || null,
   };

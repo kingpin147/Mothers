@@ -71,35 +71,41 @@ export async function checkPostingEligibility() {
     return { canPost: false, reason: "login_required" };
   }
 
+  const personId = (session.user as any).personId || session.user.id;
   const user = await db.query.person.findFirst({
-    where: eq(person.id, session.user.id),
+    where: eq(person.id, personId),
   });
 
   if (!user) {
     return { canPost: false, reason: "user_not_found" };
   }
 
+  if (user.isSuspended) {
+    return { canPost: false, reason: "account_suspended" };
+  }
+
   if (user.isPaused) {
     return { canPost: false, reason: "account_paused", pausedReason: user.pausedReason };
   }
 
-  // Pre-membership rule: posting requires at least 1 confirmed booking (free or paid)
-  const bookingsCount = await db
+  // Pre-membership rule (§CI-02): posting opens after her first ATTENDED event (free or paid)
+  const attendedCount = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(booking)
     .where(
       and(
         eq(booking.personId, user.id),
-        sql`${booking.status} IN ('confirmed', 'attended', 'held')`
+        eq(booking.status, "attended"),
+        eq(booking.noShow, false)
       )
     );
 
-  const totalBookings = bookingsCount[0]?.count || 0;
-  if (totalBookings < 1) {
+  const totalAttended = attendedCount[0]?.count || 0;
+  if (totalAttended < 1) {
     return {
       canPost: false,
-      reason: "booking_required",
-      totalBookings: 0,
+      reason: "attended_required",
+      totalAttended: 0,
     };
   }
 
@@ -114,9 +120,9 @@ export async function checkPostingEligibility() {
   };
 }
 
-export async function getCirclePosts(selectedTopic?: string): Promise<PostItem[]> {
+export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | "trending" = "recent"): Promise<PostItem[]> {
   const session = await auth();
-  const currentUserId = session?.user?.id;
+  const currentUserId = session?.user?.id ? ((session.user as any).personId || session.user.id) : null;
 
   const whereClause = selectedTopic && selectedTopic !== "all"
     ? and(eq(circlePost.topic, selectedTopic), sql`${circlePost.status} IN ('visible', 'hidden')`)
@@ -125,12 +131,11 @@ export async function getCirclePosts(selectedTopic?: string): Promise<PostItem[]
   const posts = await db.query.circlePost.findMany({
     where: whereClause,
     orderBy: [desc(circlePost.createdAt)],
-    limit: 50,
+    limit: 60,
   });
 
   if (!posts.length) return [];
 
-  // Fetch all heart records for current user
   let userHeartedPostIds = new Set<string>();
   if (currentUserId) {
     const userHearts = await db.query.circleHeart.findMany({
@@ -141,7 +146,6 @@ export async function getCirclePosts(selectedTopic?: string): Promise<PostItem[]
     });
   }
 
-  // Fetch authors and replies
   const result: PostItem[] = [];
 
   for (const p of posts) {
@@ -150,7 +154,6 @@ export async function getCirclePosts(selectedTopic?: string): Promise<PostItem[]
       where: eq(person.id, p.personId),
     });
 
-    // Author display
     let authorName = "A mother";
     let initial = "M";
     let neighbourhood = p.anonymousArea || "Barcelona";
@@ -159,11 +162,10 @@ export async function getCirclePosts(selectedTopic?: string): Promise<PostItem[]
       authorName = p.anonymousArea ? `A mother in ${p.anonymousArea}` : "A mother in Barcelona";
       initial = "M";
     } else if (authorPerson) {
-      authorName = `${authorPerson.firstName} ${authorPerson.lastName ? authorPerson.lastName[0] + "." : ""}`;
+      authorName = `${authorPerson.firstName || "Mother"} ${authorPerson.lastName ? authorPerson.lastName[0] + "." : ""}`.trim();
       initial = authorPerson.firstName ? authorPerson.firstName[0].toUpperCase() : "M";
     }
 
-    // Fetch replies
     const rawReplies = await db.query.circleReply.findMany({
       where: and(eq(circleReply.postId, p.id), eq(circleReply.status, "visible")),
       orderBy: [circleReply.createdAt],
@@ -180,7 +182,7 @@ export async function getCirclePosts(selectedTopic?: string): Promise<PostItem[]
       if (r.isAnonymous) {
         rAuthor = r.anonymousArea ? `A mother in ${r.anonymousArea}` : "A mother";
       } else if (replyPerson) {
-        rAuthor = `${replyPerson.firstName} ${replyPerson.lastName ? replyPerson.lastName[0] + "." : ""}`;
+        rAuthor = `${replyPerson.firstName || "Mother"} ${replyPerson.lastName ? replyPerson.lastName[0] + "." : ""}`.trim();
         rInitial = replyPerson.firstName ? replyPerson.firstName[0].toUpperCase() : "M";
       }
 
@@ -229,6 +231,16 @@ export async function getCirclePosts(selectedTopic?: string): Promise<PostItem[]
     });
   }
 
+  if (sortBy === "trending") {
+    result.sort((a, b) => {
+      const ageHoursA = (Date.now() - new Date(a.createdAt).getTime()) / (1000 * 60 * 60);
+      const ageHoursB = (Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60);
+      const scoreA = (a.heartsCount * 2 + a.repliesCount * 3) / Math.pow(ageHoursA + 2, 1.5);
+      const scoreB = (b.heartsCount * 2 + b.repliesCount * 3) / Math.pow(ageHoursB + 2, 1.5);
+      return scoreB - scoreA;
+    });
+  }
+
   return result;
 }
 
@@ -245,8 +257,12 @@ export async function createCirclePost(data: {
     throw new Error("You must be logged in to post in The Circle.");
   }
 
+  const personId = (session.user as any).personId || session.user.id;
   const eligibility = await checkPostingEligibility();
   if (!eligibility.canPost) {
+    if (eligibility.reason === "account_suspended") {
+      throw new Error("Your account has been suspended.");
+    }
     if (eligibility.reason === "account_paused") {
       throw new Error("Your account is currently paused.");
     }
@@ -259,7 +275,7 @@ export async function createCirclePost(data: {
   // Rate limit: 5 posts per 24 hours, minimum 30s gap
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const recentPosts = await db.query.circlePost.findMany({
-    where: and(eq(circlePost.personId, session.user.id), gte(circlePost.createdAt, last24h)),
+    where: and(eq(circlePost.personId, personId), gte(circlePost.createdAt, last24h)),
     orderBy: [desc(circlePost.createdAt)],
   });
 
@@ -278,14 +294,23 @@ export async function createCirclePost(data: {
     throw new Error("Post must be at least 10 characters.");
   }
 
+  const photos = data.photos || [];
+  if (photos.length > 4) {
+    throw new Error("Maximum 4 photos allowed per post.");
+  }
+
+  if (photos.length > 0 && !data.photoConsent) {
+    throw new Error("Parental photo consent is required when posting images.");
+  }
+
   const [newPost] = await db
     .insert(circlePost)
     .values({
-      personId: session.user.id,
+      personId,
       topic: data.topic || "postpartum",
       body: data.body.trim(),
-      photos: data.photos || [],
-      photoConsent: data.photoConsent ?? true,
+      photos,
+      photoConsent: photos.length > 0 ? (data.photoConsent ?? false) : true,
       isAnonymous: data.isAnonymous ?? false,
       anonymousArea: data.anonymousArea || "Barcelona",
       status: "visible",
@@ -302,6 +327,7 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     throw new Error("You must be logged in to reply.");
   }
 
+  const personId = (session.user as any).personId || session.user.id;
   const eligibility = await checkPostingEligibility();
   if (!eligibility.canPost) {
     throw new Error("Replying requires at least one confirmed booking.");
@@ -311,19 +337,27 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     throw new Error("Reply cannot be empty.");
   }
 
-  // Rate limit: 20 replies per 24 hours
+  // Rate limit: 20 replies per 24 hours, minimum 30s gap
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const recentReplies = await db.query.circleReply.findMany({
-    where: and(eq(circleReply.personId, session.user.id), gte(circleReply.createdAt, last24h)),
+    where: and(eq(circleReply.personId, personId), gte(circleReply.createdAt, last24h)),
+    orderBy: [desc(circleReply.createdAt)],
   });
 
   if (recentReplies.length >= 20) {
     throw new Error("Rate limit reached: Maximum 20 replies per 24 hours.");
   }
 
+  if (recentReplies.length > 0) {
+    const timeSinceLast = Date.now() - new Date(recentReplies[0].createdAt).getTime();
+    if (timeSinceLast < 30000) {
+      throw new Error("Please wait 30 seconds before submitting another reply.");
+    }
+  }
+
   await db.insert(circleReply).values({
     postId,
-    personId: session.user.id,
+    personId,
     body: body.trim(),
     isAnonymous,
     status: "visible",
@@ -347,8 +381,9 @@ export async function toggleCircleHeart(postId: string) {
     throw new Error("You must be logged in to heart a post.");
   }
 
+  const personId = (session.user as any).personId || session.user.id;
   const existing = await db.query.circleHeart.findFirst({
-    where: and(eq(circleHeart.personId, session.user.id), eq(circleHeart.postId, postId)),
+    where: and(eq(circleHeart.personId, personId), eq(circleHeart.postId, postId)),
   });
 
   if (existing) {
@@ -362,7 +397,7 @@ export async function toggleCircleHeart(postId: string) {
     return { hearted: false };
   } else {
     await db.insert(circleHeart).values({
-      personId: session.user.id,
+      personId,
       postId,
     });
     await db
@@ -381,15 +416,15 @@ export async function reportCirclePost(postId: string, reason: string, details?:
     throw new Error("You must be logged in to report a post.");
   }
 
+  const personId = (session.user as any).personId || session.user.id;
   await db.insert(circleReport).values({
     postId,
-    reporterPersonId: session.user.id,
+    reporterPersonId: personId,
     reason,
     details,
     status: "pending",
   });
 
-  // Increment report count on post
   const updatedPost = await db
     .update(circlePost)
     .set({
@@ -398,7 +433,6 @@ export async function reportCirclePost(postId: string, reason: string, details?:
     .where(eq(circlePost.id, postId))
     .returning();
 
-  // Tech brief rule: Auto-hidden after 3 reports, pending review
   if (updatedPost[0] && updatedPost[0].reportsCount >= 3) {
     await db
       .update(circlePost)

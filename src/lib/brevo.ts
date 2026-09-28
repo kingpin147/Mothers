@@ -3,6 +3,28 @@ import { db } from "@/db";
 import { emailLog } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateIcsDataUri } from "./ics";
+import fs from "fs";
+import path from "path";
+
+export function renderPublicEmailTemplate(
+  templateFilename: string,
+  variables: Record<string, string | number | undefined | null>
+): string {
+  try {
+    const templatePath = path.join(process.cwd(), "public", "emails", templateFilename);
+    if (fs.existsSync(templatePath)) {
+      let content = fs.readFileSync(templatePath, "utf8");
+      for (const [key, value] of Object.entries(variables)) {
+        const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+        content = content.replace(regex, String(value ?? ""));
+      }
+      return content;
+    }
+  } catch (err) {
+    console.error(`Error loading email template ${templateFilename}:`, err);
+  }
+  return "";
+}
 
 export const BREVO_TEMPLATES = {
   WELCOME_CONFIRMATION: "welcome_confirmation",
@@ -27,6 +49,14 @@ export const BREVO_TEMPLATES = {
   TIER_UPGRADE: "tier_upgrade",
   GODMOTHER_BONUS_EARNED: "godmother_bonus_earned",
   JOURNAL_POST_NOTIFICATION: "journal_post_notification",
+  ACCOUNT_SUSPENDED: "account_suspended",
+  ACCOUNT_REINSTATED: "account_reinstated",
+  MEMBERSHIP_IS_OPEN: "membership_is_open",
+  MINIMUM_NOT_REACHED: "minimum_not_reached",
+  AFTER_FIRST_EVENT: "after_first_event",
+  PLACE_STILL_OPEN: "place_still_open",
+  HOST_CANCELLED: "host_cancelled",
+  HOST_THANK_YOU: "host_thank_you",
 } as const;
 
 // ─── 1. JOURNAL POST EMAIL ──────────────────────────────────────────────────
@@ -1224,3 +1254,228 @@ export async function queueAndSendEmail(params: SendEmailParams): Promise<{ succ
     return { success: false, error: error?.message || "Brevo dispatch failed" };
   }
 }
+
+// ─── 9. APPROVED TRANSACTIONAL EMAIL HELPERS (E-01) ─────────────────────────
+
+export async function sendAccountSuspendedEmail(params: {
+  personId: string;
+  email: string;
+  firstName?: string;
+  reason?: string;
+}) {
+  const firstName = params.firstName || "Friend";
+  const reason = params.reason || "a house rules review";
+  const htmlContent = renderPublicEmailTemplate("Email - Account Suspended.html", {
+    first_name: firstName,
+    reason,
+  }) || `<p>Your account is paused, ${firstName}. Following ${reason}, bookings and credits are frozen. Write to hello@themothers.cc for questions.</p>`;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "account_suspended",
+    dedupeKey: `account_suspended_${params.personId}_${Date.now()}`,
+    subject: `Your account with The Mothers`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
+export async function sendAccountReinstatedEmail(params: {
+  personId: string;
+  email: string;
+  firstName?: string;
+}) {
+  const firstName = params.firstName || "Friend";
+  const htmlContent = renderPublicEmailTemplate("Email - Account Reinstated.html", {
+    first_name: firstName,
+  }) || `<p>Your account is active again, ${firstName}. You can now book events and participate in The Circle.</p>`;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "account_reinstated",
+    dedupeKey: `account_reinstated_${params.personId}_${Date.now()}`,
+    subject: `Your account is active again — The Mothers`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
+export async function sendMembershipIsOpenEmail(params: {
+  personId: string;
+  email: string;
+  firstName?: string;
+}) {
+  const firstName = params.firstName || "Friend";
+  const htmlContent = renderPublicEmailTemplate("Email - Membership Is Open.html", {
+    first_name: firstName,
+  }) || `<p>Membership is now open, ${firstName}. You can subscribe from your account with your early adopter joining fee waiver.</p>`;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "membership_is_open",
+    dedupeKey: `membership_open_${params.personId}`,
+    subject: `Membership is open — The Mothers Barcelona`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
+export async function sendGodmotherCreditedEmail(params: {
+  personId: string;
+  email: string;
+  firstName?: string;
+  friendFirstName?: string;
+}) {
+  const firstName = params.firstName || "Godmother";
+  const friendName = params.friendFirstName || "Your friend";
+  const htmlContent = renderPublicEmailTemplate("Email - Godmother Credited.html", {
+    first_name: firstName,
+    friend_first_name: friendName,
+  }) || `<p>Thank you ${firstName}! ${friendName} has joined The Mothers. We've added +5 credits to your wallet.</p>`;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "godmother_credited",
+    dedupeKey: `godmother_credited_${params.personId}_${friendName}_${Date.now()}`,
+    subject: `+5 credits added — Godmother reward from The Mothers`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
+export async function sendHostCancelledEmail(params: {
+  personId: string;
+  email: string;
+  firstName?: string;
+  eventTitle: string;
+}) {
+  const firstName = params.firstName || "Member";
+  const htmlContent = renderPublicEmailTemplate("Email - Host Cancelled.html", {
+    first_name: firstName,
+    event_title: params.eventTitle,
+  }) || `<p>Hi ${firstName}, we've received your host cancellation for ${params.eventTitle}.</p>`;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "host_cancelled",
+    dedupeKey: `host_cancelled_${params.personId}_${Date.now()}`,
+    subject: `Host status update — ${params.eventTitle}`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
+export async function sendMinimumNotReachedEmail(params: {
+  adminEmail: string;
+  eventTitle: string;
+  eventDate: string;
+  activeBookings: number;
+  minRequired: number;
+}) {
+  const htmlContent = renderPublicEmailTemplate("Email - Minimum Not Reached.html", {
+    event_title: params.eventTitle,
+    event_date: params.eventDate,
+    active_bookings: params.activeBookings,
+    min_required: params.minRequired,
+  }) || `<p>Gathering decision alert: ${params.eventTitle} on ${params.eventDate} has ${params.activeBookings}/${params.minRequired} bookings.</p>`;
+
+  return queueAndSendEmail({
+    personId: "admin",
+    toEmail: params.adminEmail,
+    toName: "The Mothers Team",
+    templateKey: "minimum_not_reached",
+    dedupeKey: `min_not_reached_${params.eventTitle}_${Date.now()}`,
+    subject: `Decision needed: Minimum not reached for ${params.eventTitle}`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
+export async function sendCreditsExpiringEmail(params: {
+  personId: string;
+  email: string;
+  firstName?: string;
+  creditsExpiring: number;
+  expiryDateFormatted: string;
+  daysLeft: number;
+}) {
+  const firstName = params.firstName || "Friend";
+  const htmlContent = renderPublicEmailTemplate("Email - Credits Expiring.html", {
+    first_name: firstName,
+    credits_expiring: params.creditsExpiring,
+    expiry_date: params.expiryDateFormatted,
+    days_left: params.daysLeft,
+  }) || `<p>Hi ${firstName}, you have ${params.creditsExpiring} credits expiring on ${params.expiryDateFormatted} (${params.daysLeft} days left).</p>`;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: `credits_expiring_${params.daysLeft}d`,
+    dedupeKey: `credits_expiring_${params.personId}_${params.daysLeft}d_${Date.now().toString().slice(0, 7)}`,
+    subject: `Your credits expire in ${params.daysLeft} days — The Mothers`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
+export async function sendPlaceStillOpenEmail(params: {
+  personId: string;
+  email: string;
+  firstName?: string;
+  eventTitle: string;
+  eventId: string;
+}) {
+  const firstName = params.firstName || "Friend";
+  const htmlContent = renderPublicEmailTemplate("Email - Place Still Open.html", {
+    first_name: firstName,
+    event_title: params.eventTitle,
+    event_id: params.eventId,
+  }) || `<p>Hi ${firstName}, a place is still waiting for you for ${params.eventTitle}.</p>`;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "place_still_open",
+    dedupeKey: `place_still_open_${params.personId}_${params.eventId}_${Date.now().toString().slice(0, 7)}`,
+    subject: `A place is open for you — ${params.eventTitle}`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
+export async function sendAfterFirstEventEmail(params: {
+  personId: string;
+  email: string;
+  firstName?: string;
+  eventTitle: string;
+}) {
+  const firstName = params.firstName || "Friend";
+  const htmlContent = renderPublicEmailTemplate("Email - After Your First Event.html", {
+    first_name: firstName,
+    event_title: params.eventTitle,
+  }) || `<p>Hi ${firstName}, we loved having you at ${params.eventTitle} yesterday. You can now post in The Circle and explore more gatherings.</p>`;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "after_first_event",
+    dedupeKey: `after_first_event_${params.personId}`,
+    subject: `How was your first gathering? — The Mothers`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+

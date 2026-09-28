@@ -7,20 +7,24 @@ import {
   payment,
   person,
   auditLog,
-  creditEntry,
   creditBatch,
   event as eventTable,
   booking,
   eventPass,
   application,
 } from "@/db/schema";
-import { eq, and, or, sql } from "drizzle-orm";
-import { grantMonthlySubscriptionCredits, spendCredits } from "@/lib/ledger";
+import { eq, and, or, sql, inArray } from "drizzle-orm";
+import {
+  grantCreditsToPerson,
+  spendPersonCreditsFIFO,
+  getPersonWalletBalance,
+} from "@/lib/ledger";
 import {
   queueAndSendEmail,
   generateSubscriptionConfirmationEmailHtml,
   generateGuestPassEmailHtml,
   generateBookingConfirmedEmailHtml,
+  generatePaymentReceiptEmailHtml,
 } from "@/lib/brevo";
 import { getAppUrl } from "@/lib/urls";
 import crypto from "crypto";
@@ -92,16 +96,14 @@ export async function handleStripeWebhook(req: Request) {
           }
         }
 
-        // 2. Extra Credits Checkout
-        else if (type === "extra_credits" || type === "credit_topup") {
-          const memberId = meta.memberId;
+        // 2. Top-Up / Extra Credits Checkout (FIFO wallet)
+        else if (type === "extra_credits" || type === "credit_topup" || type === "topup") {
           const personId = meta.personId;
           const creditAmount = parseInt(meta.creditAmount || "10", 10);
           const eventId = meta.eventId || undefined;
 
-          if (memberId && !isNaN(creditAmount) && creditAmount > 0) {
-            await handleExtraCreditsCheckout({
-              memberId,
+          if (personId && !isNaN(creditAmount) && creditAmount > 0) {
+            await handleTopUpCheckout({
               personId,
               creditAmount,
               eventId,
@@ -211,7 +213,6 @@ async function handleGuestPassCheckout({
   sessionId: string;
 }) {
   await db.transaction(async (tx) => {
-    // Check if pass or booking already exists to prevent duplicate execution
     const existingPass = await tx.query.eventPass.findFirst({
       where: and(eq(eventPass.personId, personId), eq(eventPass.eventId, eventId)),
     });
@@ -317,7 +318,7 @@ async function handleGuestPassCheckout({
     await queueAndSendEmail({
       personId,
       toEmail: personRecord.email,
-      toName: `${personRecord.firstName} ${personRecord.lastName}`,
+      toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Member",
       templateKey: "guest_place_booked",
       dedupeKey: `guest_ticket_${rawToken.slice(0, 16)}`,
       subject,
@@ -327,138 +328,140 @@ async function handleGuestPassCheckout({
   });
 }
 
-async function handleExtraCreditsCheckout({
-  memberId,
+async function handleTopUpCheckout({
   personId,
   creditAmount,
   eventId,
   session,
 }: {
-  memberId: string;
-  personId?: string;
+  personId: string;
   creditAmount: number;
   eventId?: string;
   session: any;
 }) {
-  const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000); // 6 months validity
-
   await db.transaction(async (tx) => {
-    // 1. Grant credits to member
-    await tx.insert(creditEntry).values({
-      memberId,
-      amount: creditAmount,
-      type: "grant",
-      sourceType: "extra_purchase",
-      sourceId: session.id,
-      reason: `Extra credits purchase (${creditAmount} credits)`,
-      expiresAt,
+    const personRecord = await tx.query.person.findFirst({
+      where: eq(person.id, personId),
+    });
+    if (!personRecord) return;
+
+    // 1. Grant credits to person's unified FIFO wallet
+    const grant = await grantCreditsToPerson(personId, creditAmount, "topup", 6, tx);
+
+    // 2. Record payment in finance ledger
+    await tx.insert(payment).values({
+      personId,
+      purpose: "topup",
+      amountCents: session.amount_total || creditAmount * 200,
+      currency: (session.currency || "eur").toUpperCase(),
+      status: "succeeded",
+      stripeInvoiceId: session.invoice as string | null,
+      stripePaymentIntentId: session.payment_intent as string | null,
+      occurredAt: new Date(),
+    }).onConflictDoNothing();
+
+    // 3. Send Payment Receipt Email (§11)
+    const amountEur = (session.amount_total || creditAmount * 200) / 100;
+    const isEs = personRecord.locale === "es";
+    const origin = getAppUrl();
+    const orderId = `TM-${grant.batchId.substring(0, 8).toUpperCase()}`;
+    const expiryDateFormatted = grant.expiresAt.toLocaleDateString(isEs ? "es-ES" : "en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
     });
 
-    // 2. Track in payment ledger
-    if (personId) {
-      await tx.insert(payment).values({
-        personId,
-        purpose: "extra_credits",
-        amountCents: session.amount_total || creditAmount * 100,
-        currency: (session.currency || "eur").toUpperCase(),
-        status: "succeeded",
-        stripeInvoiceId: session.invoice as string | null,
-        stripePaymentIntentId: session.payment_intent as string | null,
-        occurredAt: new Date(),
-      }).onConflictDoNothing();
-    }
+    const subject = isEs
+      ? `Recibo de compra — ${creditAmount} créditos`
+      : `Your receipt — ${creditAmount} credits`;
 
-    // 3. Auto-book event if eventId was specified
+    const htmlContent = generatePaymentReceiptEmailHtml({
+      firstName: personRecord.firstName || "Friend",
+      orderId,
+      amountEur,
+      creditsPurchased: creditAmount,
+      expiryDateFormatted,
+      appUrl: origin,
+      isEs,
+    });
+
+    await queueAndSendEmail({
+      personId: personRecord.id,
+      toEmail: personRecord.email,
+      toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Member",
+      templateKey: "payment_receipt",
+      dedupeKey: `topup_receipt_${grant.batchId}`,
+      subject,
+      htmlContent,
+      isTransactional: true,
+    });
+
+    // 4. If eventId attached, auto-confirm held booking or create booking
     if (eventId) {
       const ev = await tx.query.event.findFirst({
         where: eq(eventTable.id, eventId),
       });
 
-      if (ev && personId) {
-        if (ev.creditCost > 0) {
-          await spendCredits(
-            memberId,
-            ev.creditCost,
-            "booking",
-            eventId,
-            `Booking for ${ev.title}`,
-            tx
-          );
-        }
+      if (ev) {
+        const requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
 
-        const initialStatus = ev.status === "confirmed" ? "confirmed" : "held";
-        const insertedBooking = await tx
-          .insert(booking)
-          .values({
-            eventId,
-            personId,
-            memberId,
-            kind: "member",
-            status: initialStatus,
-            creditsCharged: ev.creditCost,
-            bookedAt: new Date(),
-          })
-          .returning({ id: booking.id });
-
-        const personRecord = await tx.query.person.findFirst({
-          where: eq(person.id, personId),
+        // Check if there is an existing held booking
+        const heldBooking = await tx.query.booking.findFirst({
+          where: and(
+            eq(booking.eventId, eventId),
+            eq(booking.personId, personId),
+            eq(booking.status, "held")
+          ),
         });
 
-        if (personRecord) {
-          const isEs = personRecord.locale === "es";
-          const eventDateFormatted = new Date(ev.startsAt).toLocaleDateString(isEs ? "es-ES" : "en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          });
-          const eventTimeFormatted = new Date(ev.startsAt).toLocaleTimeString(isEs ? "es-ES" : "en-GB", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
-          const subject = isEs
-            ? `Tu plaza está reservada — ${ev.title}, ${eventDateFormatted}`
-            : `You're booked — ${ev.title}, ${eventDateFormatted}`;
-
-          const htmlContent = generateBookingConfirmedEmailHtml({
-            firstName: personRecord.firstName || "Member",
-            eventTitle: ev.title,
-            eventDateFormatted,
-            eventTimeFormatted,
-            venueName: ev.venueName || undefined,
-            meetingPoint: ev.meetingPoint || ev.venueName || undefined,
-            creditsCharged: ev.creditCost,
-            startsAt: ev.startsAt,
-            appUrl: getAppUrl(),
-            isEs,
+        if (heldBooking) {
+          if (requiredCredits > 0) {
+            await spendPersonCreditsFIFO(personId, requiredCredits, tx);
+          }
+          await tx
+            .update(booking)
+            .set({
+              status: ev.status === "confirmed" ? "confirmed" : "held",
+              creditsCharged: requiredCredits,
+              updatedAt: new Date(),
+            })
+            .where(eq(booking.id, heldBooking.id));
+        } else {
+          // Check if not already booked
+          const existing = await tx.query.booking.findFirst({
+            where: and(
+              eq(booking.eventId, eventId),
+              eq(booking.personId, personId),
+              inArray(booking.status, ["held", "confirmed"])
+            ),
           });
 
-          await queueAndSendEmail({
-            personId,
-            toEmail: personRecord.email,
-            toName: `${personRecord.firstName} ${personRecord.lastName}`,
-            templateKey: "booking_confirmed",
-            dedupeKey: `booking_confirmed_${insertedBooking[0].id}`,
-            subject,
-            htmlContent,
-            isTransactional: true,
-          });
+          if (!existing) {
+            if (requiredCredits > 0) {
+              await spendPersonCreditsFIFO(personId, requiredCredits, tx);
+            }
+            await tx.insert(booking).values({
+              eventId,
+              personId,
+              kind: "guest",
+              status: ev.status === "confirmed" ? "confirmed" : "held",
+              creditsCharged: requiredCredits,
+              bookedAt: new Date(),
+            });
+          }
         }
       }
     }
 
-    // 4. Audit Log
-    if (personId) {
-      await tx.insert(auditLog).values({
-        actorId: personId,
-        actorType: "member",
-        action: "buy_extra_credits",
-        entity: "credit_entry",
-        entityId: memberId,
-        after: { creditAmount, eventId: eventId || null, sessionId: session.id, expiresAt: expiresAt.toISOString() },
-      });
-    }
+    // 5. Audit Log
+    await tx.insert(auditLog).values({
+      actorId: personId,
+      actorType: "system",
+      action: "topup_credits_purchased",
+      entity: "credit_batch",
+      entityId: grant.batchId,
+      after: { creditAmount, eventId: eventId || null, sessionId: session.id },
+    });
   });
 }
 
@@ -483,6 +486,7 @@ async function handleMembershipCheckout({
     const isQuarterly = mem.billingFrequency === "quarterly" || session?.metadata?.isQuarterly === "true";
     const amountTotalCents = session?.amount_total || (isQuarterly ? 9900 : 3900);
     const isFeeWaived = session?.metadata?.feeWaived === "true";
+    const creditsToConsume = parseInt(session?.metadata?.creditsToConsume || "0", 10);
 
     // 1. Activate member
     await tx.update(member).set({
@@ -510,7 +514,16 @@ async function handleMembershipCheckout({
       }).where(eq(application.id, recentApp.id));
     }
 
-    // 3. Record Payment in finance ledger
+    // 3. Deduct consumed wallet credits from subscription discount if any
+    if (creditsToConsume > 0) {
+      const balance = await getPersonWalletBalance(mem.personId, tx);
+      const toSpend = Math.min(balance, creditsToConsume);
+      if (toSpend > 0) {
+        await spendPersonCreditsFIFO(mem.personId, toSpend, tx);
+      }
+    }
+
+    // 4. Record Payment in finance ledger
     const subAmount = isQuarterly ? 9900 : 3900;
     const joiningFeeAmount = (!isFeeWaived && amountTotalCents > subAmount) ? (amountTotalCents - subAmount) : 0;
 
@@ -536,30 +549,57 @@ async function handleMembershipCheckout({
       }).onConflictDoNothing();
     }
 
-    // 4. Grant credits for initial month (20 credits with 6-month validity)
-    const existingGrant = await tx.query.creditEntry.findFirst({
-      where: and(
-        eq(creditEntry.memberId, memberId),
-        eq(creditEntry.type, "grant"),
-        sql`created_at >= NOW() - INTERVAL '1 hour'`
-      ),
-    });
+    // 5. Grant credits for initial month (20 credits with 6-month validity in unified FIFO wallet)
+    await grantCreditsToPerson(mem.personId, 20, "subscription", 6, tx);
 
-    if (!existingGrant) {
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + 6);
+    // 6. Godmother referral bonus (§10 / §A-03): Grant +5 credits to Godmother if referred
+    const godmotherPersonId =
+      personRecord.referredByPersonId ||
+      (mem.referredByMemberId
+        ? (await tx.query.member.findFirst({ where: eq(member.id, mem.referredByMemberId) }))?.personId
+        : null);
 
-      await tx.insert(creditEntry).values({
-        memberId,
-        amount: 20,
-        type: "grant",
-        reason: "Initial Membership Grant",
-        sourceType: isQuarterly ? "subscription_tranche_1" : "subscription_monthly",
-        expiresAt,
+    if (godmotherPersonId) {
+      await grantCreditsToPerson(godmotherPersonId, 5, "godmother", 6, tx);
+
+      const godmother = await tx.query.person.findFirst({
+        where: eq(person.id, godmotherPersonId),
       });
+
+      if (godmother) {
+        const newBalance = await getPersonWalletBalance(godmother.id, tx);
+        const origin = getAppUrl();
+        const isEsGm = godmother.locale === "es";
+
+        const { renderPublicEmailTemplate } = await import("@/lib/brevo");
+        const htmlContent = renderPublicEmailTemplate("Email - Godmother Credited.html", {
+          first_name: godmother.firstName || "Godmother",
+          friend_first_name: personRecord.firstName || "Your friend",
+          bonus: 5,
+          balance: newBalance,
+          account_url: `${origin}/account`,
+        }) || `
+          <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #fdf8f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
+            <h2 style="color: #7b1f2c; margin-top: 0;">${isEsGm ? "¡Gracias por compartir The Mothers!" : "Thank you for sharing The Mothers!"}</h2>
+            <p>${isEsGm ? `Tu amiga ${personRecord.firstName} se ha unido. Hemos añadido <strong>5 créditos</strong> a tu cuenta.` : `Your friend ${personRecord.firstName} has joined. We've added <strong>5 credits</strong> to your wallet.`}</p>
+            <p style="margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+          </div>
+        `;
+
+        await queueAndSendEmail({
+          personId: godmother.id,
+          toEmail: godmother.email,
+          toName: `${godmother.firstName || ""} ${godmother.lastName || ""}`.trim() || "Godmother",
+          templateKey: "godmother_credited",
+          dedupeKey: `godmother_reward_${mem.personId}`,
+          subject: isEsGm ? "+5 créditos por tu recomendación — The Mothers" : "+5 credits for your referral — The Mothers",
+          htmlContent,
+          isTransactional: true,
+        });
+      }
     }
 
-    // 5. Send Welcome / Subscription Confirmation Email
+    // 7. Send Welcome / Subscription Confirmation Email
     const appUrl = getAppUrl();
     const planName = isQuarterly ? "Quarterly Membership (€99 / 3 months)" : "Monthly Membership (€39 / month)";
     const isEs = personRecord.locale === "es";
@@ -567,7 +607,7 @@ async function handleMembershipCheckout({
     await queueAndSendEmail({
       personId: mem.personId,
       toEmail: personRecord.email,
-      toName: `${personRecord.firstName} ${personRecord.lastName}`,
+      toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Member",
       templateKey: "welcome_confirmation",
       dedupeKey: `member_welcome_${memberId}`,
       subject: isEs ? "Bienvenida a The Mothers — tu membresía está confirmada" : "Welcome to The Mothers — your membership is confirmed",
@@ -581,7 +621,7 @@ async function handleMembershipCheckout({
       isTransactional: true,
     });
 
-    // 6. Audit Log
+    // 8. Audit Log
     await tx.insert(auditLog).values({
       actorId: mem.personId,
       actorType: "system",
@@ -610,12 +650,10 @@ async function handleInvoicePaymentSucceeded({
 
   await db.transaction(async (tx) => {
     // 1. Record payment in ledger
-    let mainPaymentId = null;
     const lines = invoice.lines?.data || [];
-
     for (const line of lines) {
       const purpose = line.subscription ? "subscription_monthly" : "joining_fee";
-      const insertedPayment = await tx
+      await tx
         .insert(payment)
         .values({
           personId: memberRecord.personId,
@@ -626,49 +664,14 @@ async function handleInvoicePaymentSucceeded({
           stripeInvoiceId: invoice.id,
           occurredAt: new Date(),
         })
-        .returning({ id: payment.id });
-
-      if (purpose === "subscription_monthly") {
-        mainPaymentId = insertedPayment[0]?.id;
-      }
+        .onConflictDoNothing();
     }
 
-    if (!mainPaymentId) {
-      const fallback = await tx.query.payment.findFirst({
-        where: eq(payment.stripeInvoiceId, invoice.id),
-      });
-      mainPaymentId = fallback?.id;
-    }
-
-    // 2. Grant 20 credits for monthly renewal
-    const isQuarterly = memberRecord.billingFrequency === "quarterly";
-    if (isQuarterly) {
-      const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
-      await tx.insert(creditEntry).values({
-        memberId: memberRecord.id,
-        amount: 20,
-        type: "grant",
-        expiresAt,
-        sourceType: "subscription_renewal",
-        sourceId: invoice.id,
-        reason: "Quarterly Membership Renewal (+20 credits)",
-      });
-    } else if (mainPaymentId) {
-      await grantMonthlySubscriptionCredits(memberRecord.id, mainPaymentId, tx);
-    } else {
-      const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
-      await tx.insert(creditEntry).values({
-        memberId: memberRecord.id,
-        amount: 20,
-        type: "grant",
-        expiresAt,
-        sourceType: "subscription_monthly",
-        sourceId: invoice.id,
-        reason: "Monthly Subscription Renewal (+20 credits)",
-      });
-    }
+    // 2. Grant 20 credits to FIFO wallet for monthly renewal
+    await grantCreditsToPerson(memberRecord.personId, 20, "subscription", 6, tx);
 
     // 3. Advance billing period end
+    const isQuarterly = memberRecord.billingFrequency === "quarterly";
     const nextPeriodEnd = invoice.lines?.data?.[0]?.period?.end
       ? new Date(invoice.lines.data[0].period.end * 1000)
       : new Date(Date.now() + (isQuarterly ? 90 : 30) * 24 * 60 * 60 * 1000);
@@ -747,7 +750,7 @@ async function handleInvoicePaymentFailed({
     await queueAndSendEmail({
       personId: personRecord.id,
       toEmail: personRecord.email,
-      toName: `${personRecord.firstName} ${personRecord.lastName}`,
+      toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Member",
       templateKey: "payment_failed",
       dedupeKey: `payment_failed_${invoice.id}`,
       subject,

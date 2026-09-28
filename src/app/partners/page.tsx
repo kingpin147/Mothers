@@ -58,11 +58,22 @@ export default function PartnersPage() {
 
   useEffect(() => {
     const fetchPartners = async () => {
-      const res = await getPublicPartners();
-      if (res.success && res.partners) {
-        setPartners(res.partners);
+      try {
+        const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+        const settings = await getPublicClubSettings();
+        if (!settings.membershipLive) {
+          window.location.href = "/";
+          return;
+        }
+        const res = await getPublicPartners();
+        if (res.success && res.partners) {
+          setPartners(res.partners);
+        }
+      } catch {
+        window.location.href = "/";
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchPartners();
   }, []);
