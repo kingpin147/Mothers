@@ -1,29 +1,30 @@
 # THE Mothers — Private Members Club & Community Platform
 
-A full-stack, production-grade web platform for **THE Mothers** (Barcelona) — an exclusive private members club, event ecosystem, and curated community for mothers.
+A production-grade web platform for **THE Mothers** (Barcelona) — an exclusive private members club, event ecosystem, and curated community for mothers.
 
-Built with **Next.js (App Router)**, **TypeScript**, **Drizzle ORM**, **PostgreSQL**, **Stripe Checkout & Billing**, **Auth.js (NextAuth v5)**, and **Brevo Transactional Email Engine**.
+Built with **Next.js (App Router)**, **TypeScript**, **Drizzle ORM**, **PostgreSQL (Supabase)**, **Stripe Checkout & Billing**, **Auth.js (NextAuth v5)**, and **Brevo Transactional Email Engine**.
 
 ---
 
 ## Table of Contents
 
 1. [System Architecture Overview](#system-architecture-overview)
-2. [Key Modules & How the System Works](#key-modules--how-the-system-works)
-   - [1. Membership Application & Onboarding Lifecycle](#1-membership-application--onboarding-lifecycle)
-   - [2. Stripe Secure Payment Gateway & Branding](#2-stripe-secure-payment-gateway--branding)
-   - [3. Credit Economy & Financial Ledger (FIFO)](#3-credit-economy--financial-ledger-fifo)
-   - [4. Events, Ticketing & Guest Pass System](#4-events-ticketing--guest-pass-system)
-   - [5. Waitlist & Dynamic Auto-Promotion Engine](#5-waitlist--dynamic-auto-promotion-engine)
+2. [Core Platform Concepts & Rules](#core-platform-concepts--rules)
+   - [1. Membership Mode & Launch Switch](#1-membership-mode--launch-switch)
+   - [2. Unified Account & Wallet Economy](#2-unified-account--wallet-economy)
+   - [3. Event Booking, Holds & Dynamic Pricing](#3-event-booking-holds--dynamic-pricing)
+   - [4. Waitlist Engine & Timings](#4-waitlist-engine--timings)
+   - [5. The Circle Community Forum](#5-the-circle-community-forum)
    - [6. Godmother Referral Programme](#6-godmother-referral-programme)
-   - [7. Curated Partner Perks System](#7-curated-partner-perks-system)
-   - [8. Admin Management & Operations Suite](#8-admin-management--operations-suite)
+   - [7. Hosting System & Attendance Rules](#7-hosting-system--attendance-rules)
+   - [8. Curated Partner Perks](#8-curated-partner-perks)
 3. [Database Architecture & Schema](#database-architecture--schema)
-4. [Stripe Webhooks & Idempotency](#stripe-webhooks--idempotency)
-5. [Email Templates & Notifications (Brevo)](#email-templates--notifications-brevo)
-6. [Environment Variables & Configuration](#environment-variables--configuration)
-7. [Getting Started & Development Guide](#getting-started--development-guide)
-8. [Automated Scheduled Tasks (Cron Jobs)](#automated-scheduled-tasks-cron-jobs)
+4. [Stripe Payment Flow & Webhook Engine](#stripe-payment-flow--webhook-engine)
+5. [Transactional Email System (Brevo)](#transactional-email-system-brevo)
+6. [Scheduled Background Jobs (Cron API)](#scheduled-background-jobs-cron-api)
+7. [Environment Variables & Configuration](#environment-variables--configuration)
+8. [Getting Started & Development Guide](#getting-started--development-guide)
+9. [Brand & Design Tokens](#brand--design-tokens)
 
 ---
 
@@ -31,134 +32,122 @@ Built with **Next.js (App Router)**, **TypeScript**, **Drizzle ORM**, **PostgreS
 
 ```mermaid
 graph TD
-    User([Prospective Member / Guest]) -->|Applies for Membership| AppModal[Application Modal]
-    AppModal -->|Store Application| DB[(PostgreSQL Database)]
-    Admin([Admin / Host]) -->|Accept Application in Admin Suite| AdminPortal[Admin Dashboard]
-    AdminPortal -->|Generates 72h Token & Email| Brevo[Brevo Email Engine]
-    Brevo -->|Sends Invitation Link| MemberEmail[Member Email Inbox]
-    MemberEmail -->|Opens Activation Link| ActivationPage["Activation Page (/membership/activate/[token])"]
-    ActivationPage -->|Sets Password & Redirects| StripeCheckout[Stripe Hosted Checkout]
-    StripeCheckout -->|Webhook: checkout.session.completed| StripeWebhook["Stripe Webhook Handler (/api/stripe/webhook)"]
-    StripeWebhook -->|Activates Member & Grants 20 Credits| DB
-    StripeWebhook -->|Sends Welcome Ticket/Receipt| Brevo
-    User -->|Logs In| MemberPortal["Member Account Portal (/account)"]
-    MemberPortal -->|Books Events, Top-up Credits, Perks| EventBooking[Booking & Ledger Engine]
+    Visitor([Mother / Member / Guest]) -->|Visits Site| WebApp[Next.js App Router]
+    WebApp -->|Checks Launch Status| SettingsEngine[Admin Club Settings]
+    
+    subgraph Pre-Launch & Public Operations
+        WebApp -->|Profile Setup & Onboarding| ProfileModal[First-Visit Profile Modal]
+        WebApp -->|Browses Schedule| EventsModule[Events & Gathering Calendar]
+        WebApp -->|Books Walk / Social| FreeBooking[0-Credit Direct Reservation]
+        WebApp -->|Buys Top-up Credits €2/ea| StripeCheckout[Stripe Hosted Checkout]
+    end
+
+    subgraph Membership Lifecycle
+        WebApp -->|Direct Subscribe from Account| SubCheckout[Stripe Subscription Checkout]
+        SubCheckout -->|Applies Wallet Credit Discount| StripeCoupon[Stripe One-Off Discount Coupon]
+        StripeCheckout & SubCheckout -->|Webhook Events| WebhookHandler["Stripe Webhook Handler (/api/stripe/webhook)"]
+        WebhookHandler -->|Grants Monthly 20 or Quarterly 60 Credits| WalletLedger[FIFO Credit Ledger]
+        WebhookHandler -->|Auto-Books Held Reservations| BookingEngine[Booking & Attendance System]
+    end
+
+    subgraph Community & Engagement
+        WebApp -->|Shares Posts & Discussions| TheCircle[The Circle Forum]
+        WebApp -->|Godmother Referral Sharing| GodmotherModule[Unique Godmother Tracking]
+        WebApp -->|Discounts & Access| PartnerPerks[Curated Partner Directory]
+    end
+
+    WebhookHandler & BookingEngine --> Brevo[Brevo Transactional Email Engine]
+    WebhookHandler & BookingEngine & TheCircle --> DB[(PostgreSQL Database)]
 ```
 
 ---
 
-## Key Modules & How the System Works
+## Core Platform Concepts & Rules
 
-### 1. Membership Application & Onboarding Lifecycle
-
-1. **Submission**:
-   - Prospective mothers submit an application through the 4-step modal on `/membership`.
-   - The application is linked to an active cohort application window (`window` table) with customizable pricing and joining fees.
-2. **Admin Review**:
-   - Applications appear in `/admin` and `/admin/members` under the `Pending Review` queue.
-   - Admins can inspect personal details, stage of motherhood, neighborhood, and reasons for joining before clicking **Accept** or **Decline**.
-3. **Acceptance & Cryptographic Token Generation**:
-   - When an admin accepts an applicant, the system generates a secure cryptographic activation token (`paymentLinkToken`) with a 72-hour expiry window (`acceptExpiresAt`).
-   - A personalized transactional invitation email is dispatched via Brevo with a direct link to `/membership/activate/[token]`.
-4. **Token-based Activation & Password Setup**:
-   - On `/membership/activate/[token]`, the member configures their password with real-time strength and match indicators.
-   - The password hash is securely saved in `member_credential` immediately so that if the user goes to Stripe and clicks "Back", their password remains saved and ready.
-   - The user proceeds to **Stripe Hosted Checkout** to complete their subscription.
-5. **Joining Fee Waiver Logic (§6.1)**:
-   - The €19 one-time joining fee is automatically waived if:
-     1. The applicant is among the first 50 active members.
-     2. The applicant purchased an Event Pass within the last 30 days.
+### 1. Membership Mode & Launch Switch
+- **Pre-Launch Mode (`membership_live = false`)**:
+  - The club operates in open pre-launch mode.
+  - Every mother who registers before launch has `createdBeforeLaunch = true`, permanently waiving the €19 one-time joining fee when membership launches.
+  - The €19 joining fee is **never advertised** publicly.
+  - Free walks and park socials are €0 for everyone; paid gatherings charge €2 per credit via top-up.
+  - The `/partners` directory and partner links remain hidden until launch.
+  - Sticky announcement banner is visible across the site.
+- **Post-Launch Mode (`membership_live = true`)**:
+  - Memberships are active: Monthly (€39/month for 20 credits) and Quarterly (€99/quarter for 60 credits).
+  - Members book at standard credit rates; non-members pay a 1.5× credit markup.
+  - Partners page and partner links are publicly accessible.
 
 ---
 
-### 2. Stripe Secure Payment Gateway & Branding
-
-All payments across the platform run through **Stripe Hosted Checkout** (PCI-DSS compliant):
-
-- **Membership Subscriptions**: Monthly (€39/mo) and Quarterly (€99/qtr).
-- **Extra Event Credits Top-up**: Instant purchase of additional credits (€1 per credit) directly from `/account` or directly on event detail pages when a member faces a credit shortfall.
-- **Guest Passes**: Single-entry event tickets (€35) for non-members.
-- **Official Authentication Branding**:
-  - Every checkout session and invoice line item is explicitly branded under **`THE Mothers`** and **`THE Mothers — Barcelona`**.
-  - Includes custom security guarantee messages (`custom_text.submit.message: "Official checkout for THE Mothers Barcelona."`) and metadata tags for brand trust and authentication.
-
----
-
-### 3. Credit Economy & Financial Ledger (FIFO)
-
-- **Credit Grants**:
-  - **Monthly Membership**: 20 credits granted on each monthly billing cycle.
-  - **Quarterly Membership**: 20 credits granted per month in automated monthly tranches.
-  - **Godmother Referrals**: +5 credits upon referral signup + +15 credits at month 3.
-  - **Extra Purchases**: Granular top-up at €1/credit.
-- **FIFO (First-In, First-Out) Consumption**:
-  - Credits expire 6 months after being granted.
-  - The ledger engine (`src/lib/ledger.ts`) automatically consumes the oldest unexpired credits first when booking events.
-- **Rollover Protection**:
-  - Monthly subscription balances allow rollover up to a 40-credit ceiling.
-- **Ledger Auditability**:
-  - Every transaction (grant, spend, refund, expiration) is immutably logged in the `credit_entry` and `payment` tables.
-  - Members can download a complete PDF statement of their credit history at `/account/statement`.
+### 2. Unified Account & Wallet Economy
+- **Single Wallet Model**: Every signed-up mother (member or non-member) has a unified wallet ledger (`credit_entry`).
+- **Credit Purchases & Top-Ups**:
+  - Credits cost **€2 per credit** with a **5-credit minimum** purchase requirement.
+  - Any credit shortfall on booking is automatically rounded up to the 5-credit minimum.
+  - Purchased credits expire after **6 months** under strict **FIFO (First-In, First-Out)** consumption.
+- **First Membership Payment Discount**:
+  - When a non-member with an existing credit balance subscribes to membership, her unused credits can be applied as a discount on the first payment.
+  - The discount is applied as a one-off Stripe coupon at checkout *before* credits are consumed upon webhook confirmation.
 
 ---
 
-### 4. Events, Ticketing & Guest Pass System
-
-- **Member Reservations**:
-  - Members book events using their credit balance.
-  - Free walks and park socials are included with 0 credit deduction.
-- **Guest Event Passes**:
-  - Non-members can purchase up to 2 lifetime guest passes (€35 each) for eligible events.
-  - Upon checkout, a secure tokenized ticket is issued (`/ticket/[token]`) with meeting point access, directions, and seat release options.
-- **Gathering Events (Pending Confirmation)**:
-  - Events with a minimum attendee requirement (`minToConfirm`) hold member credits in escrow rather than deducting them.
-  - Once the threshold is met, the event confirms and credits are settled. If the event does not confirm, held credits return to members' balances automatically.
-- **Cancellation & Refund Policy**:
-  - **> 24 hours before event**: Immediate credit refund to the member's balance.
-  - **< 24 hours before event**: Credits enter `pendingReturnState = 'awaiting_replacement'` and are refunded automatically when a waitlisted member claims the released seat.
+### 3. Event Booking, Holds & Dynamic Pricing
+- **10-Minute Hold Window**:
+  - When initiating a top-up checkout to book an event, the system creates a temporary `held` booking with `heldUntil = now + 10 minutes`.
+  - The spot is temporarily reserved. If payment succeeds, the webhook confirms the booking; if abandoned, the hold expires and is excluded from capacity calculations.
+- **Credit Escrow for Gatherings**:
+  - Events with a minimum attendee threshold (`minToConfirm`) hold member credits in escrow until confirmed.
+  - Threshold evaluation crons send a single deduplicated warning alert once the decision window is reached.
+- **Cancellation & Refunds**:
+  - Free cancellation with immediate credit refund up to the event cancellation deadline (default 24h/48h).
+  - Late cancellations place the credit in a pending state until a replacement attendee claims the seat.
 
 ---
 
-### 5. Waitlist & Dynamic Auto-Promotion Engine
+### 4. Waitlist Engine & Timings
+- When an event is full, mothers can join the FIFO waitlist (`event_waitlist`).
+- **> 24 hours before event**: The system offers the open seat to position #1 on the waitlist with a **12-hour claim window**.
+- **< 24 hours before event**: The system broadcasts an immediate availability notification to all waitlisted mothers simultaneously (**first to claim wins** with real-time capacity validation).
+- Waitlist claims check account status, verify suspension rules, and deduct credits at the appropriate member vs. non-member rate.
 
-1. When an event hits maximum capacity, members can join the FIFO waitlist (`event_waitlist` table).
-2. When a booked attendee cancels, the system automatically offers the open seat to position #1 on the waitlist with a 2-hour decision window.
-3. The automated background cron (`/api/events/[eventId]/promote-waitlist`) advances the queue if the offer window expires without acceptance.
+---
+
+### 5. The Circle Community Forum
+- Private community forum located at `/circle`:
+  - **Topic Categories**: Postpartum, Pregnancy, Toddlers, Life & Work, Barcelona Recommendations, General.
+  - **Parental Consent**: Explicit checkbox confirmation required when attaching photos of children.
+  - **Photo Limits & Validation**: Up to 4 photos per post, strictly validated on the server for supported MIME types (`image/jpeg`, `image/png`, `image/webp`, `image/avif`, `image/gif`) and maximum size of 10MB per image.
+  - **Rate Limiting**: Maximum 5 posts and 20 replies per 24 hours with a 30-second post cooldown.
+  - **Anonymous Posting**: Members can post anonymously (displaying e.g. *"A mother in Gràcia"*), while posts remain securely linked to their account in the backend for host moderation.
+  - **Trending Tag Algorithm**: Tags ranked dynamically based on `posts * 3 + replies * 2 + hearts * 1` over the trailing 7-day window.
 
 ---
 
 ### 6. Godmother Referral Programme
-
-- Every member is assigned a unique Godmother code (`referralCode` in `member` table).
-- When a friend applies and activates their membership using the code:
-  1. The Godmother immediately receives **+5 credits**.
-  2. An automated milestone job grants **+15 credits** once the referred member has been active for 3 months (total **+20 credits**).
-
----
-
-### 7. Curated Partner Perks System
-
-- Curated local business discounts and member-exclusive benefits categorized under 5 canonical umbrellas:
-  1. **Wellness & Movement**
-  2. **Expert Care & Support**
-  3. **Baby & Child Activities**
-  4. **Places & Hospitality**
-  5. **Brands & Retail**
-- Displayed with revealable discount codes or door-access instructions in `/account` under the **Perks** tab.
-- Full CRUD management in `/admin/partners` with live/draft status toggling.
+- Each registered mother is assigned a unique, immutable Godmother code (`godmotherCode` in `person`).
+- When an invited mother completes her first-visit profile setup or subscribes:
+  - The referral is recorded (`referredByPersonId`).
+  - Upon subscription activation, the Godmother automatically receives **+5 bonus credits** (6-month validity).
 
 ---
 
-### 8. Admin Management & Operations Suite
+### 7. Hosting System & Attendance Rules
+- **Host Privileges & Rules**:
+  - Hosts can create gatherings, manage rosters, and check in attendees.
+  - Late host cancellation penalty: A host who cancels late must attend 3 community events *after* the cancellation before being permitted to host again.
+- **Suspension Enforcement**:
+  - Suspended accounts are immediately barred from booking, waitlist claiming, and posting in The Circle.
 
-Located under `/admin`:
+---
 
-- **Dashboard Overview** (`/admin`): Live member statistics, pending applications, upcoming events, and quick metrics.
-- **Members Management** (`/admin/members`): Review applications, manage member statuses (active, paused, lapsed), and inspect credit ledgers.
-- **Event Roster & Management** (`/admin/events`, `/admin/events/[id]/roster`): Create/edit events, track RSVPs, manage capacity, and perform manual member removals with automated credit refunds.
-- **Partner Directory** (`/admin/partners`): Add and manage local business perk partnerships.
-- **Financial Ledger & Audit** (`/admin/finance`): Track all payments, subscription invoices, and credit ledger journals.
-- **System Settings** (`/admin/settings`): Configure credit pricing, joining fees, default cohort windows, and email notifications.
+### 8. Curated Partner Perks
+- Exclusive local discounts organized under 5 umbrellas:
+  1. *Wellness & Movement*
+  2. *Expert Care & Support*
+  3. *Baby & Child Activities*
+  4. *Places & Hospitality*
+  5. *Brands & Retail*
+- Access is gated based on the `membership_live` status.
 
 ---
 
@@ -168,76 +157,113 @@ Key tables defined in [`src/db/schema.ts`](file:///d:/downloads%206-11-2025/Moth
 
 | Table | Purpose |
 | :--- | :--- |
-| `person` | Core individual entity (names, emails, phone numbers, locale, mother status). |
-| `member` | Member subscription state, billing frequency, Stripe customer/subscription IDs, godmother code. |
-| `member_credential` | Bcrypt password hashes for member authentication. |
-| `admin_user` | Administrative user accounts with role-based access control (`owner`, `manager`, `host`). |
-| `application` | Membership applications, answers, review states, payment link tokens, and expiry dates. |
-| `window` | Cohort application intake windows with dynamic pricing rules. |
-| `event` | Event catalog with dates, locations, credit costs, guest pass limits, and gathering thresholds. |
-| `booking` | Event reservations (member & guest), attendance status, and cancellation return states. |
-| `event_pass` | Purchased guest passes with ticket token hashes and 30-day joining fee waiver credit windows. |
-| `event_waitlist` | FIFO event waitlist with claim offers and expiry timestamps. |
-| `credit_entry` | Append-only ledger of all credit grants, spends, refunds, and expirations. |
-| `payment` | Financial records of subscription invoices, joining fees, guest passes, and credit purchases. |
-| `partner` | Curated partner directory, member offers, discount codes, and category umbrellas. |
-| `stripe_event` | Idempotency log recording all processed Stripe webhook events to prevent duplicate executions. |
-| `audit_log` | System-wide audit trail for critical member, financial, and event actions. |
+| `person` | Core individual entity (name, email, phone, locale, motherhood stage, `createdBeforeLaunch`, `godmotherCode`, `lateHostCancelledAt`). |
+| `member` | Active subscription records, billing frequency (monthly/quarterly), Stripe customer & subscription IDs. |
+| `member_credential` | Secure Bcrypt password hashes for authentication. |
+| `admin_user` | Administrative and host accounts with role-based access control (`owner`, `manager`, `host`, `super_admin`). |
+| `event` | Event catalog with capacity, credit cost, minimum confirmation thresholds, status, and `thresholdAlertSentAt`. |
+| `booking` | Event reservations with status (`confirmed`, `held`, `cancelled`, `attended`, `no_show`), `heldUntil`, and price kind. |
+| `event_waitlist` | FIFO waitlist queue with offer windows (`offeredAt`, `expiresAt`) and claim states. |
+| `credit_entry` | Append-only ledger of all credit grants, spends, refunds, top-ups, and expirations. |
+| `payment` | Immutable financial log of all Stripe checkouts, subscription invoices, and top-up transactions. |
+| `circle_post` & `circle_reply` | Community discussions, anonymous flags, parental photo consent, and moderation status. |
+| `circle_reaction` | Heart reactions on Circle posts and replies. |
+| `partner` | Curated local business directory, discount codes, and category classifications. |
+| `setting` | Global system settings (`membership_live`, pricing, grant defaults, schedule rules). |
+| `stripe_event` | Webhook idempotency ledger preventing duplicate event processing. |
+| `audit_log` | System-wide audit trail for administrative, billing, and membership actions. |
 
 ---
 
-## Stripe Webhooks & Idempotency
+## Stripe Payment Flow & Webhook Engine
 
-Stripe webhooks are received at `/api/stripe/webhook` and `/api/webhooks/stripe`.
+Webhooks are received at `/api/stripe/webhook` with signature verification and idempotency protection via `stripe_event`.
 
-### Handled Events:
-- `checkout.session.completed`:
-  - `type: "membership"`: Activates member, marks application paid, and issues the first month's 20 credits.
-  - `type: "extra_credits"`: Credits purchased credits to member's ledger and auto-books the event if initiated from shortfall.
-  - `type: "guest_pass"`: Generates cryptographic ticket token, creates `event_pass` and confirmed booking, and sends confirmation email.
-- `invoice.payment_succeeded` / `invoice.paid`: Handles recurring subscription cycles and grants monthly credits.
-- `invoice.payment_failed`: Marks membership `past_due` and sends payment recovery email.
-- `customer.subscription.deleted`: Updates member status to `lapsed`.
+### Webhook Handlers (`src/lib/stripe-webhook-handler.ts`):
+1. **`checkout.session.completed`**:
+   - **`purpose: "membership"`**:
+     - Activates or creates member record.
+     - Grants **20 credits** for Monthly or **60 credits** for Quarterly.
+     - Consumes any wallet credits that were discounted at checkout.
+     - Awards +5 referral credits to the Godmother if referred.
+     - Sends bilingual Welcome & Confirmation email.
+   - **`purpose: "topup"`**:
+     - Grants purchased credits in an isolated transaction to prevent rollback on downstream booking steps.
+     - Sends payment receipt email.
+     - If the top-up was initiated with an `eventId`, checks suspension, dynamic pricing, and automatically confirms the held booking with a booking confirmation email.
+2. **`invoice.payment_succeeded` / `invoice.paid`**:
+   - Handles recurring subscription renewals and grants the recurring monthly (20) or quarterly (60) credits.
+3. **`invoice.payment_failed`**:
+   - Updates status to `past_due` and dispatches recovery notification.
+4. **`customer.subscription.deleted`**:
+   - Updates member status to `lapsed`.
 
 ---
 
-## Email Templates & Notifications (Brevo)
+## Transactional Email System (Brevo)
 
-Transactional email engine located in [`src/lib/brevo.ts`](file:///d:/downloads%206-11-2025/Mothers/src/lib/brevo.ts) with multi-language support (**English** & **Spanish**):
+Transactional email engine located in [`src/lib/brevo.ts`](file:///d:/downloads%206-11-2025/Mothers/src/lib/brevo.ts) with full English and Spanish localisation:
 
-- `membership_invitation`: 72-hour onboarding payment link with secure token.
-- `guest_place_booked` / `event_pass_ticket`: Confirmed guest pass with meeting point and ticket release link.
-- `booking_confirmed`: Member event confirmation with date and location details.
-- `payment_failed`: Graceful notification to update billing details.
-- `application_submitted`: Confirmation that the application is under review.
+- `booking_confirmed`: Event booking confirmation with date, meeting location, and calendar details.
+- `payment_receipt`: Top-up purchase receipt with order reference and credit expiry date.
+- `membership_welcome`: Member welcome email detailing credit balance and club access.
+- `waitlist_offer`: Notification of an open seat with a 12h decision window.
+- `waitlist_broadcast`: Real-time notification for seats opening under 24 hours.
+- `event_threshold_alert`: Admin alert for events reaching the decision point below minimum capacity.
+- `abandoned_checkout_reminder`: Automated reminder for incomplete checkouts.
+
+---
+
+## Scheduled Background Jobs (Cron API)
+
+All background routes are located under `/api/cron/*` and protected by the `Authorization: Bearer <CRON_SECRET>` header:
+
+| Route | Schedule | Purpose |
+| :--- | :--- | :--- |
+| `/api/cron/threshold-decisions` | Every 6 hours | Evaluates events near decision point, counts all active bookings, and sends single alert if below minimum. |
+| `/api/cron/minimum-not-reached` | Daily | Flags under-capacity events for admin decision. |
+| `/api/cron/expire-offers` | Every 15 mins | Expires unclaimed 12h waitlist offers and advances queue. |
+| `/api/cron/expire-credits` | Daily | Expires credit batches older than 6 months. |
+| `/api/cron/abandoned-checkout` | Hourly | Sends recovery reminder for abandoned checkout sessions. |
+| `/api/cron/quarterly-tranche` | Daily | Active only when `membership_live = true`; grants scheduled tranches. |
+| `/api/cron/event-reminders` | Daily | Sends 48h and 2h pre-event reminders to confirmed attendees. |
+| `/api/cron/complete-events` | Hourly | Marks concluded events as completed and triggers attendance reconciliations. |
+| `/api/cron/resume-pauses` | Daily | Automatically resumes memberships reaching the end of their pause duration. |
 
 ---
 
 ## Environment Variables & Configuration
 
-Create a `.env` or `.env.local` file in the root directory:
+Create a `.env` or `.env.local` file in the project root:
 
 ```env
-# Database
+# Database (PostgreSQL / Supabase)
 DATABASE_URL="postgresql://user:password@host:5432/mothers?sslmode=require"
 
-# NextAuth / Auth.js
+# NextAuth / Auth.js v5
 AUTH_SECRET="your-32-character-random-secret"
-NEXTAUTH_SECRET="your-32-character-random-secret"
 NEXTAUTH_URL="http://localhost:3000"
 
 # Stripe
 STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_PUBLISHABLE_KEY="pk_test_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
 STRIPE_WEBHOOK_SECRET="whsec_..."
 
 # Brevo (Transactional Email)
 BREVO_API_KEY="xkeysib-..."
 BREVO_SENDER_EMAIL="hello@themothers.cc"
-BREVO_SENDER_NAME="The Mothers"
+BREVO_SENDER_NAME="THE Mothers"
 
-# Cron Security
+# Supabase Storage (Media & Photos)
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGciOi..."
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOi..."
+
+# Background Task Security
 CRON_SECRET="your-cron-secret-token"
+
+# Base Application URL
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
 ---
@@ -245,11 +271,11 @@ CRON_SECRET="your-cron-secret-token"
 ## Getting Started & Development Guide
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 18.x or 20.x
 - PostgreSQL database
-- Stripe CLI (optional, for local webhook forwarding)
+- Stripe Account & Stripe CLI (for webhook forwarding)
 
-### Installation & Setup
+### Installation
 
 1. **Clone the repository**:
    ```bash
@@ -265,8 +291,6 @@ CRON_SECRET="your-cron-secret-token"
 3. **Run database migrations**:
    ```bash
    npm run db:push
-   # or
-   npx drizzle-kit push
    ```
 
 4. **Start the local development server**:
@@ -275,23 +299,16 @@ CRON_SECRET="your-cron-secret-token"
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-5. **Listen to Stripe Webhooks locally**:
+5. **Forward Stripe Webhooks locally**:
    ```bash
    stripe listen --forward-to localhost:3000/api/stripe/webhook
    ```
 
----
-
-## Automated Scheduled Tasks (Cron Jobs)
-
-The system exposes secure cron API routes protected by the `CRON_SECRET` header:
-
-1. **Quarterly Subscription Tranche Grant** (`/api/cron/quarterly-tranche`):
-   - Runs daily to check for quarterly members entering month 2 and month 3 of their cycle to grant their 20 credits per month.
-2. **Expired Activation Link Cleanup**:
-   - Reverts accepted applications whose 72-hour window lapsed without payment.
-3. **Waitlist Offer Timeout**:
-   - Automatically releases expired 2-hour waitlist seat offers and advances to the next member in line.
+6. **Validate Type Safety & Build**:
+   ```bash
+   npx tsc --noEmit
+   npm run build
+   ```
 
 ---
 
@@ -299,6 +316,5 @@ The system exposes secure cron API routes protected by the `CRON_SECRET` header:
 
 - **Primary Brand Color (Wine/Burgundy)**: `#7b1f2c`
 - **Secondary Accent (Olive Green)**: `#568b05` / `#456f04`
-- **Warm Canvas Background**: `#f8efe2` / `#FEFDF9`
-- **Primary Text Color**: `#39292a`
-- **Typography**: *Cormorant Garamond* (headings) & *Lora* (body text).
+- **Warm Canvas Background**: `#fdf8f2` / `#FEFDF9`
+- **Typography**: *Cormorant Garamond* (display/headings) & *Lora* / *Inter* (body copy).
