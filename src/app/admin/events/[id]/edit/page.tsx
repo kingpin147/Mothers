@@ -25,8 +25,6 @@ export default function AdminEditEventPage() {
   const [minToConfirm, setMinToConfirm] = useState("");
   const [memberPlaces, setMemberPlaces] = useState("");
   const [creditCost, setCreditCost] = useState("");
-  const [guestPlaces, setGuestPlaces] = useState("2");
-  const [guestGathering, setGuestGathering] = useState("");
   const [description, setDescription] = useState("");
 
   // Toggles & Arrays
@@ -36,13 +34,10 @@ export default function AdminEditEventPage() {
   const [headStart, setHeadStart] = useState("No head start — opens to everyone at once");
   const [membersOnly, setMembersOnly] = useState(false);
   const [freeEvent, setFreeEvent] = useState(false);
-  const [passCta, setPassCta] = useState(false);
 
   // Schedule overrides
   const [schMembers, setSchMembers] = useState("T-28");
-  const [schGuestsOpen, setSchGuestsOpen] = useState("T-14");
   const [schDecision, setSchDecision] = useState("T-7");
-  const [schGuestsClose, setSchGuestsClose] = useState("T-2");
   const [bookingCount, setBookingCount] = useState(0);
   const [changeNote, setChangeNote] = useState("");
 
@@ -65,11 +60,8 @@ export default function AdminEditEventPage() {
         setMinToConfirm(ev.minToConfirm?.toString() || "");
         setMemberPlaces(ev.capacityMember?.toString() || "");
         setCreditCost(ev.creditCost?.toString() || "");
-        setGuestPlaces(ev.capacityGuest !== null && ev.capacityGuest !== undefined ? ev.capacityGuest.toString() : "2");
-        setGuestGathering(ev.capacityGuestGathering?.toString() || "");
         setDescription(ev.description || "");
         setLangs(ev.languages || ["English"]);
-        setPassCta(ev.showEventPassCta || false);
         setEventStatus(ev.status || "draft");
         
         if (ev.creditCost === 0) {
@@ -78,7 +70,7 @@ export default function AdminEditEventPage() {
         if (ev.targetStages && Array.isArray(ev.targetStages)) {
           setStages(ev.targetStages);
         }
-        if (ev.isSignature || (ev.capacityGuest === 0 && (ev.creditCost || 0) > 0)) {
+        if (ev.isSignature) {
           setMembersOnly(true);
         } else {
           setMembersOnly(false);
@@ -90,14 +82,6 @@ export default function AdminEditEventPage() {
           if (ev.decisionAt) {
             const dDiff = Math.round((sTime - new Date(ev.decisionAt).getTime()) / 86400000);
             if (dDiff >= 0 && dDiff <= 60) setSchDecision(`T-${dDiff}`);
-          }
-          if (ev.guestOpenAt) {
-            const gDiff = Math.round((sTime - new Date(ev.guestOpenAt).getTime()) / 86400000);
-            if (gDiff >= 0 && gDiff <= 60) setSchGuestsOpen(`T-${gDiff}`);
-          }
-          if (ev.guestCloseAt) {
-            const cDiff = Math.round((sTime - new Date(ev.guestCloseAt).getTime()) / 86400000);
-            if (cDiff >= 0 && cDiff <= 60) setSchGuestsClose(`T-${cDiff}`);
           }
         }
       } else {
@@ -120,7 +104,6 @@ export default function AdminEditEventPage() {
   const onMembersOnly = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     setMembersOnly(checked);
-    if (checked) setPassCta(false);
   };
 
   const chip = (on: boolean) => ({
@@ -457,8 +440,7 @@ export default function AdminEditEventPage() {
             {/* Total Room Capacity Summary & Validation */}
             {(() => {
               const parsedMemberCap = memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces);
-              const parsedGuestCap = membersOnly ? 0 : (parseInt(guestPlaces) || 0);
-              const totalRoomCap = parsedMemberCap === 0 ? 0 : (parsedMemberCap + parsedGuestCap);
+              const totalRoomCap = parsedMemberCap === 0 ? 0 : parsedMemberCap;
               const parsedMinToConfirm = minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0);
               const hasMinExceedingCap = totalRoomCap > 0 && parsedMinToConfirm > totalRoomCap;
 
@@ -479,7 +461,7 @@ export default function AdminEditEventPage() {
                     </div>
                     {totalRoomCap > 0 && (
                       <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)" }}>
-                        {parsedMemberCap} member places + {parsedGuestCap} guest places
+                        {parsedMemberCap} member places
                       </div>
                     )}
                   </div>

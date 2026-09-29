@@ -29,6 +29,8 @@ const QUOTED_PAGES: Record<string, [string, string]> = {
   releaseDeadlineHours: ["Release deadline (hours before)", "Events, FAQ, Legal §05"],
   godmotherBonusReferrer: ["Godmother bonus (credits)", "Godmother, Membership, FAQ"],
   pauseAllowanceMonths: ["Pause allowance (months per year)", "FAQ, Account, Legal §07"],
+  pinnedCircleTag: ["Pinned tag", "Circle"],
+  blockedCircleTags: ["Blocked tags", "Circle"],
 };
 
 interface SettingsClientProps {
@@ -58,6 +60,8 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
 
     godmotherBonusReferrer: initialSettings.referralBonusCredits ?? 5,
     pauseAllowanceMonths: initialSettings.pauseAllowanceMonths ?? 2,
+    pinnedCircleTag: initialSettings.pinnedCircleTag ?? "",
+    blockedCircleTags: initialSettings.blockedCircleTags ?? "",
 
     scheduleMembersFrom: initialSettings.scheduleMembersFrom ?? 28,
     scheduleGuestsOpen: initialSettings.scheduleGuestsOpen ?? 14,
@@ -414,6 +418,14 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
             intro: "Pausing and cancelling. Quoted in the FAQ and in My Account.",
             fields: [
               { key: "pauseAllowanceMonths", label: "Pause allowance (months per year)", help: "No payment and no new credits while paused; credits keep their expiry dates.", quoted: true, parse: (v: string) => parseInt(v, 10) || 0 },
+            ],
+          },
+          {
+            title: "The Circle",
+            intro: "Control what appears in 'Talked about this week'.",
+            fields: [
+              { key: "pinnedCircleTag", label: "Pinned tag (slug)", help: "Example: 'health', 'toddlers'. Leaves room for 5 organic tags." },
+              { key: "blockedCircleTags", label: "Blocked tags (comma separated)", help: "Example: 'marketplace, admin'. These will never appear in trending." },
             ],
           },
         ].map((sec, sIdx) => (

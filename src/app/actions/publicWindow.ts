@@ -1,39 +1,13 @@
 "use server";
 
 import { db } from "@/db";
-import { application, window, waitlistEntry, person, setting, subscriber } from "@/db/schema";
+import { waitlistEntry, person, setting, subscriber } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 export async function getPublicMembershipWindow() {
-  const currentWindow = await db.query.window.findFirst({
-    where: eq(window.status, "open"),
-  });
-
-  if (!currentWindow) {
-    // Look for the next scheduled (draft) window
-    const nextWindow = await db.query.window.findFirst({
-      where: eq(window.status, "draft"),
-      orderBy: [window.opensAt],
-    });
-
-    return {
-      open: false,
-      spotsRemaining: 0,
-      nextWindowDate: nextWindow?.opensAt?.toISOString() ?? null,
-    };
-  }
-
-  const [result] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(application)
-    .where(and(
-      eq(application.windowId, currentWindow.id),
-      inArray(application.status, ["accepted", "paid"]),
-    ));
-
   return {
     open: true,
-    spotsRemaining: Math.max(0, currentWindow.placesOffered - Number(result?.count || 0)),
+    spotsRemaining: 99,
     nextWindowDate: null as string | null,
   };
 }

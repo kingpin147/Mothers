@@ -3,16 +3,13 @@
 import { db } from "@/db";
 import {
   member,
-  application,
   event,
   payment,
   creditEntry,
   auditLog,
   person,
-  window,
   booking,
   partner,
-  eventPass,
   subscriber
 } from "@/db/schema";
 import { eq, desc, and, or, isNotNull, sql, gte, lte, inArray } from "drizzle-orm";
@@ -52,7 +49,6 @@ export async function getAdminDashboardMetrics() {
     const [
       aggregatesResult,
       rawEvents,
-      allApps,
       recentLogs,
       failedPayments,
       expiringPartners
@@ -110,24 +106,6 @@ export async function getAdminDashboardMetrics() {
       ),
 
       // 3. Applications (Submitted + Accepted) in a single query
-      safeQuery(
-        () => db.select({
-          id: application.id,
-          status: application.status,
-          submittedAt: application.submittedAt,
-          decidedAt: application.decidedAt,
-          acceptExpiresAt: application.acceptExpiresAt,
-          firstName: person.firstName,
-          lastName: person.lastName,
-        }).from(application)
-          .innerJoin(person, eq(application.personId, person.id))
-          .where(inArray(application.status, ['submitted', 'accepted']))
-          .orderBy(application.submittedAt)
-          .limit(30),
-        []
-      ),
-
-      // 4. Audit Logs
       safeQuery(
         () => db.select({
           id: auditLog.id,
@@ -201,8 +179,6 @@ export async function getAdminDashboardMetrics() {
       return isConfirmed && startsDate && startsDate <= t7Date;
     });
 
-    const pendingApps = (allApps || []).filter((a) => a.status === "submitted");
-    const acceptedApps = (allApps || []).filter((a) => a.status === "accepted");
 
     const agg = aggregatesResult?.[0] || {
       activeMembers: 0,
@@ -277,7 +253,6 @@ export async function getAdminDashboardMetrics() {
         isMet,
         heldCredits: stats.heldCredits,
         guestCount: stats.guestCount,
-        guestRefundCash: stats.guestCount * 35,
       };
     });
 
@@ -312,19 +287,6 @@ export async function getAdminDashboardMetrics() {
       });
 
     // Build Applications list
-    const applications = (pendingApps || []).map((a) => {
-      const submittedDate = a.submittedAt ? new Date(a.submittedAt) : now;
-      const elapsedHrs = (now.getTime() - submittedDate.getTime()) / (1000 * 60 * 60);
-      const remainingHrs = Math.max(0, 72 - elapsedHrs);
-      const color = remainingHrs < 24 ? "#7b1f2c" : remainingHrs < 48 ? "#a8752c" : "rgba(57,41,42,0.5)";
-      return {
-        id: a.id,
-        name: `${a.firstName} ${a.lastName}`,
-        meta: `${submittedDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · Application`,
-        remaining: `${Math.floor(remainingHrs)}h left`,
-        color,
-      };
-    });
 
     // Build Money needing attention
     const moneyList: any[] = [];
@@ -341,24 +303,6 @@ export async function getAdminDashboardMetrics() {
         action: "Retry",
         href: "/admin/members",
       });
-    }
-
-    // 2. Expiring 72h Payment Holds (< 24 hours left)
-    for (const app of (acceptedApps || [])) {
-      if (app.acceptExpiresAt) {
-        const remainingHrs = (new Date(app.acceptExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60);
-        if (remainingHrs > 0 && remainingHrs <= 24) {
-          moneyList.push({
-            who: `${app.firstName} ${app.lastName}`,
-            what: "payment hold running out",
-            meta: `Accepted ${app.decidedAt || app.submittedAt ? new Date(app.decidedAt || app.submittedAt!).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "recently"} · ${Math.floor(remainingHrs)}h of 72h remaining`,
-            amount: "€58",
-            color: "#7b1f2c",
-            action: "Extend",
-            href: "/admin/applications",
-          });
-        }
-      }
     }
 
     // 3. Expiring Partner Agreements
@@ -671,7 +615,6 @@ export async function getAdminDashboardMetrics() {
       role: role,
       decisions,
       warnings,
-      applications,
       money: moneyList,
       week,
       stats,

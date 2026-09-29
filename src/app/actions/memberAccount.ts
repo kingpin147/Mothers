@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { member, person, creditEntry, creditBatch, circlePost, circleReply, booking, event, eventCategory, eventPass, partner, partnerPerk, perkCodePool, perkReveal, eventWaitlist } from "@/db/schema";
+import { member, person, creditEntry, creditBatch, circlePost, circleReply, booking, event, eventCategory, partner, partnerPerk, perkCodePool, perkReveal, eventWaitlist } from "@/db/schema";
 import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getAppUrl } from "@/lib/urls";

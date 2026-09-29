@@ -32,20 +32,6 @@ export const adminRoleEnum = pgEnum("admin_role", [
   "read_only",
 ]);
 
-export const windowStatusEnum = pgEnum("window_status", [
-  "draft",
-  "open",
-  "closed",
-]);
-
-export const applicationStatusEnum = pgEnum("application_status", [
-  "submitted",
-  "accepted",
-  "paid",
-  "expired",
-  "declined",
-  "withdrawn",
-]);
 
 export const eventStatusEnum = pgEnum("event_status", [
   "draft",
@@ -71,13 +57,6 @@ export const bookingStatusEnum = pgEnum("booking_status", [
   "waitlist",
 ]);
 
-export const passStatusEnum = pgEnum("pass_status", [
-  "paid",
-  "used",
-  "released",
-  "refunded",
-  "credited",
-]);
 
 export const creditEntryTypeEnum = pgEnum("credit_entry_type", [
   "grant",
@@ -230,70 +209,6 @@ export const waitlistEntry = pgTable(
   }
 );
 
-// ─── 2. JOINING WINDOWS & APPLICATIONS ───────────────────────────────────────
-
-export const window = pgTable(
-  "window",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    opensAt: timestamp("opens_at", { withTimezone: true }).notNull(),
-    closesAt: timestamp("closes_at", { withTimezone: true }).notNull(),
-    placesOffered: integer("places_offered").notNull(),
-    joiningFeeCents: integer("joining_fee_cents").default(1900).notNull(), // €19 joining fee per brief
-    monthlyPriceCents: integer("monthly_price_cents").default(3900).notNull(),
-    tierPrices: jsonb("tier_prices").$type<{
-      openingMonthly: number;
-      openingQuarterly: number;
-      standardMonthly: number;
-      standardQuarterly: number;
-    }>(),
-    launchRate: boolean("launch_rate").default(true).notNull(),
-    lockMonths: integer("lock_months").default(12).notNull(),
-    status: windowStatusEnum("status").default("draft").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [
-    uniqueIndex("idx_unique_open_window")
-      .on(table.status)
-      .where(sql`status = 'open'`),
-  ]
-);
-
-export const applicationFormVersion = pgTable(
-  "application_form_version",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    version: integer("version").notNull(),
-    questions: jsonb("questions").notNull(), // structured questions array
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  }
-);
-
-export const application = pgTable(
-  "application",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    windowId: text("window_id").notNull().references(() => window.id),
-    personId: text("person_id").notNull().references(() => person.id),
-    answers: jsonb("answers").notNull(),
-    formVersionId: text("form_version_id").references(() => applicationFormVersion.id),
-    status: applicationStatusEnum("status").default("submitted").notNull(),
-    submittedAt: timestamp("submitted_at", { withTimezone: true }).defaultNow().notNull(),
-    decidedAt: timestamp("decided_at", { withTimezone: true }),
-    decidedByAdminId: text("decided_by_admin_id").references(() => adminUser.id),
-    declineReasonCode: text("decline_reason_code"),
-    declineNote: text("decline_note"),
-    acceptExpiresAt: timestamp("accept_expires_at", { withTimezone: true }),
-    paymentLinkToken: text("payment_link_token"),
-    isPaid: boolean("is_paid").default(false).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [
-    index("idx_application_window_status").on(table.windowId, table.status),
-  ]
-);
 
 // ─── 3. EVENTS, STAGES & ATTENDANCE ─────────────────────────────────────────
 
@@ -341,9 +256,6 @@ export const event = pgTable(
     meetingPoint: text("meeting_point").notNull(), // withheld from non-booked/pending
     neighbourhood: text("neighbourhood").notNull(),
     capacityMember: integer("capacity_member").notNull(),
-    capacityGuest: integer("capacity_guest").default(2).notNull(),
-    capacityGuestGathering: integer("capacity_guest_gathering"), // higher guest figure while gathering
-    showEventPassCta: boolean("show_event_pass_cta").default(false).notNull(),
     minToConfirm: integer("min_to_confirm").default(0).notNull(),
     creditCost: integer("credit_cost").notNull(), // required, explicit
     memberCredits: integer("member_credits").default(0).notNull(),
@@ -366,8 +278,6 @@ export const event = pgTable(
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     cancelReason: text("cancel_reason"),
     thresholdAlertSentAt: timestamp("threshold_alert_sent_at", { withTimezone: true }),
-    guestOpenAt: timestamp("guest_open_at", { withTimezone: true }),
-    guestCloseAt: timestamp("guest_close_at", { withTimezone: true }),
     nonMemberOpensAt: timestamp("non_member_opens_at", { withTimezone: true }),
     decisionAt: timestamp("decision_at", { withTimezone: true }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
@@ -474,24 +384,6 @@ export const eventChangeLog = pgTable(
 
 // ─── 4. PASSES, CREDITS & MONEY ─────────────────────────────────────────────
 
-export const eventPass = pgTable(
-  "event_pass",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    personId: text("person_id").notNull().references(() => person.id),
-    eventId: text("event_id").notNull().references(() => event.id),
-    priceCents: integer("price_cents").default(3500).notNull(),
-    status: passStatusEnum("status").default("paid").notNull(),
-    ticketTokenHash: text("ticket_token_hash").notNull().unique(),
-    purchasedAt: timestamp("purchased_at", { withTimezone: true }).defaultNow().notNull(),
-    releasedAt: timestamp("released_at", { withTimezone: true }),
-    refundedAt: timestamp("refunded_at", { withTimezone: true }),
-    creditAppliedToMemberId: text("credit_applied_to_member_id").references(() => member.id),
-    creditExpiresAt: timestamp("credit_expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  }
-);
 
 export const creditEntry = pgTable(
   "credit_entry",

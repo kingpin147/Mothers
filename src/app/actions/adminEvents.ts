@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member, eventPass, guestRsvp } from "@/db/schema";
+import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member, guestRsvp } from "@/db/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 

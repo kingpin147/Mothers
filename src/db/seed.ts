@@ -120,7 +120,7 @@ export const EVENTS = [
     creditCost: 55,
     guestPriceCents: 3500,
     capacityMember: 14,
-    capacityGuest: 0,
+
     minToConfirm: 8,
     isSignature: true,
     isFreeWalk: false,
@@ -145,7 +145,7 @@ export const EVENTS = [
     creditCost: 0,
     guestPriceCents: 0,
     capacityMember: 12,
-    capacityGuest: 2,
+
     minToConfirm: 3,
     isSignature: false,
     isFreeWalk: true,
@@ -170,7 +170,7 @@ export const EVENTS = [
     creditCost: 0,
     guestPriceCents: 0,
     capacityMember: 16,
-    capacityGuest: 4,
+
     minToConfirm: 0,
     isSignature: false,
     isFreeWalk: true,
@@ -195,7 +195,7 @@ export const EVENTS = [
     creditCost: 18,
     guestPriceCents: 3500,
     capacityMember: 12,
-    capacityGuest: 2,
+
     minToConfirm: 5,
     isSignature: false,
     isFreeWalk: false,
@@ -220,7 +220,7 @@ export const EVENTS = [
     creditCost: 20,
     guestPriceCents: 3500,
     capacityMember: 10,
-    capacityGuest: 2,
+
     minToConfirm: 6,
     isSignature: false,
     isFreeWalk: false,
@@ -245,7 +245,7 @@ export const EVENTS = [
     creditCost: 14,
     guestPriceCents: 3500,
     capacityMember: 12,
-    capacityGuest: 2,
+
     minToConfirm: 6,
     isSignature: false,
     isFreeWalk: false,
@@ -270,7 +270,7 @@ export const EVENTS = [
     creditCost: 12,
     guestPriceCents: 3500,
     capacityMember: 16,
-    capacityGuest: 2,
+
     minToConfirm: 14,
     isSignature: false,
     isFreeWalk: false,
@@ -295,7 +295,7 @@ export const EVENTS = [
     creditCost: 55,
     guestPriceCents: 3500,
     capacityMember: 20,
-    capacityGuest: 0,
+
     minToConfirm: 10,
     isSignature: true,
     isFreeWalk: false,
@@ -320,7 +320,7 @@ export const EVENTS = [
     creditCost: 0,
     guestPriceCents: 0,
     capacityMember: 12,
-    capacityGuest: 2,
+
     minToConfirm: 4,
     isSignature: false,
     isFreeWalk: true,
@@ -345,7 +345,7 @@ export const EVENTS = [
     creditCost: 18,
     guestPriceCents: 3500,
     capacityMember: 12,
-    capacityGuest: 2,
+
     minToConfirm: 8,
     isSignature: false,
     isFreeWalk: false,
@@ -370,8 +370,8 @@ export const EVENTS = [
     creditCost: 12,
     guestPriceCents: 3500,
     capacityMember: 25,
-    capacityGuest: 2,
-    capacityGuestGathering: 5,
+
+
     minToConfirm: 14,
     isSignature: false,
     isFreeWalk: false,
@@ -396,7 +396,7 @@ export const EVENTS = [
     creditCost: 2,
     guestPriceCents: 3500,
     capacityMember: 12,
-    capacityGuest: 2,
+
     minToConfirm: 4,
     isSignature: false,
     isFreeWalk: false,
@@ -421,7 +421,7 @@ export const EVENTS = [
     creditCost: 2,
     guestPriceCents: 3500,
     capacityMember: 12,
-    capacityGuest: 4,
+
     minToConfirm: 4,
     isSignature: false,
     isFreeWalk: false,
@@ -446,7 +446,7 @@ export const EVENTS = [
     creditCost: 12,
     guestPriceCents: 3500,
     capacityMember: 12,
-    capacityGuest: 2,
+
     minToConfirm: 6,
     isSignature: false,
     isFreeWalk: false,
@@ -471,7 +471,7 @@ export const EVENTS = [
     creditCost: 25,
     guestPriceCents: 3500,
     capacityMember: 10,
-    capacityGuest: 0,
+
     minToConfirm: 6,
     isSignature: false,
     isFreeWalk: false,
@@ -496,7 +496,7 @@ export const EVENTS = [
     creditCost: 32,
     guestPriceCents: 3500,
     capacityMember: 6,
-    capacityGuest: 0,
+
     minToConfirm: 2,
     isSignature: true,
     isFreeWalk: false,
@@ -521,7 +521,7 @@ export const EVENTS = [
     creditCost: 18,
     guestPriceCents: 3500,
     capacityMember: 12,
-    capacityGuest: 2,
+
     minToConfirm: 4,
     isSignature: false,
     isFreeWalk: false,

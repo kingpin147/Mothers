@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/db";
-import { event, member, window, application, eventPass, person } from "@/db/schema";
+import { event, member, person } from "@/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { auth } from "@/lib/auth"; 
 import { getAppUrl } from "@/lib/urls"; 

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { circlePost, circleReply, circleHeart, circleReport, person, booking, member } from "@/db/schema";
+import { circlePost, circleReply, circleHeart, circleReport, person, booking, member, setting } from "@/db/schema";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -492,14 +492,32 @@ export async function getTrendingCircleTags(): Promise<{ topic: string; label: s
 
   const topicScores: Record<string, { score: number; count: number }> = {};
 
+  const settingsRows = await db.select().from(setting).where(sql`key IN ('pinned_circle_tag', 'blocked_circle_tags')`);
+  const settingsMap: Record<string, any> = {};
+  for (const s of settingsRows) settingsMap[s.key] = s.value;
+  
+  const pinnedTag = typeof settingsMap["pinned_circle_tag"] === "string" ? settingsMap["pinned_circle_tag"].trim() : "";
+  const blockedTagsRaw = typeof settingsMap["blocked_circle_tags"] === "string" ? settingsMap["blocked_circle_tags"] : "";
+  const blockedTags = new Set(blockedTagsRaw.split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean));
+
   for (const p of postsLast7d) {
     if (!p.topic) continue;
+    if (blockedTags.has(p.topic.toLowerCase())) continue;
     if (!topicScores[p.topic]) {
       topicScores[p.topic] = { score: 0, count: 0 };
     }
     // Ranking: posts × 3 + replies × 2 + hearts × 1 (§CI-06)
     topicScores[p.topic].score += 3 + (p.repliesCount || 0) * 2 + (p.heartsCount || 0) * 1;
     topicScores[p.topic].count += 1;
+  }
+
+  // Force pinned tag
+  if (pinnedTag && !blockedTags.has(pinnedTag.toLowerCase())) {
+    if (!topicScores[pinnedTag]) {
+      topicScores[pinnedTag] = { score: Infinity, count: 0 };
+    } else {
+      topicScores[pinnedTag].score = Infinity;
+    }
   }
 
   const sorted = Object.entries(topicScores)

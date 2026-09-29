@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, eventPass, guestRsvp, eventStage, stage } from "@/db/schema";
+import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, guestRsvp, eventStage, stage } from "@/db/schema";
 import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
@@ -144,14 +144,8 @@ export async function getPublicEvents() {
         userWaitlistMap.set(w.eventId!, w);
       }
       
-      if (memberRec) {
-        const { creditEntry } = await import("@/db/schema");
-        const creditEntries = await db
-          .select()
-          .from(creditEntry)
-          .where(eq(creditEntry.memberId, memberRec.id));
-        creditBalance = creditEntries.reduce((sum, entry) => sum + entry.amount, 0);
-      }
+      const { getPersonWalletBalance } = await import("@/lib/ledger");
+      creditBalance = await getPersonWalletBalance(personId);
     }
 
     const formattedEvents = events.map((ev) => {
@@ -337,7 +331,6 @@ export async function deleteEvent(rawEventId: string) {
       
       // 2. Delete non-active/refunded bookings and passes if any
       await tx.delete(booking).where(eq(booking.eventId, eventId));
-      await tx.delete(eventPass).where(eq(eventPass.eventId, eventId));
 
       // 3. Delete the event record
       await tx.delete(event).where(eq(event.id, eventId));

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { setting, window, auditLog, person, member } from "@/db/schema";
+import { setting, auditLog, person, member } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
@@ -55,9 +55,7 @@ export async function getClubSettings() {
   await verifyAdmin();
 
   const settingsRows = await db.select().from(setting);
-  const currentWindow = await db.query.window.findFirst({
-    where: eq(window.status, "open"),
-  });
+
 
   const settingsMap: Record<string, any> = {};
   for (const s of settingsRows) {
@@ -92,8 +90,10 @@ export async function getClubSettings() {
       scheduleMembersFrom: settingsMap["schedule_members_from"] ?? 28,
       scheduleEarlyWarning: settingsMap["schedule_early_warning"] ?? 10,
       scheduleDecisionPoint: settingsMap["schedule_decision_point"] ?? 7,
+      pinnedCircleTag: settingsMap["pinned_circle_tag"] ?? "",
+      blockedCircleTags: settingsMap["blocked_circle_tags"] ?? "",
     },
-    currentWindow: currentWindow || null,
+    currentWindow: null,
   };
 }
 
@@ -134,6 +134,8 @@ export async function saveClubSettingsAudit(
     scheduleMembersFrom: "schedule_members_from",
     scheduleEarlyWarning: "schedule_early_warning",
     scheduleDecisionPoint: "schedule_decision_point",
+    pinnedCircleTag: "pinned_circle_tag",
+    blockedCircleTags: "blocked_circle_tags",
   };
 
   for (const [k, v] of Object.entries(settingsPatch)) {
@@ -234,88 +236,6 @@ export async function setPriceDisplayMode(mode: "single" | "dual") {
   return { success: true };
 }
 
-// ─── 2. MEMBERSHIP WINDOWS ──────────────────────────────────────────────────
-
-export async function getMembershipWindows() {
-  await verifyAdmin();
-  const windows = await db.query.window.findMany({
-    orderBy: [desc(window.opensAt)],
-  });
-  return { success: true, windows };
-}
-
-export async function createMembershipWindow(rawData: {
-  opensAt: string;
-  closesAt: string;
-  placesOffered: number;
-  openingMonthlyPriceCents: number;
-  openingQuarterlyPriceCents: number;
-  standardMonthlyPriceCents: number;
-  standardQuarterlyPriceCents: number;
-}) {
-  const { adminId } = await verifyAdmin();
-
-  const opens = new Date(rawData.opensAt);
-  const closes = new Date(rawData.closesAt);
-
-  const [created] = await db
-    .insert(window)
-    .values({
-      opensAt: opens,
-      closesAt: closes,
-      placesOffered: rawData.placesOffered,
-      joiningFeeCents: 1900,
-      monthlyPriceCents: rawData.standardMonthlyPriceCents,
-      tierPrices: {
-        openingMonthly: rawData.openingMonthlyPriceCents,
-        openingQuarterly: rawData.openingQuarterlyPriceCents,
-        standardMonthly: rawData.standardMonthlyPriceCents,
-        standardQuarterly: rawData.standardQuarterlyPriceCents,
-      },
-      status: "draft",
-    })
-    .returning();
-
-  await db.insert(auditLog).values({
-    actorId: adminId,
-    actorType: "admin",
-    action: "create_membership_window",
-    entity: "window",
-    entityId: created.id,
-    after: created,
-  });
-
-  return { success: true, window: created };
-}
-
-export async function setMembershipWindowStatus(windowId: string, status: "open" | "closed") {
-  const { adminId } = await verifyAdmin();
-
-  if (status === "open") {
-    // Close other open windows
-    await db
-      .update(window)
-      .set({ status: "closed", updatedAt: new Date() })
-      .where(eq(window.status, "open"));
-  }
-
-  const [updated] = await db
-    .update(window)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(window.id, windowId))
-    .returning();
-
-  await db.insert(auditLog).values({
-    actorId: adminId,
-    actorType: "admin",
-    action: "set_membership_window_status",
-    entity: "window",
-    entityId: windowId,
-    after: { status },
-  });
-
-  return { success: true, window: updated };
-}
 
 // ─── 3. ADMIN UPDATE MEMBER PROFILE ─────────────────────────────────────────
 

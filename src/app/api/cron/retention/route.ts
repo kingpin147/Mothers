@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { guestRsvp, application, jobRun, auditLog } from "@/db/schema";
+import { guestRsvp, jobRun, auditLog } from "@/db/schema";
 import { sql, eq, and } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 
@@ -24,21 +24,6 @@ export async function GET(req: NextRequest) {
       .where(sql`created_at < NOW() - INTERVAL '180 days'`)
       .returning({ id: guestRsvp.id });
 
-    // 2. Anonymize personal answers on declined applications older than 1 year
-    const anonymizedApps = await db
-      .update(application)
-      .set({
-        answers: { _gdpr_anonymized: true, anonymizedAt: new Date().toISOString() },
-        declineNote: "[Anonymized under GDPR retention policy]",
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(application.status, "declined"),
-          sql`submitted_at < NOW() - INTERVAL '365 days'`
-        )
-      )
-      .returning({ id: application.id });
 
     await db.insert(jobRun).values({
       jobKey: "retention",
@@ -47,7 +32,6 @@ export async function GET(req: NextRequest) {
       finishedAt: new Date(),
       counts: {
         purgedRsvps: deletedRsvps.length,
-        anonymizedApplications: anonymizedApps.length,
       },
     });
 
@@ -58,14 +42,12 @@ export async function GET(req: NextRequest) {
       entityId: "system",
       after: {
         purgedRsvpsCount: deletedRsvps.length,
-        anonymizedApplicationsCount: anonymizedApps.length,
       },
     });
 
     return NextResponse.json({
       success: true,
       purgedRsvps: deletedRsvps.length,
-      anonymizedApplications: anonymizedApps.length,
     });
   } catch (error: any) {
     await db.insert(jobRun).values({

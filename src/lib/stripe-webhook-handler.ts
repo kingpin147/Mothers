@@ -10,7 +10,6 @@ import {
   creditBatch,
   event as eventTable,
   booking,
-  application,
 } from "@/db/schema";
 import { eq, and, or, sql, inArray } from "drizzle-orm";
 import {
@@ -437,23 +436,6 @@ async function handleMembershipCheckout({
       joinedAt: mem.joinedAt || new Date(),
       updatedAt: new Date(),
     }).where(eq(member.id, memberId));
-
-    // 2. Mark application as paid if exists
-    const recentApp = await tx.query.application.findFirst({
-      where: and(
-        eq(application.personId, mem.personId),
-        or(eq(application.status, "accepted"), eq(application.status, "submitted"), eq(application.status, "paid"))
-      ),
-      orderBy: (app, { desc }) => [desc(app.decidedAt), desc(app.submittedAt)],
-    });
-
-    if (recentApp) {
-      await tx.update(application).set({
-        status: "paid",
-        isPaid: true,
-        updatedAt: new Date(),
-      }).where(eq(application.id, recentApp.id));
-    }
 
     // 3. Deduct consumed wallet credits from subscription discount if any (M-07)
     if (creditsToConsume > 0) {

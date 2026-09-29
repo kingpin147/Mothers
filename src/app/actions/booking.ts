@@ -8,7 +8,6 @@ import {
   creditEntry,
   member,
   person,
-  eventPass,
   eventWaitlist,
   auditLog,
   guestRsvp,

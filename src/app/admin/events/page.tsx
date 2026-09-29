@@ -127,7 +127,7 @@ export default function AdminEventsPage() {
     }
   };
 
-  const handleMarkAttendance = async (type: "member" | "guest" | "rsvp", id: string, status: "attended" | "no_show" | "confirmed" | "released") => {
+  const handleMarkAttendance = async (type: "member" | "rsvp", id: string, status: "attended" | "no_show" | "confirmed" | "released") => {
     const res = await adminMarkAttendance(type, id, status);
     if (res.success && activeEventRoster) {
       const refreshed = await getEventAttendees(activeEventRoster.id);
