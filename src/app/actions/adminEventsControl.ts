@@ -6,7 +6,7 @@ import {
   booking,
   person,
   member,
-  creditEntry,
+  creditBatch,
   auditLog,
   eventWaitlist,
   adminUser,
@@ -14,6 +14,11 @@ import {
 } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import {
+  spendPersonCreditsFIFO,
+  refundPersonCredits,
+  getPersonWalletBalance,
+} from "@/lib/ledger";
 import crypto from "crypto";
 import { z } from "zod";
 import { getAppUrl } from "@/lib/urls";
@@ -311,14 +316,7 @@ export async function adminManualBookMember(data: {
     const creditsToCharge = validData.deductCredits ? ev.creditCost : 0;
 
     if (creditsToCharge > 0) {
-      await tx.insert(creditEntry).values({
-        memberId: validData.memberId,
-        amount: -creditsToCharge,
-        type: "spend",
-        sourceType: "event",
-        sourceId: ev.id,
-        reason: `Admin Booking: ${ev.title}`,
-      });
+      await spendPersonCreditsFIFO(targetMember.personId, creditsToCharge, tx);
     }
 
     const insertedBooking = await tx
@@ -351,13 +349,58 @@ export async function adminManualBookMember(data: {
 export async function getMemberLedgerDetails(memberId: string) {
   await verifyAdmin();
 
-  const entries = await db
-    .select()
-    .from(creditEntry)
-    .where(eq(creditEntry.memberId, memberId))
-    .orderBy(desc(creditEntry.createdAt));
+  const mem = await db.query.member.findFirst({ where: eq(member.id, memberId) });
+  if (!mem) return { success: false, error: "MEMBER_NOT_FOUND", entries: [], totalBalance: 0 };
 
-  const totalBalance = entries.reduce((sum, e) => sum + e.amount, 0);
+  const personId = mem.personId;
+
+  const [batches, bookingSpends] = await Promise.all([
+    db
+      .select()
+      .from(creditBatch)
+      .where(eq(creditBatch.personId, personId)),
+    db
+      .select({
+        id: booking.id,
+        creditsCharged: booking.creditsCharged,
+        bookedAt: booking.bookedAt,
+        createdAt: booking.createdAt,
+        eventTitle: event.title,
+      })
+      .from(booking)
+      .innerJoin(event, eq(booking.eventId, event.id))
+      .where(
+        and(
+          eq(booking.personId, personId),
+          sql`${booking.creditsCharged} > 0`
+        )
+      ),
+  ]);
+
+  const entries = [
+    ...batches.map((b) => ({
+      id: b.id,
+      amount: b.amount,
+      type: b.source,
+      reason: b.source === "subscription" ? "Monthly subscription grant" :
+              b.source === "godmother" ? "Godmother reward" :
+              b.source === "refund" ? "Booking refund" :
+              b.source === "topup" ? "Credit top-up" :
+              b.source === "admin_adjustment" ? "Admin adjustment" : b.source,
+      expiresAt: b.expiresAt,
+      createdAt: b.createdAt || b.purchasedAt,
+    })),
+    ...bookingSpends.map((bk) => ({
+      id: bk.id,
+      amount: -bk.creditsCharged,
+      type: "spend",
+      reason: `Booking: ${bk.eventTitle}`,
+      expiresAt: null,
+      createdAt: bk.bookedAt || bk.createdAt,
+    })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const totalBalance = await getPersonWalletBalance(personId);
 
   return {
     success: true,
@@ -434,15 +477,8 @@ export async function adminCancelMemberBooking(bookingId: string) {
 
       await tx.update(booking).set({ status: "released", releasedAt: new Date() }).where(eq(booking.id, bookingId));
 
-      if (b.memberId && b.creditsCharged > 0) {
-        await tx.insert(creditEntry).values({
-          memberId: b.memberId,
-          amount: b.creditsCharged,
-          type: "return_release",
-          sourceType: "booking",
-          sourceId: b.id,
-          reason: "Admin cancelled booking",
-        });
+      if (b.creditsCharged > 0 && b.personId) {
+        await refundPersonCredits(b.personId, b.creditsCharged, null, tx);
       }
 
       await tx.insert(auditLog).values({

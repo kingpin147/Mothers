@@ -58,7 +58,6 @@ export interface PublicEvent {
   isGuestFull?: boolean;
   minToConfirm?: number | null;
   guestPriceCents?: number | null;
-  showEventPassCta?: boolean | null;
   meetingPointNote?: string | null;
   whatsappGroupUrl?: string | null;
   guestOpenAt?: string | Date | null;
@@ -649,11 +648,11 @@ export function GuestPlacesNotOpenModal({
                 : `Las plazas de invitada para “${getEventDisplayTitle(ev, lang)}” se cerraron dos días antes de la fecha. Acompáñanos en un paseo mientras tanto; son siempre gratuitos y abiertos a todas.`)
             : isPending
             ? (lang === "en"
-                ? `“${getEventDisplayTitle(ev, lang)}” is currently gathering members. Event Pass places open once the minimum is reached. Come to a walk in the meantime; those are always free and open to everyone.`
-                : `“${getEventDisplayTitle(ev, lang)}” está reuniendo socias actualmente. Las plazas de Event Pass se abrirán cuando se alcance el mínimo. Acompáñanos en un paseo mientras tanto.`)
+                ? `“${getEventDisplayTitle(ev, lang)}” is currently gathering members. Non-member places open once the minimum is reached. Come to a walk in the meantime; those are always free and open to everyone.`
+                : `“${getEventDisplayTitle(ev, lang)}” está reuniendo socias actualmente. Las plazas para no socias se abrirán cuando se alcance el mínimo. Acompáñanos en un paseo mientras tanto.`)
             : (lang === "en"
-                ? `Members get the first two weeks on every event. Event Pass places for “${getEventDisplayTitle(ev, lang)}” open two weeks before the date — that is in ${daysUntilOpen} day${daysUntilOpen === 1 ? "" : "s"}. Come to a walk in the meantime; those are always free and open to everyone.`
-                : `Las socias tienen las dos primeras semanas en cada evento. Las plazas de Event Pass para “${getEventDisplayTitle(ev, lang)}” se abren dos semanas antes de la fecha — faltan ${daysUntilOpen} día${daysUntilOpen === 1 ? "" : "s"}. Acompáñanos a un paseo mientras tanto.`)}
+                ? `Members get the first two weeks on every event. Non-member places for “${getEventDisplayTitle(ev, lang)}” open two weeks before the date — that is in ${daysUntilOpen} day${daysUntilOpen === 1 ? "" : "s"}. Come to a walk in the meantime; those are always free and open to everyone.`
+                : `Las socias tienen las dos primeras semanas en cada evento. Las plazas para no socias para “${getEventDisplayTitle(ev, lang)}” se abren dos semanas antes de la fecha — faltan ${daysUntilOpen} día${daysUntilOpen === 1 ? "" : "s"}. Acompáñanos a un paseo mientras tanto.`)}
         </p>
 
         <button
@@ -726,18 +725,12 @@ export function CeilingModal({
         </div>
 
         <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 12px", color: "#39292a" }}>
-          {ev.isSignature
-            ? (lang === "en" ? "Signature moments are members only." : "Los Signature moments son exclusivos para socias.")
-            : (lang === "en" ? "This one is beyond the Event Pass." : "Este encuentro supera el Event Pass.")}
+          {lang === "en" ? "Signature moments are members only." : "Los Signature moments son exclusivos para socias."}
         </h2>
         <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 24px" }}>
-          {ev.isSignature
-            ? (lang === "en"
-                ? `Signature moments — like “${getEventDisplayTitle(ev, lang)}” — are the handful of experiences each year kept for members alone: everything else on the calendar opens to guests on an Event Pass.`
-                : `Los Signature moments — como “${getEventDisplayTitle(ev, lang)}” — son las experiencias reservadas exclusivamente para socias: todo lo demás en el calendario se abre a invitadas con un Event Pass.`)
-            : (lang === "en"
-                ? `An Event Pass covers experiences up to 18 credits. “${getEventDisplayTitle(ev, lang)}” costs ${ev.creditCost} — the richer end of the calendar, and one of the reasons members pay monthly rather than by the event.`
-                : `Un Event Pass cubre experiencias de hasta 18 créditos. “${getEventDisplayTitle(ev, lang)}” cuesta ${ev.creditCost} créditos — el extremo más exclusivo del calendario, y una de las razones por las que las socias pagan mensualmente en lugar de por evento.`)}
+          {lang === "en"
+            ? `Signature moments — like “${getEventDisplayTitle(ev, lang)}” — are the handful of experiences each year kept for members alone.`
+            : `Los Signature moments — como “${getEventDisplayTitle(ev, lang)}” — son las experiencias reservadas exclusivamente para socias.`}
         </p>
 
         <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
@@ -3115,7 +3108,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
             )}
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px", alignItems: "start" }}>
             {sortedEvents.map((ev) => (
               <EventCard
                 key={ev.id}

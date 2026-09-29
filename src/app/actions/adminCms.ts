@@ -5,7 +5,7 @@ import {
   member,
   person,
   payment,
-  creditEntry,
+  creditBatch,
   partner,
   partnerPerk,
   perkCodePool,
@@ -27,10 +27,15 @@ import {
   circlePost,
   circleReply,
 } from "@/db/schema";
-import { eq, desc, and, or, sql, ne, asc } from "drizzle-orm";
+import { eq, desc, and, or, sql, ne, asc, gt } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import {
+  grantCreditsToPerson,
+  spendPersonCreditsFIFO,
+  getPersonWalletBalance,
+} from "@/lib/ledger";
 
 const adjustCreditsSchema = z.object({
   memberId: z.string().trim().min(1, "MEMBER_ID_REQUIRED"),
@@ -154,7 +159,7 @@ export async function getAdminMembers() {
         firstName: person.firstName,
         lastName: person.lastName,
         email: person.email,
-        credits: sql<number>`(SELECT COALESCE(SUM(amount), 0) FROM ${creditEntry} WHERE member_id = ${member.id})::int`.as('credits'),
+        credits: sql<number>`(SELECT COALESCE(SUM(remaining), 0) FROM ${creditBatch} WHERE person_id = ${member.personId} AND remaining > 0 AND expires_at > NOW())::int`.as('credits'),
         attended: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended' AND e.starts_at >= NOW() - INTERVAL '90 days')`.as('attended'),
         lastSeenDate: sql<Date>`(SELECT MAX(e.starts_at) FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended')`.as('last_seen_date'),
       })
@@ -185,21 +190,21 @@ export async function adjustMemberCredits(rawData: {
     return { success: false, error: "REASON_REQUIRED" };
   }
 
+  const mem = await db.query.member.findFirst({ where: eq(member.id, data.memberId) });
+  if (!mem) return { success: false, error: "MEMBER_NOT_FOUND" };
+
   await db.transaction(async (tx) => {
-    await tx.insert(creditEntry).values({
-      memberId: data.memberId,
-      amount: data.amount,
-      type: "adjustment",
-      sourceType: "manual_adjustment",
-      actorAdminId: adminId,
-      reason: `Operator Adjustment: ${data.reason.trim()}`,
-    });
+    if (data.amount > 0) {
+      await grantCreditsToPerson(mem.personId, data.amount, "admin_adjustment", 6, tx);
+    } else if (data.amount < 0) {
+      await spendPersonCreditsFIFO(mem.personId, Math.abs(data.amount), tx);
+    }
 
     await tx.insert(auditLog).values({
       actorId: adminId,
       actorType: "admin",
       action: "adjust_credits",
-      entity: "credit_entry",
+      entity: "credit_batch",
       entityId: data.memberId,
       after: { memberId: data.memberId, amount: data.amount, reason: data.reason },
     });
@@ -294,14 +299,33 @@ export async function getAdminMemberDetail(memberId: string) {
     }
   }
 
-  // 2. Fetch Ledger, Godmother Stats, Attendance, Contact History concurrently
-  const [ledgerEntries, godmotherStats, attendance, contactHistory] = await Promise.all([
-    // Credits Ledger
+  // 2. Fetch Batches, Booking Spends, Godmother Stats, Attendance, Contact History concurrently
+  const [batches, bookingSpends, godmotherStats, attendance, contactHistory, totalBalance] = await Promise.all([
+    // Credit Batches
     db
       .select()
-      .from(creditEntry)
-      .where(eq(creditEntry.memberId, memberId))
-      .orderBy(desc(creditEntry.createdAt)),
+      .from(creditBatch)
+      .where(eq(creditBatch.personId, memberData.personId))
+      .orderBy(desc(creditBatch.createdAt)),
+
+    // Booking Spends
+    db
+      .select({
+        id: booking.id,
+        creditsCharged: booking.creditsCharged,
+        bookedAt: booking.bookedAt,
+        createdAt: booking.createdAt,
+        eventTitle: event.title,
+      })
+      .from(booking)
+      .innerJoin(event, eq(booking.eventId, event.id))
+      .where(
+        and(
+          eq(booking.personId, memberData.personId),
+          sql`${booking.creditsCharged} > 0`
+        )
+      )
+      .orderBy(desc(booking.bookedAt)),
 
     // Godmother Referral Stats
     db
@@ -337,9 +361,34 @@ export async function getAdminMemberDetail(memberId: string) {
       .from(emailLog)
       .where(eq(emailLog.personId, memberData.personId))
       .orderBy(desc(emailLog.sentAt)),
+
+    // Wallet Total Balance
+    getPersonWalletBalance(memberData.personId),
   ]);
 
-  const totalBalance = ledgerEntries.reduce((sum, e) => sum + e.amount, 0);
+  const ledgerEntries = [
+    ...batches.map((b) => ({
+      id: b.id,
+      amount: b.amount,
+      type: b.source,
+      reason: b.source === "subscription" ? "Monthly subscription grant" :
+              b.source === "godmother" ? "Godmother referral reward" :
+              b.source === "refund" ? "Booking refund" :
+              b.source === "topup" ? "Credit top-up" :
+              b.source === "admin_adjustment" ? "Operator adjustment" :
+              b.source === "purchase" ? "Pre-launch credits" : b.source,
+      expiresAt: b.expiresAt,
+      createdAt: b.createdAt || b.purchasedAt,
+    })),
+    ...bookingSpends.map((bk) => ({
+      id: bk.id,
+      amount: -bk.creditsCharged,
+      type: "spend",
+      reason: `Booking: ${bk.eventTitle}`,
+      expiresAt: null,
+      createdAt: bk.bookedAt || bk.createdAt,
+    })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return {
     success: true,
@@ -518,26 +567,61 @@ export async function getAdminFinance() {
     .innerJoin(person, eq(payment.personId, person.id))
     .orderBy(desc(payment.occurredAt));
 
-  const creditEntries = await db
-    .select({
-      id: creditEntry.id,
-      memberId: creditEntry.memberId,
-      amount: creditEntry.amount,
-      type: creditEntry.type,
-      expiresAt: creditEntry.expiresAt,
-      sourceType: creditEntry.sourceType,
-      sourceId: creditEntry.sourceId,
-      reason: creditEntry.reason,
-      actorAdminId: creditEntry.actorAdminId,
-      createdAt: creditEntry.createdAt,
-      personFirstName: person.firstName,
-      personLastName: person.lastName,
-      personEmail: person.email,
-    })
-    .from(creditEntry)
-    .innerJoin(member, eq(creditEntry.memberId, member.id))
-    .innerJoin(person, eq(member.personId, person.id))
-    .orderBy(desc(creditEntry.createdAt));
+  const [batches, bookingSpends] = await Promise.all([
+    db
+      .select({
+        id: creditBatch.id,
+        memberId: member.id,
+        amount: creditBatch.amount,
+        type: creditBatch.source,
+        expiresAt: creditBatch.expiresAt,
+        sourceType: creditBatch.source,
+        sourceId: creditBatch.id,
+        reason: sql<string>`CASE 
+          WHEN ${creditBatch.source} = 'subscription' THEN 'Monthly subscription grant'
+          WHEN ${creditBatch.source} = 'godmother' THEN 'Godmother referral reward'
+          WHEN ${creditBatch.source} = 'topup' THEN 'Credit top-up'
+          WHEN ${creditBatch.source} = 'refund' THEN 'Event cancellation / release refund'
+          WHEN ${creditBatch.source} = 'admin_adjustment' THEN 'Operator adjustment'
+          WHEN ${creditBatch.source} = 'purchase' THEN 'Pre-launch credits'
+          ELSE ${creditBatch.source}
+        END`,
+        actorAdminId: sql<string | null>`NULL`,
+        createdAt: creditBatch.createdAt,
+        personFirstName: person.firstName,
+        personLastName: person.lastName,
+        personEmail: person.email,
+      })
+      .from(creditBatch)
+      .innerJoin(person, eq(creditBatch.personId, person.id))
+      .leftJoin(member, eq(member.personId, person.id))
+      .orderBy(desc(creditBatch.createdAt)),
+    db
+      .select({
+        id: booking.id,
+        memberId: booking.memberId,
+        amount: sql<number>`-${booking.creditsCharged}`,
+        type: sql<string>`'event_booking'`,
+        expiresAt: sql<Date | null>`NULL`,
+        sourceType: sql<string>`'event'`,
+        sourceId: booking.eventId,
+        reason: sql<string>`CONCAT('Booking: ', ${event.title})`,
+        actorAdminId: sql<string | null>`NULL`,
+        createdAt: booking.bookedAt,
+        personFirstName: person.firstName,
+        personLastName: person.lastName,
+        personEmail: person.email,
+      })
+      .from(booking)
+      .innerJoin(person, eq(booking.personId, person.id))
+      .innerJoin(event, eq(booking.eventId, event.id))
+      .where(gt(booking.creditsCharged, 0))
+      .orderBy(desc(booking.bookedAt)),
+  ]);
+
+  const creditEntries = [...batches, ...bookingSpends].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   return { success: true, payments, creditEntries };
 }
@@ -908,31 +992,40 @@ export async function payoutGodmotherReward(referralId: string) {
         throw new Error("ALREADY_PAID_OR_NOT_FOUND");
       }
 
-      const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
-      const insertedCredit = await tx
-        .insert(creditEntry)
-        .values({
-          memberId: ref.referrerMemberId,
-          amount: 5,
-          type: "godmother",
-          expiresAt,
-          sourceType: "godmother",
-          sourceId: ref.id,
-          actorAdminId: adminId,
-          reason: `Godmother referral reward for code ${ref.code}`,
-        })
-        .returning();
+      const referrerMem = await tx.query.member.findFirst({
+        where: eq(member.id, ref.referrerMemberId),
+      });
+      if (!referrerMem) {
+        throw new Error("REFERRER_MEMBER_NOT_FOUND");
+      }
+
+      const grantRes = await grantCreditsToPerson(
+        referrerMem.personId,
+        5,
+        "godmother",
+        6,
+        tx
+      );
 
       await tx
         .update(godmotherReferral)
         .set({
           status: "paid",
-          payoutCreditEntryId: insertedCredit[0].id,
+          payoutCreditEntryId: grantRes.batchId,
           updatedAt: new Date(),
         })
         .where(eq(godmotherReferral.id, referralId));
 
-      return { creditEntryId: insertedCredit[0].id };
+      await tx.insert(auditLog).values({
+        actorId: adminId,
+        actorType: "admin",
+        action: "payout_godmother_reward",
+        entity: "godmother_referral",
+        entityId: referralId,
+        after: { referralId, batchId: grantRes.batchId, credits: 5 },
+      });
+
+      return { batchId: grantRes.batchId };
     });
 
     return { success: true, ...result };

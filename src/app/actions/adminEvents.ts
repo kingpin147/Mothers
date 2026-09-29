@@ -1,9 +1,10 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, person, creditEntry, auditLog, eventCategory, eventStage, stage, member, guestRsvp } from "@/db/schema";
+import { event, booking, person, auditLog, eventCategory, eventStage, stage, member, guestRsvp } from "@/db/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { refundPersonCredits } from "@/lib/ledger";
 
 export async function publishAdminEvent(eventId: string) {
   const session = await auth();
@@ -87,7 +88,6 @@ export async function getAdminEvents() {
       memberBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'member' THEN 1 END)::int`,
       guestBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'guest' THEN 1 END)::int`,
       totalHistoricalBookings: sql<number>`(SELECT count(*) FROM booking b WHERE b.event_id = event.id)::int`,
-      totalPasses: sql<number>`(SELECT count(*) FROM event_pass ep WHERE ep.event_id = event.id)::int`,
     })
     .from(event)
     .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
@@ -137,7 +137,6 @@ export async function getAdminEvents() {
       memberBookingsCount: e.memberBookingsCount,
       guestBookingsCount: e.guestBookingsCount,
       totalHistoricalBookings: e.totalHistoricalBookings,
-      totalPasses: e.totalPasses,
       targetStages: stagesMap[e.event.id] || [],
     };
   });
@@ -537,17 +536,8 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
         })
         .where(eq(booking.id, b.id));
 
-      if (b.memberId && b.creditsCharged > 0) {
-        const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
-        await tx.insert(creditEntry).values({
-          memberId: b.memberId,
-          amount: b.creditsCharged,
-          type: "return_cancellation",
-          expiresAt,
-          sourceType: "event",
-          sourceId: eventId,
-          reason: `Auto refund: ${ev.title} cancelled by club`,
-        });
+      if (b.creditsCharged > 0 && b.personId) {
+        await refundPersonCredits(b.personId, b.creditsCharged, null, tx);
       }
 
       if (p && p.email) {
@@ -604,17 +594,8 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
         })
         .where(eq(booking.id, pb.id));
 
-      if (pb.memberId && pb.pendingReturnCredits > 0) {
-        const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
-        await tx.insert(creditEntry).values({
-          memberId: pb.memberId,
-          amount: pb.pendingReturnCredits,
-          type: "return_cancellation",
-          expiresAt,
-          sourceType: "event",
-          sourceId: eventId,
-          reason: `Return on event cancellation for released seat in ${ev.title}`,
-        });
+      if (pb.pendingReturnCredits > 0 && pb.personId) {
+        await refundPersonCredits(pb.personId, pb.pendingReturnCredits, null, tx);
       }
     }
 

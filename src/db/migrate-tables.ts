@@ -54,8 +54,8 @@ async function main() {
     await sql`ALTER TABLE "window" ADD COLUMN IF NOT EXISTS tier_prices jsonb;`;
 
     // 3. Event columns
-    await sql`ALTER TABLE event ADD COLUMN IF NOT EXISTS capacity_guest_gathering integer;`;
-    await sql`ALTER TABLE event ADD COLUMN IF NOT EXISTS show_event_pass_cta boolean DEFAULT false NOT NULL;`;
+    await sql`ALTER TABLE event DROP COLUMN IF EXISTS capacity_guest_gathering;`;
+    await sql`ALTER TABLE event DROP COLUMN IF EXISTS show_event_pass_cta;`;
     await sql`ALTER TABLE event ADD COLUMN IF NOT EXISTS childcare text DEFAULT 'child_inclusive' NOT NULL;`;
     await sql`ALTER TABLE event ADD COLUMN IF NOT EXISTS languages text[];`;
     await sql`UPDATE event SET languages = ARRAY['es', 'en'] WHERE languages IS NULL;`;

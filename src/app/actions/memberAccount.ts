@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { member, person, creditEntry, creditBatch, circlePost, circleReply, booking, event, eventCategory, partner, partnerPerk, perkCodePool, perkReveal, eventWaitlist } from "@/db/schema";
+import { member, person, creditBatch, circlePost, circleReply, booking, event, eventCategory, partner, partnerPerk, perkCodePool, perkReveal, eventWaitlist } from "@/db/schema";
 import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getAppUrl } from "@/lib/urls";
@@ -100,25 +100,33 @@ export async function getAccountData(targetMemberId?: string) {
     }
 
     // Parallelize independent sub-queries for maximum performance
-    const [creditRows, ledger, upcomingBookings, godmotherStats, activePartners, creditBatches, activeWaitlists] = await Promise.all([
-      db
-        .select({
-          total: sql<number>`COALESCE(SUM(amount), 0)`,
-        })
-        .from(creditEntry)
-        .where(eq(creditEntry.memberId, memberId)),
-      db
-        .select({
-          id: creditEntry.id,
-          amount: creditEntry.amount,
-          type: creditEntry.type,
-          reason: creditEntry.reason,
-          expiresAt: creditEntry.expiresAt,
-          createdAt: creditEntry.createdAt,
-        })
-        .from(creditEntry)
-        .where(eq(creditEntry.memberId, memberId))
-        .orderBy(asc(creditEntry.createdAt)),
+    const [allBatches, bookingSpends, upcomingBookings, godmotherBatches, activePartners, creditBatches, activeWaitlists] = await Promise.all([
+      personId
+        ? db
+            .select()
+            .from(creditBatch)
+            .where(eq(creditBatch.personId, personId))
+            .orderBy(desc(creditBatch.createdAt))
+        : Promise.resolve([]),
+      personId
+        ? db
+            .select({
+              id: booking.id,
+              creditsCharged: booking.creditsCharged,
+              bookedAt: booking.bookedAt,
+              createdAt: booking.createdAt,
+              eventTitle: event.title,
+            })
+            .from(booking)
+            .innerJoin(event, eq(booking.eventId, event.id))
+            .where(
+              and(
+                eq(booking.personId, personId),
+                sql`${booking.creditsCharged} > 0`
+              )
+            )
+            .orderBy(desc(booking.bookedAt))
+        : Promise.resolve([]),
       db
         .select({
           id: booking.id,
@@ -143,19 +151,26 @@ export async function getAccountData(targetMemberId?: string) {
         .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
         .where(
           and(
-            eq(booking.memberId, memberId),
+            memberId ? eq(booking.memberId, memberId) : eq(booking.personId, personId!),
             sql`${event.startsAt} > NOW()`,
             sql`${booking.status} IN ('held', 'confirmed')`
           )
         )
         .orderBy(asc(event.startsAt))
         .limit(10),
-      db
-        .select({
-          totalCreditsEarned: sql<number>`COALESCE(SUM(CASE WHEN type IN ('godmother', 'godmother_bonus', 'referral') OR (type = 'grant' AND source_type = 'referral') OR (type = 'adjustment' AND source_type = 'godmother') THEN amount ELSE 0 END), 0)`,
-        })
-        .from(creditEntry)
-        .where(eq(creditEntry.memberId, memberId)),
+      personId
+        ? db
+            .select({
+              totalCreditsEarned: sql<number>`COALESCE(SUM(amount), 0)::int`,
+            })
+            .from(creditBatch)
+            .where(
+              and(
+                eq(creditBatch.personId, personId),
+                eq(creditBatch.source, "godmother")
+              )
+            )
+        : Promise.resolve([{ totalCreditsEarned: 0 }]),
       db
         .select()
         .from(partner)
@@ -199,7 +214,31 @@ export async function getAccountData(targetMemberId?: string) {
         : Promise.resolve([]),
     ]);
 
-    const currentBalance = Number(creditRows[0]?.total || 0);
+    const currentBalance = (creditBatches || []).reduce((acc: number, b: any) => acc + (Number(b.remaining) || 0), 0);
+
+    const ledger = [
+      ...(allBatches || []).map((b: any) => ({
+        id: b.id,
+        amount: b.amount,
+        type: b.source,
+        reason: b.source === "subscription" ? "Monthly subscription grant" :
+                b.source === "godmother" ? "Godmother referral reward" :
+                b.source === "refund" ? "Booking refund" :
+                b.source === "topup" ? "Credit top-up" :
+                b.source === "admin_adjustment" ? "Operator adjustment" :
+                b.source === "purchase" ? "Pre-launch credits" : b.source,
+        expiresAt: b.expiresAt,
+        createdAt: b.createdAt || b.purchasedAt,
+      })),
+      ...(bookingSpends || []).map((bk: any) => ({
+        id: bk.id,
+        amount: -bk.creditsCharged,
+        type: "event_booking",
+        reason: `Booking: ${bk.eventTitle}`,
+        expiresAt: null,
+        createdAt: bk.bookedAt || bk.createdAt,
+      })),
+    ].sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     const safeBookings = (upcomingBookings || []).map((b: any) => ({
       ...b,
@@ -265,7 +304,7 @@ export async function getAccountData(targetMemberId?: string) {
       bookings: safeBookings,
       waitlists: safeWaitlists,
       godmother: {
-        totalCreditsEarned: Number(godmotherStats[0]?.totalCreditsEarned || 0),
+        totalCreditsEarned: Number(godmotherBatches[0]?.totalCreditsEarned || 0),
       },
       partners: activePartners || [],
     };

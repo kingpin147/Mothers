@@ -385,7 +385,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
           },
           {
             title: "Non-member pricing",
-            intro: "There is no Event Pass: from January mothers without membership book the same events with credits, at the non-member price.",
+            intro: "There is no Event Pass: once membership opens mothers without membership book the same events with credits, at the non-member price.",
             fields: [
               { key: "nonMemberWalkCredits", label: "Non-member price for a free walk (credits)", help: "Pre-filled as the non-member price when an event is free for members.", parse: (v: string) => parseInt(v, 10) || 0 },
               { key: "nonMemberMarkup", label: "Non-member mark-up (default)", help: "Pre-fills the non-member price from the member price on a new event. Always editable per event.", parse: (v: string) => parseFloat(v) || 1.5, suffix: "×" },

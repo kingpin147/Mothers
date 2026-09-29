@@ -59,7 +59,6 @@ export default function AdminFinancePage() {
 
   const paid = payments.filter((p) => p.status === "succeeded" || p.status === "paid");
   const subs = ofPurpose("subscription", "succeeded");
-  const passes = ofPurpose("event_pass", "succeeded");
   const joining = ofPurpose("joining_fee", "succeeded");
   const extra = ofPurpose("extra_credits", "succeeded");
   const refunds = payments.filter((p) => p.status === "refunded");

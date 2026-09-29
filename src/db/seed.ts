@@ -120,14 +120,12 @@ export const EVENTS = [
     creditCost: 55,
     guestPriceCents: 3500,
     capacityMember: 14,
-
     minToConfirm: 8,
     isSignature: true,
     isFreeWalk: false,
     childcare: "adults_only",
     status: "completed",
     languages: ["es", "en"],
-    showEventPassCta: false,
     initialBookings: 14,
   },
   {
@@ -145,14 +143,12 @@ export const EVENTS = [
     creditCost: 0,
     guestPriceCents: 0,
     capacityMember: 12,
-
     minToConfirm: 3,
     isSignature: false,
     isFreeWalk: true,
     childcare: "child_inclusive",
     status: "completed",
     languages: ["es", "en"],
-    showEventPassCta: false,
     initialBookings: 12,
   },
   {
@@ -170,14 +166,12 @@ export const EVENTS = [
     creditCost: 0,
     guestPriceCents: 0,
     capacityMember: 16,
-
     minToConfirm: 0,
     isSignature: false,
     isFreeWalk: true,
     childcare: "child_inclusive",
     status: "confirmed",
     languages: ["es", "en"],
-    showEventPassCta: false,
     initialBookings: 8,
   },
   {
@@ -195,14 +189,12 @@ export const EVENTS = [
     creditCost: 18,
     guestPriceCents: 3500,
     capacityMember: 12,
-
     minToConfirm: 5,
     isSignature: false,
     isFreeWalk: false,
     childcare: "child_inclusive",
     status: "completed",
     languages: ["es", "en"],
-    showEventPassCta: false,
     initialBookings: 12,
   },
   {
@@ -220,14 +212,12 @@ export const EVENTS = [
     creditCost: 20,
     guestPriceCents: 3500,
     capacityMember: 10,
-
     minToConfirm: 6,
     isSignature: false,
     isFreeWalk: false,
     childcare: "adults_only",
     status: "completed",
     languages: ["es", "en", "fr"],
-    showEventPassCta: true,
     initialBookings: 10,
   },
   {
@@ -245,14 +235,12 @@ export const EVENTS = [
     creditCost: 14,
     guestPriceCents: 3500,
     capacityMember: 12,
-
     minToConfirm: 6,
     isSignature: false,
     isFreeWalk: false,
     childcare: "adults_only",
     status: "confirmed",
     languages: ["es", "en"],
-    showEventPassCta: true,
     initialBookings: 7,
   },
   {
@@ -270,14 +258,12 @@ export const EVENTS = [
     creditCost: 12,
     guestPriceCents: 3500,
     capacityMember: 16,
-
     minToConfirm: 14,
     isSignature: false,
     isFreeWalk: false,
     childcare: "adults_only",
     status: "published_pending",
     languages: ["en"],
-    showEventPassCta: false,
     initialBookings: 11,
   },
   {
@@ -295,14 +281,12 @@ export const EVENTS = [
     creditCost: 55,
     guestPriceCents: 3500,
     capacityMember: 20,
-
     minToConfirm: 10,
     isSignature: true,
     isFreeWalk: false,
     childcare: "child_inclusive",
     status: "published_pending",
     languages: ["es", "en"],
-    showEventPassCta: false,
     initialBookings: 8,
   },
   {
@@ -320,14 +304,12 @@ export const EVENTS = [
     creditCost: 0,
     guestPriceCents: 0,
     capacityMember: 12,
-
     minToConfirm: 4,
     isSignature: false,
     isFreeWalk: true,
     childcare: "child_inclusive",
     status: "confirmed",
     languages: ["es", "ca"],
-    showEventPassCta: false,
     initialBookings: 6,
   },
   {
@@ -345,14 +327,12 @@ export const EVENTS = [
     creditCost: 18,
     guestPriceCents: 3500,
     capacityMember: 12,
-
     minToConfirm: 8,
     isSignature: false,
     isFreeWalk: false,
     childcare: "child_inclusive",
     status: "published_pending",
     languages: ["es", "en"],
-    showEventPassCta: true,
     initialBookings: 5,
   },
   {
@@ -370,15 +350,12 @@ export const EVENTS = [
     creditCost: 12,
     guestPriceCents: 3500,
     capacityMember: 25,
-
-
     minToConfirm: 14,
     isSignature: false,
     isFreeWalk: false,
     childcare: "adults_only",
     status: "published_pending",
     languages: ["en"],
-    showEventPassCta: true,
     initialBookings: 6,
   },
   {
@@ -396,14 +373,12 @@ export const EVENTS = [
     creditCost: 2,
     guestPriceCents: 3500,
     capacityMember: 12,
-
     minToConfirm: 4,
     isSignature: false,
     isFreeWalk: false,
     childcare: "child_inclusive",
     status: "completed",
     languages: ["es"],
-    showEventPassCta: false,
     initialBookings: 12,
   },
   {
@@ -421,14 +396,12 @@ export const EVENTS = [
     creditCost: 2,
     guestPriceCents: 3500,
     capacityMember: 12,
-
     minToConfirm: 4,
     isSignature: false,
     isFreeWalk: false,
     childcare: "child_inclusive",
     status: "confirmed",
     languages: ["es", "en", "fr"],
-    showEventPassCta: true,
     initialBookings: 5,
   },
   {
@@ -446,14 +419,12 @@ export const EVENTS = [
     creditCost: 12,
     guestPriceCents: 3500,
     capacityMember: 12,
-
     minToConfirm: 6,
     isSignature: false,
     isFreeWalk: false,
     childcare: "adults_only",
     status: "confirmed",
     languages: ["es", "en"],
-    showEventPassCta: false,
     initialBookings: 11,
   },
   {
@@ -471,14 +442,12 @@ export const EVENTS = [
     creditCost: 25,
     guestPriceCents: 3500,
     capacityMember: 10,
-
     minToConfirm: 6,
     isSignature: false,
     isFreeWalk: false,
     childcare: "adults_only",
     status: "confirmed",
     languages: ["es", "en"],
-    showEventPassCta: false,
     initialBookings: 6,
   },
   {
@@ -496,14 +465,12 @@ export const EVENTS = [
     creditCost: 32,
     guestPriceCents: 3500,
     capacityMember: 6,
-
     minToConfirm: 2,
     isSignature: true,
     isFreeWalk: false,
     childcare: "adults_only",
     status: "confirmed",
     languages: ["es", "en"],
-    showEventPassCta: false,
     initialBookings: 4,
   },
   {
@@ -521,14 +488,12 @@ export const EVENTS = [
     creditCost: 18,
     guestPriceCents: 3500,
     capacityMember: 12,
-
     minToConfirm: 4,
     isSignature: false,
     isFreeWalk: false,
     childcare: "child_inclusive",
     status: "completed",
     languages: ["es", "en"],
-    showEventPassCta: false,
     initialBookings: 12,
   },
 ];

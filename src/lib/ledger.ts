@@ -81,7 +81,8 @@ export async function grantCreditsToPerson(
 ): Promise<{ batchId: string; amount: number; expiresAt: Date }> {
   if (amount <= 0) throw new Error("GRANT_AMOUNT_MUST_BE_POSITIVE");
 
-  const expiresAt = new Date(Date.now() + validityMonths * 30 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date();
+  expiresAt.setMonth(expiresAt.getMonth() + validityMonths);
 
   const [inserted] = await txOrDb
     .insert(creditBatch)
@@ -107,7 +108,7 @@ export async function spendPersonCreditsFIFO(
   personId: string,
   amount: number,
   tx: any
-): Promise<{ spent: number; batchesDeducted: Array<{ batchId: string; deducted: number }> }> {
+): Promise<{ spent: number; batchesDeducted: Array<{ batchId: string; deducted: number; expiresAt: Date }> }> {
   if (amount <= 0) {
     return { spent: 0, batchesDeducted: [] };
   }
@@ -135,7 +136,7 @@ export async function spendPersonCreditsFIFO(
   }
 
   let remainingToDeduct = amount;
-  const batchesDeducted: Array<{ batchId: string; deducted: number }> = [];
+  const batchesDeducted: Array<{ batchId: string; deducted: number; expiresAt: Date }> = [];
 
   for (const b of activeBatches) {
     if (remainingToDeduct <= 0) break;
@@ -148,7 +149,7 @@ export async function spendPersonCreditsFIFO(
       .set({ remaining: newRemaining })
       .where(eq(creditBatch.id, b.id));
 
-    batchesDeducted.push({ batchId: b.id, deducted: deduct });
+    batchesDeducted.push({ batchId: b.id, deducted: deduct, expiresAt: b.expiresAt });
     remainingToDeduct -= deduct;
   }
 
@@ -160,14 +161,14 @@ export async function spendPersonCreditsFIFO(
 export async function refundPersonCredits(
   personId: string,
   amount: number,
-  originalExpiry: Date | null,
-  tx: any
+  originalExpiry: Date | null = null,
+  tx: any = db
 ): Promise<{ batchId: string; amount: number; expiresAt: Date }> {
   if (amount <= 0) throw new Error("REFUND_AMOUNT_MUST_BE_POSITIVE");
 
   // If fewer than 30 days remain on original expiry, extend to 30 days from now (§11)
   const minExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-  const targetExpiry = originalExpiry && originalExpiry > minExpiry ? originalExpiry : minExpiry;
+  const targetExpiry = originalExpiry && new Date(originalExpiry) > minExpiry ? new Date(originalExpiry) : minExpiry;
 
   const [inserted] = await tx
     .insert(creditBatch)
@@ -226,8 +227,8 @@ export async function runCreditExpiryWorker() {
   let warningsSent = 0;
   for (const b of soonExpiring) {
     const daysLeft = Math.ceil((new Date(b.expiresAt).getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-    // Check if exactly around 30 days (29-30) or 7 days (6-7)
-    if (daysLeft <= 30 && (daysLeft === 30 || daysLeft === 29 || daysLeft === 7 || daysLeft === 6)) {
+    // Match one exact day only (30 or 7) to avoid duplicate warning emails
+    if (daysLeft === 30 || daysLeft === 7) {
       const personRecord = await db.query.person.findFirst({
         where: eq(person.id, b.personId),
       });
@@ -379,13 +380,28 @@ export async function returnCredits(
   sourceTypeOrReason?: string,
   sourceIdOrReason?: string,
   reasonOrTx?: any,
-  optionalTx?: any
+  optionalTx?: any,
+  originalExpiry?: Date | null
 ) {
-  const tx = optionalTx || (typeof reasonOrTx === "object" && reasonOrTx?.query ? reasonOrTx : db);
+  let tx = db;
+  let expiry: Date | null = originalExpiry || null;
+
+  if (optionalTx && typeof optionalTx === "object" && optionalTx.query) {
+    tx = optionalTx;
+  } else if (reasonOrTx && typeof reasonOrTx === "object" && reasonOrTx.query) {
+    tx = reasonOrTx;
+  }
+
+  if (reasonOrTx instanceof Date) {
+    expiry = reasonOrTx;
+  } else if (optionalTx instanceof Date) {
+    expiry = optionalTx;
+  }
+
   const mem = await tx.query.member.findFirst({ where: eq(member.id, memberId) });
   if (!mem) throw new Error("MEMBER_NOT_FOUND");
 
   const amount = typeof amountOrSpendId === "number" ? amountOrSpendId : 1;
-  const result = await refundPersonCredits(mem.personId, amount, null, tx);
+  const result = await refundPersonCredits(mem.personId, amount, expiry, tx);
   return { returnEntryId: result.batchId };
 }

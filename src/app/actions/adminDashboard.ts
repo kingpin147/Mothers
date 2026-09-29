@@ -5,7 +5,7 @@ import {
   member,
   event,
   payment,
-  creditEntry,
+  creditBatch,
   auditLog,
   person,
   booking,
@@ -59,9 +59,9 @@ export async function getAdminDashboardMetrics() {
           activeMembers: sql<number>`(SELECT count(*)::int FROM member WHERE status = 'active')`,
           totalRevenue: sql<number>`(SELECT COALESCE(sum(amount_cents), 0)::int FROM payment WHERE status = 'succeeded')`,
           subscribersCount: sql<number>`(SELECT count(*)::int FROM subscriber)`,
-          creditIssued: sql<number>`(SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)::int FROM credit_entry)`,
-          creditSpent: sql<number>`(SELECT COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0)::int FROM credit_entry)`,
-          creditOutstanding: sql<number>`(SELECT COALESCE(SUM(amount), 0)::int FROM credit_entry)`,
+          creditIssued: sql<number>`(SELECT COALESCE(SUM(amount), 0)::int FROM ${creditBatch})`,
+          creditSpent: sql<number>`(SELECT COALESCE(SUM(amount - remaining), 0)::int FROM ${creditBatch})`,
+          creditOutstanding: sql<number>`(SELECT COALESCE(SUM(remaining), 0)::int FROM ${creditBatch} WHERE remaining > 0 AND expires_at > NOW())`,
           placesOffered: sql<number>`(SELECT COALESCE(places_offered, 50)::int FROM "window" WHERE status = 'open' LIMIT 1)`
         }).from(sql`(SELECT 1) as t`),
         [{
@@ -584,6 +584,7 @@ export async function getAdminDashboardMetrics() {
       member: "membership",
       setting: "settings",
       window: "membership window",
+      credit_batch: "credits",
       credit_entry: "credits",
       journal_post: "journal",
       partner: "partner",
@@ -592,7 +593,6 @@ export async function getAdminDashboardMetrics() {
       faq_item: "FAQ",
       subscriber: "subscriber",
       internal_note: "internal note",
-      event_pass: "guest pass",
       application: "application",
       member_credential: "security",
     };

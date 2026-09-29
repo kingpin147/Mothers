@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { member, creditEntry, jobRun, auditLog } from "@/db/schema";
+import { member, jobRun, auditLog } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { extendGrantsOnPauseEnd } from "@/lib/ledger";

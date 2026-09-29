@@ -5,7 +5,6 @@ import {
   event,
   booking,
   creditBatch,
-  creditEntry,
   member,
   person,
   eventWaitlist,
