@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { creditBatch, person, member, booking, auditLog, creditEntry, event as eventTable } from "@/db/schema";
+import { creditBatch, person, member, booking, auditLog, event as eventTable } from "@/db/schema";
 import { eq, and, sql, asc, desc, gt, lte } from "drizzle-orm";
 import { queueAndSendEmail } from "@/lib/brevo";
 import { getAppUrl } from "@/lib/urls";
@@ -188,6 +188,50 @@ export async function refundPersonCredits(
   };
 }
 
+/**
+ * Refund credits spent on a booking while preserving their original batch expiry dates (§5, §11, N-21).
+ * Deductions are refunded with minimum 30 days safety extension.
+ */
+export async function refundBookingCredits(
+  bookingRow: {
+    personId: string | null;
+    creditDeductions?: Array<{ batchId?: string; deducted?: number; expiresAt?: string | Date }> | null;
+    creditsCharged?: number;
+  },
+  refundAmount?: number,
+  tx: any = db
+): Promise<Array<{ batchId: string; amount: number; expiresAt: Date }>> {
+  if (!bookingRow.personId) return [];
+  const amountToRefund = refundAmount !== undefined ? refundAmount : (bookingRow.creditsCharged || 0);
+  if (amountToRefund <= 0) return [];
+
+  const results: Array<{ batchId: string; amount: number; expiresAt: Date }> = [];
+  const deductions = bookingRow.creditDeductions || [];
+
+  let remaining = amountToRefund;
+  if (Array.isArray(deductions) && deductions.length > 0) {
+    for (const ded of deductions) {
+      if (remaining <= 0) break;
+      const dedAmount = ded.deducted || 0;
+      const portion = Math.min(dedAmount, remaining);
+      if (portion > 0) {
+        const origExpiry = ded.expiresAt ? new Date(ded.expiresAt) : null;
+        const res = await refundPersonCredits(bookingRow.personId, portion, origExpiry, tx);
+        results.push(res);
+        remaining -= portion;
+      }
+    }
+  }
+
+  // If any remaining portion was not covered by logged deductions, refund with min 30-day safety expiry
+  if (remaining > 0) {
+    const res = await refundPersonCredits(bookingRow.personId, remaining, null, tx);
+    results.push(res);
+  }
+
+  return results;
+}
+
 // ─── 5. WORKERS & CRON HELPERS ───────────────────────────────────────────────
 
 export async function runCreditExpiryWorker() {
@@ -294,9 +338,8 @@ export async function extendGrantsOnPauseEnd(memberId: string, pauseMonths: numb
   const mem = await tx.query.member.findFirst({ where: eq(member.id, memberId) });
   if (!mem) return;
 
-  const msToAdd = pauseMonths * 30 * 24 * 60 * 60 * 1000;
   await tx.execute(
-    sql`UPDATE credit_batch SET expires_at = expires_at + (${msToAdd} * INTERVAL '1 millisecond') WHERE person_id = ${mem.personId} AND remaining > 0 AND expires_at > NOW()`
+    sql`UPDATE credit_batch SET expires_at = expires_at + (${pauseMonths} * INTERVAL '1 month') WHERE person_id = ${mem.personId} AND remaining > 0 AND expires_at > NOW()`
   );
 }
 

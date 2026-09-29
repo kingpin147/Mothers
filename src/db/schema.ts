@@ -58,26 +58,7 @@ export const bookingStatusEnum = pgEnum("booking_status", [
 ]);
 
 
-export const creditEntryTypeEnum = pgEnum("credit_entry_type", [
-  "grant",
-  "joining_bonus",
-  "purchase",
-  "referral",
-  "spend",
-  "return_release",
-  "return_cancellation",
-  "expiry",
-  "adjustment",
-  "correction",
-  "godmother",
-  "godmother_bonus",
-  "subscription_grant",
-  "rollover",
-  "event_booking",
-  "event_refund",
-  "expiration",
-  "admin_adjustment",
-]);
+
 
 export const godmotherStatusEnum = pgEnum("godmother_status", [
   "pending",
@@ -314,6 +295,7 @@ export const booking = pgTable(
     status: bookingStatusEnum("status").default("held").notNull(),
     heldUntil: timestamp("held_until", { withTimezone: true }),
     creditsCharged: integer("credits_charged").default(0).notNull(),
+    creditDeductions: jsonb("credit_deductions").$type<Array<{ batchId: string; deducted: number; expiresAt: string }>>().default([]),
     pendingReturnCredits: integer("pending_return_credits").default(0).notNull(),
     pendingReturnState: text("pending_return_state").default("none").notNull(), // 'none', 'awaiting_replacement', 'settled_returned', 'settled_unfilled'
     moneyPaidCents: integer("money_paid_cents").default(0).notNull(),
@@ -384,38 +366,23 @@ export const eventChangeLog = pgTable(
 
 // ─── 4. PASSES, CREDITS & MONEY ─────────────────────────────────────────────
 
-
-export const creditEntry = pgTable(
-  "credit_entry",
+export const creditBatch = pgTable(
+  "credit_batch",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    memberId: text("member_id").notNull().references(() => member.id),
-    amount: integer("amount").notNull(), // signed integer (e.g. +20, -18)
-    type: creditEntryTypeEnum("type").notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }), // grants only
-    sourceType: text("source_type").notNull(), // 'booking', 'event', 'window', 'admin_user', 'godmother'
-    sourceId: text("source_id"),
-    reason: text("reason"),
-    actorAdminId: text("actor_admin_id").references(() => adminUser.id),
+    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    remaining: integer("remaining").notNull(),
+    purchasedAt: timestamp("purchased_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    source: text("source").default("purchase").notNull(), // 'purchase', 'topup', 'subscription', 'godmother', 'host_reward', 'admin_adjustment', 'refund'
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    index("idx_credit_entry_member_created").on(table.memberId, table.createdAt),
-    index("idx_credit_entry_member_expires")
-      .on(table.memberId, table.expiresAt)
-      .where(sql`type = 'grant'`),
+    index("idx_credit_batch_person_expires").on(table.personId, table.expiresAt),
   ]
-);
-
-export const creditAllocation = pgTable(
-  "credit_allocation",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    spendEntryId: text("spend_entry_id").notNull().references(() => creditEntry.id),
-    grantEntryId: text("grant_entry_id").notNull().references(() => creditEntry.id),
-    amount: integer("amount").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  }
 );
 
 export const payment = pgTable(
@@ -445,7 +412,7 @@ export const godmotherReferral = pgTable(
     code: text("code").notNull().unique(),
     status: godmotherStatusEnum("status").default("pending").notNull(),
     qualifiedAt: timestamp("qualified_at", { withTimezone: true }),
-    payoutCreditEntryId: text("payout_credit_entry_id").references(() => creditEntry.id),
+    payoutCreditBatchId: text("payout_credit_batch_id").references(() => creditBatch.id),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   }
@@ -793,25 +760,6 @@ export const internalNote = pgTable(
 );
 
 // ─── 11. PRE-MEMBERSHIP WALLET & LEADS ───────────────────────────────────────
-
-export const creditBatch = pgTable(
-  "credit_batch",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
-    amount: integer("amount").notNull(),
-    remaining: integer("remaining").notNull(),
-    purchasedAt: timestamp("purchased_at", { withTimezone: true }).defaultNow().notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    source: text("source").default("purchase").notNull(), // 'purchase', 'referral', 'hosting', 'adjustment'
-    stripePaymentIntentId: text("stripe_payment_intent_id"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [
-    index("idx_credit_batch_person_expires").on(table.personId, table.expiresAt),
-  ]
-);
 
 export const leadEntry = pgTable(
   "lead_entry",

@@ -304,14 +304,21 @@ async function handleTopUpCheckout({
         });
 
         if (heldBooking) {
+          let creditDeductions: Array<{ batchId: string; deducted: number; expiresAt: string }> = [];
           if (requiredCredits > 0) {
-            await spendPersonCreditsFIFO(personId, requiredCredits, tx);
+            const spendResult = await spendPersonCreditsFIFO(personId, requiredCredits, tx);
+            creditDeductions = (spendResult.batchesDeducted || []).map((b) => ({
+              batchId: b.batchId,
+              deducted: b.deducted,
+              expiresAt: new Date(b.expiresAt).toISOString(),
+            }));
           }
           await tx
             .update(booking)
             .set({
               status: ev.status === "confirmed" ? "confirmed" : "held",
               creditsCharged: requiredCredits,
+              creditDeductions,
               updatedAt: new Date(),
             })
             .where(eq(booking.id, heldBooking.id));
@@ -335,8 +342,14 @@ async function handleTopUpCheckout({
           });
 
           if (!existing) {
+            let creditDeductions: Array<{ batchId: string; deducted: number; expiresAt: string }> = [];
             if (requiredCredits > 0) {
-              await spendPersonCreditsFIFO(personId, requiredCredits, tx);
+              const spendResult = await spendPersonCreditsFIFO(personId, requiredCredits, tx);
+              creditDeductions = (spendResult.batchesDeducted || []).map((b) => ({
+                batchId: b.batchId,
+                deducted: b.deducted,
+                expiresAt: new Date(b.expiresAt).toISOString(),
+              }));
             }
             const [insertedB] = await tx.insert(booking).values({
               eventId,
@@ -345,6 +358,7 @@ async function handleTopUpCheckout({
               kind: isMember ? "member" : "guest",
               status: ev.status === "confirmed" ? "confirmed" : "held",
               creditsCharged: requiredCredits,
+              creditDeductions,
               bookedAt: new Date(),
             }).returning();
 

@@ -20,6 +20,7 @@ import {
   getPersonWalletBalance,
   spendPersonCreditsFIFO,
   refundPersonCredits,
+  refundBookingCredits,
   grantCreditsToPerson,
 } from "@/lib/ledger";
 import {
@@ -145,12 +146,18 @@ export async function bookEvent(eventId: string) {
       }
 
       // 6. Check & Spend Credits via Unified FIFO Wallet if requiredCredits > 0
+      let creditDeductions: Array<{ batchId: string; deducted: number; expiresAt: string }> = [];
       if (requiredCredits > 0) {
         const currentBalance = await getPersonWalletBalance(personId, tx);
         if (currentBalance < requiredCredits) {
           throw new Error("INSUFFICIENT_CREDITS");
         }
-        await spendPersonCreditsFIFO(personId, requiredCredits, tx);
+        const spendResult = await spendPersonCreditsFIFO(personId, requiredCredits, tx);
+        creditDeductions = (spendResult.batchesDeducted || []).map((b) => ({
+          batchId: b.batchId,
+          deducted: b.deducted,
+          expiresAt: new Date(b.expiresAt).toISOString(),
+        }));
       }
 
       // 7. Check Quorum
@@ -198,6 +205,7 @@ export async function bookEvent(eventId: string) {
           kind: isMember ? "member" : "guest",
           status: initialStatus,
           creditsCharged: requiredCredits,
+          creditDeductions,
           bookedAt: new Date(),
         })
         .returning({ id: booking.id });
@@ -222,11 +230,9 @@ export async function bookEvent(eventId: string) {
           })
           .where(eq(booking.id, oldestPendingReturn.id));
 
-        await grantCreditsToPerson(
-          oldestPendingReturn.personId,
+        await refundBookingCredits(
+          oldestPendingReturn,
           oldestPendingReturn.pendingReturnCredits,
-          "refund",
-          6,
           tx
         );
       }
@@ -470,7 +476,7 @@ export async function releaseBooking(bookingId: string) {
         .where(eq(booking.id, bookingId));
 
       if (returnedCredits > 0) {
-        await refundPersonCredits(b.personId, returnedCredits, null, tx);
+        await refundBookingCredits(b, returnedCredits, tx);
       }
 
       // Waitlist logic (§7.4 / B-08)
@@ -765,12 +771,18 @@ export async function claimWaitlistOffer(waitlistId: string) {
         cost = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
       }
 
+      let creditDeductions: Array<{ batchId: string; deducted: number; expiresAt: string }> = [];
       if (cost > 0) {
         const currentBalance = await getPersonWalletBalance(personId, tx);
         if (currentBalance < cost) {
           throw new Error("INSUFFICIENT_CREDITS");
         }
-        await spendPersonCreditsFIFO(personId, cost, tx);
+        const spendResult = await spendPersonCreditsFIFO(personId, cost, tx);
+        creditDeductions = (spendResult.batchesDeducted || []).map((b) => ({
+          batchId: b.batchId,
+          deducted: b.deducted,
+          expiresAt: new Date(b.expiresAt).toISOString(),
+        }));
       }
 
       await tx
@@ -787,6 +799,7 @@ export async function claimWaitlistOffer(waitlistId: string) {
           kind: isMember ? "member" : "guest",
           status: ev.status === "confirmed" ? "confirmed" : "held",
           creditsCharged: cost,
+          creditDeductions,
           bookedAt: new Date(),
         })
         .returning();

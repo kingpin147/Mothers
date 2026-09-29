@@ -17,6 +17,7 @@ import { auth } from "@/lib/auth";
 import {
   spendPersonCreditsFIFO,
   refundPersonCredits,
+  refundBookingCredits,
   getPersonWalletBalance,
 } from "@/lib/ledger";
 import crypto from "crypto";
@@ -315,8 +316,14 @@ export async function adminManualBookMember(data: {
   await db.transaction(async (tx) => {
     const creditsToCharge = validData.deductCredits ? ev.creditCost : 0;
 
+    let creditDeductions: Array<{ batchId: string; deducted: number; expiresAt: string }> = [];
     if (creditsToCharge > 0) {
-      await spendPersonCreditsFIFO(targetMember.personId, creditsToCharge, tx);
+      const spendResult = await spendPersonCreditsFIFO(targetMember.personId, creditsToCharge, tx);
+      creditDeductions = (spendResult.batchesDeducted || []).map((b) => ({
+        batchId: b.batchId,
+        deducted: b.deducted,
+        expiresAt: new Date(b.expiresAt).toISOString(),
+      }));
     }
 
     const insertedBooking = await tx
@@ -327,6 +334,7 @@ export async function adminManualBookMember(data: {
         memberId: validData.memberId,
         kind: "member",
         creditsCharged: creditsToCharge,
+        creditDeductions,
         status: "confirmed",
       })
       .returning();
@@ -478,7 +486,7 @@ export async function adminCancelMemberBooking(bookingId: string) {
       await tx.update(booking).set({ status: "released", releasedAt: new Date() }).where(eq(booking.id, bookingId));
 
       if (b.creditsCharged > 0 && b.personId) {
-        await refundPersonCredits(b.personId, b.creditsCharged, null, tx);
+        await refundBookingCredits(b, b.creditsCharged, tx);
       }
 
       await tx.insert(auditLog).values({

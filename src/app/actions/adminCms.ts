@@ -1011,7 +1011,7 @@ export async function payoutGodmotherReward(referralId: string) {
         .update(godmotherReferral)
         .set({
           status: "paid",
-          payoutCreditEntryId: grantRes.batchId,
+          payoutCreditBatchId: grantRes.batchId,
           updatedAt: new Date(),
         })
         .where(eq(godmotherReferral.id, referralId));

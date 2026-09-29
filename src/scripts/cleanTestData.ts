@@ -9,31 +9,19 @@ async function cleanTestData() {
   const adminEmails = admins.map((a) => a.email.toLowerCase().trim());
   console.log(`Found ${admins.length} admin accounts to protect:`, adminEmails);
 
-  console.log("Step 1: delete credit_allocation");
-  await db.execute(sql`DELETE FROM credit_allocation`);
-
-  console.log("Step 2: delete booking");
+  console.log("Step 1: delete booking");
   await db.execute(sql`DELETE FROM booking`);
 
-  console.log("Step 3: delete event_waitlist");
+  console.log("Step 2: delete event_waitlist");
   await db.execute(sql`DELETE FROM event_waitlist`);
 
-  console.log("Step 4: delete event_pass");
-  await db.execute(sql`DELETE FROM event_pass`);
-
-  console.log("Step 5: delete guest_rsvp");
+  console.log("Step 3: delete guest_rsvp");
   await db.execute(sql`DELETE FROM guest_rsvp`);
 
-  console.log("Step 6: disable credit_entry trigger");
-  await db.execute(sql`ALTER TABLE credit_entry DISABLE TRIGGER trg_credit_entry_immutable`);
+  console.log("Step 4: delete credit_batch");
+  await db.execute(sql`DELETE FROM credit_batch`);
 
-  console.log("Step 7: delete credit_entry");
-  await db.execute(sql`DELETE FROM credit_entry`);
-
-  console.log("Step 8: enable credit_entry trigger");
-  await db.execute(sql`ALTER TABLE credit_entry ENABLE TRIGGER trg_credit_entry_immutable`);
-
-  console.log("Step 9: delete payment");
+  console.log("Step 5: delete payment");
   await db.execute(sql`DELETE FROM payment`);
 
   console.log("Step 10: delete member_credential");

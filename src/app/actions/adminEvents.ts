@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { event, booking, person, auditLog, eventCategory, eventStage, stage, member, guestRsvp } from "@/db/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { refundPersonCredits } from "@/lib/ledger";
+import { refundPersonCredits, refundBookingCredits } from "@/lib/ledger";
 
 export async function publishAdminEvent(eventId: string) {
   const session = await auth();
@@ -537,7 +537,7 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
         .where(eq(booking.id, b.id));
 
       if (b.creditsCharged > 0 && b.personId) {
-        await refundPersonCredits(b.personId, b.creditsCharged, null, tx);
+        await refundBookingCredits(b, b.creditsCharged, tx);
       }
 
       if (p && p.email) {
@@ -595,7 +595,7 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
         .where(eq(booking.id, pb.id));
 
       if (pb.pendingReturnCredits > 0 && pb.personId) {
-        await refundPersonCredits(pb.personId, pb.pendingReturnCredits, null, tx);
+        await refundBookingCredits(pb, pb.pendingReturnCredits, tx);
       }
     }
 

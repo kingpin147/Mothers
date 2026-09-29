@@ -32,9 +32,8 @@ export async function GET(req: NextRequest) {
 
     for (const m of pausedMembers) {
       await db.transaction(async (tx) => {
-        // Calculate pause duration in days (default 30 or 60 days based on pauseMonthsUsedYear)
+        // Calculate pause duration in calendar months (1 or 2 months)
         const pauseMonths = Math.max(1, m.pauseMonthsUsedYear || 1);
-        const pauseDays = pauseMonths * 30;
 
         // Unpause member
         await tx
@@ -46,15 +45,15 @@ export async function GET(req: NextRequest) {
           })
           .where(eq(member.id, m.id));
 
-        // Extend credit grant expirations
-        await extendGrantsOnPauseEnd(m.id, pauseDays, tx);
+        // Extend credit grant expirations by calendar months
+        await extendGrantsOnPauseEnd(m.id, pauseMonths, tx);
 
         await tx.insert(auditLog).values({
           actorType: "system",
           action: "resume_member_pause",
           entity: "member",
           entityId: m.id,
-          after: { status: "active", pauseDaysExtended: pauseDays },
+          after: { status: "active", pauseMonthsExtended: pauseMonths },
         });
       });
 

@@ -61,6 +61,7 @@ async function main() {
     await sql`UPDATE event SET languages = ARRAY['es', 'en'] WHERE languages IS NULL;`;
 
     // 4. Booking columns
+    await sql`ALTER TABLE booking ADD COLUMN IF NOT EXISTS credit_deductions jsonb DEFAULT '[]'::jsonb;`;
     await sql`ALTER TABLE booking ADD COLUMN IF NOT EXISTS pending_return_credits integer DEFAULT 0 NOT NULL;`;
     await sql`ALTER TABLE booking ADD COLUMN IF NOT EXISTS pending_return_state text DEFAULT 'none' NOT NULL;`;
 
@@ -275,20 +276,15 @@ async function main() {
       CREATE INDEX IF NOT EXISTS idx_internal_note_entity ON internal_note(entity_type, entity_id);
     `);
 
-    // 11. PostgreSQL Trigger: Immutable credit_entry
+    // 11. Drop legacy tables and triggers (credit_allocation, event_pass, credit_entry)
     await sql.unsafe(`
-      CREATE OR REPLACE FUNCTION prevent_credit_entry_mutation()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        RAISE EXCEPTION 'credit_entry table is append-only. UPDATE and DELETE operations are strictly prohibited.';
-      END;
-      $$ LANGUAGE plpgsql;
-
       DROP TRIGGER IF EXISTS trg_credit_entry_immutable ON credit_entry;
-      CREATE TRIGGER trg_credit_entry_immutable
-      BEFORE UPDATE OR DELETE ON credit_entry
-      FOR EACH ROW EXECUTE FUNCTION prevent_credit_entry_mutation();
-    `);
+      DROP TABLE IF EXISTS credit_allocation CASCADE;
+      DROP TABLE IF EXISTS event_pass CASCADE;
+      DROP TABLE IF EXISTS credit_entry CASCADE;
+      ALTER TABLE godmother_referral DROP COLUMN IF EXISTS payout_credit_entry_id;
+      ALTER TABLE godmother_referral ADD COLUMN IF NOT EXISTS payout_credit_batch_id text REFERENCES credit_batch(id);
+    `).catch(() => {});
 
     // 12. Pre-membership columns & tables
     await sql.unsafe(`
