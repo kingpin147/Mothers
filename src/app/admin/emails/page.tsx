@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { BackArrow } from "@/components/Icons";
 
@@ -34,9 +34,39 @@ const READY_EMAILS = [
 
 export default function AdminEmailsPage() {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [htmlContent, setHtmlContent] = useState<string>("");
+  const [loadingHtml, setLoadingHtml] = useState<boolean>(true);
 
   const cur = READY_EMAILS[selectedIndex] || READY_EMAILS[0];
   const fileUrl = `/emails/${encodeURIComponent(cur.file)}`;
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingHtml(true);
+
+    fetch(fileUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch template");
+        return res.text();
+      })
+      .then((html) => {
+        if (isMounted) {
+          setHtmlContent(html);
+          setLoadingHtml(false);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not fetch email directly:", err);
+        if (isMounted) {
+          setHtmlContent("");
+          setLoadingHtml(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fileUrl]);
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", WebkitFontSmoothing: "antialiased" }}>
@@ -114,11 +144,19 @@ export default function AdminEmailsPage() {
                 Open on its own ↗
               </a>
             </div>
-            <iframe
-              src={fileUrl}
-              title={cur.name}
-              style={{ display: "block", width: "100%", height: "760px", border: 0, background: "#f8efe2" }}
-            />
+            <div style={{ position: "relative", minHeight: "760px", background: "#f8efe2" }}>
+              {loadingHtml && (
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#f8efe2", zIndex: 2 }}>
+                  <div style={{ fontSize: "14px", color: "rgba(57,41,42,0.6)" }}>Loading preview...</div>
+                </div>
+              )}
+              <iframe
+                srcDoc={htmlContent || undefined}
+                src={!htmlContent ? fileUrl : undefined}
+                title={cur.name}
+                style={{ display: "block", width: "100%", height: "760px", border: 0, background: "#f8efe2" }}
+              />
+            </div>
           </div>
         </div>
       </div>
