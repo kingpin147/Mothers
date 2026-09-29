@@ -1041,7 +1041,7 @@ export default function AdminEventsPage() {
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "9px", fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.75)" }}>
               <div>
-                <strong style={{ fontWeight: 600 }}>Booked / min</strong> — members plus guests already booked, against the minimum this event needs to run. Amber under half at T-10, wine at the decision point.
+                <strong style={{ fontWeight: 600 }}>Booked / min</strong> — everyone booked, against the minimum this event needs to run. Amber under half at T-10, wine at the decision point.
               </div>
               <div>
                 <strong style={{ fontWeight: 600 }}>Capacity</strong> — total places available for this event.

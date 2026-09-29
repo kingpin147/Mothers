@@ -22,25 +22,21 @@ export default function AdminCreateEventPage() {
   const [minToConfirm, setMinToConfirm] = useState("");
   const [memberPlaces, setMemberPlaces] = useState("");
   const [creditCost, setCreditCost] = useState("");
-  const [guestPlaces, setGuestPlaces] = useState("2");
-  const [guestGathering, setGuestGathering] = useState("");
+  const [nonMemberCreditCost, setNonMemberCreditCost] = useState("");
   const [description, setDescription] = useState("");
 
   // Toggles & Arrays
   const [langs, setLangs] = useState<string[]>(["English"]);
   const [stages, setStages] = useState<string[]>(["Babies"]);
   const [headStart, setHeadStart] = useState("No head start — opens to everyone at once");
-  const [membersOnly, setMembersOnly] = useState(false);
   const [freeEvent, setFreeEvent] = useState(false);
-  const [passCta, setPassCta] = useState(false);
   const [noCeiling, setNoCeiling] = useState(false);
   const [noMinimum, setNoMinimum] = useState(false);
+  const [needsHost, setNeedsHost] = useState(false);
 
   // Schedule overrides
   const [schMembers, setSchMembers] = useState("T-28");
-  const [schGuestsOpen, setSchGuestsOpen] = useState("T-14");
   const [schDecision, setSchDecision] = useState("T-7");
-  const [schGuestsClose, setSchGuestsClose] = useState("T-2");
 
   const toggleLang = (l: string) => {
     setLangs(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
@@ -50,38 +46,24 @@ export default function AdminCreateEventPage() {
     setStages(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
   };
 
-  const onMembersOnly = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const checked = e.target.checked;
-    setMembersOnly(checked);
-    if (checked) setPassCta(false);
-  };
-
   const chip = (on: boolean) => ({
     border: on ? '#7b1f2c' : 'rgba(57,41,42,0.25)',
     bg: 'transparent',
     color: on ? '#7b1f2c' : '#39292a'
   });
 
-  const passDisabled = membersOnly;
-  const passCursor = passDisabled ? 'not-allowed' : 'pointer';
-  const passBorder = passDisabled ? 'rgba(57,41,42,0.16)' : 'rgba(86,139,5,0.4)';
-  const passBg = passDisabled ? 'rgba(57,41,42,0.04)' : 'rgba(86,139,5,0.05)';
-  const passNote = passDisabled
-    ? 'Unavailable — this event is members only. A pass could not complete, so we do not advertise it.'
-    : 'Off by default. When on, a non-member sees a second outlined button beside Reserve, leading straight into pass checkout. The button disappears by itself at T-2 when guest bookings close. Two passes per person, ever — that limit lives in settings, not here.';
-  const guestOpacity = membersOnly ? 0.55 : 1;
-  const guestIntro = membersOnly
-    ? 'This event is members only, so guest places and the pass button are closed.'
-    : 'Guest places open at T-14, once members have had a clear fortnight, and close at T-2.';
   const costBorder = freeEvent ? 'rgba(57,41,42,0.16)' : 'rgba(123,31,44,0.4)';
   const costBg = freeEvent ? 'rgba(57,41,42,0.05)' : '#fff';
   const costHint = freeEvent
-    ? 'No credits taken for a free event.'
-    : 'Required, and yours alone to set. Comparable events have cost 16–20 credits — for information, never written into the field.';
+    ? 'No credits taken for this event.'
+    : 'Member price — required. Comparable events have cost 16–20 credits.';
+  const nmCostHint = freeEvent
+    ? 'Non-members also attend free.'
+    : 'Non-member price. Pre-filled from the default mark-up in Settings. Always editable.';
 
   const validationLine = freeEvent
     ? 'Still needed before publishing: title, venue, meeting point, dates, minimum, description.'
-    : 'Still needed before publishing: title, venue, meeting point, dates, minimum, credit cost, description.';
+    : 'Still needed before publishing: title, venue, meeting point, dates, minimum, member credit cost, description.';
 
   // Helper to parse T-X schedule into Dates
   const calculateDate = (startD: string, expr: string) => {
@@ -125,9 +107,6 @@ export default function AdminCreateEventPage() {
             else if (days >= 1.5) setSchDecision("T-1");
             else setSchDecision("12h");
           }
-          if (schGuestsOpen === "T-14") {
-            setSchGuestsOpen("T-0");
-          }
         }
       }
     }
@@ -153,12 +132,11 @@ export default function AdminCreateEventPage() {
 
     setLoadingAction(status);
     
-    const parsedMember = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
-    const totalCap = noCeiling ? 0 : parsedMember;
+    const parsedCap = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
     const parsedMin = noMinimum ? 0 : (parseInt(minToConfirm) || 0);
 
-    if (!noCeiling && totalCap > 0 && parsedMin > totalCap) {
-      alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Room Capacity (${totalCap}).`);
+    if (!noCeiling && parsedCap > 0 && parsedMin > parsedCap) {
+      alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Capacity (${parsedCap}).`);
       setLoadingAction(null);
       return;
     }
@@ -191,6 +169,8 @@ export default function AdminCreateEventPage() {
       startsAt: start,
       endsAt: new Date(endsAt),
       creditCost: freeEvent ? 0 : (parseInt(creditCost) || 0),
+      nonMemberCreditCost: freeEvent ? 0 : (parseInt(nonMemberCreditCost) || 0),
+      needsHost,
       // 0 = uncapped (no ceiling). When noCeiling is checked, store 0 explicitly.
       capacityMember: noCeiling ? 0 : (memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces)),
       minToConfirm: noMinimum || minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0),
@@ -332,19 +312,19 @@ export default function AdminCreateEventPage() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Head start for one group</label>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Members-first date (optional)</label>
                 <select value={headStart} onChange={(e) => setHeadStart(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
-                  <option>No head start — opens to everyone at once</option>
+                  <option>No members-first date — opens to everyone at booking launch</option>
                   <option>Babies, two days early</option>
                   <option>Toddlers, two days early</option>
                   <option>Pregnant, three days early</option>
                 </select>
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Lets one stage book before everyone else, so places are held for the group the event is designed for. Everyone else sees it when the head start ends.</div>
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Gives members a head start before non-members can book. Set per event — not a global window.</div>
               </div>
               <div style={{ display: "flex", alignItems: "flex-end" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer", paddingBottom: "11px" }}>
-                  <input type="checkbox" checked={membersOnly} onChange={onMembersOnly} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
-                  <span>Members only — no guest places at all</span>
+                  <input type="checkbox" checked={needsHost} onChange={(e) => setNeedsHost(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
+                  <span>Needs a host — show the host-volunteer prompt on the event page</span>
                 </label>
               </div>
             </div>
@@ -369,7 +349,7 @@ export default function AdminCreateEventPage() {
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>The number below which you would cancel. Everything at T-10 and T-7 is measured against this.</div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member places</label>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Capacity</label>
                 <input
                   type="number"
                   value={noCeiling ? "" : memberPlaces}
@@ -379,13 +359,18 @@ export default function AdminCreateEventPage() {
                   style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: noCeiling ? "rgba(57,41,42,0.04)" : "#fff", opacity: noCeiling ? 0.6 : 1 }}
                 />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>
-                  {noCeiling ? "Open to all members and their guests — no limit on bookings." : "The ceiling on member bookings. Leave empty or tick below for no ceiling."}
+                  {noCeiling ? "Open — no ceiling on bookings." : "Total places. Leave empty or tick below for no ceiling."}
                 </div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Credit cost <span style={{ color: "#7b1f2c" }}>*</span></label>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member credit cost <span style={{ color: "#7b1f2c" }}>*</span></label>
                 <input type="number" value={creditCost} onChange={(e) => setCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>{costHint}</div>
+              </div>
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Non-member credit cost</label>
+                <input type="number" value={nonMemberCreditCost} onChange={(e) => setNonMemberCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: freeEvent ? "rgba(57,41,42,0.05)" : "#fff" }} />
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>{nmCostHint}</div>
               </div>
             </div>
             {/* Checkboxes row */}
@@ -400,7 +385,7 @@ export default function AdminCreateEventPage() {
                   }}
                   style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }}
                 />
-                <span>No ceiling — open to all members and their guests</span>
+                <span>No ceiling — open to everyone, no cap on bookings</span>
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
                 <input
@@ -416,17 +401,15 @@ export default function AdminCreateEventPage() {
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
                 <input type="checkbox" checked={freeEvent} onChange={(e) => setFreeEvent(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }} />
-                <span>Free event — an RSVP list, no credits taken</span>
+                <span>Free event — 0 credits for everyone (member and non-member)</span>
               </label>
             </div>
 
-            {/* Total Room Capacity Summary & Validation */}
+            {/* Capacity Summary & Validation */}
             {(() => {
-              const parsedMemberCap = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
-              const parsedGuestCap = membersOnly ? 0 : (noCeiling ? 0 : (parseInt(guestPlaces) || 0));
-              const totalRoomCap = noCeiling ? 0 : (parsedMemberCap + parsedGuestCap);
+              const parsedCap = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
               const parsedMinToConfirm = noMinimum ? 0 : (parseInt(minToConfirm) || 0);
-              const hasMinExceedingCap = !noCeiling && totalRoomCap > 0 && parsedMinToConfirm > totalRoomCap;
+              const hasMinExceedingCap = !noCeiling && parsedCap > 0 && parsedMinToConfirm > parsedCap;
 
               return (
                 <div style={{
@@ -441,17 +424,12 @@ export default function AdminCreateEventPage() {
                 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
                     <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "14.5px", color: hasMinExceedingCap ? "#a82020" : "#39292a" }}>
-                      Total Room Capacity (Room for): {noCeiling ? "Unlimited (Open list)" : `${totalRoomCap} places`}
+                      Total capacity: {noCeiling ? "Unlimited (open list)" : `${parsedCap} places`}
                     </div>
-                    {!noCeiling && totalRoomCap > 0 && (
-                      <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)" }}>
-                        {parsedMemberCap} member places + {parsedGuestCap} guest places
-                      </div>
-                    )}
                   </div>
                   {hasMinExceedingCap && (
                     <div style={{ fontSize: "12.5px", color: "#a82020", lineHeight: 1.4, fontWeight: 500 }}>
-                      ⚠️ Minimum to confirm ({parsedMinToConfirm}) exceeds the Total Room Capacity ({totalRoomCap}). Please increase member places or lower the minimum to run.
+                      ⚠️ Minimum to confirm ({parsedMinToConfirm}) exceeds the total capacity ({parsedCap}). Please increase capacity or lower the minimum.
                     </div>
                   )}
                 </div>
@@ -476,14 +454,14 @@ export default function AdminCreateEventPage() {
             )}
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "12px" }}>
-              {/* Members book from */}
+              {/* Booking opens */}
               {(() => {
                 const preview = formatSchedulePreview(calculateDate(startsAt, schMembers));
                 return (
                   <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Members book from</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Booking opens</div>
                     <input type="text" value={schMembers} onChange={(e) => setSchMembers(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
-                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Announced in chosen threads</div>
+                    <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Announced in chosen threads; members-first date applies from here if set above</div>
                     {preview && (
                       <div style={{ fontSize: "11px", marginTop: "6px", color: preview.isPast ? "#b45309" : "#3f6604", fontWeight: 500 }}>
                         {preview.isPast ? "↳ Opens immediately (T past)" : `↳ ${preview.formatted}`}

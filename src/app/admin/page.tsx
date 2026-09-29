@@ -76,10 +76,6 @@ export default function AdminDashboardPage() {
           console.log('Live update on event:', payload);
           fetchMetrics(true);
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'application' }, (payload) => {
-          console.log('Live update on application:', payload);
-          fetchMetrics(true);
-        })
         .subscribe();
 
       // Fallback polling every 60 seconds just in case of silent disconnects
@@ -148,7 +144,7 @@ export default function AdminDashboardPage() {
   const week = data?.week || [];
   
   const queues = [
-    { kicker: 'Queue 01 · Membership', title: 'Applications & intake', body: 'Host requests, attendance records, circle moderation and pre-launch accounts.', cta: 'Open the desk', href: '/admin/pre-launch' },
+    { kicker: 'Queue 01 · Pre-launch desk', title: 'Hosts, attendance, The Circle, accounts', body: 'Host requests, attendance records, circle moderation and pre-launch accounts.', cta: 'Open the desk', href: '/admin/pre-launch' },
     { kicker: 'Queue 02 · Events', title: 'Calendar & thresholds', body: 'Publish gatherings, set minimums and decision points, confirm or cancel with automatic refunds.', cta: 'Open the calendar', href: '/admin/events' },
     { kicker: 'Queue 03 · Member care', title: 'Directory & credit ledger', body: 'Search by name, stage or neighbourhood, spot at-risk accounts, adjust credits with a reason.', cta: 'Open the directory', href: '/admin/members' },
     { kicker: 'Queue 04 · Finance', title: 'Payments & revenue', body: 'Subscriptions, credit top-ups, member fees, refunds and shop orders.', cta: 'Open the ledger', href: '/admin/finance' }
@@ -330,25 +326,13 @@ export default function AdminDashboardPage() {
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "5px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "11px" }}>
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>03</span>
-                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: 0 }}>Applications waiting — {applications.length}</h2>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "21px", lineHeight: 1.2, margin: 0 }}>Pre-launch desk</h2>
               </div>
-              <Link href="/admin/pre-launch" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Review queue <ForwardArrow /></Link>
+              <Link href="/admin/pre-launch" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Open the desk <ForwardArrow /></Link>
             </div>
-            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 15px", textWrap: "pretty" }}>Oldest first, against our 72-hour promise. Amber past 48 hours, wine past 72.</p>
+            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 15px", textWrap: "pretty" }}>Host requests, attendance records, Circle moderation, and pre-launch accounts waiting for review.</p>
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {applications.length === 0 && <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>Nothing waiting.</div>}
-              {applications.map((a: any, idx: number) => (
-                <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", padding: "12px 0", borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                  <div style={{ flex: "1 1 200px" }}>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", marginBottom: "3px" }}>{a.name}</div>
-                    <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.65)" }}>{a.meta}</div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", color: a.color, border: `1px solid ${a.color}`, borderRadius: "4px", padding: "4px 10px", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{a.remaining}</span>
-                    <Link href={`/admin/pre-launch`} style={{ fontSize: "13px", whiteSpace: "nowrap", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Read <ForwardArrow /></Link>
-                  </div>
-                </div>
-              ))}
+              <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>Open the desk to see what is waiting.</div>
             </div>
           </div>
 

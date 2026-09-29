@@ -1578,7 +1578,7 @@ export default function AdminFaqPage() {
                 page and shows as a gap here.
               </div>
               <div>
-                Answers that quote €19, €35, €39, €99, 20 credits or six months are marked. Change the
+                Answers that quote €19, €39, €99, 20 credits or six months are marked. Change the
                 figure in settings and the answer is flagged, so the FAQ can never contradict the fee
                 page.
               </div>

@@ -170,6 +170,8 @@ export async function createAdminEvent(data: {
   decisionAt?: Date;
   publishedAt?: Date;
   targetStages?: string[];
+  nonMemberCreditCost?: number;
+  needsHost?: boolean;
 }) {
   const session = await auth();
   const adminId = session?.user?.id;

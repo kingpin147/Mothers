@@ -31,44 +31,33 @@ function FirstVisitProfileModalContent() {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Check if modal should open: ONLY at the moment of account creation
+  // Check if modal should open: after first booking confirmed OR first My Account open
+  // The modal is shown until profileDone — it is blocking, no skip
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const isNewAccountQuery =
-      searchParams?.get("new_account") === "1" ||
-      searchParams?.get("created") === "1" ||
-      searchParams?.get("onboarding") === "1";
-    const isNewAccountStorage = sessionStorage.getItem("tm_show_onboarding") === "1";
-    const isDismissed = sessionStorage.getItem("tm_onboarding_dismissed") === "1";
-
     if (session?.user) {
       const user = session.user as any;
-      // Only trigger if profile is not done AND it was triggered at account creation, and not already dismissed
-      if (user.profileDone === false && (isNewAccountQuery || isNewAccountStorage) && !isDismissed) {
+      // Trigger on first-booking flag or my-account flag, but not on sign-in or top-up pages
+      const path = typeof window !== "undefined" ? window.location.pathname : "";
+      const isOnSignIn = path.includes("/account/login") || path.includes("/account/signup");
+      const isOnTopUp = path.includes("/topup");
+      const isInBookingFlow = path.includes("/events/") && searchParams?.get("booking") === "done";
+      const isMyAccount = path.includes("/account") && !isOnSignIn && !isOnTopUp;
+      const hasFirstBooking = sessionStorage.getItem("tm_first_booking_done") === "1";
+
+      if (user.profileDone === false && !isOnSignIn && !isOnTopUp && (isMyAccount || isInBookingFlow || hasFirstBooking)) {
         setIsOpen(true);
       }
     }
   }, [session, searchParams]);
 
   const handleClose = useCallback(() => {
-    setIsOpen(false);
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("tm_onboarding_dismissed", "1");
-      sessionStorage.removeItem("tm_show_onboarding");
-    }
+    // Blocking modal — only close on successful submit
+    return;
   }, []);
 
-  // Handle ESC key press
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        handleClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleClose]);
+  // No ESC key dismiss — modal is blocking until profile is completed
 
   const toggleStage = (item: string) => {
     setStages((prev) =>
@@ -127,6 +116,22 @@ function FirstVisitProfileModalContent() {
       );
       return;
     }
+    if (hoping.length === 0) {
+      setFormError(
+        lang === "en"
+          ? "Please tell us what you are hoping to find here."
+          : "Por favor dínos qué esperas encontrar aquí."
+      );
+      return;
+    }
+    if (availability.length === 0) {
+      setFormError(
+        lang === "en"
+          ? "Please select at least one availability slot."
+          : "Por favor selecciona al menos una franja de disponibilidad."
+      );
+      return;
+    }
 
     setLoading(true);
     setFormError(null);
@@ -169,15 +174,11 @@ function FirstVisitProfileModalContent() {
 
   const isEn = lang === "en";
 
+  // Blocking modal — clicking the backdrop does nothing
   return (
     <div
       role="dialog"
       aria-modal="true"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
       style={{
         position: "fixed",
         inset: 0,
@@ -208,38 +209,7 @@ function FirstVisitProfileModalContent() {
           margin: "auto",
         }}
       >
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={handleClose}
-          aria-label={isEn ? "Close" : "Cerrar"}
-          style={{
-            position: "absolute",
-            top: "16px",
-            right: "16px",
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            color: "rgba(57, 41, 42, 0.5)",
-            width: "32px",
-            height: "32px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "4px",
-            transition: "color 0.15s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = "#39292a";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = "rgba(57, 41, 42, 0.5)";
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="18" height="18">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </button>
+        {/* No close button — profile is required before continuing */}
 
         {/* Header */}
         <div style={{ marginBottom: "22px", paddingRight: "30px" }}>
@@ -322,6 +292,7 @@ function FirstVisitProfileModalContent() {
                 { id: "toddlers", en: "Toddlers (1-3 years)", es: "Deambuladores (1-3 años)" },
                 { id: "children36", en: "Children (3-6 years)", es: "Niños (3-6 años)" },
                 { id: "children610", en: "Older children (6-10 years)", es: "Niños mayores (6-10 años)" },
+                { id: "big_kids", en: "Big kids (10+)", es: "Niños grandes (10+)" },
               ].map((s) => {
                 const active = stages.includes(s.id);
                 return (
@@ -392,6 +363,7 @@ function FirstVisitProfileModalContent() {
               <option value="Horta-Guinardó">Horta - Guinardó</option>
               <option value="Sant Andreu">Sant Andreu</option>
               <option value="Nou Barris">Nou Barris</option>
+              <option value="Not sure yet">{isEn ? "Not sure yet" : "Aún no lo sé"}</option>
               <option value="Surrounding / Outside BCN">
                 {isEn ? "Surrounding / Outside Barcelona" : "Alrededores / Fuera de Barcelona"}
               </option>
@@ -417,8 +389,9 @@ function FirstVisitProfileModalContent() {
                 { id: "friends", en: "Making mum friends", es: "Hacer amigas madres" },
                 { id: "walks", en: "Attending walks & gatherings", es: "Paseos y encuentros" },
                 { id: "recs", en: "Local recommendations", es: "Recomendaciones locales" },
-                { id: "support", en: "Shared support & advice", es: "Apoyo y consejo mutuo" },
-                { id: "village", en: "Building a village", es: "Construir tribu" },
+                { id: "support", en: "Support & a safe space", es: "Apoyo y espacio seguro" },
+                { id: "events", en: "Events & experiences", es: "Eventos y experiencias" },
+                { id: "circle", en: "The Circle — our private forum", es: "The Circle — nuestro foro privado" },
               ].map((h) => {
                 const active = hoping.includes(h.id);
                 return (
@@ -565,7 +538,7 @@ function FirstVisitProfileModalContent() {
                   type="text"
                   value={godmotherCode}
                   onChange={(e) => handleCheckGodmother(e.target.value.toUpperCase())}
-                  placeholder="e.g. MOTHERS-MARIA-BCN"
+                  placeholder="e.g. ANDREA-M4F2"
                   style={{
                     width: "100%",
                     padding: "10px 14px",
@@ -691,23 +664,7 @@ function FirstVisitProfileModalContent() {
               borderTop: "1px solid rgba(57, 41, 42, 0.12)",
             }}
           >
-            <button
-              type="button"
-              onClick={handleClose}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "rgba(57, 41, 42, 0.6)",
-                fontFamily: "var(--font-body, 'Lora', Georgia, serif)",
-                fontSize: "14px",
-                cursor: "pointer",
-                padding: "8px 0",
-                textDecoration: "underline",
-                textUnderlineOffset: "3px",
-              }}
-            >
-              {isEn ? "Skip for now" : "Saltar por ahora"}
-            </button>
+            {/* No skip button — profile must be completed */}
 
             <button
               type="submit"

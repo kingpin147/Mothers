@@ -64,10 +64,8 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
     blockedCircleTags: initialSettings.blockedCircleTags ?? "",
 
     scheduleMembersFrom: initialSettings.scheduleMembersFrom ?? 28,
-    scheduleGuestsOpen: initialSettings.scheduleGuestsOpen ?? 14,
     scheduleEarlyWarning: initialSettings.scheduleEarlyWarning ?? 10,
     scheduleDecisionPoint: initialSettings.scheduleDecisionPoint ?? 7,
-    scheduleGuestsClose: initialSettings.scheduleGuestsClose ?? 2,
   });
 
   const [snapshot, setSnapshot] = useState<Record<string, any>>({
@@ -487,11 +485,9 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,150px),1fr))", gap: "12px" }}>
             {[
-              { label: "Members book from", val: `T-${cfg.scheduleMembersFrom}`, note: "Announced in the chosen threads" },
-              { label: "Opens to non-members", val: `T-${cfg.scheduleGuestsOpen}`, note: "Every event, no exception" },
+              { label: "Booking opens", val: `T-${cfg.scheduleMembersFrom}`, note: "Announced in the chosen threads. Per-event members-first date applied on top." },
               { label: "Early warning", val: `T-${cfg.scheduleEarlyWarning}`, note: "Flagged if under half the minimum" },
               { label: "Decision point", val: `T-${cfg.scheduleDecisionPoint}`, note: "Confirm or cancel by this date" },
-              { label: "Non-member booking closes", val: `T-${cfg.scheduleGuestsClose}`, note: "Members keep booking to the start" },
             ].map((t, tIdx) => (
               <div key={tIdx} style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "6px" }}>

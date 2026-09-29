@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { circlePost, circleReply, circleHeart, circleReport, person, booking, member, setting } from "@/db/schema";
+import { circlePost, circleReply, circleHeart, circleReport, person, member, setting } from "@/db/schema";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -88,27 +88,9 @@ export async function checkPostingEligibility() {
     return { canPost: false, reason: "account_paused", pausedReason: user.pausedReason };
   }
 
-  // Pre-membership rule (§CI-02): posting opens after her first ATTENDED event (free or paid)
-  const attendedCount = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(booking)
-    .where(
-      and(
-        eq(booking.personId, user.id),
-        eq(booking.status, "attended"),
-        eq(booking.noShow, false)
-      )
-    );
-
-  const totalAttended = attendedCount[0]?.count || 0;
-  if (totalAttended < 1) {
-    return {
-      canPost: false,
-      reason: "attended_required",
-      totalAttended: 0,
-    };
-  }
-
+  // Pre-launch rule (DS-03): any account holder posts and replies freely.
+  // After launch: non-members get 3 posts/replies total, then membership required; members unlimited.
+  // The full post-launch check will be added when membership goes live.
   return {
     canPost: true,
     user: {
@@ -266,9 +248,6 @@ export async function createCirclePost(data: {
     if (eligibility.reason === "account_paused") {
       throw new Error("Your account is currently paused.");
     }
-    if (eligibility.reason === "booking_required") {
-      throw new Error("Posting requires at least one event booking (including free walks & socials).");
-    }
     throw new Error("You are not eligible to post.");
   }
 
@@ -356,7 +335,13 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
   const personId = (session.user as any).personId || session.user.id;
   const eligibility = await checkPostingEligibility();
   if (!eligibility.canPost) {
-    throw new Error("Replying requires at least one confirmed booking.");
+    if (eligibility.reason === "account_suspended") {
+      throw new Error("Your account has been suspended.");
+    }
+    if (eligibility.reason === "account_paused") {
+      throw new Error("Your account is currently paused.");
+    }
+    throw new Error("You are not eligible to reply.");
   }
 
   if (!body || body.trim().length < 2) {

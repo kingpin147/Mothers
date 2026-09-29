@@ -167,9 +167,6 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
 
   const EMAIL_TEMPLATE_NAMES: Record<string, string> = {
     welcome_confirmation: "Welcome & membership payment confirmation",
-    application_received: "Application received confirmation",
-    application_accepted: "Invitation to join & payment link (72h)",
-    application_declined: "Application update & waitlist",
     payment_receipt: "Payment receipt",
     payment_failed: "Payment failed notification",
     password_reset: "Password reset link",
@@ -202,7 +199,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
   const statusTitle = statusOpen === 'pause' ? 'Pause her membership' : 'End her membership';
   const statusBody = statusOpen === 'pause'
     ? 'Nothing expires while she is paused and nothing new arrives. Two months a year — she has used ' + (member.pauseMonthsUsedYear || 0) + ' of 2. She is told, and she can lift it herself.'
-    : 'She stays a member to the end of the period already paid for and keeps every booking made. Credits do not carry past the end. This is reversible only by her rejoining in a window.';
+    : 'She stays a member to the end of the period already paid for and keeps every booking made. Credits do not carry past the end. She can subscribe again from My Account at any time.';
   const statusConfirm = statusOpen === 'pause' ? 'Pause it' : 'End it';
 
   // Determine Godmother stats
@@ -348,7 +345,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                       <li><strong>Upcoming Bookings:</strong> Bookings inside the period are retained; any bookings scheduled after period end will be cancelled and refunded.</li>
                     </ul>
                     <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)", fontStyle: "italic", borderTop: "1px solid rgba(57,41,42,0.08)", paddingTop: "8px" }}>
-                      &quot;Cancel {member.firstName}&apos;s membership at period end? Reversible only by re-applying in an open window.&quot;
+                      &quot;Cancel {member.firstName}&apos;s membership at period end? She can subscribe again from My Account at any time.&quot;
                     </div>
                   </div>
                 ) : (
