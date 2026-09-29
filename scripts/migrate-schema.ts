@@ -1,12 +1,13 @@
 import postgres from "postgres";
 import * as dotenv from "dotenv";
 
+dotenv.config({ path: ".env" });
 dotenv.config({ path: ".env.local" });
 
 async function run() {
   const dbUrl = process.env.DATABASE_URL;
   if (!dbUrl) {
-    console.error("No DATABASE_URL found in .env.local");
+    console.error("No DATABASE_URL found in .env / .env.local");
     process.exit(1);
   }
 
@@ -22,9 +23,17 @@ async function run() {
     await sql`ALTER TABLE "person" ADD COLUMN IF NOT EXISTS "suspended_reason" text;`;
     await sql`ALTER TABLE "person" ADD COLUMN IF NOT EXISTS "profile_done" boolean DEFAULT false NOT NULL;`;
     await sql`ALTER TABLE "person" ADD COLUMN IF NOT EXISTS "profile_data" jsonb;`;
+    await sql`ALTER TABLE "person" ADD COLUMN IF NOT EXISTS "godmother_code" text;`;
+    await sql`ALTER TABLE "person" ADD COLUMN IF NOT EXISTS "referred_by_person_id" text;`;
+    await sql`ALTER TABLE "person" ADD COLUMN IF NOT EXISTS "late_host_cancellations" integer DEFAULT 0 NOT NULL;`;
+    await sql`ALTER TABLE "person" ADD COLUMN IF NOT EXISTS "late_host_cancelled_at" timestamp with time zone;`;
+    await sql`ALTER TABLE "person" ALTER COLUMN "created_before_launch" SET DEFAULT false;`;
+    await sql`CREATE INDEX IF NOT EXISTS "idx_person_godmother_code" ON "person" USING btree ("godmother_code");`;
 
     // 2. Event columns
     console.log("Updating event table...");
+    await sql`ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "cancellation_refund_percent" integer DEFAULT 100 NOT NULL;`;
+    await sql`ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "threshold_alert_sent_at" timestamp with time zone;`;
     await sql`ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "member_credits" integer DEFAULT 0 NOT NULL;`;
     await sql`ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "non_member_credits" integer DEFAULT 0 NOT NULL;`;
     await sql`ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "needs_host" boolean DEFAULT false NOT NULL;`;
@@ -34,18 +43,22 @@ async function run() {
     await sql`ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "cancellation_window_hours" integer DEFAULT 24 NOT NULL;`;
     await sql`ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "non_member_opens_at" timestamp with time zone;`;
 
-    // 3. FAQ Item columns
+    // 3. Booking columns
+    console.log("Updating booking table...");
+    await sql`ALTER TABLE "booking" ADD COLUMN IF NOT EXISTS "held_until" timestamp with time zone;`;
+
+    // 4. FAQ Item columns
     console.log("Updating faq_item table...");
     await sql`ALTER TABLE "faq_item" ADD COLUMN IF NOT EXISTS "group_name" text DEFAULT 'Coming to an event now' NOT NULL;`;
     await sql`ALTER TABLE "faq_item" ADD COLUMN IF NOT EXISTS "policy_quote" text;`;
     await sql`ALTER TABLE "faq_item" ADD COLUMN IF NOT EXISTS "is_published" boolean DEFAULT true NOT NULL;`;
 
-    // 4. Host Request columns
+    // 5. Host Request columns
     console.log("Updating host_request table...");
     await sql`ALTER TABLE "host_request" ADD COLUMN IF NOT EXISTS "event_id" text REFERENCES "event"("id");`;
     await sql`ALTER TABLE "host_request" ADD COLUMN IF NOT EXISTS "credits_awarded" integer DEFAULT 0 NOT NULL;`;
 
-    // 5. Setting table
+    // 6. Setting table
     console.log("Ensuring setting table exists...");
     await sql`
       CREATE TABLE IF NOT EXISTS "setting" (
@@ -55,7 +68,7 @@ async function run() {
       );
     `;
 
-    // 6. Audit Log table
+    // 7. Audit Log table
     console.log("Ensuring audit_log table exists...");
     await sql`
       CREATE TABLE IF NOT EXISTS "audit_log" (
@@ -72,7 +85,7 @@ async function run() {
       );
     `;
 
-    // 7. Circle moderation & posts
+    // 8. Circle moderation & posts
     console.log("Ensuring circle tables exist...");
     await sql`
       CREATE TABLE IF NOT EXISTS "circle_post" (
