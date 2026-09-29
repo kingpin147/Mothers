@@ -77,71 +77,76 @@ export async function getAdminEvents() {
   const role = (session?.user as any)?.role;
   const allowed = ["owner", "manager", "host", "super_admin", "read_only"];
   if (!role || !allowed.includes(role)) {
-    return { success: false, error: "UNAUTHORIZED" };
+    return { success: false, error: "UNAUTHORIZED", events: [] };
   }
 
-  const eventsData = await db
-    .select({
-      event: event,
-      categoryName: eventCategory.name,
-      bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
-      memberBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'member' THEN 1 END)::int`,
-      guestBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'guest' THEN 1 END)::int`,
-      totalHistoricalBookings: sql<number>`(SELECT count(*) FROM booking b WHERE b.event_id = event.id)::int`,
-    })
-    .from(event)
-    .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
-    .leftJoin(booking, eq(booking.eventId, event.id))
-    .groupBy(event.id, eventCategory.name)
-    .orderBy(desc(event.startsAt));
+  try {
+    const eventsData = await db
+      .select({
+        event: event,
+        categoryName: eventCategory.name,
+        bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
+        memberBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'member' THEN 1 END)::int`,
+        guestBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'guest' THEN 1 END)::int`,
+        totalHistoricalBookings: sql<number>`count(${booking.id})::int`,
+      })
+      .from(event)
+      .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+      .leftJoin(booking, eq(booking.eventId, event.id))
+      .groupBy(event.id, eventCategory.name)
+      .orderBy(desc(event.startsAt));
 
-  const stageLinks = await db
-    .select({
-      eventId: eventStage.eventId,
-      labelEn: stage.labelEn,
-    })
-    .from(eventStage)
-    .innerJoin(stage, eq(eventStage.stageId, stage.id));
+    const stageLinks = await db
+      .select({
+        eventId: eventStage.eventId,
+        labelEn: stage.labelEn,
+      })
+      .from(eventStage)
+      .innerJoin(stage, eq(eventStage.stageId, stage.id));
 
-  const stagesMap: Record<string, string[]> = {};
-  for (const sl of stageLinks) {
-    if (!stagesMap[sl.eventId]) stagesMap[sl.eventId] = [];
-    stagesMap[sl.eventId].push(sl.labelEn);
-  }
-
-  // Auto-complete any events whose date has passed so DB stays up-to-date
-  const now = new Date();
-  const pastEventIds = eventsData
-    .filter(e => (e.event.status === "confirmed" || e.event.status === "published_pending") &&
-      (e.event.endsAt ? new Date(e.event.endsAt) < now : new Date(e.event.startsAt) < now))
-    .map(e => e.event.id);
-
-  if (pastEventIds.length > 0) {
-    try {
-      await db.update(event).set({
-        status: "completed",
-        updatedAt: now,
-      }).where(inArray(event.id, pastEventIds));
-    } catch (err) {
-      console.warn("Could not auto-complete past events:", err);
+    const stagesMap: Record<string, string[]> = {};
+    for (const sl of stageLinks) {
+      if (!stagesMap[sl.eventId]) stagesMap[sl.eventId] = [];
+      stagesMap[sl.eventId].push(sl.labelEn);
     }
+
+    // Auto-complete any events whose date has passed so DB stays up-to-date
+    const now = new Date();
+    const pastEventIds = eventsData
+      .filter(e => (e.event.status === "confirmed" || e.event.status === "published_pending") &&
+        (e.event.endsAt ? new Date(e.event.endsAt) < now : new Date(e.event.startsAt) < now))
+      .map(e => e.event.id);
+
+    if (pastEventIds.length > 0) {
+      try {
+        await db.update(event).set({
+          status: "completed",
+          updatedAt: now,
+        }).where(inArray(event.id, pastEventIds));
+      } catch (err) {
+        console.warn("Could not auto-complete past events:", err);
+      }
+    }
+
+    const events = eventsData.map(e => {
+      const isPast = pastEventIds.includes(e.event.id) || e.event.status === "completed";
+      return {
+        ...e.event,
+        status: isPast && e.event.status !== "cancelled" ? "completed" : e.event.status,
+        categoryName: e.categoryName,
+        bookingsCount: e.bookingsCount,
+        memberBookingsCount: e.memberBookingsCount,
+        guestBookingsCount: e.guestBookingsCount,
+        totalHistoricalBookings: e.totalHistoricalBookings,
+        targetStages: stagesMap[e.event.id] || [],
+      };
+    });
+
+    return { success: true, events };
+  } catch (err: any) {
+    console.error("getAdminEvents error:", err?.message || err);
+    return { success: false, error: err?.message || "Failed to load admin events", events: [] };
   }
-
-  const events = eventsData.map(e => {
-    const isPast = pastEventIds.includes(e.event.id) || e.event.status === "completed";
-    return {
-      ...e.event,
-      status: isPast && e.event.status !== "cancelled" ? "completed" : e.event.status,
-      categoryName: e.categoryName,
-      bookingsCount: e.bookingsCount,
-      memberBookingsCount: e.memberBookingsCount,
-      guestBookingsCount: e.guestBookingsCount,
-      totalHistoricalBookings: e.totalHistoricalBookings,
-      targetStages: stagesMap[e.event.id] || [],
-    };
-  });
-
-  return { success: true, events };
 }
 
 export async function createAdminEvent(data: {
