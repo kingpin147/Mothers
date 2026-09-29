@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, person, auditLog, eventCategory, eventStage, stage, member, guestRsvp } from "@/db/schema";
+import { event, booking, person, auditLog, eventCategory, eventStage, stage, member } from "@/db/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { refundPersonCredits, refundBookingCredits } from "@/lib/ledger";
@@ -172,6 +172,7 @@ export async function createAdminEvent(data: {
   targetStages?: string[];
   nonMemberCreditCost?: number;
   needsHost?: boolean;
+  nonMemberOpensAt?: Date | null;
 }) {
   const session = await auth();
   const adminId = session?.user?.id;
@@ -219,10 +220,14 @@ export async function createAdminEvent(data: {
         startsAt: data.startsAt,
         endsAt: data.endsAt,
         creditCost: data.creditCost,
+        memberCredits: data.creditCost,
+        nonMemberCredits: data.nonMemberCreditCost !== undefined ? data.nonMemberCreditCost : data.creditCost,
         capacityMember: data.capacityMember,
         minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 0,
         isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
         isFreeWalk: data.creditCost === 0,
+        needsHost: !!data.needsHost,
+        nonMemberOpensAt: data.nonMemberOpensAt === undefined ? null : data.nonMemberOpensAt,
         partnerId: data.partnerId || data.host || null,
         status: data.status === "draft" ? "draft" : (data.minToConfirm === 0 ? "confirmed" : "published_pending"),
         languages: data.languages || [],
@@ -285,6 +290,9 @@ export async function updateAdminEvent(eventId: string, data: {
   targetStages?: string[];
   decisionAt?: Date | null;
   changeNote?: string;
+  nonMemberCreditCost?: number;
+  needsHost?: boolean;
+  nonMemberOpensAt?: Date | null;
   status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
 }) {
   const session = await auth();
@@ -337,9 +345,12 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.meetingPoint !== undefined && { meetingPoint: data.meetingPoint }),
       ...(data.startsAt !== undefined && { startsAt: data.startsAt }),
       ...(data.endsAt !== undefined && { endsAt: data.endsAt }),
-      ...(data.creditCost !== undefined && { creditCost: data.creditCost, isFreeWalk: data.creditCost === 0 }),
+      ...(data.creditCost !== undefined && { creditCost: data.creditCost, memberCredits: data.creditCost, isFreeWalk: data.creditCost === 0 }),
+      ...(data.nonMemberCreditCost !== undefined && { nonMemberCredits: data.nonMemberCreditCost }),
       ...(data.capacityMember !== undefined && { capacityMember: data.capacityMember }),
       ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
+      ...(data.needsHost !== undefined && { needsHost: data.needsHost }),
+      ...(data.nonMemberOpensAt !== undefined && { nonMemberOpensAt: data.nonMemberOpensAt }),
       ...(isSig !== undefined && { isSignature: isSig }),
       ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
       ...(data.languages !== undefined && { languages: data.languages }),
@@ -744,22 +755,6 @@ export async function getEventRoster(eventId: string) {
     .where(eq(eventWaitlist.eventId, eventId))
     .orderBy(eventWaitlist.createdAt);
 
-  // Get Free Open List RSVPs
-  const guestRsvps = await db
-    .select({
-      id: guestRsvp.id,
-      eventId: guestRsvp.eventId,
-      firstName: guestRsvp.firstName,
-      lastName: guestRsvp.lastName,
-      email: guestRsvp.email,
-      whatsappE164: guestRsvp.whatsappE164,
-      attendedAt: guestRsvp.attendedAt,
-      createdAt: guestRsvp.createdAt,
-    })
-    .from(guestRsvp)
-    .where(eq(guestRsvp.eventId, eventId))
-    .orderBy(desc(guestRsvp.createdAt));
-
   // Get target stages
   const stageRows = await db
     .select({
@@ -777,7 +772,6 @@ export async function getEventRoster(eventId: string) {
     event: { ...ev, targetStages }, 
     bookings: bookingsWithPerson, 
     released: releasedBookings, 
-    guestRsvps,
     waitlist 
   };
 }
@@ -805,23 +799,3 @@ export async function markAttendance(bookingId: string, attended: boolean) {
   return { success: true };
 }
 
-export async function markGuestRsvpAttendance(rsvpId: string, attended: boolean) {
-  const session = await auth();
-  const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "host", "super_admin"];
-  if (!role || !allowed.includes(role)) {
-    return { success: false, error: "UNAUTHORIZED_ADMIN" };
-  }
-
-  await db
-    .update(guestRsvp)
-    .set({
-      attendedAt: attended ? new Date() : null,
-    })
-    .where(eq(guestRsvp.id, rsvpId));
-
-  const { revalidatePath } = await import("next/cache");
-  revalidatePath("/admin/events");
-
-  return { success: true };
-}

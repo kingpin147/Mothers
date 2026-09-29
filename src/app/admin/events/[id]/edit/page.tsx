@@ -25,15 +25,16 @@ export default function AdminEditEventPage() {
   const [minToConfirm, setMinToConfirm] = useState("");
   const [memberPlaces, setMemberPlaces] = useState("");
   const [creditCost, setCreditCost] = useState("");
+  const [nonMemberCreditCost, setNonMemberCreditCost] = useState("");
   const [description, setDescription] = useState("");
 
   // Toggles & Arrays
   const [eventStatus, setEventStatus] = useState<string>("draft");
   const [langs, setLangs] = useState<string[]>(["English"]);
   const [stages, setStages] = useState<string[]>(["Babies"]);
-  const [headStart, setHeadStart] = useState("No head start — opens to everyone at once");
-  const [membersOnly, setMembersOnly] = useState(false);
+  const [nonMemberOpensAt, setNonMemberOpensAt] = useState("");
   const [freeEvent, setFreeEvent] = useState(false);
+  const [needsHost, setNeedsHost] = useState(false);
 
   // Schedule overrides
   const [schMembers, setSchMembers] = useState("T-28");
@@ -59,21 +60,22 @@ export default function AdminEditEventPage() {
         setEndsAt(ev.endsAt ? new Date(new Date(ev.endsAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
         setMinToConfirm(ev.minToConfirm?.toString() || "");
         setMemberPlaces(ev.capacityMember?.toString() || "");
-        setCreditCost(ev.creditCost?.toString() || "");
+        setCreditCost(ev.memberCredits?.toString() || ev.creditCost?.toString() || "");
+        setNonMemberCreditCost(ev.nonMemberCredits?.toString() || "");
         setDescription(ev.description || "");
         setLangs(ev.languages || ["English"]);
         setEventStatus(ev.status || "draft");
+        setNeedsHost(!!ev.needsHost);
+        
+        if (ev.nonMemberOpensAt) {
+          setNonMemberOpensAt(new Date(new Date(ev.nonMemberOpensAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+        }
         
         if (ev.creditCost === 0) {
           setFreeEvent(true);
         }
         if (ev.targetStages && Array.isArray(ev.targetStages)) {
           setStages(ev.targetStages);
-        }
-        if (ev.isSignature) {
-          setMembersOnly(true);
-        } else {
-          setMembersOnly(false);
         }
 
         // Preload schedule overrides if present
@@ -101,33 +103,20 @@ export default function AdminEditEventPage() {
     setStages(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
   };
 
-  const onMembersOnly = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const checked = e.target.checked;
-    setMembersOnly(checked);
-  };
-
   const chip = (on: boolean) => ({
     border: on ? '#7b1f2c' : 'rgba(57,41,42,0.25)',
-    bg: on ? 'rgba(123,31,44,0.08)' : 'transparent',
+    bg: 'transparent',
     color: on ? '#7b1f2c' : '#39292a'
   });
 
-  const passDisabled = membersOnly;
-  const passCursor = passDisabled ? 'not-allowed' : 'pointer';
-  const passBorder = passDisabled ? 'rgba(57,41,42,0.16)' : 'rgba(86,139,5,0.4)';
-  const passBg = passDisabled ? 'rgba(57,41,42,0.04)' : 'rgba(86,139,5,0.05)';
-  const passNote = passDisabled
-    ? 'Unavailable — this event is members only. A pass could not complete, so we do not advertise it.'
-    : 'Off by default. When on, a non-member sees a second outlined button beside Reserve, leading straight into pass checkout. The button disappears by itself at T-2 when guest bookings close. Two passes per person, ever — that limit lives in settings, not here.';
-  const guestOpacity = membersOnly ? 0.55 : 1;
-  const guestIntro = membersOnly
-    ? 'This event is members only, so guest places and the pass button are closed.'
-    : 'Guest places open at T-14, once members have had a clear fortnight, and close at T-2.';
   const costBorder = freeEvent ? 'rgba(57,41,42,0.16)' : 'rgba(123,31,44,0.4)';
   const costBg = freeEvent ? 'rgba(57,41,42,0.05)' : '#fff';
   const costHint = freeEvent
-    ? 'No credits taken for a free event.'
-    : 'Required, and yours alone to set. Comparable Learn & grow events have cost 16–20 credits — for information, never written into the field.';
+    ? 'No credits taken for this event.'
+    : 'Member price — required. Comparable events have cost 16–20 credits.';
+  const nmCostHint = freeEvent
+    ? 'Free for non-members too.'
+    : 'Non-member price — usually ~30% higher.';
 
   const validationLine = freeEvent
     ? 'Still needed before publishing: title, venue, meeting point, dates, minimum, description.'
@@ -239,11 +228,14 @@ export default function AdminEditEventPage() {
       startsAt: start,
       endsAt: new Date(endsAt),
       creditCost: freeEvent ? 0 : (parseInt(creditCost) || 0),
+      nonMemberCreditCost: freeEvent ? 0 : (parseInt(nonMemberCreditCost) || 0),
       capacityMember: memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces),
       minToConfirm: minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
       description,
       languages: langs,
       targetStages: stages,
+      needsHost,
+      nonMemberOpensAt: nonMemberOpensAt ? new Date(nonMemberOpensAt) : undefined,
       changeNote: changeNote.trim() || undefined,
       decisionAt: resolvedDecisionAt,
       status: status as any,
@@ -394,17 +386,15 @@ export default function AdminEditEventPage() {
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Head start</label>
-                  <select value={headStart} onChange={(e) => setHeadStart(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
-                    <option value="No head start — opens to everyone at once">No head start — opens to everyone at once</option>
-                    <option value="Inner Circle 48h head start">Inner Circle 48h head start</option>
-                  </select>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Members-first date (optional)</label>
+                  <input type="datetime-local" value={nonMemberOpensAt} onChange={(e) => setNonMemberOpensAt(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }} />
+                  <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Gives members a head start before non-members can book. Set per event — not a global window. Leave blank to open to everyone at once.</div>
                 </div>
               </div>
               <div>
                 <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
-                  <input type="checkbox" checked={membersOnly} onChange={onMembersOnly} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
-                  <span>Members only — no guest places at all</span>
+                  <input type="checkbox" checked={needsHost} onChange={(e) => setNeedsHost(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
+                  <span>Needs a host (shows volunteer prompt to members)</span>
                 </label>
               </div>
             </div>
@@ -422,19 +412,24 @@ export default function AdminEditEventPage() {
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>The number below which you would cancel. Everything at T-10 and T-7 is measured against this.</div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member places <span style={{ color: "#7b1f2c" }}>*</span></label>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Capacity <span style={{ color: "#7b1f2c" }}>*</span></label>
                 <input type="number" value={memberPlaces} onChange={(e) => setMemberPlaces(e.target.value)} placeholder="—" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Leave empty for a walk with no ceiling.</div>
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Leave empty for no ceiling.</div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Credit cost <span style={{ color: "#7b1f2c" }}>*</span></label>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Credit cost (Member) <span style={{ color: "#7b1f2c" }}>*</span></label>
                 <input type="number" value={creditCost} onChange={(e) => setCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#7b1f2c", marginTop: "6px" }}>{costHint}</div>
+              </div>
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Credit cost (Non-member)</label>
+                <input type="number" value={nonMemberCreditCost} onChange={(e) => setNonMemberCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#7b1f2c", marginTop: "6px" }}>{nmCostHint}</div>
               </div>
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer", marginTop: "14px" }}>
               <input type="checkbox" checked={freeEvent} onChange={(e) => setFreeEvent(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
-              <span>Free event — an RSVP list, no credits taken</span>
+              <span>Free event — 0 credits for everyone</span>
             </label>
 
             {/* Total Room Capacity Summary & Validation */}
@@ -457,17 +452,12 @@ export default function AdminEditEventPage() {
                 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
                     <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "14.5px", color: hasMinExceedingCap ? "#a82020" : "#39292a" }}>
-                      Total Room Capacity (Room for): {parsedMemberCap === 0 ? "Unlimited (Open list)" : `${totalRoomCap} places`}
+                      Total Capacity (Room for): {parsedMemberCap === 0 ? "Unlimited (Open list)" : `${totalRoomCap} places`}
                     </div>
-                    {totalRoomCap > 0 && (
-                      <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)" }}>
-                        {parsedMemberCap} member places
-                      </div>
-                    )}
                   </div>
                   {hasMinExceedingCap && (
                     <div style={{ fontSize: "12.5px", color: "#a82020", lineHeight: 1.4, fontWeight: 500 }}>
-                      ⚠️ Minimum to confirm ({parsedMinToConfirm}) exceeds the Total Room Capacity ({totalRoomCap}). Please increase member places or lower the minimum to run.
+                      ⚠️ Minimum to confirm ({parsedMinToConfirm}) exceeds the Total Capacity ({totalRoomCap}). Please increase capacity or lower the minimum to run.
                     </div>
                   )}
                 </div>
@@ -497,7 +487,7 @@ export default function AdminEditEventPage() {
                 const preview = formatSchedulePreview(calculateDate(startsAt, schMembers));
                 return (
                   <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "5px", padding: "12px 14px", background: "#fff" }}>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Members book from</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", marginBottom: "5px" }}>Booking opens</div>
                     <input type="text" value={schMembers} onChange={(e) => setSchMembers(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "4px", padding: "8px 10px", fontFamily: "'Lora', Georgia, serif", fontSize: "13.5px", color: "#39292a", background: "#fff" }} />
                     <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Announced in chosen threads</div>
                     {preview && (

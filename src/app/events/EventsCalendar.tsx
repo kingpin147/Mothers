@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession, signIn } from "next-auth/react";
 import { buyExtraCredits, bookEvent, joinEventWaitlist, checkBookingEmailStatus, BookingEmailCheckResult } from "@/app/actions/booking";
-import { submitFreeWalkRsvp } from "@/app/actions/freeWalkRsvp";
 import { useLanguage } from "@/components/LanguageProvider";
 import { ForwardArrow } from "@/components/Icons";
 import CountryPhoneInput from "@/components/CountryPhoneInput";
@@ -353,501 +352,6 @@ const modalInputStyle: React.CSSProperties = {
   width: "100%",
   outline: "none",
 };
-
-// ─── FreeWalkRsvpModal (State 06: Free walk — the open list) ─────────────────
-
-export function FreeWalkRsvpModal({
-  event: ev,
-  lang,
-  onClose,
-}: {
-  event: PublicEvent;
-  lang: Lang;
-  onClose: () => void;
-}) {
-  const { data: session } = useSession();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (session?.user) {
-      if (session.user.name && !firstName) {
-        const parts = session.user.name.trim().split(" ");
-        setFirstName(parts[0] || "");
-        setLastName(parts.slice(1).join(" ") || "");
-      }
-      if (session.user.email && !email) {
-        setEmail(session.user.email);
-      }
-    }
-  }, [session]);
-
-  const isUnlimited = !ev.capacityTotal || ev.isFreeWalk;
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const result = await submitFreeWalkRsvp({
-        eventId: ev.id,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim(),
-        whatsappE164: whatsapp.trim(),
-      });
-      if (result.success) {
-        setSuccess(true);
-      } else {
-        setError(result.error || (lang === "en" ? "Something went wrong." : "Algo falló."));
-      }
-    } catch {
-      setError(lang === "en" ? "Something went wrong." : "Algo falló.");
-    } finally {
-      setLoading(false);
-    }
-  }, [ev.id, firstName, lastName, email, whatsapp, lang]);
-
-  return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        backgroundColor: "rgba(57, 41, 42, 0.45)",
-        backdropFilter: "blur(3px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "20px", overflowY: "auto",
-      }}
-    >
-      <div
-        style={{
-          position: "relative", width: "100%", maxWidth: "480px", margin: "auto",
-          border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px",
-          padding: "clamp(28px, 5vw, 36px)", backgroundColor: "#FEFDF9",
-          boxShadow: "0 20px 50px rgba(45,43,43,0.16)",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          style={{
-            position: "absolute", top: "16px", right: "16px",
-            border: "none", background: "transparent", cursor: "pointer",
-            color: "rgba(57,41,42,0.5)", width: "30px", height: "30px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16"><path d="M18 6 6 18M6 6l12 12" /></svg>
-        </button>
-
-        {success ? (
-          <div style={{ textAlign: "center", padding: "12px 0" }}>
-            <div
-              style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                width: "44px", height: "44px", borderRadius: "50%",
-                background: "#edf5e8", color: "#568b05", marginBottom: "16px",
-              }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-                <path d="m9 12 2 2 4-4" />
-              </svg>
-            </div>
-            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "23px", fontWeight: 600, margin: "0 0 12px", color: "#39292a" }}>
-              {lang === "en" ? "You're on the list." : "Estás en la lista."}
-            </h2>
-            <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.74)", margin: "0 0 24px" }}>
-              {lang === "en"
-                ? "We will send an email confirmation and the exact starting point the day before the walk."
-                : "Te enviaremos una confirmación por correo electrónico y el punto de encuentro exacto el día anterior al paseo."}
-            </p>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#fdfaf5",
-                padding: "10px 28px", borderRadius: "4px", fontFamily: "var(--font-heading)",
-                fontWeight: 600, fontSize: "14.5px", cursor: "pointer",
-              }}
-            >
-              {lang === "en" ? "Got it" : "Entendido"}
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#568b05", marginBottom: "10px" }}>
-              {lang === "en" ? "FREE WALK — OPEN TO EVERYONE" : "PASEO GRATIS — ABIERTO A TODAS"}
-            </div>
-            <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.76)", margin: "0 0 18px" }}>
-              {isUnlimited
-                ? (lang === "en"
-                    ? "There is no limit on places for this one — leave your details and you are on the list straight away. We only ask so we know who is coming and where to send the meeting point."
-                    : "No hay límite de plazas para este encuentro — deja tus datos y estarás en la lista directamente. Solo los pedimos para saber quién viene y enviarte el punto de encuentro.")
-                : (lang === "en"
-                    ? "Walks and park socials are free and open to all, but a slot has to be requested so we know who is coming. Members book first; if slots are left, they go to the open list and we confirm three days before."
-                    : "Los paseos y encuentros en el parque son gratis y abiertos a todas, pero solicitamos pedir plaza para saber quién viene. Las socias reservan primero; si quedan plazas, pasan a la lista abierta y confirmamos tres días antes.")}
-            </p>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-              <input
-                type="text"
-                required
-                placeholder={lang === "en" ? "First name" : "Nombre"}
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                style={modalInputStyle}
-              />
-              <input
-                type="text"
-                required
-                placeholder={lang === "en" ? "Last name" : "Apellido"}
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                style={modalInputStyle}
-              />
-              <input
-                type="email"
-                required
-                placeholder={lang === "en" ? "you@email.com" : "tu@correo.com"}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{ ...modalInputStyle, gridColumn: "1 / -1" }}
-              />
-              <div style={{ gridColumn: "1 / -1" }}>
-                <CountryPhoneInput
-                  value={whatsapp}
-                  onChange={(fullNumber) => setWhatsapp(fullNumber)}
-                  lang={lang}
-                  placeholder={lang === "en" ? "Phone (WhatsApp)" : "Teléfono (WhatsApp)"}
-                  required
-                />
-              </div>
-            </div>
-
-            <p style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)", margin: "0 0 16px", lineHeight: 1.5 }}>
-              {lang === "en"
-                ? "We send the exact starting point by WhatsApp the day before, so please give the number you use there."
-                : "Enviamos el punto de inicio exacto por WhatsApp el día anterior, por lo que te pedimos el número que uses ahí."}
-            </p>
-
-            {error && (
-              <p style={{ fontSize: "13px", color: "#993842", margin: "0 0 12px" }}>{error}</p>
-            )}
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "16px", marginTop: "14px", borderTop: "1px solid rgba(57,41,42,0.14)" }}>
-              <button
-                type="button"
-                onClick={onClose}
-                style={{ border: "none", background: "transparent", color: "rgba(57,41,42,0.65)", fontSize: "14.5px", cursor: "pointer", padding: 0 }}
-              >
-                {lang === "en" ? "Not now" : "Ahora no"}
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  border: "1px solid #7b1f2c", color: "#7b1f2c", background: "transparent",
-                  padding: "10px 24px", borderRadius: "4px", fontFamily: "var(--font-heading)",
-                  fontWeight: 600, fontSize: "14.5px", cursor: loading ? "wait" : "pointer",
-                }}
-              >
-                {loading ? (lang === "en" ? "Joining..." : "Uniéndome...") : (lang === "en" ? "Join the open list" : "Unirme a la lista abierta")}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
-  );
-}
-
-
-// ─── GuestPlacesNotOpenModal (State 09: Guest places not open yet) ────────────
-
-export function GuestPlacesNotOpenModal({
-  event: ev,
-  lang,
-  onClose,
-}: {
-  event: PublicEvent | null;
-  lang: Lang;
-  onClose: () => void;
-}) {
-  if (!ev) return null;
-
-  const now = new Date();
-  const starts = new Date(ev.startsAt);
-  const diffDays = Math.ceil((starts.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  const daysUntilOpen = Math.max(1, diffDays - 14);
-  const isClosed = diffDays < 2;
-  const isPending = ev.status === "published_pending" || ev.status === "pending";
-
-  return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        backgroundColor: "rgba(57, 41, 42, 0.45)",
-        backdropFilter: "blur(3px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "20px", overflowY: "auto",
-      }}
-    >
-      <div
-        style={{
-          position: "relative", width: "100%", maxWidth: "480px", margin: "auto",
-          border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px",
-          padding: "clamp(28px, 5vw, 36px)", backgroundColor: "#FEFDF9",
-          boxShadow: "0 20px 50px rgba(45,43,43,0.16)", textAlign: "center",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          style={{
-            position: "absolute", top: "16px", right: "16px",
-            border: "none", background: "transparent", cursor: "pointer",
-            color: "rgba(57,41,42,0.5)", width: "30px", height: "30px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16"><path d="M18 6 6 18M6 6l12 12" /></svg>
-        </button>
-
-        <div
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            width: "44px", height: "44px", borderRadius: "50%",
-            background: "#fbf3e4", color: "#8a6116", marginBottom: "16px",
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="22" height="22">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-        </div>
-
-        <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 12px", color: "#39292a" }}>
-          {isClosed
-            ? (lang === "en" ? "Guest places have closed." : "Las plazas de invitada se han cerrado.")
-            : isPending
-            ? (lang === "en" ? "Guest places open once confirmed." : "Plazas de invitada abiertas tras confirmación.")
-            : (lang === "en" ? "Guest places open two weeks before." : "Las plazas de invitada se abren dos semanas antes.")}
-        </h2>
-
-        <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 24px" }}>
-          {isClosed
-            ? (lang === "en"
-                ? `Guest places for “${getEventDisplayTitle(ev, lang)}” closed two days before the date to prepare the room for confirmed attendees. Come to a walk in the meantime; those are always free and open to everyone.`
-                : `Las plazas de invitada para “${getEventDisplayTitle(ev, lang)}” se cerraron dos días antes de la fecha. Acompáñanos en un paseo mientras tanto; son siempre gratuitos y abiertos a todas.`)
-            : isPending
-            ? (lang === "en"
-                ? `“${getEventDisplayTitle(ev, lang)}” is currently gathering members. Non-member places open once the minimum is reached. Come to a walk in the meantime; those are always free and open to everyone.`
-                : `“${getEventDisplayTitle(ev, lang)}” está reuniendo socias actualmente. Las plazas para no socias se abrirán cuando se alcance el mínimo. Acompáñanos en un paseo mientras tanto.`)
-            : (lang === "en"
-                ? `Members get the first two weeks on every event. Non-member places for “${getEventDisplayTitle(ev, lang)}” open two weeks before the date — that is in ${daysUntilOpen} day${daysUntilOpen === 1 ? "" : "s"}. Come to a walk in the meantime; those are always free and open to everyone.`
-                : `Las socias tienen las dos primeras semanas en cada evento. Las plazas para no socias para “${getEventDisplayTitle(ev, lang)}” se abren dos semanas antes de la fecha — faltan ${daysUntilOpen} día${daysUntilOpen === 1 ? "" : "s"}. Acompáñanos a un paseo mientras tanto.`)}
-        </p>
-
-        <button
-          type="button"
-          onClick={onClose}
-          style={{
-            border: "1px solid #7b1f2c", backgroundColor: "transparent", color: "#7b1f2c",
-            padding: "10px 24px", borderRadius: "4px", fontFamily: "var(--font-heading)",
-            fontWeight: 600, fontSize: "14px", cursor: "pointer",
-          }}
-        >
-          {lang === "en" ? "Browse other events" : "Ver otros eventos"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── CeilingModal (State 11: Members only / over the ceiling) ─────────────────
-
-export function CeilingModal({
-  event: ev,
-  lang,
-  onClose,
-}: {
-  event: PublicEvent | null;
-  lang: Lang;
-  onClose: () => void;
-}) {
-  if (!ev) return null;
-
-  return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        backgroundColor: "rgba(57, 41, 42, 0.45)",
-        backdropFilter: "blur(3px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "20px", overflowY: "auto",
-      }}
-    >
-      <div
-        style={{
-          position: "relative", width: "100%", maxWidth: "480px", margin: "auto",
-          border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px",
-          padding: "clamp(28px, 5vw, 36px)", backgroundColor: "#FEFDF9",
-          boxShadow: "0 20px 50px rgba(45,43,43,0.16)", textAlign: "center",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          style={{
-            position: "absolute", top: "16px", right: "16px",
-            border: "none", background: "transparent", cursor: "pointer",
-            color: "rgba(57,41,42,0.5)", width: "30px", height: "30px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16"><path d="M18 6 6 18M6 6l12 12" /></svg>
-        </button>
-
-        {/* Maroon lock icon */}
-        <div style={{ color: "#7b1f2c", marginBottom: "14px" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.6" width="34" height="34" style={{ margin: "0 auto", display: "block" }}>
-            <rect x="4" y="11" width="16" height="9" rx="2" />
-            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-          </svg>
-        </div>
-
-        <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 12px", color: "#39292a" }}>
-          {lang === "en" ? "Signature moments are members only." : "Los Signature moments son exclusivos para socias."}
-        </h2>
-        <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 24px" }}>
-          {lang === "en"
-            ? `Signature moments — like “${getEventDisplayTitle(ev, lang)}” — are the handful of experiences each year kept for members alone.`
-            : `Los Signature moments — como “${getEventDisplayTitle(ev, lang)}” — son las experiencias reservadas exclusivamente para socias.`}
-        </p>
-
-        <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link
-            href="/membership"
-            style={{
-              border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#fdfaf5",
-              padding: "10px 22px", borderRadius: "4px", fontFamily: "var(--font-heading)",
-              fontWeight: 600, fontSize: "14.5px", textDecoration: "none",
-            }}
-          >
-            {lang === "en" ? "Explore membership" : "Explorar membresía"}
-          </Link>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              border: "1px solid rgba(57,41,42,0.3)", color: "rgba(57,41,42,0.7)",
-              padding: "10px 20px", borderRadius: "4px", fontFamily: "var(--font-body)",
-              fontSize: "14px", background: "transparent", cursor: "pointer",
-            }}
-          >
-            {lang === "en" ? "Browse other events" : "Ver otros eventos"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── GuestFullModal (State 12: Full — waitlist is members only) ───────────────
-
-export function GuestFullModal({
-  event: ev,
-  lang,
-  onClose,
-}: {
-  event: PublicEvent | null;
-  lang: Lang;
-  onClose: () => void;
-}) {
-  if (!ev) return null;
-
-  return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        backgroundColor: "rgba(57, 41, 42, 0.45)",
-        backdropFilter: "blur(3px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "20px", overflowY: "auto",
-      }}
-    >
-      <div
-        style={{
-          position: "relative", width: "100%", maxWidth: "480px", margin: "auto",
-          border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px",
-          padding: "clamp(28px, 5vw, 36px)", backgroundColor: "#FEFDF9",
-          boxShadow: "0 20px 50px rgba(45,43,43,0.16)", textAlign: "center",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          style={{
-            position: "absolute", top: "16px", right: "16px",
-            border: "none", background: "transparent", cursor: "pointer",
-            color: "rgba(57,41,42,0.5)", width: "30px", height: "30px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16"><path d="M18 6 6 18M6 6l12 12" /></svg>
-        </button>
-
-        <div style={{ color: "#7b1f2c", marginBottom: "14px" }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.6" width="34" height="34" style={{ margin: "0 auto", display: "block" }}>
-            <rect x="4" y="11" width="16" height="9" rx="2" />
-            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-          </svg>
-        </div>
-
-        <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 12px", color: "#39292a" }}>
-          {lang === "en" ? "This one is full." : "Este evento está completo."}
-        </h2>
-        <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 24px" }}>
-          {lang === "en"
-            ? `“${getEventDisplayTitle(ev, lang)}” has no places left, and the waitlist is for members only — they are the ones the calendar is built for. Join The Mothers and you can hold a place the moment one opens.`
-            : `“${getEventDisplayTitle(ev, lang)}” no tiene plazas disponibles, y la lista de espera es exclusiva para socias. Únete a The Mothers y podrás reservar tu puesto en cuanto se libere uno.`}
-        </p>
-
-        <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
-          <Link
-            href="/membership"
-            style={{
-              border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#fdfaf5",
-              padding: "10px 22px", borderRadius: "4px", fontFamily: "var(--font-heading)",
-              fontWeight: 600, fontSize: "14.5px", textDecoration: "none",
-            }}
-          >
-            {lang === "en" ? "See the membership" : "Ver la membresía"}
-          </Link>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              border: "1px solid rgba(57,41,42,0.3)", color: "rgba(57,41,42,0.7)",
-              padding: "10px 20px", borderRadius: "4px", fontSize: "14px", background: "transparent", cursor: "pointer",
-            }}
-          >
-            {lang === "en" ? "Not now" : "Ahora no"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── SignedOutMemberModal (State 13: Signed out — pressed the member button) ──
 
@@ -1525,7 +1029,6 @@ export function BookingSuccessModal({
 interface EventCardProps {
   ev: PublicEvent;
   lang: Lang;
-  onOpenFreeRsvp: (ev: PublicEvent) => void;
   onOpenSignedOut: (ev: PublicEvent) => void;
   onOpenTopUp: (ev: PublicEvent) => void;
   onMemberBook: (ev: PublicEvent) => void;
@@ -1538,7 +1041,6 @@ interface EventCardProps {
 function EventCard({
   ev,
   lang,
-  onOpenFreeRsvp,
   onOpenSignedOut,
   onOpenTopUp,
   onMemberBook,
@@ -1558,22 +1060,17 @@ function EventCard({
   const catInfo = getCategoryInfo(ev, lang);
 
   const handleBookClick = () => {
-    if (ev.isFreeWalk || ev.creditCost === 0) {
-      if (isMember) {
-        onMemberBook(ev);
-      } else {
-        onOpenFreeRsvp(ev);
-      }
-    } else if (isMember) {
-      if (isFull) {
-        onMemberWaitlist(ev);
-      } else if (creditBalance < ev.creditCost) {
-        onOpenTopUp(ev);
-      } else {
-        onMemberBook(ev);
-      }
-    } else {
+    if (!isMember) {
       onOpenSignedOut(ev);
+      return;
+    }
+
+    if (isFull) {
+      onMemberWaitlist(ev);
+    } else if (ev.creditCost > 0 && creditBalance < ev.creditCost) {
+      onOpenTopUp(ev);
+    } else {
+      onMemberBook(ev);
     }
   };
 
@@ -2029,7 +1526,6 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   
   const [bookingSuccessEvent, setBookingSuccessEvent] = useState<PublicEvent | null>(null);
   const [waitlistSuccess, setWaitlistSuccess] = useState<{ event: PublicEvent; position: number } | null>(null);
-  const [freeRsvpEvent, setFreeRsvpEvent] = useState<PublicEvent | null>(null);
   const [signedOutEvent, setSignedOutEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -3114,7 +2610,6 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                 key={ev.id}
                 ev={ev}
                 lang={lang}
-                onOpenFreeRsvp={setFreeRsvpEvent}
                 onOpenSignedOut={setSignedOutEvent}
                 onOpenTopUp={(e) => setTopUpEvent(e)}
                 onMemberBook={handleMemberBook}
@@ -3149,14 +2644,6 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         />
       )}
 
-      {/* State 06: Free walk — the open list */}
-      {freeRsvpEvent && (
-        <FreeWalkRsvpModal
-          event={freeRsvpEvent}
-          lang={lang}
-          onClose={() => setFreeRsvpEvent(null)}
-        />
-      )}
 
       {/* State 13: Signed out — pressed the member button */}
       {signedOutEvent && (

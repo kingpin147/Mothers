@@ -28,7 +28,7 @@ export default function AdminCreateEventPage() {
   // Toggles & Arrays
   const [langs, setLangs] = useState<string[]>(["English"]);
   const [stages, setStages] = useState<string[]>(["Babies"]);
-  const [headStart, setHeadStart] = useState("No head start — opens to everyone at once");
+  const [nonMemberOpensAt, setNonMemberOpensAt] = useState("");
   const [freeEvent, setFreeEvent] = useState(false);
   const [noCeiling, setNoCeiling] = useState(false);
   const [noMinimum, setNoMinimum] = useState(false);
@@ -178,6 +178,7 @@ export default function AdminCreateEventPage() {
       status,
       languages: langs,
       targetStages: stages,
+      nonMemberOpensAt: nonMemberOpensAt ? new Date(nonMemberOpensAt) : undefined,
       decisionAt: resolvedDecisionAt,
       publishedAt: status === "published_pending" ? new Date() : undefined,
     });
@@ -313,13 +314,8 @@ export default function AdminCreateEventPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Members-first date (optional)</label>
-                <select value={headStart} onChange={(e) => setHeadStart(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
-                  <option>No members-first date — opens to everyone at booking launch</option>
-                  <option>Babies, two days early</option>
-                  <option>Toddlers, two days early</option>
-                  <option>Pregnant, three days early</option>
-                </select>
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Gives members a head start before non-members can book. Set per event — not a global window.</div>
+                <input type="datetime-local" value={nonMemberOpensAt} onChange={(e) => setNonMemberOpensAt(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }} />
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Gives members a head start before non-members can book. Set per event — not a global window. Leave blank to open to everyone at once.</div>
               </div>
               <div style={{ display: "flex", alignItems: "flex-end" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer", paddingBottom: "11px" }}>

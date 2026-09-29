@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { guestRsvp, jobRun, auditLog } from "@/db/schema";
+import { jobRun, auditLog } from "@/db/schema";
 import { sql, eq, and } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 
@@ -18,11 +18,7 @@ export async function GET(req: NextRequest) {
   const startedAt = new Date();
 
   try {
-    // 1. Purge guest RSVPs older than 180 days
-    const deletedRsvps = await db
-      .delete(guestRsvp)
-      .where(sql`created_at < NOW() - INTERVAL '180 days'`)
-      .returning({ id: guestRsvp.id });
+    const deletedRsvps = { length: 0 };
 
 
     await db.insert(jobRun).values({

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, guestRsvp, eventStage, stage } from "@/db/schema";
+import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, eventStage, stage } from "@/db/schema";
 import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
@@ -326,7 +326,7 @@ export async function deleteEvent(rawEventId: string) {
       // 1. Delete associated logs, waitlists, and references
       await tx.delete(eventChangeLog).where(eq(eventChangeLog.eventId, eventId));
       await tx.delete(eventWaitlist).where(eq(eventWaitlist.eventId, eventId));
-      await tx.delete(guestRsvp).where(eq(guestRsvp.eventId, eventId));
+      
       await tx.delete(eventStage).where(eq(eventStage.eventId, eventId));
       
       // 2. Delete non-active/refunded bookings and passes if any

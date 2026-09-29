@@ -5,7 +5,7 @@ import Link from "next/link";
 import { MoreHorizontal, Users, CheckCircle, Edit2, Copy, Printer, X, Eye } from "lucide-react";
 import { getAdminEvents, confirmEventDecision, cancelEventDecision, duplicateAdminEvent, publishAdminEvent } from "@/app/actions/adminEvents";
 import { deleteEvent } from "@/app/actions/events";
-import { getEventAttendees, adminMarkAttendance, adminManualBookMember, adminCancelMemberBooking, adminRemoveGuestRsvp, adminAddGuestRsvp } from "@/app/actions/adminEventsControl";
+import { getEventAttendees, adminMarkAttendance, adminManualBookMember, adminCancelMemberBooking } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
 import ThemeLoader from "@/components/ThemeLoader";
@@ -64,11 +64,7 @@ export default function AdminEventsPage() {
   const [activeEventRoster, setActiveEventRoster] = useState<any | null>(null);
   const [rosterLoading, setRosterLoading] = useState(false);
   const [memberBookings, setMemberBookings] = useState<any[]>([]);
-  const [guestRsvps, setGuestRsvps] = useState<any[]>([]);
 
-  // Free Walk / Open List RSVP Form in Modal
-  const [guestRsvpForm, setGuestRsvpForm] = useState({ firstName: "", lastName: "", email: "", whatsappE164: "" });
-  const [addingRsvp, setAddingRsvp] = useState(false);
 
   // Manual Member Booking Form in Modal
   const [selectedMemberId, setSelectedMemberId] = useState("");
@@ -117,7 +113,7 @@ export default function AdminEventsPage() {
     if (res.success) {
       const mb = res.memberBookings || [];
       setMemberBookings(mb);
-      setGuestRsvps(res.guestRsvps || []);
+      
       const available = allMembers.filter(m => !mb.some((b: any) => b.email === m.email));
       if (available.length > 0) {
         setSelectedMemberId(available[0].id);
@@ -127,53 +123,17 @@ export default function AdminEventsPage() {
     }
   };
 
-  const handleMarkAttendance = async (type: "member" | "rsvp", id: string, status: "attended" | "no_show" | "confirmed" | "released") => {
+  const handleMarkAttendance = async (type: "member", id: string, status: "attended" | "no_show" | "confirmed" | "released") => {
     const res = await adminMarkAttendance(type, id, status);
     if (res.success && activeEventRoster) {
       const refreshed = await getEventAttendees(activeEventRoster.id);
       if (refreshed.success) {
         setMemberBookings(refreshed.memberBookings || []);
-        setGuestRsvps(refreshed.guestRsvps || []);
       }
     }
   };
 
-  const handleRemoveGuestRsvp = async (rsvpId: string) => {
-    if (!confirm("Are you sure you want to remove this attendee from the open list?")) return;
-    const res = await adminRemoveGuestRsvp(rsvpId);
-    if (res.success && activeEventRoster) {
-      const refreshed = await getEventAttendees(activeEventRoster.id);
-      if (refreshed.success) {
-        setGuestRsvps(refreshed.guestRsvps || []);
-      }
-      loadData();
-    } else {
-      alert(res.error || "Failed to remove attendee.");
-    }
-  };
 
-  const handleAddGuestRsvp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!guestRsvpForm.firstName || !guestRsvpForm.email || !activeEventRoster) return;
-    setAddingRsvp(true);
-    const res = await adminAddGuestRsvp({
-      eventId: activeEventRoster.id,
-      firstName: guestRsvpForm.firstName,
-      lastName: guestRsvpForm.lastName,
-      email: guestRsvpForm.email,
-      whatsappE164: guestRsvpForm.whatsappE164,
-    });
-    setAddingRsvp(false);
-    if (res.success) {
-      setGuestRsvpForm({ firstName: "", lastName: "", email: "", whatsappE164: "" });
-      const refreshed = await getEventAttendees(activeEventRoster.id);
-      if (refreshed.success) {
-        setGuestRsvps(refreshed.guestRsvps || []);
-      }
-    } else {
-      alert(res.error || "Failed to add RSVP.");
-    }
-  };
 
   const handleCancelMemberBooking = async (bookingId: string) => {
     if (!confirm("Are you sure you want to remove this member from the event? Any credits charged will be automatically refunded back to their balance.")) return;
@@ -1196,104 +1156,6 @@ export default function AdminEventsPage() {
                   )}
                 </div>
 
-                {/* 2. Open List / Free Walk RSVPs */}
-                {(activeEventRoster.isFreeWalk || activeEventRoster.creditCost === 0 || guestRsvps.length > 0) && (
-                  <div>
-                    <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "17px", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
-                      <span>Open List RSVPs ({guestRsvps.length})</span>
-                      <span style={{ fontSize: "13px", color: GREEN, fontWeight: 500 }}>
-                        {guestRsvps.filter((r: any) => r.attendedAt).length} Checked In
-                      </span>
-                    </h3>
-
-                    {guestRsvps.length === 0 ? (
-                      <p style={{ fontSize: "13px", color: MUTED, padding: "12px", backgroundColor: "#fbf8f3", borderRadius: "4px" }}>
-                        No one has joined the open list for this free event yet.
-                      </p>
-                    ) : (
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                        <thead>
-                          <tr style={{ backgroundColor: "#faf6f0", textAlign: "left" }}>
-                            <th style={{ padding: "8px 12px" }}>Attendee</th>
-                            <th style={{ padding: "8px 12px" }}>WhatsApp / Phone</th>
-                            <th style={{ padding: "8px 12px" }}>RSVP Date</th>
-                            <th style={{ padding: "8px 12px" }}>Status</th>
-                            <th style={{ padding: "8px 12px", textAlign: "right" }}>Attendance &amp; Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {guestRsvps.map((r: any) => {
-                            const isAttended = !!r.attendedAt;
-                            return (
-                              <tr key={r.id} style={{ borderBottom: "1px solid rgba(57,41,42,0.1)" }}>
-                                <td style={{ padding: "10px 12px" }}>
-                                  <div style={{ fontWeight: 600 }}>{r.firstName} {r.lastName}</div>
-                                  <div style={{ fontSize: "11.5px", color: MUTED }}>{r.email}</div>
-                                </td>
-                                <td style={{ padding: "10px 12px", fontSize: "12.5px" }}>
-                                  {r.whatsappE164 || <span style={{ color: MUTED }}>—</span>}
-                                </td>
-                                <td style={{ padding: "10px 12px", fontSize: "12px", color: MUTED }}>
-                                  {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                                </td>
-                                <td style={{ padding: "10px 12px" }}>
-                                  <span style={{
-                                    padding: "2px 6px",
-                                    borderRadius: "3px",
-                                    fontSize: "10.5px",
-                                    fontWeight: 600,
-                                    textTransform: "uppercase",
-                                    backgroundColor: isAttended ? "#eef8f0" : "#f4ece2",
-                                    color: isAttended ? "#1e6833" : WINE
-                                  }}>
-                                    {isAttended ? "Attended" : "Registered"}
-                                  </span>
-                                </td>
-                                <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                                  <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleMarkAttendance("rsvp", r.id, isAttended ? "confirmed" : "attended")}
-                                      style={{
-                                        backgroundColor: isAttended ? "#fff8f8" : "#eef8f0",
-                                        color: isAttended ? "#b91c1c" : "#1e6833",
-                                        border: `1px solid ${isAttended ? "#fecdd3" : "#bbf7d0"}`,
-                                        borderRadius: "3px",
-                                        padding: "4px 8px",
-                                        fontSize: "11px",
-                                        fontWeight: 600,
-                                        cursor: "pointer",
-                                      }}
-                                    >
-                                      {isAttended ? "Undo Check-In" : "✓ Check-In"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveGuestRsvp(r.id)}
-                                      title="Remove from open list"
-                                      style={{
-                                        backgroundColor: "#fdf2f2",
-                                        color: "#993842",
-                                        border: "1px solid rgba(153,56,66,0.35)",
-                                        borderRadius: "3px",
-                                        padding: "4px 9px",
-                                        fontSize: "11px",
-                                        fontWeight: 600,
-                                        cursor: "pointer",
-                                      }}
-                                    >
-                                      ✕ Remove
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-                )}
 
                 {/* 4. Operator Desk: Manual Booking, Direct Pass Issue & Open List Add */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px", marginTop: "12px", borderTop: "1px solid rgba(57,41,42,0.15)", paddingTop: "20px" }}>
@@ -1326,49 +1188,6 @@ export default function AdminEventsPage() {
                   </div>
 
                   {/* Free Open List Manual Add */}
-                  {(activeEventRoster.isFreeWalk || activeEventRoster.creditCost === 0) && (
-                    <div style={{ backgroundColor: "#fbf8f3", padding: "18px", borderRadius: "6px", border: "1px solid rgba(57,41,42,0.15)" }}>
-                      <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "15px", margin: "0 0 10px", color: WINE }}>+ Add to Open List (Free RSVP)</h4>
-                      <p style={{ fontSize: "12px", color: MUTED, margin: "0 0 12px" }}>Quickly add an attendee to the free open list roster.</p>
-                      <form onSubmit={handleAddGuestRsvp} style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "12.5px" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                          <input
-                            type="text"
-                            placeholder="First Name"
-                            value={guestRsvpForm.firstName}
-                            onChange={(e) => setGuestRsvpForm({ ...guestRsvpForm, firstName: e.target.value })}
-                            required
-                            style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
-                          />
-                          <input
-                            type="text"
-                            placeholder="Last Name"
-                            value={guestRsvpForm.lastName}
-                            onChange={(e) => setGuestRsvpForm({ ...guestRsvpForm, lastName: e.target.value })}
-                            style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
-                          />
-                        </div>
-                        <input
-                          type="email"
-                          placeholder="email@example.com"
-                          value={guestRsvpForm.email}
-                          onChange={(e) => setGuestRsvpForm({ ...guestRsvpForm, email: e.target.value })}
-                          required
-                          style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
-                        />
-                        <input
-                          type="tel"
-                          placeholder="WhatsApp / Phone (optional)"
-                          value={guestRsvpForm.whatsappE164}
-                          onChange={(e) => setGuestRsvpForm({ ...guestRsvpForm, whatsappE164: e.target.value })}
-                          style={{ padding: "8px 10px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", backgroundColor: "#fff" }}
-                        />
-                        <button type="submit" disabled={addingRsvp} style={{ backgroundColor: WINE, color: "#fff", border: "none", borderRadius: "4px", padding: "8px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-                          {addingRsvp ? "Adding..." : "+ Add to Open List"}
-                        </button>
-                      </form>
-                    </div>
-                  )}
                 </div>
               </div>
             )}

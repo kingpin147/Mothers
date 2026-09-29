@@ -14,7 +14,6 @@ import {
   Lang,
   BookingSuccessModal,
   WaitlistModal,
-  FreeWalkRsvpModal,
   SignedOutMemberModal,
   TopUpModal,
   getEventDisplayTitle,
@@ -35,7 +34,7 @@ export default function EventDetailPage() {
   // Dialog states
   const [bookingSuccessEvent, setBookingSuccessEvent] = useState<PublicEvent | null>(null);
   const [waitlistSuccess, setWaitlistSuccess] = useState<{ event: PublicEvent; position: number } | null>(null);
-  const [freeRsvpEvent, setFreeRsvpEvent] = useState<PublicEvent | null>(null);
+  
   const [signedOutEvent, setSignedOutEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -104,16 +103,10 @@ export default function EventDetailPage() {
         window.history.replaceState({}, "", `/events/${eventId}`);
       } else if (query.get("action") === "book") {
         window.history.replaceState({}, "", `/events/${eventId}`);
-        if (ev.isFreeWalk || ev.creditCost === 0) {
-          if (isMember) {
-            handleMemberBook(ev);
-          } else {
-            setFreeRsvpEvent(ev);
-          }
-        } else if (isMember) {
-          handleMemberBook(ev);
-        } else {
+        if (!isMember) {
           setSignedOutEvent(ev);
+        } else {
+          handleMemberBook(ev);
         }
       }
     }
@@ -554,8 +547,7 @@ export default function EventDetailPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (isFreeWalk) setFreeRsvpEvent(ev);
-                  else setSignedOutEvent(ev);
+                  setSignedOutEvent(ev);
                 }}
                 style={{
                   width: "100%",
@@ -624,14 +616,7 @@ export default function EventDetailPage() {
         />
       )}
 
-      {/* State 06: Free walk — the open list */}
-      {freeRsvpEvent && (
-        <FreeWalkRsvpModal
-          event={freeRsvpEvent}
-          lang={lang}
-          onClose={() => setFreeRsvpEvent(null)}
-        />
-      )}
+
 
       {/* State 13: Signed out — pressed the member button */}
       {signedOutEvent && (

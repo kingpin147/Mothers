@@ -9,7 +9,6 @@ import {
   person,
   eventWaitlist,
   auditLog,
-  guestRsvp,
   memberCredential,
 } from "@/db/schema";
 import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
