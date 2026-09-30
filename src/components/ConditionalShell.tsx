@@ -19,7 +19,12 @@ export default function ConditionalShell({
   const isStandalone = isComingSoonPage;
 
   if (isStandalone) {
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        <CookieBanner />
+      </>
+    );
   }
 
   return (

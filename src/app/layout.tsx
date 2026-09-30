@@ -10,6 +10,8 @@ const cormorant = Cormorant_Garamond({
   weight: ["400", "500", "600"],
   variable: "--font-heading",
   display: "swap",
+  preload: false,
+  fallback: ["Georgia", "serif"],
 });
 
 const lora = Lora({
@@ -17,6 +19,8 @@ const lora = Lora({
   weight: ["400", "500", "600"],
   variable: "--font-body",
   display: "swap",
+  preload: false,
+  fallback: ["Georgia", "serif"],
 });
 
 export const metadata: Metadata = {
@@ -139,6 +143,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${cormorant.variable} ${lora.variable}`} suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+          rel="stylesheet"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
