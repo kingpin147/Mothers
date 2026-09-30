@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, eventStage, stage, mediaAsset } from "@/db/schema";
-import { eq, desc, asc, and, sql } from "drizzle-orm";
+import { eq, desc, asc, and, or, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
@@ -18,7 +18,12 @@ const entityIdSchema = z.string().trim().min(1, "ID is required");
 
 export async function getPublicEvents() {
   try {
-    const session = await auth();
+    let session: any = null;
+    try {
+      session = await auth();
+    } catch {
+      session = null;
+    }
     const personId = session?.user?.id;
     let creditBalance = 0;
     
@@ -400,7 +405,7 @@ export async function getPublicEventById(rawId: string) {
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
       .leftJoin(mediaAsset, eq(event.imageId, mediaAsset.id))
-      .where(eq(event.id, id))
+      .where(or(eq(event.id, id), eq(event.slug, id)))
       .limit(1);
 
     if (!rows.length) return { success: false, error: "EVENT_NOT_FOUND" };

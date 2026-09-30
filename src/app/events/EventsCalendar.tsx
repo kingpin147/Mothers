@@ -1180,7 +1180,14 @@ function EventCard({
 
       {/* Title */}
       <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "18.5px", margin: 0, lineHeight: 1.3, color: "#39292a" }}>
-        {getEventDisplayTitle(ev, lang)}
+        <Link
+          href={`/events/${ev.slug || ev.id}`}
+          style={{ color: "inherit", textDecoration: "none" }}
+          onMouseEnter={(e) => ((e.target as HTMLElement).style.textDecoration = "underline")}
+          onMouseLeave={(e) => ((e.target as HTMLElement).style.textDecoration = "none")}
+        >
+          {getEventDisplayTitle(ev, lang)}
+        </Link>
       </h3>
 
       {/* Hosted by line */}
@@ -1844,8 +1851,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         </h1>
         <p style={{ fontSize: "16.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.74)", margin: "0 auto", maxWidth: "62ch" }}>
           {lang === "en"
-            ? "Small groups, the same faces, a host who makes the introductions. Every event’s price is shown on its card in credits — 0-credit events say “0 credits”."
-            : "Grupos reducidos, las mismas caras, una anfitriona que hace las presentaciones. El precio de cada evento se muestra en su ficha en créditos — los eventos de 0 créditos indican “0 créditos”."}
+            ? "Small groups, the same faces, a host who makes the introductions. Walks and park socials are free; everything else takes a few credits."
+            : "Grupos reducidos, las mismas caras, una anfitriona que hace las presentaciones. Los paseos y encuentros en el parque son gratuitos; todo lo demás requiere algunos créditos."}
         </p>
       </section>
 
