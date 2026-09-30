@@ -11,7 +11,7 @@ import {
   circleReport,
   subscriber,
 } from "@/db/schema";
-import { eq, desc, asc, and, sql, or } from "drizzle-orm";
+import { eq, desc, asc, and, sql, or, lt, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
 export async function getPreLaunchDeskData() {
@@ -41,7 +41,7 @@ export async function getPreLaunchDeskData() {
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(event)
-        .where(and(sql`${event.startsAt} < ${now}`, or(eq(event.isRan, false), sql`${event.isRan} IS NULL`))),
+        .where(and(lt(event.startsAt, now), or(eq(event.isRan, false), sql`${event.isRan} IS NULL`))),
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(circleReport)
@@ -124,7 +124,7 @@ export async function getPreLaunchDeskData() {
         hostName: sql<string>`(SELECT concat(first_name, ' ', last_name) FROM person WHERE id = ${event.hostPersonId})`,
       })
       .from(event)
-      .where(sql`${event.startsAt} < ${now}`)
+      .where(lt(event.startsAt, now))
       .orderBy(desc(event.startsAt))
       .limit(30);
 
@@ -145,7 +145,7 @@ export async function getPreLaunchDeskData() {
         .innerJoin(person, eq(booking.personId, person.id))
         .where(
           and(
-            sql`${booking.eventId} IN ${pastEventIds}`,
+            inArray(booking.eventId, pastEventIds),
             sql`${booking.status} IN ('held', 'confirmed', 'attended')`
           )
         );

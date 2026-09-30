@@ -150,18 +150,19 @@ export default function AdminDashboardPage() {
     { kicker: 'Queue 04 · Finance', title: 'Payments & revenue', body: 'Subscriptions, credit top-ups, member fees, refunds and shop orders.', cta: 'Open the ledger', href: '/admin/finance' }
   ];
   const cms = [
-    { label: 'The Circle — Reports & Moderation Queue', href: '/admin/reports' },
-    { label: 'The Letter & Subscribers', href: '/admin/subscribers' },
-    { label: 'Partner directory & perk codes', href: '/admin/partners' },
-    { label: 'FAQ — English & Spanish', href: '/admin/faq' },
+    { label: 'The Circle — reports & moderation', href: '/admin/reports' },
+    { label: 'Host requests & attendance', href: '/admin/pre-launch' },
+    { label: 'Accounts & the list (newsletter)', href: '/admin/subscribers' },
+    { label: 'Partners — directory (perks from launch)', href: '/admin/partners' },
+    { label: 'FAQ — shown on the site', href: '/admin/faq' },
     { label: 'Journal & editorial', href: '/admin/journal' },
-    { label: 'Club & credit policy settings', href: '/admin/settings' },
-    { label: 'Email previews (all 10 templates)', href: '/admin/emails' }
+    { label: 'Credits, prices & launch settings', href: '/admin/settings' },
+    { label: 'Email previews', href: '/admin/emails' }
   ];
   const jobs = [
-    { label: 'T-7 threshold check', last: 'Automated job', key: 'threshold-decisions' },
-    { label: 'Credit expiry, oldest first', last: 'Automated job', key: 'expire-credits' },
-    { label: 'Godmother three-month milestones', last: 'Automated job', key: 'godmother' }
+    { label: 'T-7 threshold check', last: 'Runs nightly at 06:00', key: 'threshold-decisions' },
+    { label: 'Credit expiry, oldest first', last: 'Runs nightly at 06:00', key: 'expire-credits' },
+    { label: 'Godmother credits — referred mother became a member', last: 'Runs nightly at 06:00', key: 'godmother' }
   ];
   
   const stats = data?.stats || [];
@@ -421,12 +422,12 @@ export default function AdminDashboardPage() {
             <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 14px", textWrap: "pretty" }}>These run themselves every night. Running one by hand is logged like any other action.</p>
             <div style={{ display: "flex", flexDirection: "column", gap: "9px" }}>
               {jobs.map((j: any, idx: number) => (
-                <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-                  <div>
-                    <div style={{ fontSize: "14px", lineHeight: 1.5 }}>{j.label}</div>
+                <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "5px", padding: "12px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px" }}>
+                  <div style={{ flex: "1 1 auto" }}>
+                    <div style={{ fontSize: "14px", lineHeight: 1.45, color: "#39292a" }}>{j.label}</div>
                     <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)" }}>{j.last}</div>
                   </div>
-                  <button type="button" onClick={() => handleTriggerCron(j.key as any)} disabled={cronRunning === j.key} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "7px 13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", cursor: "pointer", whiteSpace: "nowrap" }}>
+                  <button type="button" onClick={() => handleTriggerCron(j.key as any)} disabled={cronRunning === j.key} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "7px 13px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12.5px", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
                     {cronRunning === j.key ? 'Running...' : 'Run now'}
                   </button>
                 </div>

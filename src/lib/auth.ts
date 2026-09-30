@@ -100,6 +100,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.stage = (user as any).stage;
         token.neighbourhood = (user as any).neighbourhood;
         token.profileDone = (user as any).profileDone ?? false;
+        token.loginTime = Math.floor(Date.now() / 1000);
       }
       if (trigger === "update" && session) {
         if (session.profileDone !== undefined) {
@@ -127,5 +128,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
+    maxAge: 12 * 60 * 60, // 12 hours
   },
 });

@@ -35,17 +35,9 @@ function LoginForm() {
     if (saved === "es" || saved === "en") setLang(saved);
   }, []);
 
-  // Handle session expiry and redirects
+  // Handle authenticated redirects
   useEffect(() => {
-    const isSessionExpired = searchParams?.get("session_expired") === "1";
-
-    if (isSessionExpired && status === "authenticated") {
-      // Force client-side signout to clear the stale session that middleware rejected
-      signOut({ redirect: false });
-      return;
-    }
-
-    if (status === "authenticated" && session?.user && !isSessionExpired) {
+    if (status === "authenticated" && session?.user) {
       const role = (session.user as any)?.role;
       const isAdmin =
         role === "owner" ||
