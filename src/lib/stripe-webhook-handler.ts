@@ -278,9 +278,7 @@ async function handleTopUpCheckout({
         const isMember = !!mem;
 
         let requiredCredits = 0;
-        if (ev.isFreeWalk) {
-          requiredCredits = 0;
-        } else if (!clubSettings.membershipLive) {
+        if (!clubSettings.membershipLive) {
           requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
         } else if (isMember) {
           requiredCredits = ev.memberCredits ?? ev.creditCost;

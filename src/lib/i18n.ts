@@ -38,8 +38,8 @@ export const DICTIONARIES = {
           body: "Events grouped by stage — from pregnancy through age ten.",
         },
         {
-          title: "Vetted & safe",
-          body: "Every member is reviewed before she joins. No selling, no judgment.",
+          title: "Warm & intentional",
+          body: "A trusted space where mothers connect honestly. No selling, no judgment.",
         },
         {
           title: "Built to last",
@@ -53,8 +53,8 @@ export const DICTIONARIES = {
       steps: [
         {
           n: "01",
-          title: "Apply",
-          body: "A short application and a light screening step — enough to keep the space intentional.",
+          title: "Join",
+          body: "Create your account in moments — simple and welcoming.",
         },
         {
           n: "02",
@@ -75,7 +75,7 @@ export const DICTIONARIES = {
       priceSub: "or €99 every 3 months · no joining fee for our first 50 members",
       spotsLabel: (remaining: number) => `Only ${remaining} places left in this Window`,
       bullets: [
-        "Private community & stage groups",
+        "Community & stage groups",
         "Included Easy connection",
         "20 monthly credits toward experiences",
         "Partner discounts, priority booking",
@@ -174,8 +174,8 @@ export const DICTIONARIES = {
           body: "Encuentros agrupados por etapa, desde el embarazo hasta los diez años.",
         },
         {
-          title: "Verificado y seguro",
-          body: "Revisamos a cada socia antes de unirse. Sin ventas, sin juicios.",
+          title: "Cercano y cuidado",
+          body: "Un espacio de confianza donde las madres conectan con honestidad. Sin ventas, sin juicios.",
         },
         {
           title: "Pensado para durar",
@@ -189,8 +189,8 @@ export const DICTIONARIES = {
       steps: [
         {
           n: "01",
-          title: "Solicita",
-          body: "Una solicitud breve y un paso de selección ligero — suficiente para mantener el espacio cuidado.",
+          title: "Únete",
+          body: "Crea tu cuenta en unos minutos — sencillo y accesible.",
         },
         {
           n: "02",
@@ -211,7 +211,7 @@ export const DICTIONARIES = {
       priceSub: "o 99€ cada 3 meses · sin cuota de inscripción para nuestras primeras 50 socias",
       spotsLabel: (remaining: number) => `Solo quedan ${remaining} plazas en esta Ventana`,
       bullets: [
-        "Comunidad privada y grupos por etapa",
+        "Comunidad y grupos por etapa",
         "Paseos y encuentros en el parque incluidos",
         "20 créditos mensuales para experiencias",
         "Descuentos de partners y reservas prioritarias",

@@ -74,7 +74,8 @@ export function CookieBanner() {
       aria-label="Cookies"
       style={{
         position: "fixed",
-        left: "clamp(16px, 3vw, 32px)",
+        left: "50%",
+        transform: "translateX(-50%)",
         bottom: "clamp(16px, 3vw, 32px)",
         width: "calc(100% - 32px)",
         maxWidth: "520px",

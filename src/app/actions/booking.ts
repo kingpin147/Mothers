@@ -864,9 +864,7 @@ export async function claimWaitlistOffer(waitlistId: string) {
 
       // 4. Calculate cost based on membership status & live switch (§B-03 / F-18)
       let cost = 0;
-      if (ev.isFreeWalk) {
-        cost = 0;
-      } else if (!clubSettings.membershipLive) {
+      if (!clubSettings.membershipLive) {
         cost = ev.nonMemberCredits ?? ev.creditCost;
       } else if (isMember) {
         cost = ev.memberCredits ?? ev.creditCost;
