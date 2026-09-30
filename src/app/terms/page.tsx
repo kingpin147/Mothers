@@ -37,7 +37,7 @@ export default function LegalPage() {
           {
             n: "02",
             title: "Accounts",
-            body: "You can open an account directly on the site, or it is created when you book your first event, with your name, email, phone number and a password. There is no application and no fee, and holding one does not make you a member of the club or entitle you to anything beyond what is published on the calendar. You are responsible for keeping your password to yourself and for anything booked from your account. You may close it at any time by writing to us.",
+            body: "You can open an account directly on the site with your name, email, phone number and a password. There is no application and no fee, and holding one does not make you a member of the club or entitle you to anything beyond what is published on the calendar. You are responsible for keeping your password to yourself and for anything booked from your account. You may close it at any time by writing to us.",
           },
           {
             n: "03",
@@ -119,7 +119,7 @@ export default function LegalPage() {
           {
             n: "02",
             title: "Cuentas",
-            body: "Puedes crear una cuenta directamente en la web, o se crea al reservar tu primer evento con tu nombre, correo, teléfono y contraseña. No hay solicitud previa ni cuota de inscripción, y tener cuenta no te convierte en socia del club ni otorga derechos fuera de lo publicado en el calendario. Eres responsable de la confidencialidad de tu contraseña y de las reservas realizadas desde tu cuenta. Puedes cerrarla en cualquier momento escribiéndonos.",
+            body: "Puedes crear una cuenta directamente en la web con tu nombre, correo, teléfono y contraseña. No hay solicitud previa ni cuota de inscripción, y tener cuenta no te convierte en socia del club ni otorga derechos fuera de lo publicado en el calendario. Eres responsable de la confidencialidad de tu contraseña y de las reservas realizadas desde tu cuenta. Puedes cerrarla en cualquier momento escribiéndonos.",
           },
           {
             n: "03",
@@ -205,7 +205,7 @@ export default function LegalPage() {
           {
             n: "01",
             title: "What we collect",
-            body: "When you open an account or book your first event we record your name, email address and phone number. When you book an event we record which event, when, and what it cost in credits; we also ask for a phone number so we can send the exact meeting point, which we do not publish. When you buy credits, the card details are captured and processed by our payment provider and are not stored on our systems — we keep the amount, the date and the receipt. If you write to us, we keep that correspondence. If you use The Circle we keep your posts, replies, photos and any reports you make; posts shown anonymously are still linked to your account. If you host or invite friends we keep your host requests, attendance and no-show records, your Godmother code and who registered with it.",
+            body: "When you open an account we record your name, email address and phone number. When you book an event we record which event, when, and what it cost in credits; we also ask for a phone number so we can send the exact meeting point, which we do not publish. When you buy credits, the card details are captured and processed by our payment provider and are not stored on our systems — we keep the amount, the date and the receipt. If you write to us, we keep that correspondence. If you use The Circle we keep your posts, replies, photos and any reports you make; posts shown anonymously are still linked to your account. If you host or invite friends we keep your host requests, attendance and no-show records, your Godmother code and who registered with it.",
           },
           {
             n: "02",
@@ -257,7 +257,7 @@ export default function LegalPage() {
           {
             n: "01",
             title: "Qué recopilamos",
-            body: "Al crear una cuenta o reservar tu primer evento recopilamos tu nombre, correo electrónico y teléfono. Al reservar un evento registramos los datos del mismo y su coste en créditos; también solicitamos tu teléfono para enviar la ubicación exacta de encuentro, la cual no publicamos. Para la compra de créditos, los datos de tarjeta son procesados por Stripe. Si participas en The Circle se guardan tus mensajes y fotos; las publicaciones anónimas siguen vinculadas internamente a tu cuenta.",
+            body: "Al crear una cuenta recopilamos tu nombre, correo electrónico y teléfono. Al reservar un evento registramos los datos del mismo y su coste en créditos; también solicitamos tu teléfono para enviar la ubicación exacta de encuentro, la cual no publicamos. Para la compra de créditos, los datos de tarjeta son procesados por Stripe. Si participas en The Circle se guardan tus mensajes y fotos; las publicaciones anónimas siguen vinculadas internamente a tu cuenta.",
           },
           {
             n: "02",

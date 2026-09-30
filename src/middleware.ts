@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
     }
 
     const role = (token as any).role;
-    const allowedRoles = ["owner", "manager", "host", "super_admin", "read_only"];
+    const allowedRoles = ["owner", "manager", "super_admin", "read_only"];
     if (!allowedRoles.includes(role)) {
       return NextResponse.redirect(new URL("/account", request.url));
     }

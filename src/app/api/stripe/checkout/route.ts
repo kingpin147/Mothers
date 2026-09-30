@@ -33,6 +33,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "User account not found" }, { status: 404 });
       }
 
+      const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+      const clubSettings = await getPublicClubSettings();
+      const topUpUnitAmount = clubSettings.topUpPriceCents ?? 200;
+
       const stripeSession = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         mode: "payment",
@@ -43,9 +47,9 @@ export async function POST(req: Request) {
               currency: "eur",
               product_data: {
                 name: `THE Mothers — ${creditAmount} Event Credits`,
-                description: `€2.00 / credit · 6-month validity · THE Mothers Barcelona`,
+                description: `€${topUpUnitAmount / 100}/credit · 6-month validity · THE Mothers Barcelona`,
               },
-              unit_amount: 200, // €2.00 per credit in cents
+              unit_amount: topUpUnitAmount, // €2.00 per credit in cents from Settings (F-19)
             },
             quantity: creditAmount,
           },
@@ -77,7 +81,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ url: stripeSession.url });
     }
 
-    // ─── 2. MEMBERSHIP ACTIVATION / DIRECT SUBSCRIPTION CHECKOUT (§M-04 / §M-07 / §N-08) ───
+    // ─── 2. MEMBERSHIP ACTIVATION / DIRECT SUBSCRIPTION CHECKOUT (§M-04 / §M-07 / §N-08 / F-08) ───
     if (type === "membership" || type === "subscribe") {
       const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
       const clubSettings = await getPublicClubSettings();
@@ -99,14 +103,34 @@ export async function POST(req: Request) {
         where: eq(person.id, personId),
       });
 
-      if (personRecord?.email) {
+      if (!personRecord) {
+        return NextResponse.json({ error: "User not found." }, { status: 404 });
+      }
+
+      // Check suspension (F-08)
+      if (personRecord.isSuspended) {
+        return NextResponse.json(
+          { error: "Your account is suspended. Subscriptions are not permitted." },
+          { status: 403 }
+        );
+      }
+
+      if (personRecord.email) {
         personEmail = personRecord.email;
       }
 
-      // Fetch or create member record directly from My Account
+      // Fetch member record directly
       let memberRecord = memberId
         ? await db.query.member.findFirst({ where: eq(member.id, memberId) })
         : await db.query.member.findFirst({ where: eq(member.personId, personId) });
+
+      // Check already active member (F-08)
+      if (memberRecord?.status === "active" && memberRecord?.stripeSubscriptionId) {
+        return NextResponse.json(
+          { error: "You are already an active member." },
+          { status: 400 }
+        );
+      }
 
       const isQuarterly = plan === "quarterly" || memberRecord?.billingFrequency === "quarterly";
 

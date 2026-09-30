@@ -21,6 +21,7 @@ import {
   refundPersonCredits,
   refundBookingCredits,
   grantCreditsToPerson,
+  settleOldestPendingReturn,
 } from "@/lib/ledger";
 import {
   queueAndSendEmail,
@@ -105,11 +106,11 @@ export async function bookEvent(eventId: string) {
         requiredCredits = 0;
       } else if (!clubSettings.membershipLive) {
         // Pre-launch mode: everyone pays the non-member credit cost (€2/credit)
-        requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+        requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
       } else if (isMember) {
-        requiredCredits = ev.memberCredits > 0 ? ev.memberCredits : ev.creditCost;
+        requiredCredits = ev.memberCredits ?? ev.creditCost;
       } else {
-        requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+        requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
       }
 
       // 5. Count existing active bookings for this person & on this event (excluding expired holds)
@@ -211,30 +212,8 @@ export async function bookEvent(eventId: string) {
 
       const newBookingId = bookingInsert[0].id;
 
-      // 9. Settle oldest pending return awaiting replacement if any
-      const oldestPendingReturn = await tx.query.booking.findFirst({
-        where: and(
-          eq(booking.eventId, eventId),
-          eq(booking.pendingReturnState, "awaiting_replacement")
-        ),
-        orderBy: asc(booking.releasedAt),
-      });
-
-      if (oldestPendingReturn && oldestPendingReturn.personId && oldestPendingReturn.pendingReturnCredits > 0) {
-        await tx
-          .update(booking)
-          .set({
-            pendingReturnState: "settled_returned",
-            updatedAt: new Date(),
-          })
-          .where(eq(booking.id, oldestPendingReturn.id));
-
-        await refundBookingCredits(
-          oldestPendingReturn,
-          oldestPendingReturn.pendingReturnCredits,
-          tx
-        );
-      }
+      // 9. Settle oldest pending return awaiting replacement if any (F-06)
+      await settleOldestPendingReturn(eventId, tx);
 
       // 10. Write audit log
       await tx.insert(auditLog).values({
@@ -339,14 +318,47 @@ export async function holdBookingForTopUp(eventId: string) {
     const clubSettings = await getPublicClubSettings();
 
     const result = await db.transaction(async (tx) => {
-      const ev = await tx.query.event.findFirst({
-        where: eq(event.id, eventId),
-      });
+      // 1. SELECT ... FOR UPDATE on event
+      const eventRows = await tx
+        .select()
+        .from(event)
+        .where(eq(event.id, eventId))
+        .for("update");
 
-      if (!ev) throw new Error("EVENT_NOT_FOUND");
+      if (eventRows.length === 0) throw new Error("EVENT_NOT_FOUND");
+      const ev = eventRows[0];
+
+      // 2. Check person and suspension
+      const personRecord = await tx.query.person.findFirst({
+        where: eq(person.id, personId),
+      });
+      if (!personRecord) throw new Error("PERSON_NOT_FOUND");
+      if (personRecord.isSuspended) throw new Error("ACCOUNT_SUSPENDED");
+
+      if (!memberId) {
+        const mem = await tx.query.member.findFirst({
+          where: eq(member.personId, personId),
+        });
+        if (mem && mem.status === "active") {
+          memberId = mem.id;
+        }
+      }
+
+      const isMember = !!memberId;
+
+      // 3. Members-First Window check (§7.1)
+      if (
+        clubSettings.membershipLive &&
+        !isMember &&
+        ev.nonMemberOpensAt &&
+        new Date() < new Date(ev.nonMemberOpensAt)
+      ) {
+        throw new Error("MEMBERS_FIRST_WINDOW_ACTIVE");
+      }
 
       const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
 
+      // 4. Check existing booking for this user
       const existingBooking = await tx.query.booking.findFirst({
         where: and(
           eq(booking.eventId, eventId),
@@ -359,25 +371,26 @@ export async function holdBookingForTopUp(eventId: string) {
         return { bookingId: existingBooking.id };
       }
 
-      if (!memberId) {
-        const mem = await tx.query.member.findFirst({
-          where: eq(member.personId, personId),
-        });
-        if (mem && mem.status === "active") {
-          memberId = mem.id;
-        }
+      // 5. Check capacity (F-05)
+      const activeCountRes = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(booking)
+        .where(and(eq(booking.eventId, eventId), activeBookingCondition));
+      const currentActive = activeCountRes[0]?.count || 0;
+
+      if (ev.capacityMember > 0 && currentActive >= ev.capacityMember) {
+        throw new Error("EVENT_FULL");
       }
 
-      const isMember = !!memberId;
       let requiredCredits = 0;
       if (ev.isFreeWalk) {
         requiredCredits = 0;
       } else if (!clubSettings.membershipLive) {
-        requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+        requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
       } else if (isMember) {
-        requiredCredits = ev.memberCredits > 0 ? ev.memberCredits : ev.creditCost;
+        requiredCredits = ev.memberCredits ?? ev.creditCost;
       } else {
-        requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+        requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
       }
 
       const heldUntil = new Date(Date.now() + 10 * 60 * 1000); // 10-minute hold window
@@ -463,6 +476,7 @@ export async function releaseBooking(bookingId: string) {
         .update(booking)
         .set({
           status: "released",
+          releaseReason: "user_released",
           releasedAt: new Date(),
           updatedAt: new Date(),
           ...(isInsideWindow && b.creditsCharged > 0
@@ -473,6 +487,38 @@ export async function releaseBooking(bookingId: string) {
             : {}),
         })
         .where(eq(booking.id, bookingId));
+
+      // If person releasing is the host of this event (F-12)
+      if (ev.hostPersonId && ev.hostPersonId === b.personId) {
+        await tx
+          .update(event)
+          .set({
+            hostPersonId: null,
+            needsHost: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(event.id, ev.id));
+
+        if (isInsideWindow) {
+          await tx
+            .update(person)
+            .set({
+              lateHostCancellations: sql`${person.lateHostCancellations} + 1`,
+              lateHostCancelledAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(person.id, b.personId));
+        }
+
+        await tx.insert(auditLog).values({
+          actorId: b.personId,
+          actorType: "host",
+          action: "host_released_booking",
+          entity: "event",
+          entityId: ev.id,
+          after: { isInsideWindow, penaltyRecorded: isInsideWindow },
+        });
+      }
 
       if (returnedCredits > 0) {
         await refundBookingCredits(b, returnedCredits, tx);
@@ -596,6 +642,8 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
   if (!personRecord) return { success: false, error: "PERSON_NOT_FOUND" };
 
   try {
+    const clubSettings = await getPublicClubSettings();
+    const topUpUnitAmount = clubSettings.topUpPriceCents ?? 200;
     const { stripe } = await import("@/lib/stripe");
     const origin = getAppUrl();
 
@@ -609,9 +657,9 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
             currency: "eur",
             product_data: {
               name: `THE Mothers — ${amount} Event Credits`,
-              description: `€2/credit · 6-month validity · THE Mothers Barcelona`,
+              description: `€${topUpUnitAmount / 100}/credit · 6-month validity · THE Mothers Barcelona`,
             },
-            unit_amount: 200, // €2.00 per credit in cents
+            unit_amount: topUpUnitAmount, // from Settings (F-19)
           },
           quantity: amount,
         },
@@ -643,7 +691,7 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
   }
 }
 
-// ─── 5. JOIN EVENT WAITLIST (§7.4) ───────────────────────────────────────────
+// ─── 5. JOIN EVENT WAITLIST (§7.4 / F-22) ────────────────────────────────────
 
 export async function joinEventWaitlist(eventId: string) {
   const session = await auth();
@@ -653,10 +701,47 @@ export async function joinEventWaitlist(eventId: string) {
 
   try {
     const result = await db.transaction(async (tx) => {
+      // 1. Check person and suspension (F-22)
+      const personRecord = await tx.query.person.findFirst({
+        where: eq(person.id, personId),
+      });
+      if (!personRecord) throw new Error("PERSON_NOT_FOUND");
+      if (personRecord.isSuspended) throw new Error("ACCOUNT_SUSPENDED");
+
+      const ev = await tx.query.event.findFirst({
+        where: eq(event.id, eventId),
+      });
+      if (!ev) throw new Error("EVENT_NOT_FOUND");
+
+      // 2. Check if already booked (F-22)
+      const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
+      const existingBooking = await tx.query.booking.findFirst({
+        where: and(
+          eq(booking.eventId, eventId),
+          eq(booking.personId, personId),
+          activeBookingCondition
+        ),
+      });
+      if (existingBooking) {
+        throw new Error("ALREADY_BOOKED");
+      }
+
+      // 3. Check if event still has open capacity (F-22)
+      const activeCountRes = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(booking)
+        .where(and(eq(booking.eventId, eventId), activeBookingCondition));
+      const currentActive = activeCountRes[0]?.count || 0;
+      if (ev.capacityMember > 0 && currentActive < ev.capacityMember) {
+        throw new Error("EVENT_HAS_SPOTS");
+      }
+
+      // 4. Check if already on waitlist
       const existing = await tx.query.eventWaitlist.findFirst({
         where: and(
           eq(eventWaitlist.eventId, eventId),
-          eq(eventWaitlist.personId, personId)
+          eq(eventWaitlist.personId, personId),
+          sql`accepted_at IS NULL`
         ),
       });
 
@@ -758,16 +843,16 @@ export async function claimWaitlistOffer(waitlistId: string) {
         throw new Error("EVENT_FULL");
       }
 
-      // 4. Calculate cost based on membership status & live switch (§B-03)
+      // 4. Calculate cost based on membership status & live switch (§B-03 / F-18)
       let cost = 0;
       if (ev.isFreeWalk) {
         cost = 0;
       } else if (!clubSettings.membershipLive) {
-        cost = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+        cost = ev.nonMemberCredits ?? ev.creditCost;
       } else if (isMember) {
-        cost = ev.memberCredits > 0 ? ev.memberCredits : ev.creditCost;
+        cost = ev.memberCredits ?? ev.creditCost;
       } else {
-        cost = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+        cost = ev.nonMemberCredits ?? ev.creditCost;
       }
 
       let creditDeductions: Array<{ batchId: string; deducted: number; expiresAt: string }> = [];
@@ -797,11 +882,15 @@ export async function claimWaitlistOffer(waitlistId: string) {
           memberId: memberId || null,
           kind: isMember ? "member" : "non_member",
           status: ev.status === "confirmed" ? "confirmed" : "held",
+          heldUntil: null,
           creditsCharged: cost,
           creditDeductions,
           bookedAt: new Date(),
         })
         .returning();
+
+      // Settle oldest pending return awaiting replacement if any (F-06)
+      await settleOldestPendingReturn(ev.id, tx);
 
       return { bookingId: newBooking[0].id };
     });

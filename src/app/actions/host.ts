@@ -159,78 +159,6 @@ export async function getUpcomingEventsNeedingHost() {
   }
 }
 
-export async function submitHostRequest(data: {
-  format: string;
-  neighbourhood: string;
-  preferredDays: string;
-  languages: string[];
-  reason: string;
-  charterAgreed: boolean;
-}) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("You must be logged in to apply to become a host.");
-  }
-
-  const personId = (session.user as any).personId || session.user.id;
-
-  if (!data.charterAgreed) {
-    throw new Error("You must agree to the Host Charter to submit.");
-  }
-
-  if (!data.reason || data.reason.trim().length < 15) {
-    throw new Error("Please tell us a bit more about why you would like to host (at least 15 characters).");
-  }
-
-  const user = await db.query.person.findFirst({
-    where: eq(person.id, personId),
-  });
-
-  if (!user) {
-    throw new Error("User not found.");
-  }
-
-  const [reqRecord] = await db
-    .insert(hostRequest)
-    .values({
-      personId,
-      format: data.format || "walk",
-      neighbourhood: data.neighbourhood || "Barcelona",
-      preferredDays: data.preferredDays || "Weekday mornings",
-      languages: data.languages || ["English"],
-      reason: data.reason.trim(),
-      charterAgreed: true,
-      status: "pending",
-    })
-    .returning();
-
-  const origin = getAppUrl();
-  const isEs = user.locale === "es";
-  const subject = isEs
-    ? "Tu solicitud para ser anfitriona — The Mothers"
-    : "Your host application with The Mothers";
-
-  const htmlContent = generateHostRequestStatusEmailHtml({
-    firstName: user.firstName || "Member",
-    status: "received",
-    appUrl: origin,
-    isEs,
-  });
-
-  await queueAndSendEmail({
-    personId: user.id,
-    toEmail: user.email,
-    toName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Member",
-    templateKey: "host_request_status",
-    dedupeKey: `host_request_received_${reqRecord.id}`,
-    subject,
-    htmlContent,
-    isTransactional: true,
-  });
-
-  return { success: true, hostRequestId: reqRecord.id };
-}
-
 export async function applyToHostEvent(eventId: string) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -258,6 +186,10 @@ export async function applyToHostEvent(eventId: string) {
     return { success: false, error: "Event not found." };
   }
 
+  if (!ev.needsHost) {
+    return { success: false, error: "This event does not need a host." };
+  }
+
   if (ev.status === "cancelled") {
     return { success: false, error: "This event has been cancelled." };
   }
@@ -282,43 +214,15 @@ export async function applyToHostEvent(eventId: string) {
     return { success: false, error: "You must book this event before you can request to host it." };
   }
 
-  const attendedRes = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(booking)
-    .innerJoin(event, eq(booking.eventId, event.id))
-    .where(
-      and(
-        eq(booking.personId, user.id),
-        eq(booking.status, "attended"),
-        eq(booking.noShow, false)
-      )
-    );
-
-  const noShowsRes = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(booking)
-    .innerJoin(event, eq(booking.eventId, event.id))
-    .where(
-      and(
-        eq(booking.personId, user.id),
-        eq(booking.noShow, true),
-        sql`${event.startsAt} >= NOW() - INTERVAL '90 days'`
-      )
-    );
-
-  const attended = attendedRes[0]?.count || 0;
-  const noShows = noShowsRes[0]?.count || 0;
-  const requiredAttended = (user.lateHostCancellations || 0) > 0 ? 3 : 2;
-
-  if (attended < requiredAttended) {
+  // Check eligibility using checkHostEligibility (F-11)
+  const elig = await checkHostEligibility();
+  if (!elig.eligible) {
     return {
       success: false,
-      error: `You need to attend at least ${requiredAttended} events before hosting (attended: ${attended}).`,
+      error: elig.hasLateHostPenalty
+        ? `You must attend at least 3 events after your late cancellation before hosting again (attended: ${elig.totalAttended}/3).`
+        : `You need to attend at least ${elig.requiredAttended} events before hosting (attended: ${elig.totalAttended}).`,
     };
-  }
-
-  if (noShows > 0) {
-    return { success: false, error: "Hosting is paused for 90 days following a recorded no-show." };
   }
 
   const existingPending = await db.query.hostRequest.findFirst({
@@ -591,82 +495,96 @@ export async function markEventAsRun(params: {
     return { success: false, error: "Event not found." };
   }
 
-  if (params.noShowPersonIds && params.noShowPersonIds.length > 0) {
-    for (const pid of params.noShowPersonIds) {
-      await db
-        .update(booking)
-        .set({ noShow: true, status: "no_show" })
-        .where(and(eq(booking.eventId, params.eventId), eq(booking.personId, pid)));
-    }
+  // Prevent duplicate execution (F-14)
+  if (ev.isRan) {
+    return { success: false, error: "This event has already been marked as run." };
   }
 
-  await db
-    .update(booking)
-    .set({ status: "attended", attendedAt: new Date() })
-    .where(
-      and(
-        eq(booking.eventId, params.eventId),
-        eq(booking.status, "confirmed"),
-        eq(booking.noShow, false)
-      )
-    );
+  let totalCreditsAwarded = 0;
+  let hostPersonRecord: any = null;
+  let halfTicketCredits = 0;
 
-  await db
-    .update(event)
-    .set({ isRan: true, ranAt: new Date(), status: "completed" })
-    .where(eq(event.id, params.eventId));
-
-  // Host reward (§H-05): +2 credits + 50% of credits charged to host for their ticket
-  if (ev.hostPersonId) {
-    const hostPerson = await db.query.person.findFirst({
-      where: eq(person.id, ev.hostPersonId),
-    });
-
-    if (hostPerson) {
-      const hostBooking = await db.query.booking.findFirst({
-        where: and(
-          eq(booking.eventId, ev.id),
-          eq(booking.personId, hostPerson.id)
-        ),
-      });
-
-      const creditsCharged = hostBooking?.creditsCharged || 0;
-      const halfTicketCredits = Math.floor(creditsCharged * 0.5);
-      const totalCreditsAwarded = 2 + halfTicketCredits;
-
-      await grantCreditsToPerson(hostPerson.id, totalCreditsAwarded, "host_reward", 6);
-
-      await db
-        .update(hostRequest)
-        .set({ creditsAwarded: totalCreditsAwarded })
-        .where(and(eq(hostRequest.eventId, params.eventId), eq(hostRequest.personId, hostPerson.id)));
-
-      const newBalance = await getPersonWalletBalance(hostPerson.id);
-      const origin = getAppUrl();
-      const isEs = hostPerson.locale === "es";
-
-      const { renderPublicEmailTemplate } = await import("@/lib/brevo");
-      const htmlContent = renderPublicEmailTemplate("Email - Host Thank You.html", {
-        first_name: hostPerson.firstName || "Mother",
-        event_title: ev.title,
-        half_credits: halfTicketCredits,
-        balance: newBalance,
-        host_url: `${origin}/host`,
-      }) || `<p>Thank you for hosting ${ev.title}. We've credited ${totalCreditsAwarded} credits to your wallet.</p>`;
-
-      await queueAndSendEmail({
-        personId: hostPerson.id,
-        toEmail: hostPerson.email,
-        toName: `${hostPerson.firstName || ""} ${hostPerson.lastName || ""}`.trim() || "Host",
-        templateKey: "host_thank_you",
-        dedupeKey: `host_ty_${params.eventId}_${hostPerson.id}`,
-        subject: isEs
-          ? `¡Gracias por ser anfitriona! — +${totalCreditsAwarded} créditos añadidos`
-          : `Thanks for hosting — +${totalCreditsAwarded} credits added`,
-        htmlContent,
-        isTransactional: true,
-      });
+  await db.transaction(async (tx) => {
+    if (params.noShowPersonIds && params.noShowPersonIds.length > 0) {
+      for (const pid of params.noShowPersonIds) {
+        await tx
+          .update(booking)
+          .set({ noShow: true, status: "no_show" })
+          .where(and(eq(booking.eventId, params.eventId), eq(booking.personId, pid)));
+      }
     }
+
+    await tx
+      .update(booking)
+      .set({ status: "attended", attendedAt: new Date() })
+      .where(
+        and(
+          eq(booking.eventId, params.eventId),
+          eq(booking.status, "confirmed"),
+          eq(booking.noShow, false)
+        )
+      );
+
+    await tx
+      .update(event)
+      .set({ isRan: true, ranAt: new Date(), status: "completed" })
+      .where(eq(event.id, params.eventId));
+
+    // Host reward (§H-05 / F-14): +2 credits + 50% of credits charged to host for their ticket
+    if (ev.hostPersonId) {
+      const hostPerson = await tx.query.person.findFirst({
+        where: eq(person.id, ev.hostPersonId),
+      });
+
+      if (hostPerson) {
+        hostPersonRecord = hostPerson;
+        const hostBooking = await tx.query.booking.findFirst({
+          where: and(
+            eq(booking.eventId, ev.id),
+            eq(booking.personId, hostPerson.id)
+          ),
+        });
+
+        const creditsCharged = hostBooking?.creditsCharged || 0;
+        halfTicketCredits = Math.floor(creditsCharged * 0.5);
+        totalCreditsAwarded = 2 + halfTicketCredits;
+
+        await grantCreditsToPerson(hostPerson.id, totalCreditsAwarded, "host_reward", 6, tx);
+
+        await tx
+          .update(hostRequest)
+          .set({ creditsAwarded: totalCreditsAwarded })
+          .where(and(eq(hostRequest.eventId, params.eventId), eq(hostRequest.personId, hostPerson.id)));
+      }
+    }
+  });
+
+  if (hostPersonRecord && totalCreditsAwarded > 0) {
+    const newBalance = await getPersonWalletBalance(hostPersonRecord.id);
+    const origin = getAppUrl();
+    const isEs = hostPersonRecord.locale === "es";
+
+    const { renderPublicEmailTemplate } = await import("@/lib/brevo");
+    const htmlContent = renderPublicEmailTemplate("Email - Host Thank You.html", {
+      first_name: hostPersonRecord.firstName || "Mother",
+      event_title: ev.title,
+      half_credits: halfTicketCredits,
+      balance: newBalance,
+      host_url: `${origin}/host`,
+    }) || `<p>Thank you for hosting ${ev.title}. We've credited ${totalCreditsAwarded} credits to your wallet.</p>`;
+
+    await queueAndSendEmail({
+      personId: hostPersonRecord.id,
+      toEmail: hostPersonRecord.email,
+      toName: `${hostPersonRecord.firstName || ""} ${hostPersonRecord.lastName || ""}`.trim() || "Host",
+      templateKey: "host_thank_you",
+      dedupeKey: `host_ty_${params.eventId}_${hostPersonRecord.id}`,
+      subject: isEs
+        ? `¡Gracias por ser anfitriona! — +${totalCreditsAwarded} créditos añadidos`
+        : `Thanks for hosting — +${totalCreditsAwarded} credits added`,
+      htmlContent,
+      isTransactional: true,
+    });
   }
 
   await db.insert(auditLog).values({

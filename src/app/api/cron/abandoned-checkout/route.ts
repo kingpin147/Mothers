@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { booking, event, person, jobRun, auditLog } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { booking, event, person, jobRun, auditLog, eventWaitlist } from "@/db/schema";
+import { eq, and, sql, asc } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { queueAndSendEmail } from "@/lib/brevo";
 
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   let holdsCleaned = 0;
 
   try {
-    // 1. Release all expired held bookings where held_until <= NOW()
+    // 1. Release all expired held bookings where held_until <= NOW() (F-17)
     const expiredHolds = await db
       .select({
         id: booking.id,
@@ -33,12 +33,91 @@ export async function GET(req: NextRequest) {
     for (const hold of expiredHolds) {
       await db
         .update(booking)
-        .set({ status: "released", releasedAt: new Date(), cancelledAt: new Date(), updatedAt: new Date() })
+        .set({
+          status: "released",
+          releaseReason: "hold_expired",
+          releasedAt: new Date(),
+          cancelledAt: new Date(),
+          updatedAt: new Date(),
+        })
         .where(eq(booking.id, hold.id));
       holdsCleaned++;
     }
 
-    // 2. Check for abandoned bookings created in the last 24 hours to send Place Still Open reminder (§N-11)
+    // 2. Advance expired waitlist offers to next mother in queue (F-07)
+    const expiredOffers = await db
+      .select({
+        id: eventWaitlist.id,
+        eventId: eventWaitlist.eventId,
+        personId: eventWaitlist.personId,
+        position: eventWaitlist.position,
+      })
+      .from(eventWaitlist)
+      .where(
+        and(
+          sql`${eventWaitlist.offeredAt} IS NOT NULL`,
+          sql`${eventWaitlist.offerExpiresAt} IS NOT NULL AND ${eventWaitlist.offerExpiresAt} <= NOW()`,
+          sql`${eventWaitlist.acceptedAt} IS NULL`,
+          sql`${eventWaitlist.expiredAt} IS NULL`
+        )
+      );
+
+    const { sendPlaceStillOpenEmail } = await import("@/lib/brevo");
+
+    for (const offer of expiredOffers) {
+      // Mark current offer as expired
+      await db
+        .update(eventWaitlist)
+        .set({ expiredAt: new Date() })
+        .where(eq(eventWaitlist.id, offer.id));
+
+      // Find next in line for this event
+      const nextWaitlist = await db.query.eventWaitlist.findFirst({
+        where: and(
+          eq(eventWaitlist.eventId, offer.eventId),
+          sql`${eventWaitlist.position} > ${offer.position}`,
+          sql`${eventWaitlist.acceptedAt} IS NULL`,
+          sql`${eventWaitlist.expiredAt} IS NULL`
+        ),
+        orderBy: asc(eventWaitlist.position),
+      });
+
+      if (nextWaitlist) {
+        const ev = await db.query.event.findFirst({
+          where: eq(event.id, offer.eventId),
+        });
+
+        if (ev && new Date(ev.startsAt) > new Date()) {
+          const msUntilEvent = new Date(ev.startsAt).getTime() - Date.now();
+          const hoursUntilEvent = msUntilEvent / (1000 * 60 * 60);
+
+          const offerExpiresAt = hoursUntilEvent > 24
+            ? new Date(Date.now() + 12 * 60 * 60 * 1000)
+            : new Date(ev.startsAt);
+
+          await db
+            .update(eventWaitlist)
+            .set({ offeredAt: new Date(), offerExpiresAt })
+            .where(eq(eventWaitlist.id, nextWaitlist.id));
+
+          const nextPerson = await db.query.person.findFirst({
+            where: eq(person.id, nextWaitlist.personId),
+          });
+
+          if (nextPerson) {
+            await sendPlaceStillOpenEmail({
+              personId: nextPerson.id,
+              email: nextPerson.email,
+              firstName: nextPerson.firstName || "Friend",
+              eventTitle: ev.title,
+              eventId: ev.id,
+            }).catch((err) => console.error("Error sending waitlist pass-on email:", err));
+          }
+        }
+      }
+    }
+
+    // 3. Send Place Still Open reminder ONLY to holds that expired (releaseReason = 'hold_expired') (F-17)
     const abandonedCandidates = await db
       .select({
         bookingId: booking.id,
@@ -57,6 +136,7 @@ export async function GET(req: NextRequest) {
       .where(
         and(
           eq(booking.status, "released"),
+          eq(booking.releaseReason, "hold_expired"),
           sql`${booking.releasedAt} IS NOT NULL`,
           sql`${booking.createdAt} >= NOW() - INTERVAL '24 hours'`,
           sql`${booking.createdAt} <= NOW() - INTERVAL '30 minutes'`,
@@ -64,8 +144,6 @@ export async function GET(req: NextRequest) {
           sql`${event.status} IN ('confirmed', 'published_pending')`
         )
       );
-
-    const { sendPlaceStillOpenEmail } = await import("@/lib/brevo");
 
     for (const cand of abandonedCandidates) {
       // Ensure the mother hasn't subsequently confirmed another booking for this event

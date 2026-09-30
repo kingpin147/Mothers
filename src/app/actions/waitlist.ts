@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { person, waitlistEntry } from "@/db/schema";
+import { leadEntry } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -25,42 +25,18 @@ export async function joinWaitlist(rawData: {
   const data = parsed.data;
 
   try {
-    // 1. Check if person exists
-    let existingPerson = await db.query.person.findFirst({
-      where: eq(person.email, data.email),
-    });
-
-    let personId = existingPerson?.id;
-
-    // 2. If not, create person
-    if (!personId) {
-      const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
-      const clubSettings = await getPublicClubSettings();
-      const [newPerson] = await db
-        .insert(person)
-        .values({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          createdBeforeLaunch: !clubSettings.membershipLive,
-        })
-        .returning();
-      personId = newPerson.id;
-    }
-
-    // 3. Check if already on waitlist
-    const existingEntry = await db.query.waitlistEntry.findFirst({
-      where: eq(waitlistEntry.personId, personId),
+    const existingEntry = await db.query.leadEntry.findFirst({
+      where: eq(leadEntry.email, data.email),
     });
 
     if (existingEntry) {
       return { success: true, message: "already_joined" };
     }
 
-    // 4. Join waitlist
-    await db.insert(waitlistEntry).values({
-      personId,
+    await db.insert(leadEntry).values({
+      email: data.email,
       source: data.source || "membership_page",
+      type: "waitlist",
     });
 
     return { success: true };
@@ -69,3 +45,4 @@ export async function joinWaitlist(rawData: {
     return { success: false, error: "Failed to join waitlist" };
   }
 }
+

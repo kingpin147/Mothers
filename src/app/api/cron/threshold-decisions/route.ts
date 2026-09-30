@@ -87,42 +87,6 @@ export async function GET(req: NextRequest) {
           });
         });
         confirmed++;
-      } else if (ev.decisionAt && new Date(ev.decisionAt) <= new Date() && !ev.thresholdAlertSentAt) {
-        // ── THRESHOLD MISSED (§B-07): Alert team in Admin for manual decision (once per event) ────
-        const eventDateFormatted = new Date(ev.startsAt).toLocaleDateString("en-GB", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-        });
-
-        const { sendMinimumNotReachedEmail } = await import("@/lib/brevo");
-        const adminEmail = process.env.ADMIN_ALERT_EMAIL || "hello@themothers.cc";
-
-        await sendMinimumNotReachedEmail({
-          adminEmail,
-          eventTitle: ev.title,
-          activeBookings,
-          minRequired: ev.minToConfirm,
-          eventDate: eventDateFormatted,
-        }).catch((err) => console.error("Error sending minimum not reached email:", err));
-
-        await db
-          .update(event)
-          .set({ thresholdAlertSentAt: new Date(), updatedAt: new Date() })
-          .where(eq(event.id, ev.id));
-
-        await db.insert(auditLog).values({
-          actorType: "system",
-          action: "threshold_decision_pending_team_alert",
-          entity: "event",
-          entityId: ev.id,
-          after: {
-            activeBookings,
-            minRequired: ev.minToConfirm,
-            decisionAt: ev.decisionAt,
-          },
-        });
-        cancelled++;
       }
     }
 

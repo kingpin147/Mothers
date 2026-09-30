@@ -16,6 +16,7 @@ import {
   grantCreditsToPerson,
   spendPersonCreditsFIFO,
   getPersonWalletBalance,
+  settleOldestPendingReturn,
 } from "@/lib/ledger";
 import {
   queueAndSendEmail,
@@ -109,8 +110,7 @@ export async function handleStripeWebhook(req: Request) {
         break;
       }
 
-      // ─── B. INVOICE PAYMENT SUCCEEDED (SUBSCRIPTION RENEWALS) ─────────────────
-      case "invoice.payment_succeeded":
+      // ─── B. INVOICE PAID (SUBSCRIPTION RENEWALS §F-03) ───────────────────────
       case "invoice.paid": {
         const invoice = eventData;
         const customerId = invoice.customer as string;
@@ -281,11 +281,11 @@ async function handleTopUpCheckout({
         if (ev.isFreeWalk) {
           requiredCredits = 0;
         } else if (!clubSettings.membershipLive) {
-          requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+          requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
         } else if (isMember) {
-          requiredCredits = ev.memberCredits > 0 ? ev.memberCredits : ev.creditCost;
+          requiredCredits = ev.memberCredits ?? ev.creditCost;
         } else {
-          requiredCredits = ev.nonMemberCredits > 0 ? ev.nonMemberCredits : ev.creditCost;
+          requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
         }
 
         const balance = await getPersonWalletBalance(personId, tx);
@@ -304,6 +304,21 @@ async function handleTopUpCheckout({
         });
 
         if (heldBooking) {
+          // If hold had expired while checking out, re-verify event capacity (F-05)
+          const isHoldExpired = !!(heldBooking.heldUntil && new Date(heldBooking.heldUntil) < new Date());
+          if (isHoldExpired) {
+            const activeCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
+            const activeCountRes = await tx
+              .select({ count: sql<number>`count(*)::int` })
+              .from(booking)
+              .where(and(eq(booking.eventId, eventId), activeCondition));
+            const currentActive = activeCountRes[0]?.count || 0;
+            if (ev.capacityMember > 0 && currentActive >= ev.capacityMember) {
+              console.warn(`[Auto-Booking] Hold expired and event ${eventId} is at capacity. Keeping credits in wallet.`);
+              return;
+            }
+          }
+
           let creditDeductions: Array<{ batchId: string; deducted: number; expiresAt: string }> = [];
           if (requiredCredits > 0) {
             const spendResult = await spendPersonCreditsFIFO(personId, requiredCredits, tx);
@@ -317,11 +332,15 @@ async function handleTopUpCheckout({
             .update(booking)
             .set({
               status: ev.status === "confirmed" ? "confirmed" : "held",
+              heldUntil: null, // Clear heldUntil once paid/confirmed (F-04)
               creditsCharged: requiredCredits,
               creditDeductions,
               updatedAt: new Date(),
             })
             .where(eq(booking.id, heldBooking.id));
+
+          // Settle oldest pending return awaiting replacement if any (F-06)
+          await settleOldestPendingReturn(ev.id, tx);
 
           bookingConfirmedResult = {
             bookingId: heldBooking.id,
@@ -342,6 +361,17 @@ async function handleTopUpCheckout({
           });
 
           if (!existing) {
+            // Check capacity before inserting new booking
+            const activeCountRes = await tx
+              .select({ count: sql<number>`count(*)::int` })
+              .from(booking)
+              .where(and(eq(booking.eventId, eventId), activeCondition));
+            const currentActive = activeCountRes[0]?.count || 0;
+            if (ev.capacityMember > 0 && currentActive >= ev.capacityMember) {
+              console.warn(`[Auto-Booking] Event ${eventId} is at capacity. Keeping credits in wallet.`);
+              return;
+            }
+
             let creditDeductions: Array<{ batchId: string; deducted: number; expiresAt: string }> = [];
             if (requiredCredits > 0) {
               const spendResult = await spendPersonCreditsFIFO(personId, requiredCredits, tx);
@@ -357,10 +387,14 @@ async function handleTopUpCheckout({
               memberId: mem?.id || null,
               kind: isMember ? "member" : "non_member",
               status: ev.status === "confirmed" ? "confirmed" : "held",
+              heldUntil: null,
               creditsCharged: requiredCredits,
               creditDeductions,
               bookedAt: new Date(),
             }).returning();
+
+            // Settle oldest pending return awaiting replacement if any (F-06)
+            await settleOldestPendingReturn(ev.id, tx);
 
             bookingConfirmedResult = {
               bookingId: insertedB.id,
@@ -437,9 +471,18 @@ async function handleMembershipCheckout({
     const personRecord = await tx.query.person.findFirst({ where: eq(person.id, mem.personId) });
     if (!personRecord) return;
 
+    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+    const clubSettings = await getPublicClubSettings();
+
     const isQuarterly = mem.billingFrequency === "quarterly" || session?.metadata?.isQuarterly === "true";
-    const amountTotalCents = session?.amount_total || (isQuarterly ? 9900 : 3900);
+    const defaultMonthlyPrice = clubSettings.monthlyFeeCents ?? 3900;
+    const defaultQuarterlyPrice = clubSettings.quarterlyFeeCents ?? 9900;
+    const defaultJoiningFee = clubSettings.joiningFeeCents ?? 1900;
+
+    const subAmount = isQuarterly ? defaultQuarterlyPrice : defaultMonthlyPrice;
     const isFeeWaived = session?.metadata?.feeWaived === "true";
+    const joiningFeeAmount = isFeeWaived ? 0 : defaultJoiningFee;
+    const amountTotalCents = session?.amount_total || (subAmount + joiningFeeAmount);
     const creditsToConsume = parseInt(session?.metadata?.creditsToConsume || "0", 10);
 
     // 1. Activate member
@@ -460,10 +503,7 @@ async function handleMembershipCheckout({
       }
     }
 
-    // 4. Record Payment in finance ledger
-    const subAmount = isQuarterly ? 9900 : 3900;
-    const joiningFeeAmount = (!isFeeWaived && amountTotalCents > subAmount) ? (amountTotalCents - subAmount) : 0;
-
+    // 4. Record Payment in finance ledger matching accurate breakdown (F-09)
     await tx.insert(payment).values({
       personId: mem.personId,
       purpose: isQuarterly ? "subscription_quarterly" : "subscription_monthly",
@@ -486,23 +526,29 @@ async function handleMembershipCheckout({
       }).onConflictDoNothing();
     }
 
-    // 5. Grant credits for initial cycle (§N-01: 60 credits for quarterly, 20 for monthly)
-    const initialCredits = isQuarterly ? 60 : 20;
+    // 5. Grant credits for initial cycle from settings (F-09)
+    const initialCredits = isQuarterly
+      ? (clubSettings.quarterlyCreditsGranted ?? 60)
+      : (clubSettings.monthlyCreditsGranted ?? 20);
     await grantCreditsToPerson(mem.personId, initialCredits, "subscription", 6, tx);
 
-    // 6. Godmother referral bonus (§10 / §A-03): Grant referral bonus credits from admin setting
+    // 6. Godmother referral bonus (§10 / §A-03 / F-10): Grant only ONCE per person
     const godmotherPersonId =
       personRecord.referredByPersonId ||
       (mem.referredByMemberId
         ? (await tx.query.member.findFirst({ where: eq(member.id, mem.referredByMemberId) }))?.personId
         : null);
 
-    if (godmotherPersonId) {
-      const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
-      const clubSettings = await getPublicClubSettings();
+    if (godmotherPersonId && !personRecord.godmotherRewardedAt) {
       const bonusCredits = clubSettings.referralBonusCredits || 5;
 
       await grantCreditsToPerson(godmotherPersonId, bonusCredits, "godmother", 6, tx);
+
+      // Mark person as rewarded so re-subscribing won't double pay (F-10)
+      await tx
+        .update(person)
+        .set({ godmotherRewardedAt: new Date(), updatedAt: new Date() })
+        .where(eq(person.id, personRecord.id));
 
       const godmother = await tx.query.person.findFirst({
         where: eq(person.id, godmotherPersonId),
@@ -543,7 +589,7 @@ async function handleMembershipCheckout({
 
     // 7. Send Welcome / Subscription Confirmation Email
     const appUrl = getAppUrl();
-    const planName = isQuarterly ? "Quarterly Membership (€99 / 3 months)" : "Monthly Membership (€39 / month)";
+    const planName = isQuarterly ? `Quarterly Membership (€${defaultQuarterlyPrice / 100} / 3 months)` : `Monthly Membership (€${defaultMonthlyPrice / 100} / month)`;
     const isEs = personRecord.locale === "es";
 
     await queueAndSendEmail({
@@ -591,8 +637,24 @@ async function handleInvoicePaymentSucceeded({
   if (!memberRecord) return;
 
   await db.transaction(async (tx) => {
+    // Check if invoice already processed (F-03 idempotency guard)
+    if (invoice.id) {
+      const existingPayment = await tx.query.payment.findFirst({
+        where: eq(payment.stripeInvoiceId, invoice.id),
+      });
+      if (existingPayment) {
+        console.log(`[Invoice Paid] Invoice ${invoice.id} already processed. Skipping duplicate credit grant.`);
+        return;
+      }
+    }
+
+    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+    const clubSettings = await getPublicClubSettings();
+
     const isQuarterly = memberRecord.billingFrequency === "quarterly";
-    const renewalCredits = isQuarterly ? 60 : 20;
+    const renewalCredits = isQuarterly
+      ? (clubSettings.quarterlyCreditsGranted ?? 60)
+      : (clubSettings.monthlyCreditsGranted ?? 20);
 
     // 1. Record payment in ledger
     const lines = invoice.lines?.data || [];
@@ -612,7 +674,7 @@ async function handleInvoicePaymentSucceeded({
         .onConflictDoNothing();
     }
 
-    // 2. Grant credits to FIFO wallet for renewal (§N-01: 60 for quarterly, 20 for monthly)
+    // 2. Grant credits to FIFO wallet for renewal
     await grantCreditsToPerson(memberRecord.personId, renewalCredits, "subscription", 6, tx);
 
     // 3. Advance billing period end

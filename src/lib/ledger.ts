@@ -232,6 +232,32 @@ export async function refundBookingCredits(
   return results;
 }
 
+export async function settleOldestPendingReturn(eventId: string, tx: any = db) {
+  const oldestPendingReturn = await tx.query.booking.findFirst({
+    where: and(
+      eq(booking.eventId, eventId),
+      eq(booking.pendingReturnState, "awaiting_replacement")
+    ),
+    orderBy: asc(booking.releasedAt),
+  });
+
+  if (oldestPendingReturn && oldestPendingReturn.personId && oldestPendingReturn.pendingReturnCredits > 0) {
+    await tx
+      .update(booking)
+      .set({
+        pendingReturnState: "settled_returned",
+        updatedAt: new Date(),
+      })
+      .where(eq(booking.id, oldestPendingReturn.id));
+
+    await refundBookingCredits(
+      oldestPendingReturn,
+      oldestPendingReturn.pendingReturnCredits,
+      tx
+    );
+  }
+}
+
 // ─── 5. WORKERS & CRON HELPERS ───────────────────────────────────────────────
 
 export async function runCreditExpiryWorker() {

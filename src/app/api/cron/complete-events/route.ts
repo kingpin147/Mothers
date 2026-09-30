@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
 
       completed++;
 
-      // Queue "After Your Event" email to all attendees
+      // Queue "After Your Event" email to verified attendees ONLY (F-25)
       const attendeeBookings = await db
         .select({
           bookingId: booking.id,
@@ -82,7 +82,8 @@ export async function GET(req: NextRequest) {
         .where(
           and(
             eq(booking.eventId, ev.id),
-            inArray(booking.status, ["confirmed", "attended"])
+            eq(booking.status, "attended"),
+            eq(booking.noShow, false)
           )
         );
 
@@ -136,7 +137,7 @@ export async function GET(req: NextRequest) {
 <tr>
 <td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
 <p style="margin:0 0 16px;"><span style="color:#7b1f2c;">${attendee.firstName || "Member"}</span>,</p>
-<p style="margin:0 0 16px;">Thank you for coming to <span style="color:#7b1f2c;">${ev.title}</span>. I hope you left with at least one number in your phone — that is the only measure of these nights that matters to us.</p>
+<p style="margin:0 0 16px;">Thank you for coming to <span style="color:#7b1f2c;">${ev.title}</span>. I hope you left with at least one number in your phone — that is the only measure of these gatherings that matters to us.</p>
 <p style="margin:0;">If you want to keep going, explore what is coming up next on our calendar, or join our community.</p>
 </td>
 </tr>
@@ -150,8 +151,8 @@ export async function GET(req: NextRequest) {
 <tr>
 <td style="padding:0 24px 20px;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:24px;mso-line-height-rule:exactly;color:#2A1E20;">
 <div style="padding:10px 0;border-top:1px solid #ddd4c6;">
-<a href="${getAppUrl()}/events" style="color:#2A1E20;text-decoration:none;font-weight:bold;">See all upcoming walks & gatherings</a><br>
-<span style="color:#8a807a;font-size:14px;">Barcelona · Free & Member Events</span>
+<a href="${getAppUrl()}/events" style="color:#2A1E20;text-decoration:none;font-weight:bold;">See all upcoming gatherings</a><br>
+<span style="color:#8a807a;font-size:14px;">Barcelona · Events & Gatherings</span>
 </div>
 </td>
 </tr>
@@ -165,7 +166,7 @@ export async function GET(req: NextRequest) {
 <tr>
 <td style="padding:22px 24px;font-family:Georgia,'Times New Roman',serif;color:#2A1E20;">
 <div style="font-size:11px;line-height:16px;mso-line-height-rule:exactly;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;padding-bottom:10px;">Membership</div>
-<p style="margin:0 0 14px;font-size:15px;line-height:25px;mso-line-height-rule:exactly;">Enjoy member rates on every event, monthly credit allowances, and our private community circle.</p>
+<p style="margin:0 0 14px;font-size:15px;line-height:25px;mso-line-height-rule:exactly;">Enjoy member rates on every event, monthly credit allowances, and The Circle community.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
 <tr>
 <td bgcolor="#7b1f2c" style="border-radius:4px;">

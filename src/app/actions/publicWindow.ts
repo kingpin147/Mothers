@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { waitlistEntry, person, setting, subscriber } from "@/db/schema";
+import { leadEntry, setting, subscriber } from "@/db/schema";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
 export async function getPublicMembershipWindow() {
@@ -23,7 +23,6 @@ export async function getPublicSettings() {
     monthlyGrantCredits: settingsMap["monthly_grant_credits"] ?? 20,
     rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? 0,
     referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 5,
-    godmotherThreeMonthBonus: settingsMap["godmother_three_month_bonus"] ?? 15,
   };
 }
 
@@ -71,27 +70,18 @@ export async function subscribeToLetter(rawEmail: string) {
       marketingConsentAt: new Date(),
     });
 
-    // 2. Record in person & waitlistEntry
-    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
-    const clubSettings = await getPublicClubSettings();
-    let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
-    if (!personRecord) {
-      const [p] = await db
-        .insert(person)
-        .values({
-          firstName: "",
-          lastName: "",
-          email: cleanEmail,
-          source: "letter",
-          createdBeforeLaunch: !clubSettings.membershipLive,
-        })
-        .returning();
-      personRecord = p;
+    // 2. Unify into leadEntry (no person creation)
+    const existingLead = await db.query.leadEntry.findFirst({
+      where: eq(leadEntry.email, cleanEmail),
+    });
+    if (!existingLead) {
+      await db.insert(leadEntry).values({
+        email: cleanEmail,
+        source: "journal",
+        type: "newsletter",
+      });
     }
-    const existing = await db.query.waitlistEntry.findFirst({ where: eq(waitlistEntry.personId, personRecord.id) });
-    if (!existing) {
-      await db.insert(waitlistEntry).values({ personId: personRecord.id, source: "letter" });
-    }
+
     return { success: true, alreadySubscribed: false };
   } catch (e: any) {
     return { success: false, error: e?.message };
@@ -125,27 +115,18 @@ export async function subscribeToComingSoon(rawEmail: string, rawName?: string) 
       marketingConsentAt: new Date(),
     });
 
-    // 2. Record in person & waitlistEntry
-    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
-    const clubSettings = await getPublicClubSettings();
-    let personRecord = await db.query.person.findFirst({ where: eq(person.email, cleanEmail) });
-    if (!personRecord) {
-      const [p] = await db
-        .insert(person)
-        .values({
-          firstName: name || "",
-          lastName: "",
-          email: cleanEmail,
-          source: "coming_soon",
-          createdBeforeLaunch: !clubSettings.membershipLive,
-        })
-        .returning();
-      personRecord = p;
+    // 2. Unify into leadEntry (no person creation)
+    const existingLead = await db.query.leadEntry.findFirst({
+      where: eq(leadEntry.email, cleanEmail),
+    });
+    if (!existingLead) {
+      await db.insert(leadEntry).values({
+        email: cleanEmail,
+        source: "coming_soon",
+        type: "waitlist",
+      });
     }
-    const existing = await db.query.waitlistEntry.findFirst({ where: eq(waitlistEntry.personId, personRecord.id) });
-    if (!existing) {
-      await db.insert(waitlistEntry).values({ personId: personRecord.id, source: "coming_soon" });
-    }
+
     return { success: true, alreadySubscribed: false };
   } catch (e: any) {
     return { success: false, error: e?.message };

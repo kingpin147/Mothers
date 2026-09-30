@@ -47,6 +47,10 @@ export async function getPublicClubSettings() {
       monthlyFeeCents: Number(settingsMap["monthly_fee_cents"] ?? 3900),
       quarterlyFeeCents: Number(settingsMap["quarterly_fee_cents"] ?? 9900),
       referralBonusCredits: Number(settingsMap["referral_bonus_credits"] ?? 5),
+      monthlyCreditsGranted: Number(settingsMap["monthly_grant_credits"] ?? 20),
+      quarterlyCreditsGranted: Number(settingsMap["quarterly_grant_credits"] ?? 60),
+      monthlyGrantCredits: Number(settingsMap["monthly_grant_credits"] ?? 20),
+      quarterlyGrantCredits: Number(settingsMap["quarterly_grant_credits"] ?? 60),
     };
   } catch {
     return {
@@ -58,6 +62,10 @@ export async function getPublicClubSettings() {
       monthlyFeeCents: 3900,
       quarterlyFeeCents: 9900,
       referralBonusCredits: 5,
+      monthlyCreditsGranted: 20,
+      quarterlyCreditsGranted: 60,
+      monthlyGrantCredits: 20,
+      quarterlyGrantCredits: 60,
     };
   }
 }

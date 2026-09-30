@@ -509,31 +509,58 @@ export async function reportCirclePost(postId: string, reason: string, details?:
   }
 
   const personId = (session.user as any).personId || session.user.id;
-  await db.insert(circleReport).values({
-    postId,
-    reporterPersonId: personId,
-    reason,
-    details,
-    status: "pending",
+
+  const targetPost = await db.query.circlePost.findFirst({
+    where: eq(circlePost.id, postId),
   });
 
-  const updatedPost = await db
+  if (!targetPost) {
+    throw new Error("Post not found.");
+  }
+
+  // Prevent author from reporting their own post (F-15)
+  if (targetPost.personId === personId) {
+    return { success: false, error: "You cannot report your own post." };
+  }
+
+  // Check if reporter has already reported this post (F-15)
+  const existingReport = await db.query.circleReport.findFirst({
+    where: and(
+      eq(circleReport.postId, postId),
+      eq(circleReport.reporterPersonId, personId)
+    ),
+  });
+
+  if (!existingReport) {
+    await db.insert(circleReport).values({
+      postId,
+      reporterPersonId: personId,
+      reason,
+      details,
+      status: "pending",
+    });
+  }
+
+  // Count distinct reporters for this post (F-15)
+  const countRes = await db
+    .select({ count: sql<number>`count(DISTINCT ${circleReport.reporterPersonId})::int` })
+    .from(circleReport)
+    .where(eq(circleReport.postId, postId));
+
+  const distinctCount = countRes[0]?.count || 1;
+
+  await db
     .update(circlePost)
     .set({
-      reportsCount: sql`${circlePost.reportsCount} + 1`,
+      reportsCount: distinctCount,
+      ...(distinctCount >= 3
+        ? {
+            status: "hidden",
+            hiddenReason: "Auto-hidden: 3 or more distinct member reports received",
+          }
+        : {}),
     })
-    .where(eq(circlePost.id, postId))
-    .returning();
-
-  if (updatedPost[0] && updatedPost[0].reportsCount >= 3) {
-    await db
-      .update(circlePost)
-      .set({
-        status: "hidden",
-        hiddenReason: "Auto-hidden: 3 or more reports received",
-      })
-      .where(eq(circlePost.id, postId));
-  }
+    .where(eq(circlePost.id, postId));
 
   revalidatePath("/circle");
   return { success: true };

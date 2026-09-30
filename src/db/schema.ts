@@ -92,6 +92,7 @@ export const person = pgTable(
     referredByPersonId: text("referred_by_person_id"),
     lateHostCancellations: integer("late_host_cancellations").default(0).notNull(),
     lateHostCancelledAt: timestamp("late_host_cancelled_at", { withTimezone: true }),
+    godmotherRewardedAt: timestamp("godmother_rewarded_at", { withTimezone: true }),
     profileData: jsonb("profile_data").$type<{
       stages?: string[];
       neighbourhood?: string;
@@ -306,6 +307,7 @@ export const booking = pgTable(
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     attendedAt: timestamp("attended_at", { withTimezone: true }),
     noShow: boolean("no_show").default(false).notNull(),
+    releaseReason: text("release_reason"), // 'user_released', 'hold_expired', 'admin_cancelled', 'account_deleted'
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -360,6 +362,7 @@ export const creditBatch = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     source: text("source").default("purchase").notNull(), // 'purchase', 'topup', 'subscription', 'godmother', 'host_reward', 'admin_adjustment', 'refund'
     stripePaymentIntentId: text("stripe_payment_intent_id"),
+    stripeInvoiceId: text("stripe_invoice_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -865,6 +868,7 @@ export const circleReport = pgTable(
   (table) => [
     index("idx_circle_report_post").on(table.postId),
     index("idx_circle_report_status").on(table.status),
+    uniqueIndex("idx_unique_circle_report_post_user").on(table.postId, table.reporterPersonId),
   ]
 );
 

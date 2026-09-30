@@ -84,19 +84,8 @@ export async function getAccountData(targetMemberId?: string) {
       personRecord.godmotherCode = generatedCode;
     }
 
-    if (!memberRecord && personRecord) {
-      const [newMember] = await db.insert(member).values({
-        personId: personRecord.id,
-        status: "active",
-        monthlyPriceCents: 4500,
-        joiningFeePaidCents: 0,
-      }).returning();
-      memberRecord = newMember;
-      memberId = newMember.id;
-    }
-
-    if (!memberRecord || !memberId) {
-      return { success: false, error: "MEMBER_NOT_FOUND" };
+    if (!personRecord && !memberRecord) {
+      return { success: false, error: "PERSON_NOT_FOUND" };
     }
 
     // Parallelize independent sub-queries for maximum performance
@@ -278,24 +267,43 @@ export async function getAccountData(targetMemberId?: string) {
     return {
       success: true,
       settings,
-      member: {
-        id: memberRecord.id,
-        firstName: personRecord?.firstName || "",
-        lastName: personRecord?.lastName || "",
-        email: personRecord?.email || userEmail || "",
-        phone: personRecord?.phoneE164 || "",
-        status: memberRecord.status || "active",
-        stage: memberRecord.stage || "",
-        neighbourhood: memberRecord.neighbourhood || "",
-        monthlyPriceCents: memberRecord.monthlyPriceCents || 0,
-        joiningFeePaidCents: memberRecord.joiningFeePaidCents || 0,
-        pausedUntil: memberRecord.pausedUntil ? new Date(memberRecord.pausedUntil).toISOString() : null,
-        cancelAtPeriodEnd: !!memberRecord.cancelAtPeriodEnd,
-        currentPeriodEnd: memberRecord.currentPeriodEnd ? new Date(memberRecord.currentPeriodEnd).toISOString() : null,
-        createdBeforeLaunch: !!personRecord?.createdBeforeLaunch,
-        godmotherCode: finalGodmotherCode,
-        hasActiveSubscription: !!memberRecord.stripeSubscriptionId && memberRecord.status === "active",
-      },
+      member: memberRecord
+        ? {
+            id: memberRecord.id,
+            firstName: personRecord?.firstName || "",
+            lastName: personRecord?.lastName || "",
+            email: personRecord?.email || userEmail || "",
+            phone: personRecord?.phoneE164 || "",
+            status: memberRecord.status || "applicant",
+            stage: memberRecord.stage || "",
+            neighbourhood: memberRecord.neighbourhood || personRecord?.profileData?.neighbourhood || "",
+            monthlyPriceCents: memberRecord.monthlyPriceCents || 0,
+            joiningFeePaidCents: memberRecord.joiningFeePaidCents || 0,
+            pausedUntil: memberRecord.pausedUntil ? new Date(memberRecord.pausedUntil).toISOString() : null,
+            cancelAtPeriodEnd: !!memberRecord.cancelAtPeriodEnd,
+            currentPeriodEnd: memberRecord.currentPeriodEnd ? new Date(memberRecord.currentPeriodEnd).toISOString() : null,
+            createdBeforeLaunch: !!personRecord?.createdBeforeLaunch,
+            godmotherCode: finalGodmotherCode,
+            hasActiveSubscription: !!memberRecord.stripeSubscriptionId && memberRecord.status === "active",
+          }
+        : {
+            id: null,
+            firstName: personRecord?.firstName || "",
+            lastName: personRecord?.lastName || "",
+            email: personRecord?.email || userEmail || "",
+            phone: personRecord?.phoneE164 || "",
+            status: "applicant",
+            stage: (personRecord?.profileData?.stages || [])[0] || "",
+            neighbourhood: personRecord?.profileData?.neighbourhood || "",
+            monthlyPriceCents: 0,
+            joiningFeePaidCents: 0,
+            pausedUntil: null,
+            cancelAtPeriodEnd: false,
+            currentPeriodEnd: null,
+            createdBeforeLaunch: !!personRecord?.createdBeforeLaunch,
+            godmotherCode: finalGodmotherCode,
+            hasActiveSubscription: false,
+          },
       credits: {
         available: Math.max(0, currentBalance),
         ledger: ledger || [],
@@ -353,11 +361,13 @@ export async function leaveWaitlist(waitlistId: string) {
   return { success: true };
 }
 
-export async function pauseMembership() {
+export async function pauseMembership(months: number = 1) {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
   const memberId = (session.user as any).memberId;
   if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+
+  const pauseMonths = Math.min(2, Math.max(1, Math.floor(Number(months) || 1)));
 
   try {
     const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
@@ -366,13 +376,13 @@ export async function pauseMembership() {
       return { success: false, error: "ALREADY_PAUSED" };
     }
     const usedMonths = memberRecord.pauseMonthsUsedYear ?? 0;
-    if (usedMonths >= 2) {
-      return { success: false, error: "PAUSE_LIMIT_REACHED" };
+    if (usedMonths + pauseMonths > 2) {
+      return { success: false, error: `PAUSE_LIMIT_REACHED. You have used ${usedMonths}/2 pause months this year.` };
     }
     
-    // Pause for up to 2 months
+    // Pause for requested months (1 or 2)
     const pausedUntil = new Date();
-    pausedUntil.setMonth(pausedUntil.getMonth() + 2);
+    pausedUntil.setMonth(pausedUntil.getMonth() + pauseMonths);
 
     if (memberRecord.stripeSubscriptionId) {
       try {
@@ -392,7 +402,7 @@ export async function pauseMembership() {
       .set({ 
         status: "paused",
         pausedUntil, 
-        pauseMonthsUsedYear: usedMonths + 2,
+        pauseMonthsUsedYear: usedMonths + pauseMonths,
         updatedAt: new Date() 
       })
       .where(eq(member.id, memberId));
@@ -424,10 +434,22 @@ export async function resumeMembership() {
       }
     }
 
+    // On early resume: calculate whole unused months to credit back (§M-08)
+    let newUsedMonths = memberRecord.pauseMonthsUsedYear ?? 0;
+    if (memberRecord.pausedUntil && new Date(memberRecord.pausedUntil) > new Date()) {
+      const remainingMs = new Date(memberRecord.pausedUntil).getTime() - Date.now();
+      const remainingDays = remainingMs / (1000 * 60 * 60 * 24);
+      const wholeUnusedMonths = Math.floor(remainingDays / 28);
+      if (wholeUnusedMonths > 0) {
+        newUsedMonths = Math.max(0, newUsedMonths - wholeUnusedMonths);
+      }
+    }
+
     await db.update(member)
       .set({
         status: "active",
         pausedUntil: null,
+        pauseMonthsUsedYear: newUsedMonths,
         updatedAt: new Date(),
       })
       .where(eq(member.id, memberId));
@@ -782,42 +804,106 @@ export async function deleteMyAccountGDPR() {
     throw new Error("You must be logged in to delete your account.");
   }
 
-  const personId = session.user.id;
+  const personId = (session.user as any).personId || session.user.id;
 
-  // 1. Anonymize circle posts and delete attached photos
-  await db
-    .update(circlePost)
-    .set({
-      isAnonymous: true,
-      anonymousArea: "Barcelona",
-      photos: [],
-      updatedAt: new Date(),
-    })
-    .where(eq(circlePost.personId, personId));
+  try {
+    // 1. Cancel Stripe subscription if any (§M-04)
+    const memberRecord = await db.query.member.findFirst({
+      where: eq(member.personId, personId),
+    });
 
-  // 2. Anonymize circle replies
-  await db
-    .update(circleReply)
-    .set({
-      isAnonymous: true,
-      anonymousArea: "Barcelona",
-      updatedAt: new Date(),
-    })
-    .where(eq(circleReply.personId, personId));
+    if (memberRecord?.stripeSubscriptionId) {
+      try {
+        const { stripe } = await import("@/lib/stripe");
+        await stripe.subscriptions.cancel(memberRecord.stripeSubscriptionId);
+      } catch (stripeErr) {
+        console.warn("[GDPR Delete] Stripe subscription cancel warning:", stripeErr);
+      }
+    }
 
-  // 3. Mark person as deleted (soft delete with deletedAt, scrub personal details)
-  await db
-    .update(person)
-    .set({
-      firstName: "Deleted",
-      lastName: "Mother",
-      phoneE164: null,
-      whatsappE164: null,
-      deletedAt: new Date(),
-    })
-    .where(eq(person.id, personId));
+    // 2. Free / cancel future bookings
+    const futureBookings = await db
+      .select({ id: booking.id })
+      .from(booking)
+      .innerJoin(event, eq(booking.eventId, event.id))
+      .where(
+        and(
+          eq(booking.personId, personId),
+          sql`${booking.status} IN ('held', 'confirmed')`,
+          sql`${event.startsAt} > NOW()`
+        )
+      );
 
-  return { success: true };
+    for (const b of futureBookings) {
+      await db
+        .update(booking)
+        .set({
+          status: "released",
+          releaseReason: "account_deleted",
+          releasedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(booking.id, b.id));
+    }
+
+    // 3. Remove waitlist entries
+    await db.delete(eventWaitlist).where(eq(eventWaitlist.personId, personId));
+
+    // 4. Anonymize circle posts and delete attached photos
+    await db
+      .update(circlePost)
+      .set({
+        isAnonymous: true,
+        anonymousArea: "Barcelona",
+        photos: [],
+        updatedAt: new Date(),
+      })
+      .where(eq(circlePost.personId, personId));
+
+    // 5. Anonymize circle replies
+    await db
+      .update(circleReply)
+      .set({
+        isAnonymous: true,
+        anonymousArea: "Barcelona",
+        updatedAt: new Date(),
+      })
+      .where(eq(circleReply.personId, personId));
+
+    // 6. Scrub personal details & email per GDPR
+    const scrubbedEmail = `deleted-${personId.slice(0, 8)}@invalid.the-mothers.internal`;
+    await db
+      .update(person)
+      .set({
+        firstName: "Deleted",
+        lastName: "Mother",
+        email: scrubbedEmail,
+        phoneE164: null,
+        whatsappE164: null,
+        godmotherCode: null,
+        profileData: null,
+        profileDone: false,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(person.id, personId));
+
+    if (memberRecord) {
+      await db
+        .update(member)
+        .set({
+          status: "cancelled_at_period_end",
+          stripeSubscriptionId: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(member.id, memberRecord.id));
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("deleteMyAccountGDPR error:", err);
+    throw new Error(err?.message || "Account deletion failed");
+  }
 }
 
 export async function updateProfileDetails(formData: {
@@ -834,6 +920,19 @@ export async function updateProfileDetails(formData: {
     return { success: false, error: "AUTH_REQUIRED" };
   }
   const personId = (session.user as any).personId || session.user.id;
+
+  const existingPerson = await db.query.person.findFirst({
+    where: eq(person.id, personId),
+  });
+
+  const existingProfileData = existingPerson?.profileData || {};
+  const mergedProfileData = {
+    ...existingProfileData,
+    ...(formData.stage !== undefined ? { stages: formData.stage ? [formData.stage] : [] } : {}),
+    ...(formData.neighbourhood !== undefined ? { neighbourhood: formData.neighbourhood } : {}),
+    ...(formData.childrenAges !== undefined ? { why: formData.childrenAges } : {}),
+  };
+
   await db
     .update(person)
     .set({
@@ -841,11 +940,7 @@ export async function updateProfileDetails(formData: {
       ...(formData.lastName ? { lastName: formData.lastName } : {}),
       ...(formData.phone ? { phoneE164: formData.phone } : {}),
       profileDone: true,
-      profileData: {
-        stages: formData.stage ? [formData.stage] : [],
-        neighbourhood: formData.neighbourhood,
-        why: formData.childrenAges,
-      },
+      profileData: mergedProfileData,
       updatedAt: new Date(),
     })
     .where(eq(person.id, personId));
