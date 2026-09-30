@@ -55,7 +55,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
     quarterlyCredits: initialSettings.quarterlyGrantCredits ?? 60,
     creditExpiryMonths: initialSettings.creditLifeMonths ?? 6,
     rolloverCeiling: initialSettings.rolloverCapCredits ?? null,
-    topUpCreditPrice: Math.round((initialSettings.topUpPriceCents ?? 100) / 100),
+    topUpCreditPrice: Math.round((initialSettings.topUpPriceCents ?? 200) / 100),
     releaseDeadlineHours: initialSettings.releaseDeadlineHours ?? 48,
 
     godmotherBonusReferrer: initialSettings.referralBonusCredits ?? 5,

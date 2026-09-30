@@ -135,7 +135,7 @@ export default function MembershipClient({
 
   const includedItems = isEn
     ? [
-        "A private community of mothers, vetted at the door",
+        "A warm, connected community of mothers in Barcelona",
         "Stage groups by trimester, age and neighbourhood",
         "20 credits a month, rolling over",
         "Access to all events",
@@ -145,7 +145,7 @@ export default function MembershipClient({
         "Priority booking on everything",
       ]
     : [
-        "Una comunidad privada de madres, verificadas al entrar",
+        "Una comunidad cálida y conectada de madres en Barcelona",
         "Grupos por trimestre, edad y barrio",
         "20 créditos al mes, acumulables",
         "Acceso a todos los eventos",
@@ -616,7 +616,7 @@ export default function MembershipClient({
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "7px 18px", borderTop: "1px solid rgba(248,239,226,0.18)", paddingTop: "10px" }}>
             {(isEn
               ? [
-                  "A private community of mothers, vetted at the door",
+                  "A warm, connected community of mothers in Barcelona",
                   "Stage groups by trimester, age and neighbourhood",
                   "20 credits a month, rolling over",
                   "Access to all events",
@@ -625,7 +625,7 @@ export default function MembershipClient({
                   "Priority booking on everything",
                 ]
               : [
-                  "Una comunidad privada de madres, verificadas al entrar",
+                  "Una comunidad cálida y conectada de madres en Barcelona",
                   "Grupos por trimestre, edad y barrio",
                   "20 créditos al mes, acumulables",
                   "Acceso a todos los eventos",

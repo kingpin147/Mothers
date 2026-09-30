@@ -82,18 +82,48 @@ export async function GET(req: NextRequest) {
         orderBy: asc(eventWaitlist.position),
       });
 
-      if (nextWaitlist) {
-        const ev = await db.query.event.findFirst({
-          where: eq(event.id, offer.eventId),
-        });
+      const ev = await db.query.event.findFirst({
+        where: eq(event.id, offer.eventId),
+      });
 
-        if (ev && new Date(ev.startsAt) > new Date()) {
-          const msUntilEvent = new Date(ev.startsAt).getTime() - Date.now();
-          const hoursUntilEvent = msUntilEvent / (1000 * 60 * 60);
+      if (ev && new Date(ev.startsAt) > new Date()) {
+        const msUntilEvent = new Date(ev.startsAt).getTime() - Date.now();
+        const hoursUntilEvent = msUntilEvent / (1000 * 60 * 60);
 
-          const offerExpiresAt = hoursUntilEvent > 24
-            ? new Date(Date.now() + 12 * 60 * 60 * 1000)
-            : new Date(ev.startsAt);
+        if (hoursUntilEvent <= 24) {
+          // Less than 24h out: broadcast offer to ALL remaining unexpired waitlist entries
+          const remainingWaitlist = await db.query.eventWaitlist.findMany({
+            where: and(
+              eq(eventWaitlist.eventId, offer.eventId),
+              sql`${eventWaitlist.acceptedAt} IS NULL`,
+              sql`${eventWaitlist.expiredAt} IS NULL`
+            ),
+          });
+
+          const offerExpiresAt = new Date(ev.startsAt);
+          for (const wl of remainingWaitlist) {
+            await db
+              .update(eventWaitlist)
+              .set({ offeredAt: new Date(), offerExpiresAt })
+              .where(eq(eventWaitlist.id, wl.id));
+
+            const waitingPerson = await db.query.person.findFirst({
+              where: eq(person.id, wl.personId),
+            });
+
+            if (waitingPerson) {
+              await sendPlaceStillOpenEmail({
+                personId: waitingPerson.id,
+                email: waitingPerson.email,
+                firstName: waitingPerson.firstName || "Friend",
+                eventTitle: ev.title,
+                eventId: ev.id,
+              }).catch((err) => console.error("Error broadcasting waitlist offer email:", err));
+            }
+          }
+        } else if (nextWaitlist) {
+          // More than 24h out: offer next in line for 12 hours
+          const offerExpiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 hours
 
           await db
             .update(eventWaitlist)

@@ -153,6 +153,7 @@ export const member = pgTable(
     cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
     pausedUntil: timestamp("paused_until", { withTimezone: true }),
     pauseMonthsUsedYear: integer("pause_months_used_year").default(0).notNull(),
+    currentPauseMonths: integer("current_pause_months").default(0).notNull(),
     noShowCount90d: integer("no_show_count_90d").default(0).notNull(),
     rsvpSuspendedAt: timestamp("rsvp_suspended_at", { withTimezone: true }),
     referredByMemberId: text("referred_by_member_id"),

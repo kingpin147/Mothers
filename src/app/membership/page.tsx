@@ -7,10 +7,10 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Membership — The Mothers Barcelona",
-  description: "One membership. Everything you need to build your circle. Monthly credits, curated gatherings, and vetted community.",
+  description: "One membership. Everything you need to build your circle. Monthly credits, curated gatherings, and warm community in Barcelona.",
   openGraph: {
     title: "Membership — The Mothers Barcelona",
-    description: "One membership. Everything you need to build your circle: monthly credits, curated gatherings, and vetted community in Barcelona.",
+    description: "One membership. Everything you need to build your circle: monthly credits, curated gatherings, and warm community in Barcelona.",
     url: "https://themothers.cc/membership",
     siteName: "The Mothers",
     images: [

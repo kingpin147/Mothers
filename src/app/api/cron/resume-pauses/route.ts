@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
 
     for (const m of pausedMembers) {
       await db.transaction(async (tx) => {
-        // Calculate pause duration in calendar months (1 or 2 months)
-        const pauseMonths = Math.max(1, m.pauseMonthsUsedYear || 1);
+        // Calculate pause duration for this specific pause (1 or 2 months) (F-23)
+        const pauseMonths = Math.min(2, Math.max(1, m.currentPauseMonths || 1));
 
         // Unpause member
         await tx
@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
           .set({
             status: "active",
             pausedUntil: null,
+            currentPauseMonths: 0,
             updatedAt: new Date(),
           })
           .where(eq(member.id, m.id));

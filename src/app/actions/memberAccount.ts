@@ -403,6 +403,7 @@ export async function pauseMembership(months: number = 1) {
         status: "paused",
         pausedUntil, 
         pauseMonthsUsedYear: usedMonths + pauseMonths,
+        currentPauseMonths: pauseMonths,
         updatedAt: new Date() 
       })
       .where(eq(member.id, memberId));
@@ -449,6 +450,7 @@ export async function resumeMembership() {
       .set({
         status: "active",
         pausedUntil: null,
+        currentPauseMonths: 0,
         pauseMonthsUsedYear: newUsedMonths,
         updatedAt: new Date(),
       })

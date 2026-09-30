@@ -30,6 +30,10 @@ async function run() {
     await sql`ALTER TABLE "person" ALTER COLUMN "created_before_launch" SET DEFAULT false;`;
     await sql`CREATE INDEX IF NOT EXISTS "idx_person_godmother_code" ON "person" USING btree ("godmother_code");`;
 
+    // 1b. Member columns
+    console.log("Updating member table...");
+    await sql`ALTER TABLE "member" ADD COLUMN IF NOT EXISTS "current_pause_months" integer DEFAULT 0 NOT NULL;`;
+
     // 2. Event columns
     console.log("Updating event table...");
     await sql`ALTER TABLE "event" ADD COLUMN IF NOT EXISTS "cancellation_refund_percent" integer DEFAULT 100 NOT NULL;`;

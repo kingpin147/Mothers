@@ -443,6 +443,7 @@ export async function pauseMember(memberId: string, reason: string): Promise<{ s
         status: 'paused', 
         pausedUntil,
         pauseMonthsUsedYear: (current.pauseMonthsUsedYear || 0) + 1,
+        currentPauseMonths: 1,
         updatedAt: new Date() 
       }).where(eq(member.id, memberId));
 
@@ -485,6 +486,7 @@ export async function resumeMember(memberId: string, reason?: string): Promise<{
         status: 'active', 
         cancelAtPeriodEnd: false,
         pausedUntil: null,
+        currentPauseMonths: 0,
         updatedAt: new Date() 
       }).where(eq(member.id, memberId));
 

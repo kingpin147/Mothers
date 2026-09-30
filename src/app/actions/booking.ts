@@ -100,11 +100,9 @@ export async function bookEvent(eventId: string) {
         throw new Error("MEMBERS_FIRST_WINDOW_ACTIVE");
       }
 
-      // 4. Calculate required credits
+      // 4. Calculate required credits (F-18)
       let requiredCredits = 0;
-      if (ev.isFreeWalk) {
-        requiredCredits = 0;
-      } else if (!clubSettings.membershipLive) {
+      if (!clubSettings.membershipLive) {
         // Pre-launch mode: everyone pays the non-member credit cost (€2/credit)
         requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
       } else if (isMember) {
@@ -383,9 +381,7 @@ export async function holdBookingForTopUp(eventId: string) {
       }
 
       let requiredCredits = 0;
-      if (ev.isFreeWalk) {
-        requiredCredits = 0;
-      } else if (!clubSettings.membershipLive) {
+      if (!clubSettings.membershipLive) {
         requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
       } else if (isMember) {
         requiredCredits = ev.memberCredits ?? ev.creditCost;
@@ -589,10 +585,33 @@ export async function releaseBooking(bookingId: string) {
       return {
         eventId: b.eventId,
         eventTitle: ev.title,
+        eventDateStr: new Date(ev.startsAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }),
         returnedCredits,
         notifyWaitlistPersonIds,
+        hostDroppedOut: !!(ev.hostPersonId && ev.hostPersonId === b.personId),
       };
     });
+
+    // Alert team when host drops out (F-12 / N-28)
+    if (result.hostDroppedOut) {
+      const { queueAndSendEmail } = await import("@/lib/brevo");
+      await queueAndSendEmail({
+        personId: "SYSTEM",
+        toEmail: "hello@themothers.cc",
+        toName: "The Mothers Team",
+        templateKey: "host_released_alert",
+        dedupeKey: `host_released_${result.eventId}_${Date.now().toString().slice(0, 8)}`,
+        subject: `Host released — event needs a host: ${result.eventTitle}`,
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Host Released Booking</h2>
+            <p>The assigned host for <strong>${result.eventTitle}</strong> (${result.eventDateStr}) has released their place.</p>
+            <p>The event is now marked with <strong>Needs Host: Yes</strong>.</p>
+          </div>
+        `,
+        isTransactional: true,
+      }).catch((err) => console.error("Error sending host release team alert:", err));
+    }
 
     // Notify waitlist users using Place Still Open approved template (B-08 / E-01)
     if (result.notifyWaitlistPersonIds && result.notifyWaitlistPersonIds.length > 0) {

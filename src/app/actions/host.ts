@@ -487,24 +487,37 @@ export async function markEventAsRun(params: {
   const session = await auth();
   const adminId = await assertAdminOrManager(session);
 
-  const ev = await db.query.event.findFirst({
-    where: eq(event.id, params.eventId),
-  });
-
-  if (!ev) {
-    return { success: false, error: "Event not found." };
-  }
-
-  // Prevent duplicate execution (F-14)
-  if (ev.isRan) {
-    return { success: false, error: "This event has already been marked as run." };
-  }
-
   let totalCreditsAwarded = 0;
   let hostPersonRecord: any = null;
   let halfTicketCredits = 0;
+  let eventRecord: any = null;
+  let attendedAttendees: Array<{
+    bookingId: string;
+    personId: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    locale: string | null;
+  }> = [];
 
-  await db.transaction(async (tx) => {
+  const txResult = await db.transaction(async (tx) => {
+    // Select event with FOR UPDATE inside transaction to eliminate race conditions (F-14)
+    const evRows = await tx.execute(
+      sql`SELECT id, title, starts_at AS "startsAt", ends_at AS "endsAt", host_person_id AS "hostPersonId", is_ran AS "isRan", status FROM "event" WHERE id = ${params.eventId} FOR UPDATE`
+    );
+    const ev = ((evRows as any)?.[0] ?? (evRows as any)?.rows?.[0]) as any;
+
+    if (!ev) {
+      return { success: false, error: "Event not found." };
+    }
+
+    // Prevent duplicate execution (F-14)
+    if (ev.isRan || ev.is_ran) {
+      return { success: false, error: "This event has already been marked as run." };
+    }
+
+    eventRecord = ev;
+
     if (params.noShowPersonIds && params.noShowPersonIds.length > 0) {
       for (const pid of params.noShowPersonIds) {
         await tx
@@ -529,6 +542,26 @@ export async function markEventAsRun(params: {
       .update(event)
       .set({ isRan: true, ranAt: new Date(), status: "completed" })
       .where(eq(event.id, params.eventId));
+
+    // Fetch confirmed attendees who attended (F-25)
+    attendedAttendees = await tx
+      .select({
+        bookingId: booking.id,
+        personId: booking.personId,
+        firstName: person.firstName,
+        lastName: person.lastName,
+        email: person.email,
+        locale: person.locale,
+      })
+      .from(booking)
+      .innerJoin(person, eq(booking.personId, person.id))
+      .where(
+        and(
+          eq(booking.eventId, params.eventId),
+          eq(booking.status, "attended"),
+          eq(booking.noShow, false)
+        )
+      );
 
     // Host reward (§H-05 / F-14): +2 credits + 50% of credits charged to host for their ticket
     if (ev.hostPersonId) {
@@ -557,8 +590,15 @@ export async function markEventAsRun(params: {
           .where(and(eq(hostRequest.eventId, params.eventId), eq(hostRequest.personId, hostPerson.id)));
       }
     }
+
+    return { success: true };
   });
 
+  if (!txResult.success) {
+    return txResult;
+  }
+
+  // Send Host thank-you email
   if (hostPersonRecord && totalCreditsAwarded > 0) {
     const newBalance = await getPersonWalletBalance(hostPersonRecord.id);
     const origin = getAppUrl();
@@ -567,11 +607,11 @@ export async function markEventAsRun(params: {
     const { renderPublicEmailTemplate } = await import("@/lib/brevo");
     const htmlContent = renderPublicEmailTemplate("Email - Host Thank You.html", {
       first_name: hostPersonRecord.firstName || "Mother",
-      event_title: ev.title,
+      event_title: eventRecord.title,
       half_credits: halfTicketCredits,
       balance: newBalance,
       host_url: `${origin}/host`,
-    }) || `<p>Thank you for hosting ${ev.title}. We've credited ${totalCreditsAwarded} credits to your wallet.</p>`;
+    }) || `<p>Thank you for hosting ${eventRecord.title}. We've credited ${totalCreditsAwarded} credits to your wallet.</p>`;
 
     await queueAndSendEmail({
       personId: hostPersonRecord.id,
@@ -587,13 +627,110 @@ export async function markEventAsRun(params: {
     });
   }
 
+  // Send "After Your Event" follow-up email to verified attendees (F-25)
+  for (const attendee of attendedAttendees) {
+    const isEs = attendee.locale === "es";
+    const subject = isEs
+      ? `Gracias por asistir: ${eventRecord.title} — The Mothers`
+      : `Thank you for attending: ${eventRecord.title} — The Mothers`;
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="${isEs ? "es" : "en"}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Mothers</title>
+<style>
+@media only screen and (max-width:620px){
+  .px{padding-left:24px !important;padding-right:24px !important;}
+  .h1{font-size:28px !important;line-height:34px !important;}
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#efeae1;font-family:Georgia,'Times New Roman',serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
+<tr>
+<td align="center" style="padding:32px 12px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#faf7f1;border:1px solid #ddd4c6;">
+<tr>
+<td class="px" align="center" style="padding:34px 48px 26px;border-bottom:1px solid #ddd4c6;">
+<div style="font-size:15px;line-height:20px;letter-spacing:3px;text-transform:uppercase;color:#7b1f2c;">The Mothers</div>
+<div style="font-size:11px;line-height:16px;letter-spacing:1.5px;text-transform:uppercase;color:#8a807a;padding-top:7px;">Barcelona</div>
+</td>
+</tr>
+<tr>
+<td class="px" style="padding:38px 48px 0;">
+<h1 class="h1" style="margin:0;font-size:32px;line-height:40px;font-weight:normal;color:#2A1E20;">${isEs ? "Fue un placer tenerte." : "It was good to have you."}</h1>
+</td>
+</tr>
+<tr>
+<td class="px" style="padding:22px 48px 0;font-size:16px;line-height:27px;color:#2A1E20;">
+<p style="margin:0 0 16px;"><span style="color:#7b1f2c;">${attendee.firstName || (isEs ? "Amiga" : "Friend")}</span>,</p>
+<p style="margin:0 0 16px;">${isEs ? `Gracias por venir a <span style="color:#7b1f2c;">${eventRecord.title}</span>. Esperamos que hayas disfrutado del encuentro.` : `Thank you for coming to <span style="color:#7b1f2c;">${eventRecord.title}</span>. I hope you left with at least one number in your phone — that is the only measure of these gatherings that matters to us.`}</p>
+<p style="margin:0;">${isEs ? "Descubre los próximos encuentros en nuestro calendario o únete a la comunidad." : "If you want to keep going, explore what is coming up next on our calendar, or join our community."}</p>
+</td>
+</tr>
+<tr>
+<td class="px" style="padding:28px 48px 0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #ddd4c6;background-color:#f3efe6;">
+<tr>
+<td style="padding:20px 24px 8px;font-size:11px;line-height:16px;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;">${isEs ? "Próximos eventos" : "Next, near you"}</td>
+</tr>
+<tr>
+<td style="padding:0 24px 20px;font-size:15px;line-height:24px;color:#2A1E20;">
+<div style="padding:10px 0;border-top:1px solid #ddd4c6;">
+<a href="${getAppUrl()}/events" style="color:#2A1E20;text-decoration:none;font-weight:bold;">${isEs ? "Ver todos los encuentros" : "See all upcoming gatherings"}</a><br>
+<span style="color:#8a807a;font-size:14px;">Barcelona · The Mothers</span>
+</div>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td class="px" style="padding:26px 48px 0;font-size:15px;line-height:25px;color:#2A1E20;">
+<p style="margin:0;">${isEs ? "Con cariño," : "Warmly,"}<br><span style="color:#7b1f2c;">The Mothers Team</span><br><span style="color:#8a807a;font-size:14px;">The Mothers Barcelona</span></p>
+</td>
+</tr>
+<tr>
+<td class="px" align="center" style="padding:32px 48px 34px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;">
+<tr><td style="border-top:1px solid #ddd4c6;font-size:0;line-height:0;">&nbsp;</td></tr>
+</table>
+<div style="font-size:12px;line-height:20px;color:#8a807a;padding-top:20px;">
+The Mothers · Carrer de Girona, 08009 Barcelona, Spain<br>
+<a href="mailto:hello@themothers.cc" style="color:#7b1f2c;text-decoration:underline;">hello@themothers.cc</a> &nbsp;·&nbsp; <a href="https://themothers.cc" style="color:#7b1f2c;text-decoration:underline;">themothers.cc</a>
+</div>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>
+    `;
+
+    await queueAndSendEmail({
+      personId: attendee.personId,
+      toEmail: attendee.email,
+      toName: `${attendee.firstName || ""} ${attendee.lastName || ""}`.trim() || "Member",
+      templateKey: "after_first_event",
+      dedupeKey: `after_event_${params.eventId}_${attendee.personId}`,
+      subject,
+      htmlContent,
+      isTransactional: true,
+    });
+  }
+
   await db.insert(auditLog).values({
     actorId: adminId,
     actorType: "admin",
     action: "event_marked_ran",
     entity: "event",
-    entityId: ev.id,
-    after: { noShowCount: params.noShowPersonIds?.length || 0 },
+    entityId: eventRecord.id,
+    after: { noShowCount: params.noShowPersonIds?.length || 0, attendedCount: attendedAttendees.length },
   });
 
   revalidatePath("/admin/pre-launch");

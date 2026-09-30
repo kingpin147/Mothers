@@ -315,6 +315,26 @@ async function handleTopUpCheckout({
             const currentActive = activeCountRes[0]?.count || 0;
             if (ev.capacityMember > 0 && currentActive >= ev.capacityMember) {
               console.warn(`[Auto-Booking] Hold expired and event ${eventId} is at capacity. Keeping credits in wallet.`);
+              const personRecord = await tx.query.person.findFirst({ where: eq(person.id, personId) });
+              if (personRecord?.email) {
+                await queueAndSendEmail({
+                  personId,
+                  toEmail: personRecord.email,
+                  toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Friend",
+                  templateKey: "event_full_credits_kept",
+                  dedupeKey: `event_full_${eventId}_${personId}_${Date.now().toString().slice(0, 8)}`,
+                  subject: `Event full — your credits are in your wallet — The Mothers`,
+                  htmlContent: `
+                    <div style="font-family: Georgia, serif; max-width: 580px; margin: 0 auto; padding: 24px; color: #39292a; background-color: #fdfaf5;">
+                      <h2 style="font-weight: normal; font-size: 24px; margin-bottom: 16px;">Your credits are in your wallet</h2>
+                      <p style="font-size: 15px; line-height: 1.6;">The last place for <strong>${ev.title}</strong> was taken just before your top-up completed. Your payment succeeded and your credits have been placed directly in your wallet.</p>
+                      <p style="font-size: 15px; line-height: 1.6;">You can spend these credits on any upcoming event or join the waitlist for ${ev.title}.</p>
+                      <p style="margin-top: 24px;"><a href="${getAppUrl()}/events" style="background-color: #7b1f2c; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Browse upcoming events</a></p>
+                    </div>
+                  `,
+                  isTransactional: true,
+                });
+              }
               return;
             }
           }
@@ -369,6 +389,26 @@ async function handleTopUpCheckout({
             const currentActive = activeCountRes[0]?.count || 0;
             if (ev.capacityMember > 0 && currentActive >= ev.capacityMember) {
               console.warn(`[Auto-Booking] Event ${eventId} is at capacity. Keeping credits in wallet.`);
+              const personRecord = await tx.query.person.findFirst({ where: eq(person.id, personId) });
+              if (personRecord?.email) {
+                await queueAndSendEmail({
+                  personId,
+                  toEmail: personRecord.email,
+                  toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Friend",
+                  templateKey: "event_full_credits_kept",
+                  dedupeKey: `event_full_${eventId}_${personId}_${Date.now().toString().slice(0, 8)}`,
+                  subject: `Event full — your credits are in your wallet — The Mothers`,
+                  htmlContent: `
+                    <div style="font-family: Georgia, serif; max-width: 580px; margin: 0 auto; padding: 24px; color: #39292a; background-color: #fdfaf5;">
+                      <h2 style="font-weight: normal; font-size: 24px; margin-bottom: 16px;">Your credits are in your wallet</h2>
+                      <p style="font-size: 15px; line-height: 1.6;">The last place for <strong>${ev.title}</strong> was taken just before your top-up completed. Your payment succeeded and your credits have been placed directly in your wallet.</p>
+                      <p style="font-size: 15px; line-height: 1.6;">You can spend these credits on any upcoming event or join the waitlist for ${ev.title}.</p>
+                      <p style="margin-top: 24px;"><a href="${getAppUrl()}/events" style="background-color: #7b1f2c; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Browse upcoming events</a></p>
+                    </div>
+                  `,
+                  isTransactional: true,
+                });
+              }
               return;
             }
 
@@ -519,6 +559,20 @@ async function handleMembershipCheckout({
         personId: mem.personId,
         purpose: "joining_fee",
         amountCents: joiningFeeAmount,
+        currency: "EUR",
+        status: "succeeded",
+        stripeInvoiceId: subscriptionId || session?.id || null,
+        occurredAt: new Date(),
+      }).onConflictDoNothing();
+    }
+
+    if (creditsToConsume > 0) {
+      const topUpUnitCents = clubSettings.topUpPriceCents ?? 200;
+      const discountCents = creditsToConsume * topUpUnitCents;
+      await tx.insert(payment).values({
+        personId: mem.personId,
+        purpose: "credit_discount",
+        amountCents: -discountCents,
         currency: "EUR",
         status: "succeeded",
         stripeInvoiceId: subscriptionId || session?.id || null,

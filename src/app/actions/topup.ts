@@ -36,6 +36,11 @@ export async function createTopUpCheckoutSession(data: {
     const eventId = data.eventId || undefined;
     const returnTo = data.returnTo || undefined;
 
+    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+    const clubSettings = await getPublicClubSettings();
+    const unitAmount = clubSettings.topUpPriceCents ?? 200;
+    const formattedUnitPrice = (unitAmount / 100).toFixed(2);
+
     const stripeSession = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "payment",
@@ -46,9 +51,9 @@ export async function createTopUpCheckoutSession(data: {
             currency: "eur",
             product_data: {
               name: `THE Mothers — ${creditAmount} Event Credits`,
-              description: `€2.00 / credit · 6-month validity · THE Mothers Barcelona`,
+              description: `€${formattedUnitPrice} / credit · 6-month validity · THE Mothers Barcelona`,
             },
-            unit_amount: 200, // €2.00 in cents
+            unit_amount: unitAmount,
           },
           quantity: creditAmount,
         },
