@@ -19,8 +19,7 @@ export function Footer() {
       if (s.membershipLive) setIsMembershipLive(true);
     }).catch(() => {});
 
-    const saved = localStorage.getItem("tm_pre_newsletter_sub");
-    if (saved) setSubmitted(true);
+    
   }, []);
 
   const handleSubscribe = async (e: React.FormEvent) => {
@@ -183,9 +182,32 @@ export function Footer() {
                   borderRadius: "6px",
                   padding: "14px 18px",
                   backgroundColor: "rgba(86, 139, 5, 0.07)",
+                  position: "relative",
                 }}
               >
-                <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "16.5px", marginBottom: "4px", color: "#3b5e04" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubmitted(false);
+                    localStorage.removeItem("tm_pre_newsletter_sub");
+                  }}
+                  title={lang === "en" ? "Close" : "Cerrar"}
+                  style={{
+                    position: "absolute",
+                    top: "10px",
+                    right: "10px",
+                    background: "transparent",
+                    border: "none",
+                    color: "rgba(57, 41, 42, 0.5)",
+                    cursor: "pointer",
+                    padding: "4px",
+                    fontSize: "13px",
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
+                <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "16.5px", marginBottom: "4px", color: "#3b5e04", paddingRight: "20px" }}>
                   {lang === "en" ? "You are on the list." : "Ya estás en la lista."}
                 </div>
                 <p style={{ fontSize: "13px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>

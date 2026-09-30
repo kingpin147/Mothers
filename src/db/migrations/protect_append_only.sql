@@ -1,5 +1,5 @@
 -- Migration: protect_append_only.sql
--- Protects credit_entry and audit_log from UPDATE or DELETE operations (§3, §5)
+-- Protects credit_ledger and audit_log from UPDATE or DELETE operations (§3, §5)
 
 CREATE OR REPLACE FUNCTION block_modification() RETURNS trigger AS $$
 BEGIN 
@@ -7,12 +7,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Protect credit_entry
+-- Protect credit_ledger
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'protect_credit_entry') THEN
-    CREATE TRIGGER protect_credit_entry 
-    BEFORE UPDATE OR DELETE ON credit_entry
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'protect_credit_ledger') THEN
+    CREATE TRIGGER protect_credit_ledger 
+    BEFORE UPDATE OR DELETE ON credit_ledger
     FOR EACH ROW EXECUTE FUNCTION block_modification();
   END IF;
 END $$;

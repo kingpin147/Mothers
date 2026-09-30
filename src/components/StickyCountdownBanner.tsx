@@ -222,21 +222,44 @@ export function StickyCountdownBanner() {
             </div>
 
             {joined || session?.user ? (
-              <span
-                style={{
-                  fontSize: "13px",
-                  color: "#c9a227",
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
-                  padding: "8px 14px",
-                  border: "1px solid rgba(201, 162, 39, 0.3)",
-                  borderRadius: "4px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {lang === "en" ? "✓ On the list" : "✓ En la lista"}
-              </span>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    color: "#c9a227",
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    padding: "8px 14px",
+                    border: "1px solid rgba(201, 162, 39, 0.3)",
+                    borderRadius: "4px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {lang === "en" ? "✓ On the list" : "✓ En la lista"}
+                </span>
+                {joined && !session?.user && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setJoined(false);
+                      localStorage.removeItem("tm_pre_joined_list");
+                    }}
+                    title={lang === "en" ? "Change or join again" : "Cambiar o unirte de nuevo"}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "rgba(248, 239, 226, 0.6)",
+                      cursor: "pointer",
+                      padding: "4px 6px",
+                      fontSize: "13px",
+                      lineHeight: 1,
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             ) : (
               <button
                 type="button"

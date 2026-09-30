@@ -88,11 +88,83 @@ export async function checkPostingEligibility() {
     return { canPost: false, reason: "account_paused", pausedReason: user.pausedReason };
   }
 
+  // Check if membership is live (§DS-03)
+  const settingsRows = await db.select().from(setting);
+  const settingsMap: Record<string, any> = {};
+  for (const s of settingsRows) settingsMap[s.key] = s.value;
+  const isMembershipLive = Boolean(settingsMap["membership_live"] ?? false);
+
+  if (isMembershipLive) {
+    // Check if user is an active member
+    const mem = await db.query.member.findFirst({
+      where: and(eq(member.personId, personId), eq(member.status, "active")),
+    });
+
+    if (mem) {
+      return {
+        canPost: true,
+        isMember: true,
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+        },
+      };
+    }
+
+    // Non-member: count posts + replies from the switch date
+    const liveSettingRow = settingsRows.find((s) => s.key === "membership_live");
+    const switchDate = liveSettingRow?.updatedAt || new Date(0);
+
+    const [postsRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(circlePost)
+      .where(and(eq(circlePost.personId, personId), gte(circlePost.createdAt, switchDate)));
+
+    const [repliesRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(circleReply)
+      .where(and(eq(circleReply.personId, personId), gte(circleReply.createdAt, switchDate)));
+
+    const totalUsed = (postsRes?.count || 0) + (repliesRes?.count || 0);
+    const remaining = Math.max(0, 3 - totalUsed);
+
+    if (totalUsed >= 3) {
+      return {
+        canPost: false,
+        reason: "membership_required",
+        message: "You have used your 3 free Circle posts/replies. Become a member for unlimited Circle conversations.",
+        remaining: 0,
+        totalUsed,
+        isMember: false,
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+        },
+      };
+    }
+
+    return {
+      canPost: true,
+      isMember: false,
+      remaining,
+      totalUsed,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      },
+    };
+  }
+
   // Pre-launch rule (DS-03): any account holder posts and replies freely.
-  // After launch: non-members get 3 posts/replies total, then membership required; members unlimited.
-  // The full post-launch check will be added when membership goes live.
   return {
     canPost: true,
+    isPreLaunch: true,
     user: {
       id: user.id,
       firstName: user.firstName,
@@ -248,6 +320,9 @@ export async function createCirclePost(data: {
     if (eligibility.reason === "account_paused") {
       throw new Error("Your account is currently paused.");
     }
+    if (eligibility.reason === "membership_required") {
+      throw new Error(eligibility.message || "You have used your 3 free Circle posts/replies. Become a member for unlimited Circle conversations.");
+    }
     throw new Error("You are not eligible to post.");
   }
 
@@ -340,6 +415,9 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     }
     if (eligibility.reason === "account_paused") {
       throw new Error("Your account is currently paused.");
+    }
+    if (eligibility.reason === "membership_required") {
+      throw new Error(eligibility.message || "You have used your 3 free Circle posts/replies. Become a member for unlimited Circle conversations.");
     }
     throw new Error("You are not eligible to reply.");
   }

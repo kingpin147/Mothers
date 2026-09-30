@@ -7,7 +7,7 @@ import { verifyCronAuth } from "@/lib/cron-auth";
 /**
  * GDPR Data Retention Cron (§8, §20.8)
  * 
- * - Purges non-member free RSVP records (guest_rsvp) older than 180 days
+ * - Purges inactive logs and unlinked records older than retention limit
  * - Anonymizes declined applications older than 365 days
  * - Preserves all financial, payment, and credit ledger audit entries intact
  */

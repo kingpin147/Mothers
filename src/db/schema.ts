@@ -44,6 +44,7 @@ export const eventStatusEnum = pgEnum("event_status", [
 export const bookingKindEnum = pgEnum("booking_kind", [
   "member",
   "guest",
+  "non_member",
   "rsvp",
 ]);
 

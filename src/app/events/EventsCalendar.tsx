@@ -40,6 +40,7 @@ export interface PublicEvent {
   stage?: string | null;
   targetStages?: string[] | null;
   imageId?: string | null;
+  imageUrl?: string | null;
   status: string;
   creditCost: number;
   isFreeWalk?: boolean | null;

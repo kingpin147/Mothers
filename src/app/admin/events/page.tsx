@@ -697,7 +697,7 @@ export default function AdminEventsPage() {
                         {r.displayState === "draft" ? "—" : r.minToConfirm > 0 ? `${r.bookingsCount} / ${r.minToConfirm}` : String(r.bookingsCount)}
                       </div>
                       <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
-                        {r.displayState === "draft" ? "minimum not set" : r.minToConfirm > 0 ? (r.bookingsCount === 0 ? "nothing yet" : `${r.bookingsCount} booked`) : "no minimum · RSVP list"}
+                        {r.displayState === "draft" ? "minimum not set" : r.minToConfirm > 0 ? (r.bookingsCount === 0 ? "nothing yet" : `${r.bookingsCount} booked`) : "no minimum — runs whatever the numbers"}
                       </div>
                     </div>
 

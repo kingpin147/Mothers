@@ -17,16 +17,6 @@ async function main() {
 
   try {
     // 0. Ensure all Postgres ENUM values exist
-    const creditEnumValues = [
-      "grant", "joining_bonus", "purchase", "referral", "spend",
-      "return_release", "return_cancellation", "expiry", "adjustment",
-      "correction", "godmother", "godmother_bonus", "subscription_grant",
-      "rollover", "event_booking", "event_refund", "expiration", "admin_adjustment"
-    ];
-    for (const val of creditEnumValues) {
-      await sql.unsafe(`ALTER TYPE credit_entry_type ADD VALUE IF NOT EXISTS '${val}';`).catch(() => {});
-    }
-
     const adminRoleValues = ["owner", "manager", "host", "super_admin", "read_only"];
     for (const val of adminRoleValues) {
       await sql.unsafe(`ALTER TYPE admin_role ADD VALUE IF NOT EXISTS '${val}';`).catch(() => {});

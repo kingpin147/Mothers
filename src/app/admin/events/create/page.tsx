@@ -25,6 +25,12 @@ export default function AdminCreateEventPage() {
   const [nonMemberCreditCost, setNonMemberCreditCost] = useState("");
   const [description, setDescription] = useState("");
 
+  // Cover photo state (AD-16)
+  const [imageId, setImageId] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+
   // Toggles & Arrays
   const [langs, setLangs] = useState<string[]>(["English"]);
   const [stages, setStages] = useState<string[]>(["Babies"]);
@@ -37,6 +43,53 @@ export default function AdminCreateEventPage() {
   // Schedule overrides
   const [schMembers, setSchMembers] = useState("T-28");
   const [schDecision, setSchDecision] = useState("T-7");
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please upload a valid image file (JPEG, PNG, WebP).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError("Image must be under 10MB.");
+      return;
+    }
+
+    setPhotoError("");
+    setUploadingPhoto(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "events");
+      formData.append("altText", title.trim() || "Event cover photo");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to upload image");
+      }
+
+      setImageId(data.asset.id);
+      setImageUrl(data.asset.publicUrl);
+    } catch (err: any) {
+      setPhotoError(err.message || "Upload failed");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setImageId(null);
+    setImageUrl(null);
+    setPhotoError("");
+  };
 
   const toggleLang = (l: string) => {
     setLangs(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
@@ -179,6 +232,7 @@ export default function AdminCreateEventPage() {
       languages: langs,
       targetStages: stages,
       nonMemberOpensAt: nonMemberOpensAt ? new Date(nonMemberOpensAt) : undefined,
+      imageId: imageId || undefined,
       decisionAt: resolvedDecisionAt,
       publishedAt: status === "published_pending" ? new Date() : undefined,
     });
@@ -393,7 +447,7 @@ export default function AdminCreateEventPage() {
                   }}
                   style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }}
                 />
-                <span>No minimum — RSVP list, runs whatever the numbers</span>
+                <span>No minimum — runs whatever the numbers</span>
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
                 <input type="checkbox" checked={freeEvent} onChange={(e) => setFreeEvent(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }} />
@@ -432,8 +486,6 @@ export default function AdminCreateEventPage() {
               );
             })()}
           </div>
-
-          <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
 
           <div style={{ height: "1px", background: "rgba(57,41,42,0.12)" }}></div>
 
@@ -494,6 +546,43 @@ export default function AdminCreateEventPage() {
             <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Description <span style={{ color: "#7b1f2c" }}>*</span></label>
             <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What happens, who it suits, what to bring. Two or three sentences." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
             <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Spanish version can be added after publishing — the page falls back to English until it exists.</div>
+          </div>
+
+          {/* COVER PHOTO (AD-16) */}
+          <div style={{ marginTop: "8px" }}>
+            <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "4px" }}>Cover photo</label>
+            <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginBottom: "10px" }}>Shown on the event card, the event page and Home. JPG, PNG or WebP, up to 10 MB. Landscape works best.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "14px", alignItems: "start" }}>
+              <div style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", overflow: "hidden", background: "#ffffff" }}>
+                {imageUrl ? (
+                  <div role="img" aria-label="Cover photo preview" style={{ height: "150px", backgroundImage: `url(${imageUrl})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                ) : (
+                  <div style={{ height: "150px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "6px", background: "#ecdcd0", color: "rgba(57,41,42,0.62)", fontSize: "12.5px" }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="26" height="26">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="9" cy="9" r="2" />
+                      <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+                    </svg>
+                    <span>No photo yet</span>
+                  </div>
+                )}
+                <div style={{ padding: "10px 14px", fontSize: "12px", color: "rgba(57,41,42,0.62)", borderTop: "1px solid rgba(57,41,42,0.1)" }}>Card preview</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <label style={{ border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: uploadingPhoto ? "wait" : "pointer", background: "transparent" }}>
+                    {uploadingPhoto ? "Uploading..." : imageUrl ? "Change photo" : "Upload photo"}
+                    <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoUpload} disabled={uploadingPhoto} style={{ display: "none" }} />
+                  </label>
+                  {imageUrl && (
+                    <button type="button" onClick={handleRemovePhoto} style={{ border: "1px solid rgba(57,41,42,0.28)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {photoError && <div style={{ fontSize: "12.5px", color: "#993842" }}>{photoError}</div>}
+              </div>
+            </div>
           </div>
 
         </div>

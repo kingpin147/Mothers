@@ -386,7 +386,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center", justifyContent: "space-between", marginBottom: "26px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "26px" }}>
           <div>
             <div
               style={{
@@ -406,7 +406,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             </h2>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px" }}>
             <Link
               href="/events"
               style={{

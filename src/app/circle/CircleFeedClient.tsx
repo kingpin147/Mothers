@@ -104,7 +104,14 @@ export function CircleFeedClient({
     }
 
     if (!eligibility.canPost) {
-      if (eligibility.reason === "booking_required") {
+      if (eligibility.reason === "membership_required") {
+        setNotice({
+          text: lang === "en"
+            ? "You have reached the 3-post limit for non-members. Become a member for unlimited Circle conversations."
+            : "Has alcanzado el límite de 3 aportaciones para no socias. Hazte socia para acceso ilimitado a The Circle.",
+          color: "#7b1f2c",
+        });
+      } else if (eligibility.reason === "booking_required") {
         setNotice({
           text: lang === "en"
             ? "To keep The Circle safe, posting opens with your first booking (free walks included)."
@@ -235,7 +242,11 @@ export function CircleFeedClient({
     }
 
     if (!eligibility.canPost) {
-      alert("Replying requires at least one event booking.");
+      if (eligibility.reason === "membership_required") {
+        alert(lang === "en" ? "You have reached the 3-post limit for non-members. Become a member for unlimited replies." : "Has alcanzado el límite de 3 aportaciones para no socias. Hazte socia para acceso ilimitado.");
+      } else {
+        alert(lang === "en" ? "Replying requires an active account." : "Responder requiere una cuenta activa.");
+      }
       return;
     }
 

@@ -201,7 +201,7 @@ export async function bookEvent(eventId: string) {
           eventId,
           personId,
           memberId: memberId || null,
-          kind: isMember ? "member" : "guest",
+          kind: isMember ? "member" : "non_member",
           status: initialStatus,
           creditsCharged: requiredCredits,
           creditDeductions,
@@ -239,7 +239,7 @@ export async function bookEvent(eventId: string) {
       // 10. Write audit log
       await tx.insert(auditLog).values({
         actorId: personId,
-        actorType: isMember ? "member" : "guest",
+        actorType: isMember ? "member" : "non_member",
         action: "book_event",
         entity: "booking",
         entityId: newBookingId,
@@ -388,7 +388,7 @@ export async function holdBookingForTopUp(eventId: string) {
           eventId,
           personId,
           memberId,
-          kind: isMember ? "member" : "guest",
+          kind: isMember ? "member" : "non_member",
           status: "held",
           heldUntil,
           creditsCharged: requiredCredits,
@@ -532,7 +532,7 @@ export async function releaseBooking(bookingId: string) {
 
       await tx.insert(auditLog).values({
         actorId: personId,
-        actorType: b.kind === "member" ? "member" : "guest",
+        actorType: b.kind === "member" ? "member" : "non_member",
         action: "release_booking",
         entity: "booking",
         entityId: bookingId,
@@ -795,7 +795,7 @@ export async function claimWaitlistOffer(waitlistId: string) {
           eventId: ev.id,
           personId,
           memberId: memberId || null,
-          kind: isMember ? "member" : "guest",
+          kind: isMember ? "member" : "non_member",
           status: ev.status === "confirmed" ? "confirmed" : "held",
           creditsCharged: cost,
           creditDeductions,

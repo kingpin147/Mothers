@@ -377,8 +377,8 @@ export function HostClient({
           {/* Eligibility Card */}
           <div
             style={{
-              border: isEligible ? "1px solid rgba(86, 139, 5, 0.4)" : "1px solid rgba(123, 31, 44, 0.3)",
-              backgroundColor: isEligible ? "rgba(86, 139, 5, 0.08)" : "rgba(123, 31, 44, 0.06)",
+              border: !currentUser ? "1px solid rgba(57, 41, 42, 0.16)" : (isEligible ? "1px solid rgba(86, 139, 5, 0.4)" : "1px solid rgba(123, 31, 44, 0.3)"),
+              backgroundColor: !currentUser ? "#ffffff" : (isEligible ? "rgba(86, 139, 5, 0.08)" : "rgba(123, 31, 44, 0.06)"),
               borderRadius: "6px",
               padding: "16px 18px",
             }}
@@ -390,7 +390,7 @@ export function HostClient({
                 fontSize: "12px",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                color: isEligible ? "#3b5e04" : "#7b1f2c",
+                color: !currentUser ? "rgba(57, 41, 42, 0.65)" : (isEligible ? "#3b5e04" : "#7b1f2c"),
                 marginBottom: "6px",
               }}
             >
@@ -398,7 +398,22 @@ export function HostClient({
             </div>
             {!currentUser ? (
               <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
-                {isEn ? "Please log in to check your eligibility and request to host." : "Inicia sesión para comprobar tu estado y solicitar ser anfitriona."}
+                {isEn ? (
+                  <>
+                    Please{" "}
+                    <Link href="/account/login" style={{ color: "#7b1f2c", textDecoration: "underline", fontWeight: 500 }}>
+                      log in
+                    </Link>{" "}
+                    to check your eligibility and request to host.
+                  </>
+                ) : (
+                  <>
+                    <Link href="/account/login" style={{ color: "#7b1f2c", textDecoration: "underline", fontWeight: 500 }}>
+                      Inicia sesión
+                    </Link>{" "}
+                    para comprobar tu estado y solicitar ser anfitriona.
+                  </>
+                )}
               </p>
             ) : isEligible ? (
               <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>

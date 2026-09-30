@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, booking, person, auditLog, eventCategory, eventStage, stage, member } from "@/db/schema";
+import { event, booking, person, auditLog, eventCategory, eventStage, stage, member, mediaAsset } from "@/db/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { refundPersonCredits, refundBookingCredits } from "@/lib/ledger";
@@ -85,15 +85,17 @@ export async function getAdminEvents() {
       .select({
         event: event,
         categoryName: eventCategory.name,
+        imageUrl: mediaAsset.publicUrl,
         bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
         memberBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'member' THEN 1 END)::int`,
-        guestBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND ${booking.kind} = 'guest' THEN 1 END)::int`,
+        guestBookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') AND (${booking.kind} = 'non_member' OR ${booking.kind} = 'guest') THEN 1 END)::int`,
         totalHistoricalBookings: sql<number>`count(${booking.id})::int`,
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+      .leftJoin(mediaAsset, eq(event.imageId, mediaAsset.id))
       .leftJoin(booking, eq(booking.eventId, event.id))
-      .groupBy(event.id, eventCategory.name)
+      .groupBy(event.id, eventCategory.name, mediaAsset.publicUrl)
       .orderBy(desc(event.startsAt));
 
     const stageLinks = await db
@@ -173,6 +175,7 @@ export async function createAdminEvent(data: {
   nonMemberCreditCost?: number;
   needsHost?: boolean;
   nonMemberOpensAt?: Date | null;
+  imageId?: string | null;
 }) {
   const session = await auth();
   const adminId = session?.user?.id;
@@ -228,6 +231,7 @@ export async function createAdminEvent(data: {
         isFreeWalk: data.creditCost === 0,
         needsHost: !!data.needsHost,
         nonMemberOpensAt: data.nonMemberOpensAt === undefined ? null : data.nonMemberOpensAt,
+        imageId: data.imageId || null,
         partnerId: data.partnerId || data.host || null,
         status: data.status === "draft" ? "draft" : (data.minToConfirm === 0 ? "confirmed" : "published_pending"),
         languages: data.languages || [],
@@ -293,6 +297,7 @@ export async function updateAdminEvent(eventId: string, data: {
   nonMemberCreditCost?: number;
   needsHost?: boolean;
   nonMemberOpensAt?: Date | null;
+  imageId?: string | null;
   status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
 }) {
   const session = await auth();
@@ -351,6 +356,7 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
       ...(data.needsHost !== undefined && { needsHost: data.needsHost }),
       ...(data.nonMemberOpensAt !== undefined && { nonMemberOpensAt: data.nonMemberOpensAt }),
+      ...(data.imageId !== undefined && { imageId: data.imageId }),
       ...(isSig !== undefined && { isSignature: isSig }),
       ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
       ...(data.languages !== undefined && { languages: data.languages }),
@@ -767,9 +773,17 @@ export async function getEventRoster(eventId: string) {
 
   const targetStages = stageRows.map((s) => s.labelEn);
 
+  let imageUrl = null;
+  if (ev.imageId) {
+    const asset = await db.query.mediaAsset.findFirst({
+      where: eq(mediaAsset.id, ev.imageId),
+    });
+    if (asset) imageUrl = asset.publicUrl;
+  }
+
   return { 
     success: true, 
-    event: { ...ev, targetStages }, 
+    event: { ...ev, targetStages, imageUrl }, 
     bookings: bookingsWithPerson, 
     released: releasedBookings, 
     waitlist 

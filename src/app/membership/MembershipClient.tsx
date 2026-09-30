@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useSession } from "next-auth/react";
 
 function calculateTimeLeft(targetMs: number) {
   const now = new Date().getTime();
@@ -50,6 +51,8 @@ export default function MembershipClient({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [subSuccess, setSubSuccess] = useState(false);
+  const [inlineJoinOpen, setInlineJoinOpen] = useState(false);
+  const { data: session } = useSession();
 
   const waysRailRef = useRef<HTMLDivElement>(null);
   const [isLive, setIsLive] = useState(false);
@@ -340,27 +343,174 @@ export default function MembershipClient({
 
           {/* CTAs */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", alignItems: "center" }}>
-            <button
-              type="button"
-              onClick={() => setModalOpen(true)}
-              style={{
-                border: "1px solid #7b1f2c",
-                background: "transparent",
-                color: "#7b1f2c",
-                borderRadius: "4px",
-                padding: "13px 26px",
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 600,
-                fontSize: "15.5px",
-                whiteSpace: "nowrap",
-                cursor: "pointer",
-                transition: "background 0.2s ease",
-              }}
-            >
-              {waitlisted
-                ? (isEn ? "You're on the list" : "Estás en la lista")
-                : (isEn ? "Join the list" : "Únete a la lista")}
-            </button>
+            {!inlineJoinOpen ? (
+              waitlisted ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    border: "1px solid #568b05",
+                    background: "rgba(86,139,5,0.08)",
+                    color: "#3b5e04",
+                    borderRadius: "4px",
+                    padding: "11px 18px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15.5px",
+                  }}
+                >
+                  <span>{isEn ? "✓ You're on the list" : "✓ Estás en la lista"}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWaitlisted(false);
+                      localStorage.removeItem("tm_pre_joined_list");
+                      setInlineJoinOpen(true);
+                    }}
+                    title={isEn ? "Close / join again" : "Cerrar / unirte de nuevo"}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#3b5e04",
+                      cursor: "pointer",
+                      padding: "2px 4px",
+                      fontSize: "14px",
+                      lineHeight: 1,
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (session?.user?.email) {
+                      setLoading(true);
+                      try {
+                        await fetch("/api/leads", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ email: session.user.email, source: "membership_hero_signed_in" }),
+                        });
+                        setWaitlisted(true);
+                        localStorage.setItem("tm_pre_joined_list", "true");
+                      } catch {}
+                      setLoading(false);
+                    } else {
+                      setInlineJoinOpen(true);
+                    }
+                  }}
+                  style={{
+                    border: "1px solid #7b1f2c",
+                    background: "transparent",
+                    color: "#7b1f2c",
+                    borderRadius: "4px",
+                    padding: "13px 26px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15.5px",
+                    whiteSpace: "nowrap",
+                    cursor: "pointer",
+                    transition: "background 0.2s ease",
+                  }}
+                >
+                  {isEn ? "Join the list" : "Únete a la lista"}
+                </button>
+              )
+            ) : (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!email || !email.includes("@")) {
+                    setErrorMsg(isEn ? "Please enter a valid email." : "Introduce un correo válido.");
+                    return;
+                  }
+                  setLoading(true);
+                  setErrorMsg("");
+                  try {
+                    const res = await fetch("/api/leads", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ email, source: "membership_page_hero_inline" }),
+                    });
+                    if (!res.ok) throw new Error("Failed");
+                    setWaitlisted(true);
+                    localStorage.setItem("tm_pre_joined_list", "true");
+                    setInlineJoinOpen(false);
+                  } catch {
+                    setErrorMsg(isEn ? "Something went wrong." : "Algo ha fallado.");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}
+              >
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setErrorMsg("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setInlineJoinOpen(false);
+                  }}
+                  placeholder={isEn ? "you@email.com" : "tu@correo.com"}
+                  style={{
+                    padding: "10px 14px",
+                    border: "1px solid rgba(57, 41, 42, 0.28)",
+                    borderRadius: "4px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px",
+                    outline: "none",
+                    minWidth: "220px",
+                    backgroundColor: "#ffffff",
+                    color: "#39292a",
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    border: "1px solid #7b1f2c",
+                    background: "#7b1f2c",
+                    color: "#f8efe2",
+                    padding: "10px 20px",
+                    borderRadius: "4px",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15px",
+                    cursor: loading ? "wait" : "pointer",
+                  }}
+                >
+                  {loading ? "..." : (isEn ? "Join" : "Unirme")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInlineJoinOpen(false)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "rgba(57, 41, 42, 0.65)",
+                    textDecoration: "underline",
+                    fontSize: "13.5px",
+                    cursor: "pointer",
+                    padding: "6px",
+                  }}
+                >
+                  {isEn ? "Cancel" : "Cancelar"}
+                </button>
+                {errorMsg && (
+                  <div style={{ width: "100%", fontSize: "12px", color: "#993842", marginTop: "2px" }}>
+                    {errorMsg}
+                  </div>
+                )}
+              </form>
+            )}
             <Link
               href="/events"
               style={{
@@ -463,191 +613,106 @@ export default function MembershipClient({
             {isEn ? "What your membership includes" : "Qué incluye tu membresía"}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {includedItems.map((item, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  gap: "11px",
-                  alignItems: "flex-start",
-                  padding: "10px 0",
-                  borderTop: "1px solid rgba(248,239,226,0.18)",
-                }}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#f3d9a1"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  width="15"
-                  height="15"
-                  style={{ flex: "none", marginTop: "3px" }}
-                >
-                  <path d="m5 12 5 5L20 7"></path>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px 18px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {(isEn
+                ? [
+                    "A private community of mothers, vetted at the door",
+                    "20 credits a month, rolling over",
+                    "Partner perks",
+                    "Priority booking on everything",
+                  ]
+                : [
+                    "Una comunidad privada de madres, verificadas al entrar",
+                    "20 créditos al mes, acumulables",
+                    "Ventajas y descuentos con partners",
+                    "Prioridad de reserva en todo",
+                  ]
+              ).map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#f3d9a1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flex: "none", marginTop: "3px" }}>
+                    <path d="m5 12 5 5L20 7"></path>
+                  </svg>
+                  <span style={{ fontSize: "13px", lineHeight: 1.4, color: "#f8efe2" }}>{item}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {(isEn
+                ? [
+                    "Stage groups by trimester, age and neighbourhood",
+                    "Access to all events",
+                    "Access to The Mothers Circle forum, including the members' room",
+                  ]
+                : [
+                    "Grupos por trimestre, edad y barrio",
+                    "Acceso a todos los eventos",
+                    "Acceso al foro The Mothers Circle, incluida la sala de socias",
+                  ]
+              ).map((item, i) => (
+                <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#f3d9a1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flex: "none", marginTop: "3px" }}>
+                    <path d="m5 12 5 5L20 7"></path>
+                  </svg>
+                  <span style={{ fontSize: "13px", lineHeight: 1.4, color: "#f8efe2" }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Row: 3 Feature Items */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "20px", borderTop: "1px solid rgba(57, 41, 42, 0.12)", paddingTop: "22px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "rgba(123, 31, 44, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" width="18" height="18">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#f8efe2" }}>{item}</span>
               </div>
-            ))}
-          </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: "14px", color: "#39292a" }}>
+                  {isEn ? "Book an event" : "Reserva un evento"}
+                </div>
+                <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.68)", marginTop: "2px" }}>
+                  {isEn ? "Your account is created with it" : "Tu cuenta se crea con la reserva"}
+                </div>
+              </div>
+            </div>
 
-          <p
-            style={{
-              fontSize: "12.5px",
-              lineHeight: 1.6,
-              color: "rgba(248,239,226,0.7)",
-              margin: "16px 0 0",
-              borderTop: "1px solid rgba(248,239,226,0.22)",
-              paddingTop: "14px",
-            }}
-          >
-            {isEn
-              ? "Pause your membership for a total of two months in a year, at no cost. Cancel any time, with no fee."
-              : "Pausa tu membresía hasta dos meses al año sin coste. Cancela cuando quieras, sin penalización."}
-          </p>
-        </div>
-      </section>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "rgba(123, 31, 44, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" width="18" height="18">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: "14px", color: "#39292a" }}>
+                  {isEn ? "Add the credits you need" : "Añade los créditos necesarios"}
+                </div>
+                <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.68)", marginTop: "2px" }}>
+                  {isEn ? "Each event shows its credit price" : "Cada evento indica su precio"}
+                </div>
+              </div>
+            </div>
 
-      {/* ─── SECTION 2: BEFORE JANUARY / START MEETING MOTHERS NOW ─── */}
-      <section
-        style={{
-          maxWidth: "1160px",
-          margin: "0 auto",
-          padding: "clamp(28px, 4vw, 48px) clamp(20px, 5vw, 64px)",
-          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-        }}
-      >
-        <div
-          style={{
-            border: "1px solid rgba(57, 41, 42, 0.2)",
-            borderRadius: "8px",
-            background: "#ffffff",
-            padding: "clamp(24px, 4vw, 40px)",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "clamp(26px, 4vw, 48px)",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ flex: "1 1 340px", minWidth: "280px" }}>
-            <div
-              style={{
-                fontSize: "11.5px",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "rgba(57, 41, 42, 0.72)",
-                marginBottom: "12px",
-              }}
-            >
-              {isEn ? "Before January" : "Antes de enero"}
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "rgba(123, 31, 44, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" width="18" height="18">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: "14px", color: "#39292a" }}>
+                  {isEn ? "Keep them into membership" : "Manténlos en tu membresía"}
+                </div>
+                <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.68)", marginTop: "2px" }}>
+                  {isEn ? "Credits last six months" : "Validez de seis meses"}
+                </div>
+              </div>
             </div>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 400,
-                fontSize: "clamp(26px, 3.4vw, 40px)",
-                lineHeight: 1.12,
-                margin: "0 0 14px",
-              }}
-            >
-              {isEn ? "Start meeting mothers now." : "Empieza a conocer a madres ahora."}
-            </h2>
-            <p
-              style={{
-                fontSize: "16px",
-                lineHeight: 1.65,
-                color: "rgba(57, 41, 42, 0.72)",
-                margin: "0 0 16px",
-                maxWidth: "52ch",
-              }}
-            >
-              {isEn
-                ? "Your account is created with your first booking: a wallet and the whole calendar. Credits are €2 each, bought in the amount you need, and they keep their six-month life when membership opens."
-                : "Tu cuenta se crea con tu primera reserva: un monedero y todo el calendario disponible. Los créditos cuestan 2€ cada uno, se compran según necesites y mantienen sus 6 meses de validez cuando abra la membresía."}
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-              <Link
-                href="/events"
-                style={{
-                  border: "1px solid #7b1f2c",
-                  color: "#7b1f2c",
-                  padding: "12px 22px",
-                  borderRadius: "4px",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  whiteSpace: "nowrap",
-                  textDecoration: "none",
-                }}
-              >
-                {isEn ? "Book your first event" : "Reserva tu primer evento"}
-              </Link>
-              <Link
-                href="/events"
-                style={{
-                  border: "1px solid rgba(57, 41, 42, 0.24)",
-                  color: "#39292a",
-                  padding: "12px 22px",
-                  borderRadius: "4px",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  whiteSpace: "nowrap",
-                  textDecoration: "none",
-                }}
-              >
-                {isEn ? "See the calendar" : "Ver el calendario"}
-              </Link>
-            </div>
-          </div>
-
-          <div
-            style={{
-              flex: "1 1 240px",
-              minWidth: "230px",
-              borderLeft: "1px solid rgba(57, 41, 42, 0.14)",
-              paddingLeft: "clamp(18px, 3vw, 32px)",
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 400,
-                fontSize: "52px",
-                lineHeight: 1,
-                fontFeatureSettings: "'tnum'",
-                color: "#39292a",
-              }}
-            >
-              €2
-            </div>
-            <div
-              style={{
-                fontSize: "12.5px",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "rgba(57, 41, 42, 0.72)",
-                margin: "8px 0 18px",
-              }}
-            >
-              {isEn ? "per credit" : "por crédito"}
-            </div>
-            <p
-              style={{
-                fontSize: "14px",
-                lineHeight: 1.6,
-                color: "rgba(57, 41, 42, 0.74)",
-                margin: 0,
-                borderTop: "1px solid rgba(57, 41, 42, 0.12)",
-                paddingTop: "12px",
-              }}
-            >
-              {isEn
-                ? "Each event shows its own credit price on the calendar."
-                : "Cada evento muestra su propio precio en créditos en el calendario."}
-            </p>
           </div>
         </div>
       </section>
@@ -871,8 +936,8 @@ export default function MembershipClient({
                   ? "Ask for advice at three in the morning, share a win, find the mother down the street. Members enjoy their own private rooms and discussions."
                   : "Pide consejo a las tres de la mañana, comparte un logro o encuentra a una madre de tu misma calle. Las socias disfrutan de sus propias salas y debates privados.")
                 : (isEn
-                  ? "Ask for advice at three in the morning, share a win, find the mother down the street. The Circle is open to read today — and from launch, members get a private room of their own."
-                  : "Pide consejo a las tres de la mañana, comparte un logro o encuentra a una madre de tu misma calle. The Circle está abierto para leer hoy — y a partir del lanzamiento, las socias tendrán su propia sala privada.")}
+                  ? "Ask for advice at three in the morning, share a win, find the mother down the street. The Circle is open to read today — and from January 2027, members get a private room of their own."
+                  : "Pide consejo a las tres de la mañana, comparte un logro o encuentra a una madre de tu misma calle. The Circle está abierto para leer hoy — y a partir de enero de 2027, las socias tendrán su propia sala privada.")}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
               <Link
@@ -1014,74 +1079,7 @@ export default function MembershipClient({
         </div>
       </section>
 
-      {/* ─── SECTION 5: YOUR CIRCLE IS ALREADY FORMING ─── */}
-      <section
-        style={{
-          maxWidth: "1160px",
-          margin: "0 auto",
-          padding: "clamp(30px, 4vw, 52px) clamp(20px, 5vw, 64px) clamp(46px, 6vw, 78px)",
-          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-        }}
-      >
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "26px", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ flex: "1 1 360px", minWidth: "280px" }}>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 400,
-                fontSize: "clamp(26px, 3.6vw, 42px)",
-                lineHeight: 1.1,
-                margin: "0 0 12px",
-              }}
-            >
-              {isEn ? "Your circle is already forming." : "Tu círculo ya se está formando."}
-            </h2>
-            <p style={{ fontSize: "16px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.7)", margin: 0, maxWidth: "52ch" }}>
-              {isEn
-                ? "The mothers you meet this autumn are the circle you will keep in January. Join the list, or simply come to something before then."
-                : "Las madres que conozcas este otoño son el círculo que mantendrás en enero. Únete a la lista o simplemente ven a algo antes."}
-            </p>
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-            <button
-              type="button"
-              onClick={() => setModalOpen(true)}
-              style={{
-                border: "1px solid #7b1f2c",
-                background: "transparent",
-                color: "#7b1f2c",
-                borderRadius: "4px",
-                padding: "13px 26px",
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 600,
-                fontSize: "15.5px",
-                whiteSpace: "nowrap",
-                cursor: "pointer",
-              }}
-            >
-              {waitlisted
-                ? (isEn ? "You're on the list" : "Estás en la lista")
-                : (isEn ? "Join the list" : "Únete a la lista")}
-            </button>
-            <Link
-              href="/faq"
-              style={{
-                border: "1px solid rgba(57, 41, 42, 0.24)",
-                color: "#39292a",
-                padding: "13px 24px",
-                borderRadius: "4px",
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 600,
-                fontSize: "15px",
-                whiteSpace: "nowrap",
-                textDecoration: "none",
-              }}
-            >
-              FAQ
-            </Link>
-          </div>
-        </div>
-      </section>
+      
 
       {/* ─── LEAD CAPTURE MODAL ─── */}
       {modalOpen && (

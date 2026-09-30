@@ -258,17 +258,28 @@ export default function EventDetailPage() {
                 backgroundColor: "#f4eae1",
                 color: "rgba(57, 41, 42, 0.6)",
                 textAlign: "center",
-                padding: "20px",
+                position: "relative",
               }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48" style={{ marginBottom: "12px", opacity: 0.7 }}>
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "16px", fontStyle: "italic" }}>
-                Photo — {displayTitle}
-              </div>
+              {ev.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={ev.imageUrl}
+                  alt={displayTitle}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                <div style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="48" height="48" style={{ marginBottom: "12px", opacity: 0.7 }}>
+                    <rect x="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <polyline points="21 15 16 10 5 21" />
+                  </svg>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "16px", fontStyle: "italic" }}>
+                    Photo — {displayTitle}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

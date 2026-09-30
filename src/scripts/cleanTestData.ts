@@ -15,9 +15,6 @@ async function cleanTestData() {
   console.log("Step 2: delete event_waitlist");
   await db.execute(sql`DELETE FROM event_waitlist`);
 
-  console.log("Step 3: delete guest_rsvp");
-  await db.execute(sql`DELETE FROM guest_rsvp`);
-
   console.log("Step 4: delete credit_batch");
   await db.execute(sql`DELETE FROM credit_batch`);
 

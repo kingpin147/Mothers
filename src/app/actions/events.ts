@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, eventStage, stage } from "@/db/schema";
+import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, eventStage, stage, mediaAsset } from "@/db/schema";
 import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
@@ -60,10 +60,13 @@ export async function getPublicEvents() {
           cancellationWindowHours: event.cancellationWindowHours,
           nonMemberOpensAt: event.nonMemberOpensAt,
           isRan: event.isRan,
+          imageId: event.imageId,
+          imageUrl: mediaAsset.publicUrl,
         })
         .from(event)
         .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
         .leftJoin(partner, eq(event.partnerId, partner.id))
+        .leftJoin(mediaAsset, eq(event.imageId, mediaAsset.id))
         .where(
           sql`${event.status} IN ('published_pending', 'confirmed', 'completed', 'cancelled')`
         )
@@ -120,11 +123,11 @@ export async function getPublicEvents() {
     }
 
     const memberBookingsMap = new Map<string, number>();
-    const guestBookingsMap = new Map<string, number>();
+    const nonMemberBookingsMap = new Map<string, number>();
     for (const b of bookingsCount) {
       if (b.eventId) {
         if (b.kind === "member") memberBookingsMap.set(b.eventId, b.count);
-        else if (b.kind === "guest") guestBookingsMap.set(b.eventId, b.count);
+        else if (b.kind === "non_member" || b.kind === "guest") nonMemberBookingsMap.set(b.eventId, b.count);
       }
     }
     
@@ -169,7 +172,7 @@ export async function getPublicEvents() {
       }) : "";
 
       const bookedMember = memberBookingsMap.get(ev.id) || 0;
-      const bookedGuest = guestBookingsMap.get(ev.id) || 0;
+      const bookedGuest = nonMemberBookingsMap.get(ev.id) || 0;
       const placesTaken = bookedMember + bookedGuest;
 
       const memberCap = ev.capacityMember || 0;
@@ -391,9 +394,12 @@ export async function getPublicEventById(rawId: string) {
         cancellationWindowHours: event.cancellationWindowHours,
         nonMemberOpensAt: event.nonMemberOpensAt,
         isRan: event.isRan,
+        imageId: event.imageId,
+        imageUrl: mediaAsset.publicUrl,
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+      .leftJoin(mediaAsset, eq(event.imageId, mediaAsset.id))
       .where(eq(event.id, id))
       .limit(1);
 

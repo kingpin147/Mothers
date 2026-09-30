@@ -206,7 +206,7 @@ export async function getAdminDashboardMetrics() {
           eventId: booking.eventId,
           bookingsCount: sql<number>`count(CASE WHEN ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
           heldCredits: sql<number>`COALESCE(sum(CASE WHEN ${booking.status} = 'held' THEN ${booking.creditsCharged} ELSE 0 END), 0)::int`,
-          guestCount: sql<number>`count(CASE WHEN ${booking.kind} = 'guest' AND ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
+          guestCount: sql<number>`count(CASE WHEN (${booking.kind} = 'non_member' OR ${booking.kind} = 'guest') AND ${booking.status} IN ('held', 'confirmed') THEN 1 END)::int`,
           waitlistCount: sql<number>`count(CASE WHEN ${booking.status} = 'waitlist' THEN 1 END)::int`,
         }).from(booking)
           .where(inArray(booking.eventId, uniqueEventIds))
@@ -335,7 +335,7 @@ export async function getAdminDashboardMetrics() {
         id: e.id,
         when: `${startsDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${startsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
         title: e.title,
-        place: `${e.venueName || e.neighbourhood || "Barcelona"} · ${e.isFreeWalk ? "free" : (e.creditCost ?? 1) + " credits"}`,
+        place: `${e.venueName || e.neighbourhood || "Barcelona"} · ${(e.isFreeWalk || (e.creditCost ?? 0) === 0) ? "0 credits" : (e.creditCost ?? 1) + " credits"}`,
         headcount: cap > 0 ? (booked > 0 ? `${booked} of ${cap}` : String(booked)) : String(booked),
         headcountLabel: cap > 0 && booked >= cap ? "places taken · full" : "places taken",
         href: `/admin/events`,

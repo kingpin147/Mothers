@@ -382,7 +382,7 @@ function FirstVisitProfileModalContent() {
                 marginBottom: "8px",
               }}
             >
-              {isEn ? "3. What are you hoping to find here?" : "3. ¿Qué esperas encontrar aquí?"}
+              {isEn ? "3. What are you hoping to find here? *" : "3. ¿Qué esperas encontrar aquí? *"}
             </label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {[
@@ -431,7 +431,7 @@ function FirstVisitProfileModalContent() {
                 marginBottom: "8px",
               }}
             >
-              {isEn ? "4. When are you usually free for gatherings?" : "4. ¿Cuándo sueles tener disponibilidad?"}
+              {isEn ? "4. When are you usually free for gatherings? *" : "4. ¿Cuándo sueles tener disponibilidad? *"}
             </label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
               {[
