@@ -37,7 +37,7 @@ export default function LegalPage() {
           {
             n: "02",
             title: "Accounts",
-            body: "An account is created when you book your first event, with your name, email, phone number and a password. There is no application and no fee, and holding one does not make you a member of the club or entitle you to anything beyond what is published on the calendar. You are responsible for keeping your password to yourself and for anything booked from your account. You may close it at any time by writing to us.",
+            body: "You can open an account directly on the site, or it is created when you book your first event, with your name, email, phone number and a password. There is no application and no fee, and holding one does not make you a member of the club or entitle you to anything beyond what is published on the calendar. You are responsible for keeping your password to yourself and for anything booked from your account. You may close it at any time by writing to us.",
           },
           {
             n: "03",
@@ -47,7 +47,7 @@ export default function LegalPage() {
           {
             n: "04",
             title: "Bookings and cancellations",
-            body: "Every event has a fixed capacity except those published as an open list, and places are confirmed in the order received. Each event carries its own cancellation window, shown on the event and at booking. Release a place inside that window and the credits return to your wallet in full; after it, they return only if the place is filled before the event starts. Walks and park socials cost members no credits and so carry nothing to refund. If you book and do not come without releasing your place, it is recorded as a no-show and you cannot host an event for three months after it.",
+            body: "Every event has a fixed capacity except those published as an open list, and places are confirmed in the order received. Each event carries its own cancellation window, shown on the event and at booking. Release a place inside that window and the credits return to your wallet in full; after it, they return only if the place is filled before the event starts. Events published at 0 credits cost no credits and so carry nothing to refund. If you book and do not come without releasing your place, it is recorded as a no-show and you cannot host an event for three months after it.",
           },
           {
             n: "05",
@@ -119,7 +119,7 @@ export default function LegalPage() {
           {
             n: "02",
             title: "Cuentas",
-            body: "Se crea una cuenta al reservar tu primer evento con tu nombre, correo, teléfono y contraseña. No hay solicitud previa ni cuota de inscripción, y tener cuenta no te convierte en socia del club ni otorga derechos fuera de lo publicado en el calendario. Eres responsable de la confidencialidad de tu contraseña y de las reservas realizadas desde tu cuenta. Puedes cerrarla en cualquier momento escribiéndonos.",
+            body: "Puedes crear una cuenta directamente en la web, o se crea al reservar tu primer evento con tu nombre, correo, teléfono y contraseña. No hay solicitud previa ni cuota de inscripción, y tener cuenta no te convierte en socia del club ni otorga derechos fuera de lo publicado en el calendario. Eres responsable de la confidencialidad de tu contraseña y de las reservas realizadas desde tu cuenta. Puedes cerrarla en cualquier momento escribiéndonos.",
           },
           {
             n: "03",
@@ -129,7 +129,7 @@ export default function LegalPage() {
           {
             n: "04",
             title: "Reservas y cancelaciones",
-            body: "Cada evento tiene un aforo fijo salvo los publicados como lista abierta, y las plazas se confirman por orden de llegada. Cada evento tiene su propia ventana de cancelación indicada en la ficha. Si liberas tu plaza dentro de ese plazo, los créditos vuelven íntegros a tu monedero; fuera de plazo, solo se devuelven si la plaza es ocupada antes del evento. Los paseos y encuentros en el parque no consumen créditos y no conllevan devolución. Si no asistes sin liberar tu plaza, constará como ausencia y no podrás ser anfitriona durante los 3 meses siguientes.",
+            body: "Cada evento tiene un aforo fijo salvo los publicados como lista abierta, y las plazas se confirman por orden de llegada. Cada evento tiene su propia ventana de cancelación indicada en la ficha. Si liberas tu plaza dentro de ese plazo, los créditos vuelven íntegros a tu monedero; fuera de plazo, solo se devuelven si la plaza es ocupada antes del evento. Los eventos publicados a 0 créditos no consumen créditos y no conllevan devolución. Si no asistes sin liberar tu plaza, constará como ausencia y no podrás ser anfitriona durante los 3 meses siguientes.",
           },
           {
             n: "05",
@@ -205,7 +205,7 @@ export default function LegalPage() {
           {
             n: "01",
             title: "What we collect",
-            body: "When you book your first event we create your account with your name, email address and phone number. When you book an event we record which event, when, and what it cost in credits; for walks and park socials we also ask for a phone number so we can send the exact meeting point, which we do not publish. When you buy credits, the card details are captured and processed by our payment provider and are not stored on our systems — we keep the amount, the date and the receipt. If you write to us, we keep that correspondence. If you use The Circle we keep your posts, replies, photos and any reports you make; posts shown anonymously are still linked to your account. If you host or invite friends we keep your host requests, attendance and no-show records, your Godmother code and who registered with it.",
+            body: "When you open an account or book your first event we record your name, email address and phone number. When you book an event we record which event, when, and what it cost in credits; we also ask for a phone number so we can send the exact meeting point, which we do not publish. When you buy credits, the card details are captured and processed by our payment provider and are not stored on our systems — we keep the amount, the date and the receipt. If you write to us, we keep that correspondence. If you use The Circle we keep your posts, replies, photos and any reports you make; posts shown anonymously are still linked to your account. If you host or invite friends we keep your host requests, attendance and no-show records, your Godmother code and who registered with it.",
           },
           {
             n: "02",
@@ -257,7 +257,7 @@ export default function LegalPage() {
           {
             n: "01",
             title: "Qué recopilamos",
-            body: "Al reservar tu primer evento creamos tu cuenta con nombre, correo electrónico y teléfono. Al reservar un evento registramos los datos del mismo y su coste en créditos; en paseos pedimos teléfono para enviar por WhatsApp la ubicación exacta de encuentro. Para la compra de créditos, los datos de tarjeta son procesados por Stripe. Si participas en The Circle se guardan tus mensajes y fotos; las publicaciones anónimas siguen vinculadas internamente a tu cuenta.",
+            body: "Al crear una cuenta o reservar tu primer evento recopilamos tu nombre, correo electrónico y teléfono. Al reservar un evento registramos los datos del mismo y su coste en créditos; también solicitamos tu teléfono para enviar la ubicación exacta de encuentro, la cual no publicamos. Para la compra de créditos, los datos de tarjeta son procesados por Stripe. Si participas en The Circle se guardan tus mensajes y fotos; las publicaciones anónimas siguen vinculadas internamente a tu cuenta.",
           },
           {
             n: "02",

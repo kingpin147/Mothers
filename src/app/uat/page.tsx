@@ -57,14 +57,14 @@ const GROUPS: UATGroup[] = [
       { id: "E-05", prio: "P1", title: "Book signed out", steps: "Click Book on a paid event.", expected: "Event detail opens the first-booking panel (name, email, phone, password)." },
       { id: "E-06", prio: "P1", title: "Book with enough credits", steps: 'Click "Book with N credits".', expected: "Balance drops by N; card shows booked." },
       { id: "E-07", prio: "P1", title: "Book with too few credits", steps: "Click Book.", expected: "Top Up with shortfall; after paying returns and auto-books." },
-      { id: "E-08", prio: "P1", title: "Cancellation rule per event", steps: "Check a walk, a coffee, a class, a supper.", expected: "Cards and detail show: any time · 24 h · 48 h · 7 days." }
+      { id: "E-08", prio: "P1", title: "Cancellation rule per event", steps: "Check a 0-credit event, a coffee, a class, a supper.", expected: "Cards and detail show: any time · 24 h · 48 h · 7 days." }
     ]
   },
   {
     title: "The Circle (Forum)",
     page: "The Circle",
     items: [
-      { id: "C-01", prio: "P1", title: "Read without account", steps: "Open signed out.", expected: "Feed readable; composer asks to book a first event." },
+      { id: "C-01", prio: "P1", title: "Read without account", steps: "Open signed out.", expected: "Feed readable; composer asks to sign in or open a free account." },
       { id: "C-02", prio: "P1", title: "Post + persist", steps: "Post 10+ characters; reload.", expected: "Post appears on top and survives reload." },
       { id: "C-03", prio: "P1", title: "Too short", steps: "Post under 10 characters.", expected: "Error; nothing posted." },
       { id: "C-04", prio: "P1", title: "Anonymous post", steps: "Tick anonymous and post.", expected: 'Shown as "A mother in Barcelona"; still linked to real account.' },
@@ -94,7 +94,7 @@ const GROUPS: UATGroup[] = [
       { id: "MOD-01", prio: "P1", title: "Auto-hide at 3 reports", steps: "Report one post from 3 accounts.", expected: 'Post replaced by "This post was removed for moderation"; replies stay; appears in /admin/reports queue.' },
       { id: "MOD-02", prio: "P1", title: "Admin hide / restore", steps: "Hide from /admin/reports, then restore.", expected: "Placeholder shows, then post returns." },
       { id: "MOD-03", prio: "P1", title: "Pause account", steps: "Pause a mother with bookings and credits.", expected: "She can read but not post, reply or book. Bookings kept; credits frozen with same expiry." },
-      { id: "MOD-04", prio: "P1", title: "Posting after free booking", steps: "New account books a free walk, then posts.", expected: "Posting unlocked." }
+      { id: "MOD-04", prio: "P1", title: "Posting with an account", steps: "New account opens and posts before launch.", expected: "Posting unlocked without requiring a prior booking." }
     ]
   },
   {
@@ -110,7 +110,7 @@ const GROUPS: UATGroup[] = [
     title: "Account & GDPR",
     page: "Account",
     items: [
-      { id: "A-01", prio: "P1", title: "Signed-out state", steps: "Open signed out.", expected: '"Your account starts with your first booking" with Events and Sign in buttons.' },
+      { id: "A-01", prio: "P1", title: "Signed-out state", steps: "Open signed out.", expected: '"Open a free account — no booking needed" with Events and Sign in buttons.' },
       { id: "A-02", prio: "P1", title: "Strip + tabs", steps: "Check credits, invite code, all 4 tabs.", expected: "Values correct; tabs switch." },
       { id: "CR-01", prio: "P1", title: "Godmother trigger", steps: "Invitee registers, then books.", expected: "+5 pending after register, active only after first confirmed booking." },
       { id: "CR-03", prio: "P1", title: "Delete account", steps: "Delete from Account settings.", expected: 'Signed out; posts show "A mother in Barcelona"; photos gone; payment records kept.' }

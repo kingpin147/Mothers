@@ -244,7 +244,7 @@ function getCategoryInfo(ev: PublicEvent, lang: Lang): { key: string; label: str
 
   const raw = `${ev.categorySlug || ""} ${ev.categoryName || ""} ${ev.title || ""}`.toLowerCase();
 
-  if (raw.includes("walk") || raw.includes("social") || raw.includes("easy") || raw.includes("conexi") || ev.isFreeWalk || ev.creditCost === 0) {
+  if (raw.includes("walk") || raw.includes("social") || raw.includes("easy") || raw.includes("conexi")) {
     return {
       key: "easy",
       label: "Easy connection",
@@ -868,11 +868,11 @@ export function BookingSuccessModal({
           <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 16px" }}>
             {lang === "en" ? (
               <>
-                Your place at “{displayTitle}” on {formattedDate} is booked. Walks and park socials are included in your membership — no credits needed.
+                Your place at “{displayTitle}” on {formattedDate} is booked. The exact meeting point details will be sent before the event.
               </>
             ) : (
               <>
-                Tu plaza en “{displayTitle}” el {formattedDate} está reservada. Los paseos y encuentros están incluidos en tu membresía — sin coste en créditos.
+                Tu plaza en “{displayTitle}” el {formattedDate} está reservada. Los detalles exactos del punto de encuentro se enviarán antes del evento.
               </>
             )}
           </p>
@@ -1765,7 +1765,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       const isMomsOnly = ev.audienceType === "mothers_only" || ev.audienceType === "moms_only" || ev.categorySlug === "evenings" || (ev.title && ev.title.toLowerCase().includes("date"));
       if (isMomsOnly) return false;
     } else if (activeAudience === "moms") {
-      const isKids = ev.audienceType === "kids_welcome" || ev.categorySlug === "baby" || ev.isFreeWalk;
+      const isKids = ev.audienceType === "kids_welcome" || ev.categorySlug === "baby";
       if (isKids && ev.audienceType !== "mothers_only" && ev.audienceType !== "moms_only") return false;
     }
 
@@ -1844,8 +1844,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         </h1>
         <p style={{ fontSize: "16.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.74)", margin: "0 auto", maxWidth: "62ch" }}>
           {lang === "en"
-            ? "Small groups, the same faces, a host who makes the introductions. Walks and park socials are free; everything else takes a few credits."
-            : "Grupos reducidos, las mismas caras, una anfitriona que hace las presentaciones. Los paseos y encuentros en el parque son gratuitos; todo lo demás cuesta unos pocos créditos."}
+            ? "Small groups, the same faces, a host who makes the introductions. Every event’s price is shown on its card in credits — 0-credit events say “0 credits”."
+            : "Grupos reducidos, las mismas caras, una anfitriona que hace las presentaciones. El precio de cada evento se muestra en su ficha en créditos — los eventos de 0 créditos indican “0 créditos”."}
         </p>
       </section>
 

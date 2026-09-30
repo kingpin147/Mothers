@@ -19,7 +19,7 @@ const QUOTED_PAGES: Record<string, [string, string]> = {
   joiningFee: ["Joining fee (€)", "Membership, Payment, FAQ, Legal §02"],
   monthlyFee: ["Membership · monthly (€)", "Home, Membership, Payment, FAQ, Legal §02"],
   quarterlyFee: ["Membership · quarterly (€)", "Membership, Payment, FAQ, Legal §02"],
-  nonMemberWalkCredits: ["Non-member price for a free walk (credits)", "Events, FAQ"],
+  nonMemberWalkCredits: ["Default non-member price when the member price is 0 (credits)", "Events, FAQ"],
   nonMemberMarkup: ["Non-member mark-up (default)", "Events"],
   monthlyCredits: ["Monthly grant", "Membership, Account, FAQ"],
   quarterlyCredits: ["Quarterly grant", "Membership, Account"],
@@ -385,7 +385,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
             title: "Non-member pricing",
             intro: "There is no Event Pass: once membership opens mothers without membership book the same events with credits, at the non-member price.",
             fields: [
-              { key: "nonMemberWalkCredits", label: "Non-member price for a free walk (credits)", help: "Pre-filled as the non-member price when an event is free for members.", parse: (v: string) => parseInt(v, 10) || 0 },
+              { key: "nonMemberWalkCredits", label: "Default non-member price when the member price is 0", help: "Pre-filled as the non-member price when an event is free for members.", parse: (v: string) => parseInt(v, 10) || 0 },
               { key: "nonMemberMarkup", label: "Non-member mark-up (default)", help: "Pre-fills the non-member price from the member price on a new event. Always editable per event.", parse: (v: string) => parseFloat(v) || 1.5, suffix: "×" },
             ],
           },

@@ -145,8 +145,11 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
       let note = "";
       const d = new Date(b.eventStartsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
       const isPast = new Date(b.eventStartsAt).getTime() < Date.now();
+      const creditNote = (b.creditsCharged !== null && b.creditsCharged !== undefined)
+        ? `${b.creditsCharged} credits`
+        : "0 credits";
       if (b.status === 'attended') {
-        note = `Attended ${d} · ${b.isFreeWalk ? 'free' : (b.creditsCharged ? b.creditsCharged + ' credits' : 'included')}`;
+        note = `Attended ${d} · ${creditNote}`;
         color = GREEN;
       } else if (b.status === 'released') {
         note = `Released her place ${new Date(b.releasedAt || b.bookedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
@@ -155,7 +158,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
         note = `No show ${d}`;
         color = WINE;
       } else if (isPast) {
-        note = `Attended ${d} · ${b.isFreeWalk ? 'free' : (b.creditsCharged ? b.creditsCharged + ' credits' : 'included')}`;
+        note = `Attended ${d} · ${creditNote}`;
         color = GREEN;
       } else {
         note = `Booked for ${d}`;

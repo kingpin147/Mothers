@@ -40,9 +40,9 @@ export const CANONICAL_FAQS: FaqItemData[] = [
   {
     group: "Coming to an event now",
     qEn: "Do I have to be a member to come?",
-    aEn: "No — there is no membership to be had yet. Pick an event and book it: your account is created with that first booking. Walks and park socials are free; anything else takes credits.",
+    aEn: "No — there is no membership to be had yet. Pick an event and book it, or open a free account. Every card shows its price in credits — 0-credit events say “0 credits”.",
     qEs: "¿Tengo que ser socia para asistir?",
-    aEs: "No — todavía no hay membresías a la venta. Elige un evento y resérvalo: tu cuenta se crea con esa primera reserva. Los paseos y encuentros en el parque son gratuitos; el resto de experiencias se abonan con créditos.",
+    aEs: "No — todavía no hay membresías a la venta. Elige un evento y resérvalo, o crea una cuenta gratuita. Cada ficha muestra su precio en créditos — los eventos de 0 créditos indican “0 créditos”.",
   },
   {
     group: "Coming to an event now",
@@ -54,16 +54,16 @@ export const CANONICAL_FAQS: FaqItemData[] = [
   {
     group: "Coming to an event now",
     qEn: "What does an event cost?",
-    aEn: "Walks and park socials are free. A hosted coffee or brunch is 1 credit, a class or an expert session 6 to 9, a supper 7 to 12, and a signature moment 16 to 28. Every card shows its price in credits. After launch, each event has a member price and a non-member price, and cards show both.",
+    aEn: "Every card shows its price in credits — 0-credit events say “0 credits”, a hosted coffee or brunch is 1 credit, a class or an expert session 6 to 9, a supper 7 to 12, and a signature moment 16 to 28. After launch, each event has a member price and a non-member price, and cards show both.",
     qEs: "¿Cuánto cuesta un evento?",
-    aEs: "Los paseos y encuentros en el parque son gratuitos. Un café o brunch con anfitriona cuesta 1 crédito, una clase o taller con especialista entre 6 y 9, una cena entre 7 y 12, y un Signature moment entre 16 y 28. Cada ficha muestra su precio en créditos. Tras el lanzamiento, cada evento tendrá precio para socias y precio general.",
+    aEs: "Cada ficha muestra su precio en créditos — los eventos de 0 créditos indican “0 créditos”, un café o brunch con anfitriona cuesta 1 crédito, una clase o taller con especialista entre 6 y 9, una cena entre 7 y 12, y un Signature moment entre 16 y 28. Tras el lanzamiento, cada evento tendrá precio para socias y precio general.",
   },
   {
     group: "Coming to an event now",
     qEn: "Can I cancel?",
-    aEn: "Yes. Each event has its own cancellation window, shown on the card and at booking — free walks any time, hosted coffees 24 hours, classes and sessions 48 hours, suppers and signature moments 7 days. Cancel inside the window and your credits come straight back; after it, they return only if someone takes your place. Two no-shows in three months pause your booking until you write to us.",
+    aEn: "Yes. Each event has its own cancellation window, shown on the card and at booking — 0-credit events any time, hosted coffees 24 hours, classes and sessions 48 hours, suppers and signature moments 7 days. Cancel inside the window and your credits come straight back; after it, they return only if someone takes your place. Two no-shows in three months pause your booking until you write to us.",
     qEs: "¿Puedo cancelar mi reserva?",
-    aEs: "Sí. Cada evento dispone de su propio plazo de cancelación indicado en la ficha y al reservar: paseos gratuitos en cualquier momento, cafés con anfitriona 24 horas, clases y talleres 48 horas, cenas y Signature moments 7 días. Si cancelas dentro del plazo, tus créditos vuelven íntegros de inmediato; fuera de plazo, solo si otra persona ocupa tu plaza. Dos ausencias en 3 meses pausan la posibilidad de reservar hasta que nos contactes.",
+    aEs: "Sí. Cada evento dispone de su propio plazo de cancelación indicado en la ficha y al reservar: eventos de 0 créditos en cualquier momento, cafés con anfitriona 24 horas, clases y talleres 48 horas, cenas y Signature moments 7 días. Si cancelas dentro del plazo, tus créditos vuelven íntegros de inmediato; fuera de plazo, solo si otra persona ocupa tu plaza. Dos ausencias en 3 meses pausan la posibilidad de reservar hasta que nos contactes.",
   },
   {
     group: "Coming to an event now",
@@ -98,9 +98,9 @@ export const CANONICAL_FAQS: FaqItemData[] = [
   {
     group: "Credits and your wallet",
     qEn: "How do I open an account?",
-    aEn: "By booking your first event. Your name, email, phone and a password are asked at that step, and the account is created with the booking. Start with a free walk and no card is needed at all.",
+    aEn: "You can open a free account directly on the site — no booking needed. If you join before launch, there is no joining fee ever.",
     qEs: "¿Cómo creo una cuenta?",
-    aEs: "Reservando tu primer evento. Te pediremos tu nombre, correo, teléfono y contraseña durante ese proceso y tu cuenta quedará creada automáticamente. Si empiezas con un paseo gratuito no necesitas tarjeta de crédito.",
+    aEs: "Puedes crear una cuenta gratuita directamente en la web — sin necesidad de reservar. Si te unes antes del lanzamiento, nunca pagarás cuota de alta.",
   },
   {
     group: "Credits and your wallet",

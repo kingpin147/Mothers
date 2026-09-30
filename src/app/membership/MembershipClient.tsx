@@ -595,8 +595,8 @@ export default function MembershipClient({
 
           <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(248,239,226,0.82)", margin: "14px 0 20px" }}>
             {isEn
-              ? "No joining fee if you join before launch — your account is created the first time you book an event, even a free walk."
-              : "Sin cuota de alta si te unes antes del lanzamiento — se crea tu cuenta la primera vez que reservas un evento, incluso un paseo gratuito."}
+              ? "No joining fee if you join before launch — open a free account now, no booking needed."
+              : "Sin cuota de alta si te unes antes del lanzamiento — abre una cuenta gratuita ahora, sin necesidad de reservar."}
           </p>
 
           <div

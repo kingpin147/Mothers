@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
 <tr>
 <td class="px" style="padding:30px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;mso-line-height-rule:exactly;color:#5c534e;">
 <p style="margin:0 0 14px;">And if it was not for you, that is genuinely fine — tell me why and it will make the next one better. Reply straight to this email.</p>
-<p style="margin:0;">Either way, our walks stay free and open to you. Just come.</p>
+<p style="margin:0;">Either way, our calendar stays open to you. Just come.</p>
 </td>
 </tr>
 

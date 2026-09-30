@@ -114,8 +114,8 @@ export function CircleFeedClient({
       } else if (eligibility.reason === "booking_required") {
         setNotice({
           text: lang === "en"
-            ? "To keep The Circle safe, posting opens with your first booking (free walks included)."
-            : "Para mantener The Circle seguro, las publicaciones se activan con tu primera reserva (caminatas gratuitas incluidas).",
+            ? "Anyone can read. Open a free account to post."
+            : "Cualquiera puede leer. Abre una cuenta gratuita para publicar.",
           color: "#7b1f2c",
         });
       } else {
@@ -1124,19 +1124,19 @@ export function CircleFeedClient({
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", marginBottom: "10px" }}>
               {isUserSignedIn
                 ? (lang === "en" ? "Bring it to the room" : "Tráelo al encuentro")
-                : (lang === "en" ? "Reading is open. Posting is free." : "Leer está abierto. Publicar es gratuito.")}
+                : (lang === "en" ? "Anyone can read. Open a free account to post." : "Cualquiera puede leer. Abre una cuenta gratuita para publicar.")}
             </div>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 16px" }}>
               {isUserSignedIn
                 ? (lang === "en"
-                    ? "The best threads start at an event and carry on here. There are walks every week, and they cost nothing."
-                    : "Los mejores hilos comienzan en un evento y continúan aquí. Hay caminatas cada semana y no cuestan nada.")
+                    ? "The best threads start at an event and carry on here. There are events every week, from 0 credits."
+                    : "Los mejores hilos comienzan en un evento y continúan aquí. Hay eventos cada semana, desde 0 créditos.")
                 : (lang === "en"
-                    ? "Your account is created when you book your first event. A free walk is the easiest start."
-                    : "Tu cuenta se crea al reservar tu primer evento. Una caminata gratuita es el comienzo más sencillo.")}
+                    ? "Open a free account — no booking needed. No joining fee if you join before launch."
+                    : "Abre una cuenta gratuita — sin necesidad de reservar. Sin cuota de alta si te unes antes del lanzamiento.")}
             </p>
             <Link
-              href="/events"
+              href={isUserSignedIn ? "/events" : "/account/login"}
               style={{
                 border: "1px solid #7b1f2c",
                 color: "#7b1f2c",

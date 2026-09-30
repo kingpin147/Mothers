@@ -181,8 +181,8 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
             </h2>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
               {isEn
-                ? "Come to a walk. It is free, it lasts an hour, and nobody will ask you to join anything."
-                : "Ven a un paseo. Es gratuito, dura una hora y nadie te pedirá comprometerte a nada."}
+                ? "Come to an event. Pick any gathering on the calendar, and nobody will ask you to join anything."
+                : "Ven a un evento. Elige cualquier encuentro del calendario y nadie te pedirá comprometerte a nada."}
             </p>
           </div>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>

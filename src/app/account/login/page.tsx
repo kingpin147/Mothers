@@ -215,8 +215,8 @@ function LoginForm() {
               }}
             >
               {lang === "en"
-                ? "Your account is created when you book your first event. Most mothers start with a free walk."
-                : "Tu cuenta se crea al reservar tu primer evento. La mayoría empieza con un paseo gratuito."}
+                ? "Book your first event and your account comes with it — or open a free account now to post in The Circle. No joining fee if you join before launch."
+                : "Reserva tu primer evento y tu cuenta vendrá incluida — o crea una cuenta gratuita para participar en The Circle. Sin cuota de alta si te unes antes del lanzamiento."}
             </p>
 
             <div style={{ marginTop: "4px" }}>
