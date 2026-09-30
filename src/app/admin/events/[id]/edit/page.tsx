@@ -477,12 +477,12 @@ export default function AdminEditEventPage() {
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Leave empty for no ceiling.</div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Credit cost (Member) <span style={{ color: "#7b1f2c" }}>*</span></label>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
                 <input type="number" value={creditCost} onChange={(e) => setCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#7b1f2c", marginTop: "6px" }}>{costHint}</div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Credit cost (Non-member)</label>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Non-member price (credits)</label>
                 <input type="number" value={nonMemberCreditCost} onChange={(e) => setNonMemberCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#7b1f2c", marginTop: "6px" }}>{nmCostHint}</div>
               </div>

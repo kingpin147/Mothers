@@ -613,102 +613,158 @@ export default function MembershipClient({
             {isEn ? "What your membership includes" : "Qué incluye tu membresía"}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px 18px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {(isEn
-                ? [
-                    "A private community of mothers, vetted at the door",
-                    "20 credits a month, rolling over",
-                    "Partner perks",
-                    "Priority booking on everything",
-                  ]
-                : [
-                    "Una comunidad privada de madres, verificadas al entrar",
-                    "20 créditos al mes, acumulables",
-                    "Ventajas y descuentos con partners",
-                    "Prioridad de reserva en todo",
-                  ]
-              ).map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#f3d9a1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flex: "none", marginTop: "3px" }}>
-                    <path d="m5 12 5 5L20 7"></path>
-                  </svg>
-                  <span style={{ fontSize: "13px", lineHeight: 1.4, color: "#f8efe2" }}>{item}</span>
-                </div>
-              ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: "7px 18px", borderTop: "1px solid rgba(248,239,226,0.18)", paddingTop: "10px" }}>
+            {(isEn
+              ? [
+                  "A private community of mothers, vetted at the door",
+                  "Stage groups by trimester, age and neighbourhood",
+                  "20 credits a month, rolling over",
+                  "Access to all events",
+                  "Partner perks",
+                  "Access to The Mothers Circle forum, including the members' room",
+                  "Priority booking on everything",
+                ]
+              : [
+                  "Una comunidad privada de madres, verificadas al entrar",
+                  "Grupos por trimestre, edad y barrio",
+                  "20 créditos al mes, acumulables",
+                  "Acceso a todos los eventos",
+                  "Ventajas y descuentos con partners",
+                  "Acceso al foro The Mothers Circle, incluida la sala de socias",
+                  "Prioridad de reserva en todo",
+                ]
+            ).map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: "9px", alignItems: "flex-start" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f3d9a1" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" style={{ flex: "none", marginTop: "3px" }}>
+                  <path d="m5 12 5 5L20 7"></path>
+                </svg>
+                <span style={{ fontSize: "13.5px", lineHeight: 1.45, color: "#f8efe2" }}>{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(248,239,226,0.7)", margin: "12px 0 0", borderTop: "1px solid rgba(248,239,226,0.22)", paddingTop: "10px" }}>
+            {isEn
+              ? "Pause your membership for a total of two months in a year, at no cost. Cancel any time, with no fee."
+              : "Pausa tu membresía durante dos meses al año, sin coste. Cancela en cualquier momento sin penalización."}
+          </p>
+        </div>
+      </section>
+
+      {/* ─── SECTION 2: START MEETING MOTHERS NOW ─── */}
+      <section
+        style={{
+          maxWidth: "1160px",
+          margin: "0 auto",
+          padding: "clamp(24px, 3vw, 36px) clamp(20px, 5vw, 64px)",
+          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid rgba(57, 41, 42, 0.2)",
+            borderRadius: "8px",
+            background: "#ffffff",
+            padding: "clamp(20px, 3vw, 30px)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "clamp(18px, 2.4vw, 24px)",
+          }}
+        >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "14px 24px", alignItems: "flex-end", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: "11.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "8px" }}>
+                {isEn ? "Before January" : "Antes de enero"}
+              </div>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px, 3.2vw, 36px)", lineHeight: 1.12, margin: 0 }}>
+                {isEn ? "Start meeting mothers now." : "Empieza a conocer madres ahora."}
+              </h2>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {(isEn
-                ? [
-                    "Stage groups by trimester, age and neighbourhood",
-                    "Access to all events",
-                    "Access to The Mothers Circle forum, including the members' room",
-                  ]
-                : [
-                    "Grupos por trimestre, edad y barrio",
-                    "Acceso a todos los eventos",
-                    "Acceso al foro The Mothers Circle, incluida la sala de socias",
-                  ]
-              ).map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#f3d9a1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flex: "none", marginTop: "3px" }}>
-                    <path d="m5 12 5 5L20 7"></path>
-                  </svg>
-                  <span style={{ fontSize: "13px", lineHeight: 1.4, color: "#f8efe2" }}>{item}</span>
-                </div>
-              ))}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+              <Link
+                href="/events"
+                style={{
+                  border: "1px solid #7b1f2c",
+                  color: "#7b1f2c",
+                  padding: "11px 20px",
+                  borderRadius: "4px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "15px",
+                  whiteSpace: "nowrap",
+                  textDecoration: "none",
+                }}
+              >
+                {isEn ? "Book your first event" : "Reserva tu primer evento"}
+              </Link>
+              <Link
+                href="/events"
+                style={{
+                  border: "1px solid rgba(57, 41, 42, 0.24)",
+                  color: "#39292a",
+                  padding: "11px 20px",
+                  borderRadius: "4px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "15px",
+                  whiteSpace: "nowrap",
+                  textDecoration: "none",
+                }}
+              >
+                {isEn ? "See the calendar" : "Ver el calendario"}
+              </Link>
             </div>
           </div>
 
-          {/* Bottom Row: 3 Feature Items */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "20px", borderTop: "1px solid rgba(57, 41, 42, 0.12)", paddingTop: "22px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "rgba(123, 31, 44, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" width="18" height="18">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "16px 24px", borderTop: "1px solid rgba(57, 41, 42, 0.1)", paddingTop: "clamp(16px, 2vw, 20px)" }}>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", border: "1px solid rgba(123, 31, 44, 0.35)", display: "flex", alignItems: "center", justifyContent: "center", color: "#7b1f2c" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M16 2v4M8 2v4M3 10h18"></path>
+                  <path d="m9 16 2 2 4-4"></path>
                 </svg>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: "14px", color: "#39292a" }}>
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", lineHeight: 1.25, color: "#39292a" }}>
                   {isEn ? "Book an event" : "Reserva un evento"}
                 </div>
-                <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.68)", marginTop: "2px" }}>
+                <div style={{ fontSize: "13px", lineHeight: 1.45, color: "rgba(57, 41, 42, 0.72)" }}>
                   {isEn ? "Your account is created with it" : "Tu cuenta se crea con la reserva"}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "rgba(123, 31, 44, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" width="18" height="18">
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", border: "1px solid rgba(123, 31, 44, 0.35)", display: "flex", alignItems: "center", justifyContent: "center", color: "#7b1f2c" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+                  <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path>
+                  <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path>
                 </svg>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: "14px", color: "#39292a" }}>
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", lineHeight: 1.25, color: "#39292a" }}>
                   {isEn ? "Add the credits you need" : "Añade los créditos necesarios"}
                 </div>
-                <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.68)", marginTop: "2px" }}>
+                <div style={{ fontSize: "13px", lineHeight: 1.45, color: "rgba(57, 41, 42, 0.72)" }}>
                   {isEn ? "Each event shows its credit price" : "Cada evento indica su precio"}
                 </div>
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-              <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: "rgba(123, 31, 44, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" width="18" height="18">
-                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", border: "1px solid rgba(123, 31, 44, 0.35)", display: "flex", alignItems: "center", justifyContent: "center", color: "#7b1f2c" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                  <path d="M3 3v5h5"></path>
+                  <path d="M12 7v5l4 2"></path>
                 </svg>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: "14px", color: "#39292a" }}>
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", lineHeight: 1.25, color: "#39292a" }}>
                   {isEn ? "Keep them into membership" : "Manténlos en tu membresía"}
                 </div>
-                <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.68)", marginTop: "2px" }}>
+                <div style={{ fontSize: "13px", lineHeight: 1.45, color: "rgba(57, 41, 42, 0.72)" }}>
                   {isEn ? "Credits last six months" : "Validez de seis meses"}
                 </div>
               </div>
@@ -909,7 +965,7 @@ export default function MembershipClient({
                 marginBottom: "10px",
               }}
             >
-              The Circle
+              {isEn ? "The Circle - Forum" : "The Circle — Foro"}
             </div>
             <h2
               style={{

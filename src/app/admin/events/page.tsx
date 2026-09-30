@@ -707,17 +707,17 @@ export default function AdminEventsPage() {
                         {r.capacityMember} places
                       </div>
                       <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.65)", marginTop: "3px" }}>
-                        {r.isSignature ? "Signature gathering" : r.isFreeWalk ? "Free open walk" : "Club gathering"}
+                        {r.isSignature ? "Signature gathering" : r.creditCost === 0 ? "Open gathering" : "Club gathering"}
                       </div>
                     </div>
 
                     {/* Column 5: Credits */}
                     <div>
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", fontVariantNumeric: "tabular-nums", color: r.creditCost === 0 ? "#39292a" : "#39292a" }}>
-                        {r.isFreeWalk ? "Free" : r.creditCost > 0 ? String(r.creditCost) : "Not set"}
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", fontVariantNumeric: "tabular-nums", color: "#39292a" }}>
+                        {r.creditCost > 0 ? String(r.creditCost) : "0 credits"}
                       </div>
                       <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
-                        {r.isFreeWalk ? "included" : r.status === "confirmed" ? "locked on confirm" : "set by hand"}
+                        {r.creditCost === 0 ? "0 credits" : r.status === "confirmed" ? "locked on confirm" : "set by hand"}
                       </div>
                     </div>
 

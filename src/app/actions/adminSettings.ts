@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { setting, auditLog, person, member } from "@/db/schema";
+import { setting, auditLog, person, member, leadEntry } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
@@ -17,6 +17,19 @@ async function verifyAdmin() {
 }
 
 // ─── 0. PUBLIC SETTINGS READER (§M-01) ───────────────────────────────────────
+
+export async function checkEmailOnWaitlist(email: string) {
+  if (!email || !email.includes("@")) return { onList: false };
+  try {
+    const normalized = email.trim().toLowerCase();
+    const found = await db.query.leadEntry.findFirst({
+      where: eq(leadEntry.email, normalized),
+    });
+    return { onList: !!found };
+  } catch {
+    return { onList: false };
+  }
+}
 
 export async function getPublicClubSettings() {
   try {
@@ -182,6 +195,18 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
       target: setting.key,
       set: { value: live, updatedAt: new Date() },
     });
+
+  if (live) {
+    const existingLiveAt = await db.query.setting.findFirst({
+      where: eq(setting.key, "membership_live_at"),
+    });
+    if (!existingLiveAt) {
+      await db
+        .insert(setting)
+        .values({ key: "membership_live_at", value: new Date().toISOString() })
+        .onConflictDoNothing();
+    }
+  }
 
   if (!live && switchDualPrice) {
     await db

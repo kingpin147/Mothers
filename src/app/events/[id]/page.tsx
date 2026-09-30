@@ -434,17 +434,19 @@ export default function EventDetailPage() {
             {/* Price Row */}
             <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "6px" }}>
               <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "44px", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
-                {isFreeWalk ? "Free" : `${ev.creditCost} ${ev.creditCost === 1 ? "credit" : "credits"}`}
+                {ev.creditCost === 0
+                  ? (lang === "en" ? "0 credits" : "0 créditos")
+                  : `${ev.creditCost} ${ev.creditCost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}`}
               </span>
-              {!isFreeWalk && (
+              {ev.creditCost > 0 && (
                 <span style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.72)" }}>
                   (€{ev.creditCost * 2})
                 </span>
               )}
             </div>
             <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.72)", marginBottom: "18px" }}>
-              {isFreeWalk
-                ? (lang === "en" ? "Walks and park socials never cost credits." : "Los paseos y encuentros en el parque nunca cuestan créditos.")
+              {ev.creditCost === 0
+                ? (lang === "en" ? "No credits required for this gathering." : "No se requieren créditos para este encuentro.")
                 : (lang === "en" ? "€2 per credit · buy as you go" : "2€ por crédito · compra según necesites")}
             </div>
 

@@ -337,7 +337,7 @@ export async function applyToHostEvent(eventId: string) {
     .values({
       eventId,
       personId: user.id,
-      format: ev.isFreeWalk ? "walk" : "event",
+      format: "event",
       neighbourhood: ev.neighbourhood,
       charterAgreed: true,
       status: "pending",

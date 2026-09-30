@@ -113,9 +113,12 @@ export async function checkPostingEligibility() {
       };
     }
 
-    // Non-member: count posts + replies from the switch date
+    // Non-member: count posts + replies from the first switch-on date (N-23)
+    const liveAtRow = settingsRows.find((s) => s.key === "membership_live_at");
     const liveSettingRow = settingsRows.find((s) => s.key === "membership_live");
-    const switchDate = liveSettingRow?.updatedAt || new Date(0);
+    const switchDate = liveAtRow?.value
+      ? new Date(liveAtRow.value as string)
+      : (liveSettingRow?.updatedAt || new Date(0));
 
     const [postsRes] = await db
       .select({ count: sql<number>`count(*)::int` })

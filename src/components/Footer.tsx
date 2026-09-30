@@ -19,7 +19,8 @@ export function Footer() {
       if (s.membershipLive) setIsMembershipLive(true);
     }).catch(() => {});
 
-    
+    const saved = typeof window !== "undefined" ? sessionStorage.getItem("tm_pre_newsletter_sub") : null;
+    if (saved === "true") setSubmitted(true);
   }, []);
 
   const handleSubscribe = async (e: React.FormEvent) => {
@@ -39,7 +40,10 @@ export function Footer() {
       });
       if (!res.ok) throw new Error("Failed");
       setSubmitted(true);
-      localStorage.setItem("tm_pre_newsletter_sub", "true");
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("tm_pre_newsletter_sub", "true");
+        localStorage.removeItem("tm_pre_newsletter_sub");
+      }
       setEmail("");
     } catch {
       setErrorMsg(lang === "en" ? "Something went wrong. Please try again." : "Algo ha fallado. Inténtalo de nuevo.");
@@ -189,7 +193,10 @@ export function Footer() {
                   type="button"
                   onClick={() => {
                     setSubmitted(false);
-                    localStorage.removeItem("tm_pre_newsletter_sub");
+                    if (typeof window !== "undefined") {
+                      sessionStorage.removeItem("tm_pre_newsletter_sub");
+                      localStorage.removeItem("tm_pre_newsletter_sub");
+                    }
                   }}
                   title={lang === "en" ? "Close" : "Cerrar"}
                   style={{
@@ -198,10 +205,10 @@ export function Footer() {
                     right: "10px",
                     background: "transparent",
                     border: "none",
-                    color: "rgba(57, 41, 42, 0.5)",
+                    color: "rgba(57, 41, 42, 0.6)",
                     cursor: "pointer",
                     padding: "4px",
-                    fontSize: "13px",
+                    fontSize: "15px",
                     lineHeight: 1,
                   }}
                 >

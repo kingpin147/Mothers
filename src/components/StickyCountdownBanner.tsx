@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useSession } from "next-auth/react";
 
-import { getPublicClubSettings } from "@/app/actions/adminSettings";
+import { getPublicClubSettings, checkEmailOnWaitlist } from "@/app/actions/adminSettings";
 
 // Countdown target: 6 Jan 2027 00:00 Europe/Madrid
 const TARGET_DATE = new Date("2027-01-06T00:00:00+01:00").getTime();
@@ -50,12 +50,22 @@ export function StickyCountdownBanner() {
       }
     }).catch(() => {});
 
-    const savedJoined = localStorage.getItem("tm_pre_joined_list");
-    if (savedJoined) setJoined(true);
+    const savedJoined = typeof window !== "undefined" ? localStorage.getItem("tm_pre_joined_list") : null;
+    if (savedJoined === "true") setJoined(true);
 
-    const savedDismissed = localStorage.getItem("tm_banner_dismissed");
+    const savedDismissed = typeof window !== "undefined" ? sessionStorage.getItem("tm_banner_dismissed") : null;
     if (savedDismissed === "true") setDismissed(true);
   }, [lang]);
+
+  useEffect(() => {
+    if (session?.user?.email) {
+      checkEmailOnWaitlist(session.user.email).then((res) => {
+        if (res.onList) {
+          setJoined(true);
+        }
+      }).catch(() => {});
+    }
+  }, [session?.user?.email]);
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -76,7 +86,9 @@ export function StickyCountdownBanner() {
   const handleDismiss = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setDismissed(true);
-    localStorage.setItem("tm_banner_dismissed", "true");
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("tm_banner_dismissed", "true");
+    }
   };
 
   if (dismissed || isLive) return null;
@@ -221,7 +233,7 @@ export function StickyCountdownBanner() {
               ))}
             </div>
 
-            {joined || session?.user ? (
+            {joined ? (
               <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                 <span
                   style={{
@@ -238,32 +250,37 @@ export function StickyCountdownBanner() {
                 >
                   {lang === "en" ? "✓ On the list" : "✓ En la lista"}
                 </span>
-                {joined && !session?.user && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setJoined(false);
+                <button
+                  type="button"
+                  onClick={() => {
+                    setJoined(false);
+                    if (typeof window !== "undefined") {
                       localStorage.removeItem("tm_pre_joined_list");
-                    }}
-                    title={lang === "en" ? "Change or join again" : "Cambiar o unirte de nuevo"}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "rgba(248, 239, 226, 0.6)",
-                      cursor: "pointer",
-                      padding: "4px 6px",
-                      fontSize: "13px",
-                      lineHeight: 1,
-                    }}
-                  >
-                    ✕
-                  </button>
-                )}
+                    }
+                  }}
+                  title={lang === "en" ? "Change or join again" : "Cambiar o unirte de nuevo"}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "rgba(248, 239, 226, 0.6)",
+                    cursor: "pointer",
+                    padding: "4px 6px",
+                    fontSize: "13px",
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
               </div>
             ) : (
               <button
                 type="button"
-                onClick={() => setModalOpen(true)}
+                onClick={() => {
+                  if (session?.user?.email) {
+                    setEmail(session.user.email);
+                  }
+                  setModalOpen(true);
+                }}
                 style={{
                   flex: "none",
                   border: "1px solid #c9a227",

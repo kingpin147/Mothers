@@ -355,7 +355,7 @@ async function handleTopUpCheckout({
               eventId,
               personId,
               memberId: mem?.id || null,
-              kind: isMember ? "member" : "guest",
+              kind: isMember ? "member" : "non_member",
               status: ev.status === "confirmed" ? "confirmed" : "held",
               creditsCharged: requiredCredits,
               creditDeductions,

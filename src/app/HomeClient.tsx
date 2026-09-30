@@ -21,7 +21,7 @@ const SEED_EVENTS: EventCardItem[] = [
     categoryLabel: "Walks",
     date: "Wed 15 Oct · 10:00",
     neighbourhood: "Parc de la Ciutadella",
-    price: "Free",
+    price: "0 credits",
     image: "/assets/home-hero.webp",
   },
   {
@@ -108,7 +108,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
           categoryLabel: ev.categoryName || "Gathering",
           date: ev.startsAt ? new Date(ev.startsAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Upcoming",
           neighbourhood: ev.neighbourhood || "Barcelona",
-          price: ev.creditCost && ev.creditCost > 0 ? `${ev.creditCost} ${ev.creditCost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}` : (lang === "en" ? "Free" : "Gratis"),
+          price: ev.creditCost && ev.creditCost > 0 ? `${ev.creditCost} ${ev.creditCost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}` : (lang === "en" ? "0 credits" : "0 créditos"),
           image: "/assets/home-hero.webp",
         }))
       : SEED_EVENTS;
@@ -386,7 +386,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
           borderTop: "1px solid rgba(57, 41, 42, 0.16)",
         }}
       >
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "26px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "baseline", justifyContent: "space-between", marginBottom: "26px" }}>
           <div>
             <div
               style={{
@@ -406,94 +406,89 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             </h2>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "12px" }}>
-            <Link
-              href="/events"
-              style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontWeight: 600,
-                fontSize: "15px",
-                whiteSpace: "nowrap",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                color: "#7b1f2c",
-                textDecoration: "none",
-              }}
-            >
-              <span>{lang === "en" ? "The whole calendar" : "Ver todo el calendario"}</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
-            </Link>
+          <Link
+            href="/events"
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontWeight: 600,
+              fontSize: "15px",
+              whiteSpace: "nowrap",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "#7b1f2c",
+              textDecoration: "none",
+            }}
+          >
+            <span>{lang === "en" ? "The whole calendar" : "Ver todo el calendario"}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </Link>
+        </div>
 
-            {/* Carousel Navigation Arrows */}
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                type="button"
-                onClick={() => scrollContainerRef.current?.scrollBy({ left: -310, behavior: "smooth" })}
-                aria-label="Previous events"
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  border: "1px solid rgba(57, 41, 42, 0.25)",
-                  background: "#ffffff",
-                  color: "#39292a",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#7b1f2c";
-                  e.currentTarget.style.color = "#7b1f2c";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
-                  e.currentTarget.style.color = "#39292a";
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => scrollContainerRef.current?.scrollBy({ left: 310, behavior: "smooth" })}
-                aria-label="Next events"
-                style={{
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  border: "1px solid rgba(57, 41, 42, 0.25)",
-                  background: "#ffffff",
-                  color: "#39292a",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#7b1f2c";
-                  e.currentTarget.style.color = "#7b1f2c";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
-                  e.currentTarget.style.color = "#39292a";
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
+        {/* Carousel Navigation Arrows */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", margin: "-8px 0 16px" }}>
+          <button
+            type="button"
+            onClick={() => scrollContainerRef.current?.scrollBy({ left: -310, behavior: "smooth" })}
+            aria-label="Previous events"
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              border: "1px solid rgba(57, 41, 42, 0.25)",
+              background: "#ffffff",
+              color: "#39292a",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "#7b1f2c";
+              e.currentTarget.style.color = "#7b1f2c";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
+              e.currentTarget.style.color = "#39292a";
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+              <path d="M19 12H5M11 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollContainerRef.current?.scrollBy({ left: 310, behavior: "smooth" })}
+            aria-label="Next events"
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              border: "1px solid rgba(57, 41, 42, 0.25)",
+              background: "#ffffff",
+              color: "#39292a",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "#7b1f2c";
+              e.currentTarget.style.color = "#7b1f2c";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
+              e.currentTarget.style.color = "#39292a";
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
         </div>
 
         {/* Scrollable Container */}

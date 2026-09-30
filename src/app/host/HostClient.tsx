@@ -377,20 +377,28 @@ export function HostClient({
           {/* Eligibility Card */}
           <div
             style={{
-              border: !currentUser ? "1px solid rgba(57, 41, 42, 0.16)" : (isEligible ? "1px solid rgba(86, 139, 5, 0.4)" : "1px solid rgba(123, 31, 44, 0.3)"),
-              backgroundColor: !currentUser ? "#ffffff" : (isEligible ? "rgba(86, 139, 5, 0.08)" : "rgba(123, 31, 44, 0.06)"),
+              border: !currentUser
+                ? "1px solid rgba(201, 162, 39, 0.5)"
+                : isEligible
+                ? "1px solid rgba(86, 139, 5, 0.45)"
+                : "1px solid rgba(153, 56, 66, 0.4)",
+              backgroundColor: !currentUser
+                ? "rgba(201, 162, 39, 0.08)"
+                : isEligible
+                ? "rgba(86, 139, 5, 0.06)"
+                : "rgba(153, 56, 66, 0.06)",
               borderRadius: "6px",
-              padding: "16px 18px",
+              padding: "14px 16px",
             }}
           >
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
                 fontWeight: 600,
-                fontSize: "12px",
+                fontSize: "11.5px",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                color: !currentUser ? "rgba(57, 41, 42, 0.65)" : (isEligible ? "#3b5e04" : "#7b1f2c"),
+                color: !currentUser ? "#7a5612" : isEligible ? "#3b5e04" : "#993842",
                 marginBottom: "6px",
               }}
             >
@@ -401,14 +409,14 @@ export function HostClient({
                 {isEn ? (
                   <>
                     Please{" "}
-                    <Link href="/account/login" style={{ color: "#7b1f2c", textDecoration: "underline", fontWeight: 500 }}>
+                    <Link href="/account/login?next=/host" style={{ color: "#7b1f2c", textDecoration: "underline", fontWeight: 500 }}>
                       log in
                     </Link>{" "}
                     to check your eligibility and request to host.
                   </>
                 ) : (
                   <>
-                    <Link href="/account/login" style={{ color: "#7b1f2c", textDecoration: "underline", fontWeight: 500 }}>
+                    <Link href="/account/login?next=/host" style={{ color: "#7b1f2c", textDecoration: "underline", fontWeight: 500 }}>
                       Inicia sesión
                     </Link>{" "}
                     para comprobar tu estado y solicitar ser anfitriona.
@@ -418,8 +426,8 @@ export function HostClient({
             ) : isEligible ? (
               <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
                 {isEn
-                  ? `You are eligible to host! You have attended ${eligibility.totalAttended} events with 0 no-shows.`
-                  : `¡Cumples los requisitos! Has asistido a ${eligibility.totalAttended} eventos sin ausencias.`}
+                  ? `You are eligible to host! You have attended ${eligibility.totalAttended} event${eligibility.totalAttended === 1 ? "" : "s"} with 0 no-shows.`
+                  : `¡Cumples los requisitos! Has asistido a ${eligibility.totalAttended} evento(s) sin ausencias.`}
               </p>
             ) : (
               <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
