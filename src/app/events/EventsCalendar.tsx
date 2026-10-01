@@ -1055,7 +1055,7 @@ function EventCard({
     (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
   const isPending = ev.status === "published_pending" || ev.status === "pending";
   const isFull = ev.isFull || false;
-  const isOpenList = !ev.capacityTotal || ev.isFreeWalk || ev.creditCost === 0;
+  const isOpenList = !ev.capacityTotal || ev.capacityTotal === 0;
   const [showMoreDetails, setShowMoreDetails] = useState(false);
 
   const catInfo = getCategoryInfo(ev, lang);
@@ -1303,12 +1303,20 @@ function EventCard({
 
             <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
               {lang === "en"
-                ? (ev.userStatus?.isBooked
-                    ? `Your ${ev.creditCost} credits are held, not spent. Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
-                    : `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Credits are only taken if it goes ahead.`)
-                : (ev.userStatus?.isBooked
-                    ? `Tus ${ev.creditCost} créditos están retenidos, no gastados. Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
-                    : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Los créditos solo se cobran si se confirma.`)}
+                ? (ev.creditCost === 0
+                    ? (ev.userStatus?.isBooked
+                        ? `Your place is held. Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                        : `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Free to join.`)
+                    : (ev.userStatus?.isBooked
+                        ? `Your ${ev.creditCost} credits are held, not spent. Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                        : `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Credits are only taken if it goes ahead.`))
+                : (ev.creditCost === 0
+                    ? (ev.userStatus?.isBooked
+                        ? `Tu plaza está reservada. Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                        : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Actividad gratuita.`)
+                    : (ev.userStatus?.isBooked
+                        ? `Tus ${ev.creditCost} créditos están retenidos, no gastados. Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                        : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Los créditos solo se cobran si se confirma.`))}
             </div>
           </div>
         ) : null}
@@ -1441,7 +1449,7 @@ function EventCard({
                   >
                     {isPending
                       ? (lang === "en" ? "Place reserved" : "Plaza reservada")
-                      : (ev.isFreeWalk || ev.creditCost === 0 || !ev.capacityTotal
+                      : (isOpenList
                           ? (lang === "en" ? "You're on the list" : "Estás en la lista")
                           : (lang === "en" ? "Booked" : "Reservada"))}
                   </button>

@@ -247,6 +247,11 @@ export default function AdminEditEventPage() {
       return;
     }
 
+    if (!freeEvent && (!creditCost.trim() || isNaN(parseInt(creditCost)) || parseInt(creditCost) <= 0)) {
+      alert("Please enter the Member price (credits) or tick 'Free event'.");
+      return;
+    }
+
     setLoadingAction(status);
 
     const parsedMember = memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces);

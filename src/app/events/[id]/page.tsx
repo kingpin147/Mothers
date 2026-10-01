@@ -194,8 +194,9 @@ export default function EventDetailPage() {
 
   const displayTitle = getEventDisplayTitle(ev, lang);
   const displayDesc = getEventDisplayDesc(ev, lang);
-  const isFreeWalk = ev.isFreeWalk || ev.creditCost === 0;
-  const isCapped = !isFreeWalk && !!ev.capacityTotal && ev.capacityTotal > 0;
+  const isFree = ev.creditCost === 0;
+  const isCapped = !!ev.capacityTotal && ev.capacityTotal > 0;
+  const isOpenList = !isCapped;
   const isFull = isCapped && ((ev.capacityRemaining ?? 1) <= 0 || ev.isFull);
   const isGathering = (ev.status === "pending" || ev.status === "published_pending") && (ev.minToConfirm ?? 0) > 0;
 
@@ -452,8 +453,8 @@ export default function EventDetailPage() {
 
             {/* Status Line */}
             <div style={{ fontSize: "13px", color: "#456f04", borderTop: "1px solid rgba(57, 41, 42, 0.12)", paddingTop: "14px", marginBottom: "6px" }}>
-              {isFreeWalk
-                ? (lang === "en" ? "Open list" : "Lista abierta")
+              {isOpenList
+                ? (lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas")
                 : isFull
                 ? (lang === "en" ? "Full" : "Completo")
                 : (lang === "en"
@@ -487,7 +488,7 @@ export default function EventDetailPage() {
                     cursor: "default",
                   }}
                 >
-                  {isFreeWalk
+                  {isOpenList
                     ? (lang === "en" ? "You're on the list" : "Estás en la lista")
                     : (lang === "en" ? "Booked" : "Reservada")}
                 </button>
@@ -550,8 +551,10 @@ export default function EventDetailPage() {
                 >
                   {actionLoading
                     ? (lang === "en" ? "Booking…" : "Reservando…")
-                    : isFreeWalk
-                    ? (lang === "en" ? "Join — free" : "Unirme — gratis")
+                    : isOpenList
+                    ? (lang === "en" ? "Join the list" : "Unirme a la lista")
+                    : isFree
+                    ? (lang === "en" ? "Book place — free" : "Reservar plaza — gratis")
                     : (lang === "en" ? `Book with ${ev.creditCost} credits` : `Reservar con ${ev.creditCost} créditos`)}
                 </button>
               )
@@ -575,8 +578,10 @@ export default function EventDetailPage() {
                   cursor: "pointer",
                 }}
               >
-                {isFreeWalk
-                  ? (lang === "en" ? "Join — free" : "Unirme — gratis")
+                {isOpenList
+                  ? (lang === "en" ? "Join the list" : "Unirme a la lista")
+                  : isFree
+                  ? (lang === "en" ? "Book place — free" : "Reservar plaza — gratis")
                   : (lang === "en" ? "Book your place" : "Reservar mi plaza")}
               </button>
             )}

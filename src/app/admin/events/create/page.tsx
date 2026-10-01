@@ -183,6 +183,11 @@ export default function AdminCreateEventPage() {
       return;
     }
 
+    if (!freeEvent && (!creditCost.trim() || isNaN(parseInt(creditCost)) || parseInt(creditCost) <= 0)) {
+      alert("Please enter the Member price (credits) or tick 'Free event'.");
+      return;
+    }
+
     setLoadingAction(status);
     
     const parsedCap = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
