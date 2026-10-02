@@ -157,8 +157,26 @@ input, select, .input {
   outline: none;
 }
 
-.input:focus {
-  border-color: var(--color-accent);
+.input:focus, input:focus, select:focus, textarea:focus {
+  border-color: rgba(57, 41, 42, 0.45);
+  outline: none;
+}
+
+/* Browser autofill styling override - prevent blue background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #39292a !important;
+  caret-color: #39292a !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .hide-scrollbar::-webkit-scrollbar {

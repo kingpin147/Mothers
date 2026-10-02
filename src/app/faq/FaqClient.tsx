@@ -227,11 +227,11 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
 
         <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)", margin: "22px 0 0" }}>
           {isEn ? "Looking for the legal details? " : "¿Buscas los detalles legales? "}
-          <Link href="/legal" style={{ color: "#7b1f2c", textDecoration: "none" }}>
+          <Link href="/terms" style={{ color: "#7b1f2c", textDecoration: "none" }}>
             {isEn ? "Terms & Conditions" : "Términos y Condiciones"}
           </Link>{" "}
           {isEn ? "and " : "y "}
-          <Link href="/legal#privacy" style={{ color: "#7b1f2c", textDecoration: "none" }}>
+          <Link href="/privacy" style={{ color: "#7b1f2c", textDecoration: "none" }}>
             {isEn ? "Privacy Policy" : "Política de Privacidad"}
           </Link>
           .

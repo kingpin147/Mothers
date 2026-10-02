@@ -311,7 +311,7 @@ export async function createCirclePost(data: {
 }) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("You must be logged in to post in The Circle.");
+    throw new Error("You must be logged in to post in La Gazette.");
   }
 
   const personId = (session.user as any).personId || session.user.id;

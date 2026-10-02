@@ -1,24 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 
-export default function LegalPage() {
+export default function TermsPage() {
   const { language: lang } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"terms" | "privacy">("terms");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const hash = window.location.hash.toLowerCase();
-      if (hash === "#privacy") {
-        setActiveTab("privacy");
-      } else if (hash === "#terms") {
-        setActiveTab("terms");
-      }
-    }
-  }, []);
-
   const isEn = lang === "en";
 
   const termsData = {
@@ -62,7 +48,7 @@ export default function LegalPage() {
           {
             n: "07",
             title: "Community standards",
-            body: "We ask everyone who comes to treat other mothers, hosts and partners with respect, and to keep shared spaces safe for children. Selling to other attendees is not allowed. In The Circle, the same standards apply: posts stay linked to your account even when shown anonymously, photos may not show other people’s children without their parent’s permission, and posting is limited to prevent spam. Reported posts are reviewed the same day and may be hidden or removed. We reserve the right to refuse or withdraw a place from anyone whose conduct puts others at risk or who otherwise breaches these Terms.",
+            body: "We ask everyone who comes to treat other mothers, hosts and partners with respect, and to keep shared spaces safe for children. Selling to other attendees is not allowed. In La Gazette, the same standards apply: posts stay linked to your account even when shown anonymously, photos may not show other people’s children without their parent’s permission, and posting is limited to prevent spam. Reported posts are reviewed the same day and may be hidden or removed. We reserve the right to refuse or withdraw a place from anyone whose conduct puts others at risk or who otherwise breaches these Terms.",
           },
           {
             n: "08",
@@ -92,7 +78,7 @@ export default function LegalPage() {
           {
             n: "13",
             title: "Suspension and closing an account",
-            body: "We may suspend an account that breaks these Terms or the community standards. While suspended you cannot book or post; your bookings and credits are frozen, not refunded, and we will tell you why by email. You may ask us to close your account and delete your data at any time. Future bookings are then cancelled, remaining credits are forfeited, and your posts in The Circle remain without your name.",
+            body: "We may suspend an account that breaks these Terms or the community standards. While suspended you cannot book or post; your bookings and credits are frozen, not refunded, and we will tell you why by email. You may ask us to close your account and delete your data at any time. Future bookings are then cancelled, remaining credits are forfeited, and your posts in La Gazette remain without your name.",
           },
           {
             n: "14",
@@ -144,7 +130,7 @@ export default function LegalPage() {
           {
             n: "07",
             title: "Normas de la comunidad",
-            body: "Pedimos a todas las asistentes tratar con respeto a otras madres, anfitrionas y colaboradores, y preservar un entorno seguro. No está permitida la venta directa ni la prospección comercial. En The Circle, las publicaciones permanecen asociadas a la cuenta incluso si se muestran anónimas. No se permite publicar fotos de menores ajenos sin autorización de sus progenitores. Las publicaciones reportadas se revisan el mismo día.",
+            body: "Pedimos a todas las asistentes tratar con respeto a otras madres, anfitrionas y colaboradores, y preservar un entorno seguro. No está permitida la venta directa ni la prospección comercial. En La Gazette, las publicaciones permanecen asociadas a la cuenta incluso si se muestran anónimas. No se permite publicar fotos de menores ajenos sin autorización de sus progenitores. Las publicaciones reportadas se revisan el mismo día.",
           },
           {
             n: "08",
@@ -174,7 +160,7 @@ export default function LegalPage() {
           {
             n: "13",
             title: "Suspensión y baja de cuenta",
-            body: "Podemos suspender cuentas que incumplan estos Términos o las normas comunitarias. Durante la suspensión no se puede reservar ni publicar; los créditos y reservas quedan congelados. Puedes solicitar el borrado de tu cuenta en cualquier momento: las reservas futuras se cancelan, los créditos restantes se extinguen y tus mensajes en The Circle se anonimizan.",
+            body: "Podemos suspender cuentas que incumplan estos Términos o las normas comunitarias. Durante la suspensión no se puede reservar ni publicar; los créditos y reservas quedan congelados. Puedes solicitar el borrado de tu cuenta en cualquier momento: las reservas futuras se cancelan, los créditos restantes se extinguen y tus mensajes en La Gazette se anonimizan.",
           },
           {
             n: "14",
@@ -193,121 +179,6 @@ export default function LegalPage() {
           },
         ],
   };
-
-  const privacyData = {
-    title: isEn ? "Privacy Policy" : "Política de Privacidad",
-    meta: isEn ? "Last updated 27 September 2026 · Barcelona, Spain" : "Última actualización: 27 de septiembre de 2026 · Barcelona, España",
-    intro: isEn
-      ? "This Privacy Policy explains how The Mothers collects, uses and protects your personal data when you open an account, book an event, buy credits or use themothers.cc. The Mothers is the data controller for the personal data described here, and can be reached at hello@themothers.cc for any privacy question."
-      : "Esta Política de Privacidad explica cómo The Mothers recopila, utiliza y protege tus datos personales al crear una cuenta, reservar eventos, comprar créditos o utilizar themothers.cc. The Mothers es el responsable del tratamiento de los datos personales y está disponible en hello@themothers.cc para cualquier duda.",
-    sections: isEn
-      ? [
-          {
-            n: "01",
-            title: "What we collect",
-            body: "When you open an account we record your name, email address and phone number. When you book an event we record which event, when, and what it cost in credits; we also ask for a phone number so we can send the exact meeting point, which we do not publish. When you buy credits, the card details are captured and processed by our payment provider and are not stored on our systems — we keep the amount, the date and the receipt. If you write to us, we keep that correspondence. If you use The Circle we keep your posts, replies, photos and any reports you make; posts shown anonymously are still linked to your account. If you host or invite friends we keep your host requests, attendance and no-show records, your Godmother code and who registered with it.",
-          },
-          {
-            n: "02",
-            title: "How we use it",
-            body: "To run your account and wallet, to confirm and manage your bookings, to send the practical emails an event needs — confirmations, meeting points, changes, and the reminder before credits expire — and, if you asked for it, the monthly letter. We will write to you before membership opens to tell you membership is opening; you can decline that at any time. We never use your data to sell to you on behalf of a partner without your direct request.",
-          },
-          {
-            n: "03",
-            title: "Children's information",
-            body: "Where we ask about your children, it is only to plan events for the right age groups and to label them correctly. We do not collect children's names or other identifying details. A photo posted in The Circle that shows a child requires the poster to confirm she is the parent or has the parent's permission. Where an event involves photography, we ask separately and clearly for your consent.",
-          },
-          {
-            n: "04",
-            title: "Legal basis",
-            body: "We process account and booking data to perform our contract with you, and with your consent where you have given it — for instance the monthly letter, which you can leave at any time. Where relevant we rely on our legitimate interest in keeping the community safe and considered, balanced against your rights.",
-          },
-          {
-            n: "05",
-            title: "Who we share it with",
-            body: "The minimum necessary data goes to the tools that run the club: payment processing (Stripe), email (Brevo) and hosting of the site. Hosts and partners receive only the attendance list for the event they are running. We do not sell your data and do not pass your details to a partner business unless you have asked to be referred. Some tools are based outside the EU; where that is the case we rely on standard contractual safeguards.",
-          },
-          {
-            n: "06",
-            title: "Retention",
-            body: "We keep your account and booking data for as long as your account is open, and for a limited period after it closes to meet accounting and legal obligations. Newsletter records are kept until you unsubscribe. If you ask us to delete your account, your personal data is removed, your Circle posts stay without your name, and payment records are kept only as long as tax law requires.",
-          },
-          {
-            n: "07",
-            title: "Security",
-            body: "Access to account data is limited to the small team who need it to run the club, and we work with providers who meet current data-protection standards. No system is completely immune to risk, but we take reasonable technical and organisational measures to protect your data against loss or misuse.",
-          },
-          {
-            n: "08",
-            title: "Your rights",
-            body: "Under the GDPR you can ask to access, correct, delete or receive a copy of your data, and you can object to or restrict certain uses of it. Write to hello@themothers.cc. If you are not satisfied with our response you can lodge a complaint with the Spanish data protection authority (Agencia Española de Protección de Datos, aepd.es).",
-          },
-          {
-            n: "09",
-            title: "Cookies and local storage",
-            body: "This website uses your browser's local storage to keep you signed in and to remember your wallet and bookings. We do not use third-party advertising or tracking cookies. Analytics cookies are only set if you accept them in the cookie banner; you can change your choice at any time from the “Cookie settings” link in the footer.",
-          },
-          {
-            n: "10",
-            title: "Changes",
-            body: "We may update this policy as the club and its tools evolve. Any change is posted here with an updated date, and we email account holders about any change that materially affects how we handle their data.",
-          },
-        ]
-      : [
-          {
-            n: "01",
-            title: "Qué recopilamos",
-            body: "Al crear una cuenta recopilamos tu nombre, correo electrónico y teléfono. Al reservar un evento registramos los datos del mismo y su coste en créditos; también solicitamos tu teléfono para enviar la ubicación exacta de encuentro, la cual no publicamos. Para la compra de créditos, los datos de tarjeta son procesados por Stripe. Si participas en The Circle se guardan tus mensajes y fotos; las publicaciones anónimas siguen vinculadas internamente a tu cuenta.",
-          },
-          {
-            n: "02",
-            title: "Cómo lo usamos",
-            body: "Para gestionar tu cuenta y monedero, confirmar reservas, enviar avisos y puntos de encuentro, y avisar 30 días antes de la caducidad de créditos. Te informaremos puntualmente antes de la apertura de la membresía.",
-          },
-          {
-            n: "03",
-            title: "Información sobre menores",
-            body: "Las preguntas sobre etapas familiares sirven exclusivamente para planificar eventos adaptados. No recopilamos nombres de menores ni datos sensibles. Las fotos en The Circle que incluyan menores requieren confirmación de tutela parental o autorización explícita.",
-          },
-          {
-            n: "04",
-            title: "Base legal",
-            body: "Tratamos los datos para la ejecución del servicio y bajo tu consentimiento previo, así como en base al interés legítimo de mantener una comunidad segura.",
-          },
-          {
-            n: "05",
-            title: "Con quién lo compartimos",
-            body: "Solo con los proveedores indispensables para el funcionamiento del club: pasarela de pago (Stripe), envíos transaccionales (Brevo) e infraestructura de alojamiento web. No vendemos ni cedemos datos a terceros sin tu solicitud expresa.",
-          },
-          {
-            n: "06",
-            title: "Conservación",
-            body: "Conservamos los datos mientras tu cuenta permanezca activa y durante los plazos legalmente exigidos. Si solicitas la supresión de tu cuenta, tus datos personales se eliminan y tus aportaciones en The Circle quedan anonimizadas.",
-          },
-          {
-            n: "07",
-            title: "Seguridad",
-            body: "Aplicamos medidas técnicas y organizativas rigurosas para proteger tus datos contra cualquier acceso no autorizado o pérdida.",
-          },
-          {
-            n: "08",
-            title: "Tus derechos",
-            body: "Conforme al RGPD puedes ejercer tus derechos de acceso, rectificación, supresión y portabilidad escribiendo a hello@themothers.cc o acudiendo a la AEPD.",
-          },
-          {
-            n: "09",
-            title: "Cookies y almacenamiento local",
-            body: "Utilizamos almacenamiento local para mantener tu sesión activa y recordar tu idioma y preferencias. Las cookies analíticas solo se activan con tu consentimiento y puedes modificarlas en 'Preferencias de cookies' en el pie de página.",
-          },
-          {
-            n: "10",
-            title: "Cambios en esta política",
-            body: "Cualquier modificación de esta política se publicará aquí con la fecha correspondiente y se notificará por correo a las usuarias con cuenta.",
-          },
-        ],
-  };
-
-  const currentData = activeTab === "terms" ? termsData : privacyData;
 
   return (
     <div style={{ backgroundColor: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", minHeight: "100vh" }}>
@@ -335,77 +206,20 @@ export default function LegalPage() {
             margin: "0 0 10px",
           }}
         >
-          {currentData.title}
+          {termsData.title}
         </h1>
         <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.58)", margin: "0 0 22px" }}>
-          {currentData.meta}
+          {termsData.meta}
         </p>
 
-        {/* Tab Switcher */}
-        <div
-          style={{
-            display: "flex",
-            gap: 0,
-            border: "1px solid rgba(57, 41, 42, 0.2)",
-            borderRadius: "4px",
-            overflow: "hidden",
-            maxWidth: "420px",
-            marginBottom: "26px",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("terms");
-              if (typeof window !== "undefined") window.location.hash = "terms";
-            }}
-            style={{
-              flex: 1,
-              border: "none",
-              backgroundColor: activeTab === "terms" ? "rgba(123, 31, 44, 0.1)" : "transparent",
-              color: activeTab === "terms" ? "#7b1f2c" : "rgba(57, 41, 42, 0.7)",
-              padding: "11px 10px",
-              fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontWeight: 600,
-              fontSize: "14.5px",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            {isEn ? "Terms & Conditions" : "Términos y Condiciones"}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("privacy");
-              if (typeof window !== "undefined") window.location.hash = "privacy";
-            }}
-            style={{
-              flex: 1,
-              border: "none",
-              borderLeft: "1px solid rgba(57, 41, 42, 0.2)",
-              backgroundColor: activeTab === "privacy" ? "rgba(123, 31, 44, 0.1)" : "transparent",
-              color: activeTab === "privacy" ? "#7b1f2c" : "rgba(57, 41, 42, 0.7)",
-              padding: "11px 10px",
-              fontFamily: "'Cormorant Garamond', Georgia, serif",
-              fontWeight: 600,
-              fontSize: "14.5px",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            {isEn ? "Privacy Policy" : "Política de Privacidad"}
-          </button>
-        </div>
-
         <p style={{ fontSize: "16px", lineHeight: 1.7, color: "rgba(57, 41, 42, 0.74)", margin: 0, textAlign: "justify" }}>
-          {currentData.intro}
+          {termsData.intro}
         </p>
       </section>
 
       {/* ─── Document Sections ─── */}
       <section style={{ maxWidth: "860px", margin: "0 auto", padding: "clamp(16px, 2vw, 24px) clamp(20px, 5vw, 64px) clamp(46px, 6vw, 76px)" }}>
-        {currentData.sections.map((s) => (
+        {termsData.sections.map((s) => (
           <div
             key={s.n}
             style={{

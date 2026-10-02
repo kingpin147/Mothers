@@ -65,6 +65,10 @@ export default function AdminEditEventPage() {
     setUploadingPhoto(true);
 
     try {
+      // Instant local preview
+      const localPreview = URL.createObjectURL(file);
+      setImageUrl(localPreview);
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("bucket", "events");
@@ -113,8 +117,17 @@ export default function AdminEditEventPage() {
         setEndsAt(ev.endsAt ? new Date(new Date(ev.endsAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "");
         setMinToConfirm(ev.minToConfirm?.toString() || "");
         setMemberPlaces(ev.capacityMember?.toString() || "");
-        setCreditCost(ev.memberCredits?.toString() || ev.creditCost?.toString() || "");
-        setNonMemberCreditCost(ev.nonMemberCredits?.toString() || "");
+        
+        const rawCost = ev.creditCost !== undefined && ev.creditCost !== null ? ev.creditCost : (ev.memberCredits ?? 0);
+        if (rawCost === 0 || ev.isFreeWalk) {
+          setFreeEvent(true);
+          setCreditCost("");
+        } else {
+          setFreeEvent(false);
+          setCreditCost(rawCost.toString());
+        }
+        setNonMemberCreditCost(rawCost.toString());
+
         setDescription(ev.description || "");
         setLangs(ev.languages || ["English"]);
         setEventStatus(ev.status || "draft");
@@ -124,9 +137,6 @@ export default function AdminEditEventPage() {
           setNonMemberOpensAt(new Date(new Date(ev.nonMemberOpensAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16));
         }
         
-        if (ev.creditCost === 0) {
-          setFreeEvent(true);
-        }
         if (ev.imageId) {
           setImageId(ev.imageId);
         }
@@ -171,15 +181,12 @@ export default function AdminEditEventPage() {
   const costBorder = freeEvent ? 'rgba(57,41,42,0.16)' : 'rgba(123,31,44,0.4)';
   const costBg = freeEvent ? 'rgba(57,41,42,0.05)' : '#fff';
   const costHint = freeEvent
-    ? 'No credits taken for this event.'
-    : 'Member price — required. Comparable events have cost 16–20 credits.';
-  const nmCostHint = freeEvent
-    ? 'Free for non-members too.'
-    : 'Non-member price — usually ~30% higher.';
+    ? 'No credits taken for this event (free gathering).'
+    : 'Price in credits (e.g. 15 credits). Single price applies before membership launch.';
 
   const validationLine = freeEvent
     ? 'Still needed before publishing: title, venue, meeting point, dates, minimum, description.'
-    : 'Still needed before publishing: title, venue, meeting point, dates, minimum, credit cost, description.';
+    : 'Still needed before publishing: title, venue, meeting point, dates, minimum, price in credits, description.';
 
 
   // Helper to parse T-X schedule into Dates
@@ -247,8 +254,9 @@ export default function AdminEditEventPage() {
       return;
     }
 
-    if (!freeEvent && (!creditCost.trim() || isNaN(parseInt(creditCost)) || parseInt(creditCost) <= 0)) {
-      alert("Please enter the Member price (credits) or tick 'Free event'.");
+    const parsedCredits = freeEvent ? 0 : (parseInt(creditCost) || 0);
+    if (!freeEvent && parsedCredits <= 0) {
+      alert("Please enter the price in credits (e.g. 15) or tick 'Free event'.");
       return;
     }
 
@@ -291,8 +299,8 @@ export default function AdminEditEventPage() {
       meetingPoint,
       startsAt: start,
       endsAt: new Date(endsAt),
-      creditCost: freeEvent ? 0 : (parseInt(creditCost) || 0),
-      nonMemberCreditCost: freeEvent ? 0 : (parseInt(nonMemberCreditCost) || 0),
+      creditCost: parsedCredits,
+      nonMemberCreditCost: parsedCredits,
       capacityMember: memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces),
       minToConfirm: minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
       description,
@@ -470,26 +478,28 @@ export default function AdminEditEventPage() {
           {/* PLACES AND COST */}
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>Places and cost</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 170px), 1fr))", gap: "14px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Minimum to run <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="number" value={minToConfirm} onChange={(e) => setMinToConfirm(e.target.value)} placeholder="—" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                <input type="number" value={minToConfirm} onChange={(e) => setMinToConfirm(e.target.value)} placeholder="e.g. 4" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>The number below which you would cancel. Everything at T-10 and T-7 is measured against this.</div>
               </div>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Capacity <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="number" value={memberPlaces} onChange={(e) => setMemberPlaces(e.target.value)} placeholder="—" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                <input type="number" value={memberPlaces} onChange={(e) => setMemberPlaces(e.target.value)} placeholder="e.g. 10" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Leave empty for no ceiling.</div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="number" value={creditCost} onChange={(e) => setCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
+                <input
+                  type="number"
+                  value={freeEvent ? "" : creditCost}
+                  onChange={(e) => setCreditCost(e.target.value)}
+                  placeholder={freeEvent ? "0 (Free event)" : "e.g. 15"}
+                  disabled={freeEvent}
+                  style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }}
+                />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#7b1f2c", marginTop: "6px" }}>{costHint}</div>
-              </div>
-              <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Non-member price (credits)</label>
-                <input type="number" value={nonMemberCreditCost} onChange={(e) => setNonMemberCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#7b1f2c", marginTop: "6px" }}>{nmCostHint}</div>
               </div>
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer", marginTop: "14px" }}>

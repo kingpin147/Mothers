@@ -234,7 +234,7 @@ export function getEventDisplayDesc(ev: PublicEvent, lang: Lang): string | null 
 }
 
 
-function getCategoryInfo(ev: PublicEvent, lang: Lang): { key: string; label: string } {
+export function getCategoryInfo(ev: any, lang: Lang): { key: string; label: string } {
   if (ev.isSignature) {
     return {
       key: "signature",
@@ -275,7 +275,7 @@ function getCategoryInfo(ev: PublicEvent, lang: Lang): { key: string; label: str
   };
 }
 
-function getCardBg(ev: PublicEvent, isPast?: boolean): string {
+export function getCardBg(ev: any, isPast?: boolean): string {
   if (isPast || ev.status === "cancelled") return "#f1eeea";
   if (ev.status === "published_pending" || ev.status === "pending") return "#fbf3e4";
   if (ev.userStatus?.isBooked) return "#eef4e9";
@@ -284,7 +284,7 @@ function getCardBg(ev: PublicEvent, isPast?: boolean): string {
   return "#f3f0ea";
 }
 
-function getCardBorder(ev: PublicEvent, isPast?: boolean): string {
+export function getCardBorder(ev: any, isPast?: boolean): string {
   if (isPast || ev.status === "cancelled") return "rgba(57, 41, 42, 0.18)";
   if (ev.status === "published_pending" || ev.status === "pending") return "rgba(164, 118, 31, 0.45)";
   if (ev.userStatus?.isBooked) return "rgba(86, 139, 5, 0.34)";
@@ -293,7 +293,7 @@ function getCardBorder(ev: PublicEvent, isPast?: boolean): string {
   return "rgba(57, 41, 42, 0.2)";
 }
 
-function formatDecideByDate(startsAt: string | Date, lang: Lang, decisionAt?: string | Date | null): string {
+export function formatDecideByDate(startsAt: string | Date, lang: Lang, decisionAt?: string | Date | null): string {
   const start = new Date(startsAt);
   const now = new Date();
   
@@ -331,7 +331,7 @@ function formatDecideByDate(startsAt: string | Date, lang: Lang, decisionAt?: st
   }
 }
 
-function formatEventDate(startsAt: string | Date, lang: Lang): string {
+export function formatEventDate(startsAt: string | Date, lang: Lang): string {
   const d = new Date(startsAt);
   const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   const month = d.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short" });
@@ -360,14 +360,19 @@ export function SignedOutMemberModal({
   event: ev,
   lang,
   onClose,
+  returnUrl,
 }: {
   event: PublicEvent | null;
   lang: Lang;
   onClose: () => void;
+  returnUrl?: string;
 }) {
   if (!ev) return null;
 
   const formattedDate = formatEventDate(ev.startsAt, lang);
+  const targetCallback = returnUrl || (typeof window !== "undefined"
+    ? (window.location.pathname.startsWith("/events/") ? `${window.location.pathname}?action=book` : `/events?book_event=${ev.id}`)
+    : `/events?book_event=${ev.id}`);
 
   return (
     <div
@@ -423,7 +428,7 @@ export function SignedOutMemberModal({
           <button
             type="button"
             onClick={() => {
-              window.location.href = `/account/login?callbackUrl=${encodeURIComponent(`/events?book_event=${ev.id}`)}`;
+              window.location.href = `/account/login?callbackUrl=${encodeURIComponent(targetCallback)}`;
             }}
             style={{
               border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#fdfaf5",
@@ -434,7 +439,7 @@ export function SignedOutMemberModal({
             {lang === "en" ? "Sign in" : "Iniciar sesión"}
           </button>
           <Link
-            href="/membership"
+            href={`/account/login?create=1&callbackUrl=${encodeURIComponent(targetCallback)}`}
             style={{ fontSize: "14px", color: "#7b1f2c", textDecoration: "underline", marginLeft: "8px" }}
           >
             {lang === "en" ? "Not a member yet? Join" : "¿Aún no eres socia? Únete"}
@@ -1039,6 +1044,67 @@ interface EventCardProps {
   creditBalance?: number;
 }
 
+export function EventCardImage({
+  imageUrl,
+  imageId,
+  title,
+  lang,
+}: {
+  imageUrl?: string | null;
+  imageId?: string | null;
+  title: string;
+  lang: Lang;
+}) {
+  const [error, setError] = useState(false);
+  const resolvedUrl =
+    imageUrl ||
+    (imageId &&
+    (imageId.startsWith("http") ||
+      imageId.startsWith("/") ||
+      imageId.startsWith("data:"))
+      ? imageId
+      : null);
+
+  if (!resolvedUrl || error) {
+    return (
+      <div
+        className="event-photo-fallback"
+        style={{
+          display: "flex",
+          width: "100%",
+          height: "100%",
+          textAlign: "center",
+          color: "rgba(57, 41, 42, 0.45)",
+          fontSize: "13px",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "6px",
+          backgroundColor: "#ecdcd0",
+        }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <polyline points="21 15 16 10 5 21" />
+        </svg>
+        <span>{lang === "en" ? "Event photograph" : "Fotografía del evento"}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={resolvedUrl}
+      alt={title}
+      style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s ease" }}
+      onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.transform = "scale(1.03)")}
+      onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.transform = "scale(1)")}
+      onError={() => setError(true)}
+    />
+  );
+}
+
 function EventCard({
   ev,
   lang,
@@ -1095,8 +1161,8 @@ function EventCard({
           height: "150px",
           borderRadius: "6px",
           overflow: "hidden",
-          backgroundColor: "rgba(57, 41, 42, 0.04)",
-          border: "1px dashed rgba(57, 41, 42, 0.2)",
+          backgroundColor: "#ecdcd0",
+          border: "1px solid rgba(57, 41, 42, 0.16)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1104,42 +1170,12 @@ function EventCard({
           cursor: "pointer",
         }}
       >
-        {(() => {
-          const imgUrl = ev.imageUrl || (ev.imageId && (ev.imageId.startsWith("http") || ev.imageId.startsWith("/") || ev.imageId.startsWith("data:")) ? ev.imageId : null);
-          return imgUrl ? (
-            <img
-              src={imgUrl}
-              alt={ev.title}
-              style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s ease" }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.transform = "scale(1.03)")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.transform = "scale(1)")}
-              onError={(e) => {
-                (e.currentTarget as HTMLElement).style.display = "none";
-                const fallback = e.currentTarget.parentElement?.querySelector(".event-photo-fallback") as HTMLElement;
-                if (fallback) fallback.style.display = "flex";
-              }}
-            />
-          ) : null;
-        })()}
-        <div
-          className="event-photo-fallback"
-          style={{
-            display: (ev.imageUrl || (ev.imageId && (ev.imageId.startsWith("http") || ev.imageId.startsWith("/") || ev.imageId.startsWith("data:")))) ? "none" : "flex",
-            textAlign: "center",
-            color: "rgba(57, 41, 42, 0.4)",
-            fontSize: "13px",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "6px"
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
-          <span>{lang === "en" ? "Event photograph" : "Fotografía del evento"}</span>
-        </div>
+        <EventCardImage
+          imageUrl={ev.imageUrl}
+          imageId={ev.imageId}
+          title={getEventDisplayTitle(ev, lang)}
+          lang={lang}
+        />
       </Link>
 
       {/* Top Chips Stack */}

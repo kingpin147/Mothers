@@ -298,7 +298,7 @@ export function Footer() {
                 {lang === "en" ? "Events" : "Eventos"}
               </Link>
               <Link href="/circle" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                The Circle
+                La Gazette
               </Link>
               {isMembershipLive && (
                 <Link href="/partners" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
@@ -331,10 +331,10 @@ export function Footer() {
               >
                 {lang === "en" ? "Legal" : "Legal"}
               </div>
-              <Link href="/legal" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
+              <Link href="/terms" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "Terms & Conditions" : "Términos y Condiciones"}
               </Link>
-              <Link href="/legal#privacy" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
+              <Link href="/privacy" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "Privacy Policy" : "Política de Privacidad"}
               </Link>
               <button

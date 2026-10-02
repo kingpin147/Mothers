@@ -107,44 +107,69 @@ export async function uploadImage(
     const filename = `${timestamp}-${randomSuffix}.${ext}`;
     const bucketPath = `${bucket}/${filename}`;
 
-    // 3. Upload to Supabase Storage (with auto-create bucket fallback)
-    let { data, error: uploadError } = await withTimeout(
-      supabaseAdmin.storage
-        .from(bucket)
-        .upload(filename, fileBuffer, {
-          contentType: mimeType,
-          cacheControl: "3600",
-          upsert: false,
-        }),
-      12000,
-      "Supabase storage upload"
-    );
+    // 3. Upload to Supabase Storage (with auto-create bucket fallback and local filesystem fallback)
+    let publicUrl: string = "";
+    let uploadedSuccessfully = false;
 
-    if (uploadError && uploadError.message?.toLowerCase().includes("not found")) {
+    try {
+      if (supabaseUrl && supabaseServiceKey) {
+        let { data, error: uploadError } = await withTimeout(
+          supabaseAdmin.storage
+            .from(bucket)
+            .upload(filename, fileBuffer, {
+              contentType: mimeType,
+              cacheControl: "3600",
+              upsert: false,
+            }),
+          10000,
+          "Supabase storage upload"
+        );
+
+        if (uploadError && uploadError.message?.toLowerCase().includes("not found")) {
+          try {
+            await supabaseAdmin.storage.createBucket(bucket, { public: true });
+            const retry = await supabaseAdmin.storage
+              .from(bucket)
+              .upload(filename, fileBuffer, {
+                contentType: mimeType,
+                cacheControl: "3600",
+                upsert: false,
+              });
+            data = retry.data;
+            uploadError = retry.error;
+          } catch (e) {
+            // caught below
+          }
+        }
+
+        if (!uploadError && data) {
+          const {
+            data: { publicUrl: sbUrl },
+          } = supabaseAdmin.storage.from(bucket).getPublicUrl(filename);
+          publicUrl = sbUrl;
+          uploadedSuccessfully = true;
+        }
+      }
+    } catch (sbErr) {
+      console.warn("[Storage] Supabase upload failed, using local filesystem fallback:", sbErr);
+    }
+
+    // Local filesystem fallback if Supabase is unavailable
+    if (!uploadedSuccessfully) {
       try {
-        await supabaseAdmin.storage.createBucket(bucket, { public: true });
-        const retry = await supabaseAdmin.storage
-          .from(bucket)
-          .upload(filename, fileBuffer, {
-            contentType: mimeType,
-            cacheControl: "3600",
-            upsert: false,
-          });
-        data = retry.data;
-        uploadError = retry.error;
-      } catch (e) {
-        // bucket creation error will be captured below
+        const fs = await import("fs/promises");
+        const path = await import("path");
+        const uploadsDir = path.join(process.cwd(), "public", "uploads");
+        await fs.mkdir(uploadsDir, { recursive: true });
+        const filePath = path.join(uploadsDir, filename);
+        await fs.writeFile(filePath, fileBuffer);
+        publicUrl = `/uploads/${filename}`;
+        uploadedSuccessfully = true;
+      } catch (fsErr: any) {
+        console.error("[Storage] Local file save failed:", fsErr);
+        return { success: false, error: `Upload failed: ${fsErr.message}` };
       }
     }
-
-    if (uploadError) {
-      return { success: false, error: `Upload failed: ${uploadError.message}` };
-    }
-
-    // 4. Get public URL
-    const {
-      data: { publicUrl },
-    } = supabaseAdmin.storage.from(bucket).getPublicUrl(filename);
 
     // 5. Create media_asset record in database
     const inserted = await db

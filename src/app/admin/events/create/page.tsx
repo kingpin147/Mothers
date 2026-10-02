@@ -61,6 +61,10 @@ export default function AdminCreateEventPage() {
     setUploadingPhoto(true);
 
     try {
+      // Set instant local preview
+      const localPreview = URL.createObjectURL(file);
+      setImageUrl(localPreview);
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("bucket", "events");
@@ -108,15 +112,12 @@ export default function AdminCreateEventPage() {
   const costBorder = freeEvent ? 'rgba(57,41,42,0.16)' : 'rgba(123,31,44,0.4)';
   const costBg = freeEvent ? 'rgba(57,41,42,0.05)' : '#fff';
   const costHint = freeEvent
-    ? 'No credits taken for this event.'
-    : 'Member price — required. Comparable events have cost 16–20 credits.';
-  const nmCostHint = freeEvent
-    ? 'Non-members also attend free.'
-    : 'Non-member price. Pre-filled from the default mark-up in Settings. Always editable.';
+    ? 'No credits taken for this event (free gathering).'
+    : 'Price in credits (e.g. 15 credits). Single price applies before membership launch.';
 
   const validationLine = freeEvent
     ? 'Still needed before publishing: title, venue, meeting point, dates, minimum, description.'
-    : 'Still needed before publishing: title, venue, meeting point, dates, minimum, member credit cost, description.';
+    : 'Still needed before publishing: title, venue, meeting point, dates, minimum, price in credits, description.';
 
   // Helper to parse T-X schedule into Dates
   const calculateDate = (startD: string, expr: string) => {
@@ -183,8 +184,9 @@ export default function AdminCreateEventPage() {
       return;
     }
 
-    if (!freeEvent && (!creditCost.trim() || isNaN(parseInt(creditCost)) || parseInt(creditCost) <= 0)) {
-      alert("Please enter the Member price (credits) or tick 'Free event'.");
+    const parsedCredits = freeEvent ? 0 : (parseInt(creditCost) || 0);
+    if (!freeEvent && parsedCredits <= 0) {
+      alert("Please enter the price in credits (e.g. 15) or tick 'Free event'.");
       return;
     }
 
@@ -226,8 +228,8 @@ export default function AdminCreateEventPage() {
       meetingPoint,
       startsAt: start,
       endsAt: new Date(endsAt),
-      creditCost: freeEvent ? 0 : (parseInt(creditCost) || 0),
-      nonMemberCreditCost: freeEvent ? 0 : (parseInt(nonMemberCreditCost) || 0),
+      creditCost: parsedCredits,
+      nonMemberCreditCost: parsedCredits,
       needsHost,
       // 0 = uncapped (no ceiling). When noCeiling is checked, store 0 explicitly.
       capacityMember: noCeiling ? 0 : (memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces)),
@@ -390,14 +392,14 @@ export default function AdminCreateEventPage() {
           {/* PLACES AND COST */}
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.65)", marginBottom: "14px" }}>Places and cost</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 170px), 1fr))", gap: "14px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Minimum to run <span style={{ color: "#7b1f2c" }}>*</span></label>
                 <input
                   type="number"
                   value={noMinimum ? "" : minToConfirm}
                   onChange={(e) => setMinToConfirm(e.target.value)}
-                  placeholder={noMinimum ? "—" : "—"}
+                  placeholder={noMinimum ? "No minimum" : "e.g. 4"}
                   disabled={noMinimum}
                   style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: noMinimum ? "rgba(57,41,42,0.04)" : "#fff", opacity: noMinimum ? 0.6 : 1 }}
                 />
@@ -409,7 +411,7 @@ export default function AdminCreateEventPage() {
                   type="number"
                   value={noCeiling ? "" : memberPlaces}
                   onChange={(e) => setMemberPlaces(e.target.value)}
-                  placeholder={noCeiling ? "No ceiling" : "—"}
+                  placeholder={noCeiling ? "No ceiling" : "e.g. 10"}
                   disabled={noCeiling}
                   style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: noCeiling ? "rgba(57,41,42,0.04)" : "#fff", opacity: noCeiling ? 0.6 : 1 }}
                 />
@@ -418,14 +420,16 @@ export default function AdminCreateEventPage() {
                 </div>
               </div>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="number" value={creditCost} onChange={(e) => setCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }} />
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
+                <input
+                  type="number"
+                  value={freeEvent ? "" : creditCost}
+                  onChange={(e) => setCreditCost(e.target.value)}
+                  placeholder={freeEvent ? "0 (Free event)" : "e.g. 15"}
+                  disabled={freeEvent}
+                  style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }}
+                />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>{costHint}</div>
-              </div>
-              <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Non-member price (credits)</label>
-                <input type="number" value={nonMemberCreditCost} onChange={(e) => setNonMemberCreditCost(e.target.value)} placeholder="—" disabled={freeEvent} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: freeEvent ? "rgba(57,41,42,0.05)" : "#fff" }} />
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>{nmCostHint}</div>
               </div>
             </div>
             {/* Checkboxes row */}

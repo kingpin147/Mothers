@@ -93,7 +93,7 @@ export default function NotFound() {
             textDecoration: "none",
           }}
         >
-          The Circle
+          La Gazette
         </Link>
 
         <Link

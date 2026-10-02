@@ -5,8 +5,8 @@ import { CircleFeedClient } from "./CircleFeedClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "The Circle — A place for mothers in Barcelona",
-  description: "Share what you are living, ask for advice, and cheer each other on in The Circle.",
+  title: "La Gazette — A place for mothers in Barcelona",
+  description: "Share what you are living, ask for advice, and cheer each other on in La Gazette.",
 };
 
 export default async function CirclePage() {

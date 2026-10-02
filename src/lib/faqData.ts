@@ -185,9 +185,9 @@ export const CANONICAL_FAQS: FaqItemData[] = [
   },
   {
     group: "The club itself",
-    qEn: "What are the rules in The Circle?",
+    qEn: "What are the rules in La Gazette?",
     aEn: "Kindness first, no selling to other mothers, what is shared stays there, and advice from mothers is not medical advice. Anyone can read; you need an account to post. You can post anonymously, but every post stays linked to your account. Photos: up to 4, and no children other than your own unless you have their parent’s permission. Up to 5 posts and 20 replies a day. Report anything that breaks the rules — a host reads every report the same day.",
-    qEs: "¿Cuáles son las normas en The Circle?",
+    qEs: "¿Cuáles son las normas en La Gazette?",
     aEs: "Amabilidad ante todo, sin prospección comercial ni venta, confidencialidad y recordando que las experiencias compartidas no constituyen consejo médico. Cualquiera puede leer; se necesita cuenta para publicar. Puedes publicar de forma anónima pero queda vinculada internamente a tu cuenta. Máximo 4 fotos sin mostrar menores ajenos sin permiso. Hasta 5 publicaciones y 20 respuestas diarias.",
   },
   {

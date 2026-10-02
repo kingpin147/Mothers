@@ -391,7 +391,7 @@ function FirstVisitProfileModalContent() {
                 { id: "recs", en: "Local recommendations", es: "Recomendaciones locales" },
                 { id: "support", en: "Support & a safe space", es: "Apoyo y espacio seguro" },
                 { id: "events", en: "Events & experiences", es: "Eventos y experiencias" },
-                { id: "circle", en: "The Circle — our forum", es: "The Circle — nuestro foro" },
+                { id: "circle", en: "La Gazette — our forum", es: "La Gazette — nuestro foro" },
               ].map((h) => {
                 const active = hoping.includes(h.id);
                 return (

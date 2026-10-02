@@ -3,59 +3,18 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
-
-interface EventCardItem {
-  id: string;
-  title: string;
-  categoryLabel: string;
-  date: string;
-  neighbourhood: string;
-  price: string;
-  image?: string;
-}
-
-const SEED_EVENTS: EventCardItem[] = [
-  {
-    id: "e1",
-    title: "Wednesday Morning Walk & Coffee",
-    categoryLabel: "Walks",
-    date: "Wed 15 Oct · 10:00",
-    neighbourhood: "Parc de la Ciutadella",
-    price: "0 credits",
-    image: "/assets/home-hero.webp",
-  },
-  {
-    id: "e2",
-    title: "Postpartum & Early Months Hosted Circle",
-    categoryLabel: "Circles",
-    date: "Fri 17 Oct · 11:30",
-    neighbourhood: "Gràcia",
-    price: "1 credit",
-    image: "/assets/home-hero.webp",
-  },
-  {
-    id: "e3",
-    title: "Evening Supper & Honest Talk",
-    categoryLabel: "Suppers",
-    date: "Thu 23 Oct · 20:00",
-    neighbourhood: "Eixample Dreta",
-    price: "2 credits",
-    image: "/assets/home-hero.webp",
-  },
-  {
-    id: "e4",
-    title: "Returning to Work & Career Balance Talk",
-    categoryLabel: "Talks",
-    date: "Tue 28 Oct · 18:30",
-    neighbourhood: "Sant Antoni",
-    price: "1 credit",
-    image: "/assets/home-hero.webp",
-  },
-];
+import {
+  getEventDisplayTitle,
+  getCategoryInfo,
+  formatEventDate,
+  EventCardImage,
+} from "@/app/events/EventsCalendar";
+import { getPublicEvents } from "@/app/actions/events";
 
 export default function HomeClient({ initialEvents = [] }: { initialEvents?: any[] }) {
   const { language: lang } = useLanguage();
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [eventsList, setEventsList] = useState<any[]>(initialEvents);
   const [waitlisted, setWaitlisted] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -72,7 +31,17 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
         if (s.membershipLive) setIsLive(true);
       }).catch(() => {});
     });
-  }, []);
+
+    if (!initialEvents || initialEvents.length === 0) {
+      getPublicEvents()
+        .then((data) => {
+          if (data?.events && data.events.length > 0) {
+            setEventsList(data.events);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [initialEvents]);
 
   const handleJoinList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,18 +69,11 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
     }
   };
 
-  const displayEvents: EventCardItem[] =
-    initialEvents && initialEvents.length > 0
-      ? initialEvents.slice(0, 4).map((ev: any) => ({
-          id: ev.id,
-          title: ev.title,
-          categoryLabel: ev.categoryName || "Gathering",
-          date: ev.startsAt ? new Date(ev.startsAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Upcoming",
-          neighbourhood: ev.neighbourhood || "Barcelona",
-          price: ev.creditCost && ev.creditCost > 0 ? `${ev.creditCost} ${ev.creditCost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}` : (lang === "en" ? "0 credits" : "0 créditos"),
-          image: ev.imageUrl || "/assets/home-hero.webp",
-        }))
-      : SEED_EVENTS;
+  const activeEvents = (eventsList || [])
+    .filter((ev: any) => ev.status !== "cancelled" && ev.status !== "draft")
+    .sort((a: any, b: any) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+
+  const displayEvents = activeEvents.slice(0, 10);
 
   return (
     <div style={{ backgroundColor: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
@@ -210,26 +172,6 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               }}
             >
               {lang === "en" ? "See what's on" : "Ver qué eventos hay"}
-            </Link>
-
-            <Link
-              href="/events"
-              style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontWeight: 600,
-                fontSize: "15.5px",
-                whiteSpace: "nowrap",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                color: "#7b1f2c",
-                textDecoration: "none",
-              }}
-            >
-              <span>{lang === "en" ? "Book your first event" : "Reserva tu primer evento"}</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-                <path d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
             </Link>
           </div>
         </div>
@@ -504,72 +446,157 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             scrollbarWidth: "none",
           }}
         >
-          {displayEvents.map((ev) => (
-            <Link
-              key={ev.id}
-              href={`/events/${ev.id}`}
-              style={{
-                flex: "0 0 clamp(260px, 75vw, 290px)",
-                scrollSnapAlign: "start",
-                border: "1px solid rgba(57, 41, 42, 0.18)",
-                borderRadius: "8px",
-                backgroundColor: "#ffffff",
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-                color: "#39292a",
-                textDecoration: "none",
-                transition: "border-color 0.2s ease, transform 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "rgba(123, 31, 44, 0.5)";
-                e.currentTarget.style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.18)";
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
-            >
-              <div style={{ height: "132px", borderBottom: "1px solid rgba(57, 41, 42, 0.12)", backgroundColor: "#f4ece1", overflow: "hidden" }}>
-                <img
-                  src={ev.image || "/assets/home-hero.webp"}
-                  alt={ev.title}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/assets/home-hero.webp";
-                  }}
-                />
-              </div>
+          {displayEvents.map((ev: any) => {
+            const catInfo = getCategoryInfo(ev, lang);
+            const title = getEventDisplayTitle(ev, lang);
+            const dateDisplay = formatEventDate(ev.startsAt, lang);
+            const priceDisplay =
+              ev.creditCost === 0 || ev.isFreeWalk
+                ? lang === "en"
+                  ? "0 credits"
+                  : "0 créditos"
+                : `${ev.creditCost} ${
+                    ev.creditCost === 1
+                      ? lang === "en"
+                        ? "credit"
+                        : "crédito"
+                      : lang === "en"
+                      ? "credits"
+                      : "créditos"
+                  }`;
+            const locationDisplay = ev.neighbourhood
+              ? `${ev.neighbourhood}${ev.venueName ? ` · ${ev.venueName}` : ""}`
+              : lang === "en"
+              ? "Barcelona"
+              : "Barcelona";
+            const imgUrl =
+              ev.imageUrl ||
+              (ev.imageId &&
+              (ev.imageId.startsWith("http") ||
+                ev.imageId.startsWith("/") ||
+                ev.imageId.startsWith("data:"))
+                ? ev.imageId
+                : null);
 
-              <div style={{ padding: "16px 18px 18px", display: "flex", flexDirection: "column", gap: "9px", flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      letterSpacing: "0.04em",
-                      color: "#7b1f2c",
-                      border: "1px solid rgba(123, 31, 44, 0.35)",
-                      borderRadius: "10px",
-                      padding: "3px 10px",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {ev.categoryLabel}
-                  </span>
-                  <span style={{ fontSize: "11.5px", color: "rgba(57, 41, 42, 0.72)", whiteSpace: "nowrap", fontFeatureSettings: "'tnum'" }}>
-                    {ev.price}
-                  </span>
+            return (
+              <Link
+                key={ev.id}
+                href={`/events/${ev.slug || ev.id}`}
+                style={{
+                  flex: "0 0 clamp(260px, 75vw, 290px)",
+                  scrollSnapAlign: "start",
+                  border: "1px solid rgba(57, 41, 42, 0.18)",
+                  borderRadius: "8px",
+                  backgroundColor: "#ffffff",
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  color: "#39292a",
+                  textDecoration: "none",
+                  transition: "border-color 0.2s ease, transform 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(123, 31, 44, 0.5)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.18)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <div
+                  style={{
+                    height: "140px",
+                    borderBottom: "1px solid rgba(57, 41, 42, 0.12)",
+                    backgroundColor: "#ecdcd0",
+                    overflow: "hidden",
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <EventCardImage
+                    imageUrl={ev.imageUrl}
+                    imageId={ev.imageId}
+                    title={title}
+                    lang={lang as any}
+                  />
                 </div>
 
-                <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", margin: 0, lineHeight: 1.3 }}>
-                  {ev.title}
-                </h3>
+                <div
+                  style={{
+                    padding: "16px 18px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "9px",
+                    flex: 1,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "8px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        letterSpacing: "0.04em",
+                        color: "#7b1f2c",
+                        border: "1px solid rgba(123, 31, 44, 0.35)",
+                        borderRadius: "10px",
+                        padding: "3px 10px",
+                        whiteSpace: "nowrap",
+                        background: "rgba(255, 255, 255, 0.6)",
+                      }}
+                    >
+                      {catInfo.label}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "11.5px",
+                        color: "rgba(57, 41, 42, 0.72)",
+                        whiteSpace: "nowrap",
+                        fontFeatureSettings: "'tnum'",
+                      }}
+                    >
+                      {priceDisplay}
+                    </span>
+                  </div>
 
-                <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>{ev.date}</div>
-                <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>{ev.neighbourhood}</div>
-              </div>
-            </Link>
-          ))}
+                  <h3
+                    style={{
+                      fontFamily: "'Cormorant Garamond', Georgia, serif",
+                      fontWeight: 600,
+                      fontSize: "18px",
+                      margin: 0,
+                      lineHeight: 1.3,
+                      color: "#39292a",
+                    }}
+                  >
+                    {title}
+                  </h3>
+
+                  {ev.partnerName && (
+                    <div style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.55)" }}>
+                      {lang === "en" ? "Hosted by " : "Organizado por "}
+                      <span>{ev.partnerName}</span>
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>
+                    {dateDisplay}
+                  </div>
+                  <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>
+                    {locationDisplay}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -621,8 +648,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
 
             <p style={{ fontSize: "16px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 20px", maxWidth: "52ch" }}>
               {lang === "en"
-                ? "Every account comes with a personal invite code. Share it with the friend who has just moved here, the neighbour with the pram — and once you are a member, you earn 5 credits for every mother who registers with it."
-                : "Cada cuenta incluye un código de invitación personal. Compártelo con la amiga que acaba de mudarse o la vecina con el carrito — y cuando seas socia, ganarás 5 créditos por cada madre que se registre con él."}
+                ? "Every account comes with a personal invite code. Share it with the friend who has just moved here, the neighbour with the pram — and you earn 5 credits for every mother who becomes a member with it."
+                : "Cada cuenta incluye un código de invitación personal. Compártelo con la amiga que acaba de mudarse o la vecina con el carrito — y ganarás 5 créditos por cada madre que se haga socia con él."}
             </p>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
@@ -671,20 +698,13 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "13px 0", borderTop: "1px solid rgba(86, 139, 5, 0.3)" }}>
               <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
               <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
-                {lang === "en" ? "She registers and books her first event" : "Ella se registra y reserva su primer evento"}
-              </span>
-            </div>
-
-            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "13px 0", borderTop: "1px solid rgba(86, 139, 5, 0.3)" }}>
-              <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
-              <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
                 <span style={{ display: "inline-block", fontSize: "10.5px", letterSpacing: "0.09em", textTransform: "uppercase", color: "#fdf8f2", backgroundColor: "#7b1f2c", border: "1px solid #7b1f2c", borderRadius: "10px", padding: "2px 9px", whiteSpace: "nowrap", marginBottom: "6px" }}>
                   {lang === "en" ? "Members only" : "Solo socias"}
                 </span>
                 <br />
                 {lang === "en"
-                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother you bring, once you become a member{isLive ? "" : " (from launch)"}</>
-                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre que traigas al hacerte socia{isLive ? "" : " (desde el lanzamiento)"}</>}
+                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother who becomes a member with your code{isLive ? "" : " (from January 2027)"}</>
+                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre que se haga socia con tu código{isLive ? "" : " (a partir de enero de 2027)"}</>}
               </span>
             </div>
 
@@ -692,8 +712,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
               <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
                 {lang === "en"
-                  ? <>Earn <strong style={{ fontWeight: 600 }}>2 credits</strong> each time you host an event yourself — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>become a host</Link></>
-                  : <>Gana <strong style={{ fontWeight: 600 }}>2 créditos</strong> cada vez que organices un evento tú misma — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>sé anfitriona</Link></>}
+                  ? <>Earn <strong style={{ fontWeight: 600 }}>2 credits</strong> each time you host — welcome the mothers at an event on the calendar — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>become a host</Link></>
+                  : <>Gana <strong style={{ fontWeight: 600 }}>2 créditos</strong> cada vez que seas anfitriona — da la bienvenida a las madres en un evento del calendario — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>sé anfitriona</Link></>}
               </span>
             </div>
           </div>
@@ -853,7 +873,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               </div>
               <div>
                 <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", margin: "0 0 4px", color: "#39292a" }}>
-                  {lang === "en" ? "The Circle" : "El Círculo"}
+                  La Gazette
                 </h3>
                 <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: 0, lineHeight: 1.45 }}>
                   {lang === "en" ? "Talk in between events" : "Habla entre eventos"}

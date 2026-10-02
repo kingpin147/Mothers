@@ -82,33 +82,23 @@ export function Navigation() {
     }
   };
 
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < 10) {
-        setHeaderVisible(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > 60) {
-        // scrolling down -> hide
-        setHeaderVisible(false);
-      } else if (currentScrollY < lastScrollY) {
-        // scrolling up -> show
-        setHeaderVisible(true);
-      }
-      setLastScrollY(currentScrollY);
+      setScrolled(window.scrollY > 10);
     };
 
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+  }, []);
 
   // Nav links per pre-membership page map
   const navLinks = [
     { href: "/membership", labelEn: "Membership", labelEs: "Membresía" },
     { href: "/events", labelEn: "Events", labelEs: "Eventos" },
-    { href: "/circle", labelEn: "The Circle", labelEs: "The Circle" },
+    { href: "/circle", labelEn: "La Gazette", labelEs: "La Gazette" },
   ];
 
   const isEventsPage = pathname?.startsWith("/events");
@@ -120,8 +110,8 @@ export function Navigation() {
         position: "sticky",
         top: 0,
         zIndex: 100,
-        transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-        transition: "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+        boxShadow: scrolled ? "0 4px 20px rgba(57, 41, 42, 0.08)" : "none",
+        transition: "box-shadow 0.2s ease",
       }}
     >
       <header
@@ -334,7 +324,7 @@ export function Navigation() {
             {[
               { href: "/membership", label: lang === "en" ? "Membership" : "Membresía" },
               { href: "/events", label: lang === "en" ? "Events" : "Eventos" },
-              { href: "/circle", label: "The Circle" },
+              { href: "/circle", label: "La Gazette" },
               session?.user
                 ? { href: "/account", label: lang === "en" ? "My Account" : "Mi Cuenta" }
                 : { href: "/account/login", label: lang === "en" ? "Login" : "Acceder" },

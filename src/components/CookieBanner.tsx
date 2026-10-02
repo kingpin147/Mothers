@@ -117,7 +117,7 @@ export function CookieBanner() {
           <>
             We use essential storage to keep you signed in and remember your wallet. With your permission we also use analytics to see which pages help mothers most.{" "}
             <Link
-              href="/legal#privacy"
+              href="/privacy"
               style={{
                 color: "#7b1f2c",
                 textDecoration: "underline",
@@ -131,7 +131,7 @@ export function CookieBanner() {
           <>
             Usamos almacenamiento esencial para mantener tu sesión activa y recordar tu saldo. Con tu permiso también usamos analítica para ver qué páginas ayudan más a las madres.{" "}
             <Link
-              href="/legal#privacy"
+              href="/privacy"
               style={{
                 color: "#7b1f2c",
                 textDecoration: "underline",

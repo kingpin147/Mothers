@@ -99,7 +99,7 @@ export function CircleFeedClient({
 
   const handleCreatePost = async () => {
     if (!currentUser) {
-      window.location.href = "/events";
+      window.location.href = "/account/login";
       return;
     }
 
@@ -107,8 +107,8 @@ export function CircleFeedClient({
       if (eligibility.reason === "membership_required") {
         setNotice({
           text: lang === "en"
-            ? "You have reached the 3-post limit for non-members. Become a member for unlimited Circle conversations."
-            : "Has alcanzado el límite de 3 aportaciones para no socias. Hazte socia para acceso ilimitado a The Circle.",
+            ? "You have reached the 3-post limit for non-members. Become a member for unlimited conversations in La Gazette."
+            : "Has alcanzado el límite de 3 aportaciones para no socias. Hazte socia para acceso ilimitado a La Gazette.",
           color: "#7b1f2c",
         });
       } else if (eligibility.reason === "booking_required") {
@@ -179,7 +179,7 @@ export function CircleFeedClient({
         setDraft("");
         setDraftPhotos([]);
         setIsAnon(false);
-        setNotice({ text: "Posted to The Circle.", color: "#3b5e04" });
+        setNotice({ text: "Posted to La Gazette.", color: "#3b5e04" });
         setTimeout(() => setNotice(null), 4000);
       }
     } catch (err: any) {
@@ -338,7 +338,7 @@ export function CircleFeedClient({
             marginBottom: "10px",
           }}
         >
-          The Circle
+          La Gazette
         </div>
         <h1
           style={{
@@ -353,8 +353,8 @@ export function CircleFeedClient({
         </h1>
         <p style={{ fontSize: "16.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", maxWidth: "58ch", margin: 0 }}>
           {lang === "en"
-            ? "Share what you are living, ask for advice, cheer each other on. Open to read; post once you have booked your first event — anonymously if you need to."
-            : "Comparte lo que estás viviendo, pide consejo y apóyate en las demás. Abierto para leer; publica tras tu primera reserva — de forma anónima si lo necesitas."}
+            ? "Share what you are living, ask for advice, cheer each other on. Open to everyone to read and post — anonymously if you need to."
+            : "Comparte lo que estás viviendo, pide consejo y apóyate en las demás. Abierto para que todas lean y publiquen — de forma anónima si lo necesitas."}
         </p>
       </section>
 
@@ -417,8 +417,8 @@ export function CircleFeedClient({
                           ? "What would you ask the room tonight?"
                           : "¿Qué preguntarías a la comunidad esta noche?")
                       : (lang === "en"
-                          ? "Book your first event to post — reading needs nothing."
-                          : "Reserva tu primer evento para publicar — para leer no necesitas nada.")
+                          ? "Open a free account to post — reading needs nothing"
+                          : "Abre una cuenta gratuita para publicar — para leer no necesitas nada")
                   }
                   style={{
                     width: "100%",
@@ -547,14 +547,14 @@ export function CircleFeedClient({
                   </div>
 
                   <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
-                    <label style={{ display: "flex", gap: "6px", alignItems: "center", cursor: "pointer", fontSize: "13px", color: "rgba(57,41,42,0.75)" }}>
+                    <label style={{ display: "flex", gap: "6px", alignItems: "center", cursor: "pointer", fontSize: "13px", color: "rgba(57,41,42,0.75)", whiteSpace: "nowrap" }}>
                       <input
                         type="checkbox"
                         checked={isAnon}
                         onChange={(e) => setIsAnon(e.target.checked)}
                         style={{ accentColor: "#7b1f2c" }}
                       />
-                      <span>{lang === "en" ? "Post anonymously" : "Publicar anónimo"}</span>
+                      <span style={{ whiteSpace: "nowrap" }}>{lang === "en" ? "Post anonymously" : "Publicar anónimo"}</span>
                     </label>
 
                     <button
@@ -587,7 +587,7 @@ export function CircleFeedClient({
                     >
                       {isUserSignedIn
                         ? (posting ? "..." : (lang === "en" ? "Post" : "Publicar"))
-                        : (lang === "en" ? "Book an event" : "Reservar evento")}
+                        : (lang === "en" ? "Open an account to post" : "Crear cuenta para publicar")}
                     </button>
                   </div>
                 </div>
@@ -609,8 +609,8 @@ export function CircleFeedClient({
                       : "Hasta 4 fotos (JPG, PNG, WebP, menos de 10 MB). 5 publicaciones al día. Las publicaciones anónimas siguen vinculadas a tu cuenta — los anfitriones siempre pueden ver quién escribió qué."
                   ) : (
                     lang === "en"
-                      ? "Free, thirty seconds, and you can sign sensitive posts anonymously."
-                      : "Gratuito, treinta segundos, y puedes firmar temas delicados de forma anónima."
+                      ? "Anyone can read. Open a free account to post, and sign sensitive posts anonymously if you need to."
+                      : "Cualquiera puede leer. Abre una cuenta gratuita para publicar, y firma de forma anónima si lo necesitas."
                   )}
                 </div>
               </div>
@@ -1124,7 +1124,7 @@ export function CircleFeedClient({
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", marginBottom: "10px" }}>
               {isUserSignedIn
                 ? (lang === "en" ? "Bring it to the room" : "Tráelo al encuentro")
-                : (lang === "en" ? "Anyone can read. Open a free account to post." : "Cualquiera puede leer. Abre una cuenta gratuita para publicar.")}
+                : (lang === "en" ? "Reading is open. Posting is free." : "Lectura abierta. Publicar es gratis.")}
             </div>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 16px" }}>
               {isUserSignedIn
@@ -1132,8 +1132,8 @@ export function CircleFeedClient({
                     ? "The best threads start at an event and carry on here. There are events every week, from 0 credits."
                     : "Los mejores hilos comienzan en un evento y continúan aquí. Hay eventos cada semana, desde 0 créditos.")
                 : (lang === "en"
-                    ? "Open a free account — no booking needed. No joining fee if you join before launch."
-                    : "Abre una cuenta gratuita — sin necesidad de reservar. Sin cuota de alta si te unes antes del lanzamiento.")}
+                    ? "Open a free account to post and reply — reading needs nothing. Or book an event and meet the mothers you are talking to."
+                    : "Abre una cuenta gratuita para publicar y responder — para leer no necesitas nada. O reserva un evento y conoce a las madres con las que hablas.")}
             </p>
             <Link
               href={isUserSignedIn ? "/events" : "/account/login"}
@@ -1158,7 +1158,7 @@ export function CircleFeedClient({
             >
               {isUserSignedIn
                 ? (lang === "en" ? "See what is on" : "Ver eventos")
-                : (lang === "en" ? "Book your first event" : "Reserva tu primer evento")}
+                : (lang === "en" ? "Open a free account" : "Abrir cuenta gratuita")}
             </Link>
           </div>
 
