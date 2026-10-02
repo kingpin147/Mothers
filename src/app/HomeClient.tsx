@@ -109,7 +109,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
           date: ev.startsAt ? new Date(ev.startsAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Upcoming",
           neighbourhood: ev.neighbourhood || "Barcelona",
           price: ev.creditCost && ev.creditCost > 0 ? `${ev.creditCost} ${ev.creditCost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}` : (lang === "en" ? "0 credits" : "0 créditos"),
-          image: "/assets/home-hero.webp",
+          image: ev.imageUrl || "/assets/home-hero.webp",
         }))
       : SEED_EVENTS;
 
@@ -535,6 +535,9 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                   src={ev.image || "/assets/home-hero.webp"}
                   alt={ev.title}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/assets/home-hero.webp";
+                  }}
                 />
               </div>
 

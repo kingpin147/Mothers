@@ -423,7 +423,7 @@ export async function getPublicEventById(rawId: string) {
     const activeBookingsCount = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(booking)
-      .where(and(eq(booking.eventId, id), sql`${booking.status} IN ('held','confirmed')`));
+      .where(and(eq(booking.eventId, ev.id), sql`${booking.status} IN ('held','confirmed')`));
 
     const placesTaken = Number(activeBookingsCount[0]?.count || 0);
     const bookedMember = placesTaken;

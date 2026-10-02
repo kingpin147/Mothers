@@ -1088,7 +1088,8 @@ function EventCard({
       }}
     >
       {/* 150px Photograph Header */}
-      <div
+      <Link
+        href={`/events/${ev.slug || ev.id}`}
         style={{
           width: "100%",
           height: "150px",
@@ -1099,21 +1100,47 @@ function EventCard({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          textDecoration: "none",
+          cursor: "pointer",
         }}
       >
-        {ev.imageId ? (
-          <img src={ev.imageId} alt={ev.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <div style={{ textAlign: "center", color: "rgba(57, 41, 42, 0.4)", fontSize: "13px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-            <span>{lang === "en" ? "Event photograph" : "Fotografía del evento"}</span>
-          </div>
-        )}
-      </div>
+        {(() => {
+          const imgUrl = ev.imageUrl || (ev.imageId && (ev.imageId.startsWith("http") || ev.imageId.startsWith("/") || ev.imageId.startsWith("data:")) ? ev.imageId : null);
+          return imgUrl ? (
+            <img
+              src={imgUrl}
+              alt={ev.title}
+              style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s ease" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.transform = "scale(1.03)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.transform = "scale(1)")}
+              onError={(e) => {
+                (e.currentTarget as HTMLElement).style.display = "none";
+                const fallback = e.currentTarget.parentElement?.querySelector(".event-photo-fallback") as HTMLElement;
+                if (fallback) fallback.style.display = "flex";
+              }}
+            />
+          ) : null;
+        })()}
+        <div
+          className="event-photo-fallback"
+          style={{
+            display: (ev.imageUrl || (ev.imageId && (ev.imageId.startsWith("http") || ev.imageId.startsWith("/") || ev.imageId.startsWith("data:")))) ? "none" : "flex",
+            textAlign: "center",
+            color: "rgba(57, 41, 42, 0.4)",
+            fontSize: "13px",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "6px"
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          <span>{lang === "en" ? "Event photograph" : "Fotografía del evento"}</span>
+        </div>
+      </Link>
 
       {/* Top Chips Stack */}
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-start", width: "100%" }}>
