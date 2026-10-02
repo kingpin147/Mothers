@@ -30,6 +30,7 @@ import {
 import { getAppUrl } from "@/lib/urls";
 import crypto from "crypto";
 import { z } from "zod";
+import { sanitizeErrorMessage } from "@/lib/errors";
 
 import { getPublicClubSettings } from "@/app/actions/adminSettings";
 
@@ -299,13 +300,19 @@ export async function bookEvent(eventId: string) {
     };
   } catch (error: any) {
     console.error("bookEvent error:", error);
-    return { success: false, error: error?.message || "BOOKING_FAILED" };
+    return { success: false, error: sanitizeErrorMessage(error, "BOOKING_FAILED") };
   }
 }
 
 // ─── 2. HOLD BOOKING FOR TOP-UP (10-MINUTE HOLD WINDOW) ─────────────────────
 
+const holdBookingSchema = z.object({ eventId: z.string().trim().min(1, "INVALID_INPUT") });
+
 export async function holdBookingForTopUp(eventId: string) {
+  const parsed = holdBookingSchema.safeParse({ eventId });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  eventId = parsed.data.eventId;
+
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
 
@@ -410,7 +417,8 @@ export async function holdBookingForTopUp(eventId: string) {
 
     return { success: true, bookingId: result.bookingId };
   } catch (err: any) {
-    return { success: false, error: err?.message || "HOLD_FAILED" };
+    console.error("holdBookingForTopUp error:", err);
+    return { success: false, error: sanitizeErrorMessage(err, "HOLD_FAILED") };
   }
 }
 
@@ -639,7 +647,7 @@ export async function releaseBooking(bookingId: string) {
     return { success: true, returnedCredits: result.returnedCredits };
   } catch (error: any) {
     console.error("releaseBooking error:", error);
-    return { success: false, error: error?.message || "RELEASE_FAILED" };
+    return { success: false, error: sanitizeErrorMessage(error, "RELEASE_FAILED") };
   }
 }
 
@@ -706,13 +714,19 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
     return { success: true, url: sessionStripe.url };
   } catch (error: any) {
     console.error("buyExtraCredits error:", error);
-    return { success: false, error: error?.message || "CHECKOUT_FAILED" };
+    return { success: false, error: sanitizeErrorMessage(error, "CHECKOUT_FAILED") };
   }
 }
 
 // ─── 5. JOIN EVENT WAITLIST (§7.4 / F-22) ────────────────────────────────────
 
+const joinWaitlistActionSchema = z.object({ eventId: z.string().trim().min(1, "INVALID_INPUT") });
+
 export async function joinEventWaitlist(eventId: string) {
+  const parsed = joinWaitlistActionSchema.safeParse({ eventId });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  eventId = parsed.data.eventId;
+
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
 
@@ -786,13 +800,20 @@ export async function joinEventWaitlist(eventId: string) {
 
     return { success: true, position: result.position };
   } catch (error: any) {
-    return { success: false, error: error?.message || "WAITLIST_JOIN_FAILED" };
+    console.error("joinEventWaitlist error:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "WAITLIST_JOIN_FAILED") };
   }
 }
 
 // ─── 6. CLAIM WAITLIST OFFER (§7.4 / §B-08 / §B-03 / §B-05) ──────────────────
 
+const claimWaitlistActionSchema = z.object({ waitlistId: z.string().trim().min(1, "INVALID_INPUT") });
+
 export async function claimWaitlistOffer(waitlistId: string) {
+  const parsed = claimWaitlistActionSchema.safeParse({ waitlistId });
+  if (!parsed.success) return { success: false, error: "INVALID_INPUT" };
+  waitlistId = parsed.data.waitlistId;
+
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
 
@@ -917,7 +938,8 @@ export async function claimWaitlistOffer(waitlistId: string) {
 
     return { success: true, bookingId: result.bookingId };
   } catch (error: any) {
-    return { success: false, error: error?.message || "CLAIM_FAILED" };
+    console.error("claimWaitlistOffer error:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "CLAIM_FAILED") };
   }
 }
 

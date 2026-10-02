@@ -6,6 +6,7 @@ import { eq, sql, and } from "drizzle-orm";
 import { auth } from "@/lib/auth"; 
 import { getAppUrl } from "@/lib/urls"; 
 import { getPersonWalletBalance } from "@/lib/ledger";
+import { sanitizeErrorMessage } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -274,6 +275,9 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("Stripe Checkout Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: sanitizeErrorMessage(error, "Checkout session creation failed") },
+      { status: 500 }
+    );
   }
 }

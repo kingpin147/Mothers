@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { db } from "@/db";
 import { mediaAsset } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { withTimeout, sanitizeErrorMessage } from "./errors";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SUPABASE S3 MEDIA STORAGE (§2, §3.5, §12)
@@ -107,13 +108,17 @@ export async function uploadImage(
     const bucketPath = `${bucket}/${filename}`;
 
     // 3. Upload to Supabase Storage (with auto-create bucket fallback)
-    let { data, error: uploadError } = await supabaseAdmin.storage
-      .from(bucket)
-      .upload(filename, fileBuffer, {
-        contentType: mimeType,
-        cacheControl: "3600",
-        upsert: false,
-      });
+    let { data, error: uploadError } = await withTimeout(
+      supabaseAdmin.storage
+        .from(bucket)
+        .upload(filename, fileBuffer, {
+          contentType: mimeType,
+          cacheControl: "3600",
+          upsert: false,
+        }),
+      12000,
+      "Supabase storage upload"
+    );
 
     if (uploadError && uploadError.message?.toLowerCase().includes("not found")) {
       try {
@@ -166,7 +171,8 @@ export async function uploadImage(
       },
     };
   } catch (error: any) {
-    return { success: false, error: error?.message || "Upload failed" };
+    console.error("[Storage Upload Error]:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "Upload failed") };
   }
 }
 
@@ -203,7 +209,8 @@ export async function deleteImage(assetId: string): Promise<{ success: boolean; 
 
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error?.message || "Delete failed" };
+    console.error("[Storage Delete Error]:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "Delete failed") };
   }
 }
 

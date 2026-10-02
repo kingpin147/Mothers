@@ -8,6 +8,7 @@ import { queueAndSendEmail, generateHostRequestStatusEmailHtml } from "@/lib/bre
 import { getAppUrl } from "@/lib/urls";
 import { revalidatePath } from "next/cache";
 import { grantCreditsToPerson, getPersonWalletBalance } from "@/lib/ledger";
+import { sanitizeErrorMessage } from "@/lib/errors";
 
 // Helper for admin role check
 async function assertAdminOrManager(session: any): Promise<string> {
@@ -155,7 +156,8 @@ export async function getUpcomingEventsNeedingHost() {
 
     return { success: true, events, userBookings, userHostRequests };
   } catch (err: any) {
-    return { success: false, events: [], userBookings: [], userHostRequests: [], error: err.message };
+    console.error("getHostEvents error:", err);
+    return { success: false, events: [], userBookings: [], userHostRequests: [], error: sanitizeErrorMessage(err, "Failed to load host events") };
   }
 }
 

@@ -14,6 +14,7 @@ import {
 } from "@/db/schema";
 import { eq, desc, and, or, isNotNull, sql, gte, lte, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { sanitizeErrorMessage } from "@/lib/errors";
 
 async function safeQuery<T>(fn: () => Promise<T>, fallback: T, timeoutMs = 4000): Promise<T> {
   let timer: NodeJS.Timeout | null = null;
@@ -626,7 +627,7 @@ export async function getAdminDashboardMetrics() {
     };
   } catch (err: any) {
     console.error("getAdminDashboardMetrics error:", err);
-    return { success: false as const, error: err.message || "Failed to load dashboard metrics" };
+    return { success: false as const, error: sanitizeErrorMessage(err, "Failed to load dashboard metrics") };
   }
 }
 
@@ -752,7 +753,8 @@ export async function resetTestData() {
 
     return { success: true as const };
   } catch (err: any) {
-    return { success: false as const, error: err?.message || "RESET_FAILED" };
+    console.error("resetTestData error:", err);
+    return { success: false as const, error: sanitizeErrorMessage(err, "RESET_FAILED") };
   }
 }
 

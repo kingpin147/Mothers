@@ -4,6 +4,7 @@ import { booking, event, person, jobRun } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { sendAfterFirstEventEmail } from "@/lib/brevo";
+import { sanitizeErrorMessage } from "@/lib/errors";
 
 export async function GET(req: NextRequest) {
   const authError = verifyCronAuth(req);
@@ -80,6 +81,6 @@ export async function GET(req: NextRequest) {
       finishedAt: new Date(),
       error: error.message,
     });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: sanitizeErrorMessage(error, "CRON_FAILED") }, { status: 500 });
   }
 }

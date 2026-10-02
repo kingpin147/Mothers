@@ -22,6 +22,7 @@ import {
 import crypto from "crypto";
 import { z } from "zod";
 import { getAppUrl } from "@/lib/urls";
+import { sanitizeErrorMessage } from "@/lib/errors";
 
 async function verifyAdmin() {
   const session = await auth();
@@ -359,7 +360,8 @@ export async function adjustCreditsAction(data: {
     });
     return { success: true, ...result };
   } catch (error: any) {
-    return { success: false, error: error?.message || "ADJUSTMENT_FAILED" };
+    console.error("adminAdjustMemberCredits error:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "ADJUSTMENT_FAILED") };
   }
 }
 
@@ -397,6 +399,7 @@ export async function adminCancelMemberBooking(bookingId: string) {
 
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message || "CANCEL_FAILED" };
+    console.error("adminCancelMemberBooking error:", err);
+    return { success: false, error: sanitizeErrorMessage(err, "CANCEL_FAILED") };
   }
 }

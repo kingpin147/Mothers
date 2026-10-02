@@ -31,6 +31,7 @@ import { eq, desc, and, or, sql, ne, asc, gt } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { sanitizeErrorMessage } from "@/lib/errors";
 import {
   grantCreditsToPerson,
   spendPersonCreditsFIFO,
@@ -170,7 +171,7 @@ export async function getAdminMembers() {
     return { success: true, members };
   } catch (err: any) {
     console.error("getAdminMembers error:", err?.message || err);
-    return { success: false, error: err?.message || "UNAUTHORIZED_ADMIN", members: [] };
+    return { success: false, error: sanitizeErrorMessage(err, "UNAUTHORIZED_ADMIN"), members: [] };
   }
 }
 
@@ -458,7 +459,8 @@ export async function pauseMember(memberId: string, reason: string): Promise<{ s
     });
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error("pauseMember error:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "PAUSE_MEMBER_FAILED") };
   }
 }
 
@@ -501,7 +503,8 @@ export async function resumeMember(memberId: string, reason?: string): Promise<{
     });
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error("resumeMember error:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "RESUME_MEMBER_FAILED") };
   }
 }
 
@@ -541,7 +544,8 @@ export async function cancelMember(memberId: string, reason: string): Promise<{ 
     });
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error("cancelMember error:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "CANCEL_MEMBER_FAILED") };
   }
 }
 
@@ -717,7 +721,8 @@ export async function savePartner(rawData: {
 
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error?.message || "SAVE_PARTNER_FAILED" };
+    console.error("savePartner error:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "SAVE_PARTNER_FAILED") };
   }
 }
 
@@ -727,7 +732,8 @@ export async function deletePartner(partnerId: string): Promise<{ success: boole
     await db.delete(partner).where(eq(partner.id, partnerId));
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error?.message || "DELETE_PARTNER_FAILED" };
+    console.error("deletePartner error:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "DELETE_PARTNER_FAILED") };
   }
 }
 

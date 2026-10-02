@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { emailLog } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateIcsDataUri } from "./ics";
+import { withTimeout } from "./errors";
 import fs from "fs";
 import path from "path";
 
@@ -1102,7 +1103,11 @@ export async function queueAndSendEmail(params: SendEmailParams): Promise<{ succ
     };
     sendSmtpEmail.to = [{ email: params.toEmail, name: params.toName }];
 
-    const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    const result = await withTimeout(
+      apiInstance.sendTransacEmail(sendSmtpEmail),
+      8000,
+      "Brevo sendTransacEmail"
+    );
     const messageId = (result as any).body?.messageId || "sent";
 
     if (logId) {
