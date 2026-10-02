@@ -120,12 +120,13 @@ export function canRelease(
 
 export function canRsvp(
   person: { isMother: boolean },
-  event: { isFreeWalk: boolean; status: string }
+  event: { creditCost?: number; memberCredits?: number; isFreeWalk?: boolean; status: string }
 ): AccessResult {
   if (!person.isMother) {
     return { allowed: false, reasonCode: "MOTHER_STATUS_REQUIRED" };
   }
-  if (!event.isFreeWalk) {
+  const isFree = event.memberCredits !== undefined ? event.memberCredits === 0 : (event.creditCost === 0 || !!event.isFreeWalk);
+  if (!isFree) {
     return { allowed: false, reasonCode: "NOT_A_FREE_EVENT" };
   }
   if (event.status !== "confirmed" && event.status !== "published_pending") {

@@ -97,7 +97,7 @@ export function ReportsAdminClient({ initialReports }: { initialReports: ReportI
             Moderation Queue
           </div>
           <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "32px", fontWeight: 400, margin: 0 }}>
-            The Circle Reports
+            La Gazette Reports
           </h1>
         </div>
         <Link
@@ -117,7 +117,7 @@ export function ReportsAdminClient({ initialReports }: { initialReports: ReportI
 
       {reports.length === 0 ? (
         <div style={{ backgroundColor: "#ffffff", border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", padding: "48px", textAlign: "center", color: "rgba(57,41,42,0.65)" }}>
-          ✓ No reports pending review. The Circle is in good health.
+          ✓ No reports pending review. La Gazette is in good health.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>

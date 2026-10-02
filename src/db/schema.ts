@@ -309,6 +309,7 @@ export const booking = pgTable(
     attendedAt: timestamp("attended_at", { withTimezone: true }),
     noShow: boolean("no_show").default(false).notNull(),
     releaseReason: text("release_reason"), // 'user_released', 'hold_expired', 'admin_cancelled', 'account_deleted'
+    reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

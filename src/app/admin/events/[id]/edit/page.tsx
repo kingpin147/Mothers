@@ -25,7 +25,10 @@ export default function AdminEditEventPage() {
   const [minToConfirm, setMinToConfirm] = useState("");
   const [memberPlaces, setMemberPlaces] = useState("");
   const [creditCost, setCreditCost] = useState("");
-  const [nonMemberCreditCost, setNonMemberCreditCost] = useState("");
+  const [memberCredits, setMemberCredits] = useState("");
+  const [nonMemberCredits, setNonMemberCredits] = useState("");
+  const [cancellationWindowHours, setCancellationWindowHours] = useState("24");
+  const [isMembershipLive, setIsMembershipLive] = useState(false);
   const [description, setDescription] = useState("");
 
   // Cover photo state (AD-16)
@@ -119,14 +122,27 @@ export default function AdminEditEventPage() {
         setMemberPlaces(ev.capacityMember?.toString() || "");
         
         const rawCost = ev.creditCost !== undefined && ev.creditCost !== null ? ev.creditCost : (ev.memberCredits ?? 0);
+        const nonMemberRaw = ev.nonMemberCredits !== undefined && ev.nonMemberCredits !== null ? ev.nonMemberCredits : rawCost;
         if (rawCost === 0 || ev.isFreeWalk) {
           setFreeEvent(true);
           setCreditCost("");
+          setMemberCredits("");
+          setNonMemberCredits("");
         } else {
           setFreeEvent(false);
           setCreditCost(rawCost.toString());
+          setMemberCredits(rawCost.toString());
+          setNonMemberCredits(nonMemberRaw.toString());
         }
-        setNonMemberCreditCost(rawCost.toString());
+        if (ev.cancellationWindowHours !== undefined && ev.cancellationWindowHours !== null) {
+          setCancellationWindowHours(ev.cancellationWindowHours.toString());
+        }
+
+        import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
+          getPublicClubSettings().then((s) => {
+            if (s.membershipLive) setIsMembershipLive(true);
+          }).catch(() => {});
+        });
 
         setDescription(ev.description || "");
         setLangs(ev.languages || ["English"]);
@@ -288,6 +304,9 @@ export default function AdminEditEventPage() {
       }
     }
     
+    const parsedMemberCredits = freeEvent ? 0 : (parseInt(isMembershipLive ? (memberCredits || creditCost) : creditCost) || 0);
+    const parsedNonMemberCredits = freeEvent ? 0 : (parseInt(isMembershipLive ? (nonMemberCredits || creditCost) : creditCost) || 0);
+
     const res = await updateAdminEvent(eventId, {
       title,
       category,
@@ -299,8 +318,10 @@ export default function AdminEditEventPage() {
       meetingPoint,
       startsAt: start,
       endsAt: new Date(endsAt),
-      creditCost: parsedCredits,
-      nonMemberCreditCost: parsedCredits,
+      creditCost: parsedMemberCredits,
+      memberCredits: parsedMemberCredits,
+      nonMemberCredits: parsedNonMemberCredits,
+      cancellationWindowHours: parseInt(cancellationWindowHours) || 0,
       capacityMember: memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces),
       minToConfirm: minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
       description,
@@ -489,17 +510,63 @@ export default function AdminEditEventPage() {
                 <input type="number" value={memberPlaces} onChange={(e) => setMemberPlaces(e.target.value)} placeholder="e.g. 10" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Leave empty for no ceiling.</div>
               </div>
+              {isMembershipLive ? (
+                <>
+                  <div>
+                    <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
+                    <input
+                      type="number"
+                      value={freeEvent ? "" : (memberCredits || creditCost)}
+                      onChange={(e) => {
+                        setMemberCredits(e.target.value);
+                        setCreditCost(e.target.value);
+                      }}
+                      placeholder={freeEvent ? "0 (Free event)" : "e.g. 15"}
+                      disabled={freeEvent}
+                      style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }}
+                    />
+                    <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>Credits charged to club members.</div>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Non-member price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
+                    <input
+                      type="number"
+                      value={freeEvent ? "" : (nonMemberCredits || creditCost)}
+                      onChange={(e) => setNonMemberCredits(e.target.value)}
+                      placeholder={freeEvent ? "0 (Free event)" : "e.g. 20"}
+                      disabled={freeEvent}
+                      style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }}
+                    />
+                    <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>Credits charged to non-members.</div>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
+                  <input
+                    type="number"
+                    value={freeEvent ? "" : creditCost}
+                    onChange={(e) => setCreditCost(e.target.value)}
+                    placeholder={freeEvent ? "0 (Free event)" : "e.g. 15"}
+                    disabled={freeEvent}
+                    style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }}
+                  />
+                  <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#7b1f2c", marginTop: "6px" }}>{costHint}</div>
+                </div>
+              )}
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input
-                  type="number"
-                  value={freeEvent ? "" : creditCost}
-                  onChange={(e) => setCreditCost(e.target.value)}
-                  placeholder={freeEvent ? "0 (Free event)" : "e.g. 15"}
-                  disabled={freeEvent}
-                  style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }}
-                />
-                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "#7b1f2c", marginTop: "6px" }}>{costHint}</div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Cancellation window <span style={{ color: "#7b1f2c" }}>*</span></label>
+                <select
+                  value={cancellationWindowHours}
+                  onChange={(e) => setCancellationWindowHours(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}
+                >
+                  <option value="0">Any time (free cancellation)</option>
+                  <option value="24">24 hours before (standard)</option>
+                  <option value="48">48 hours before</option>
+                  <option value="168">7 days before (168 hours)</option>
+                </select>
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>Window before start for free cancellation and host penalties.</div>
               </div>
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer", marginTop: "14px" }}>

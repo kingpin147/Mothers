@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -19,6 +19,20 @@ export function Navigation() {
   const [leadEmail, setLeadEmail] = useState("");
   const [leadLoading, setLeadLoading] = useState(false);
   const [leadMsg, setLeadMsg] = useState("");
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(74);
+
+  // Measure and update header height
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        setHeaderHeight(headerRef.current.offsetHeight);
+      }
+    };
+    updateHeaderHeight();
+    window.addEventListener("resize", updateHeaderHeight, { passive: true });
+    return () => window.removeEventListener("resize", updateHeaderHeight);
+  }, []);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -83,16 +97,35 @@ export function Navigation() {
   };
 
   const [scrolled, setScrolled] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
+      const currentScrollY = window.scrollY;
+      setScrolled(currentScrollY > 10);
+
+      if (mobileMenuOpen) {
+        setHeaderVisible(true);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      if (currentScrollY < 10) {
+        setHeaderVisible(true);
+      } else if (currentScrollY > lastScrollY.current + 8 && currentScrollY > (headerHeight || 74)) {
+        // Scrolling down past the header -> hide
+        setHeaderVisible(false);
+      } else if (currentScrollY < lastScrollY.current - 8) {
+        // Scrolling up -> show
+        setHeaderVisible(true);
+      }
+      lastScrollY.current = currentScrollY;
     };
 
-    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [mobileMenuOpen, headerHeight]);
 
   // Nav links per pre-membership page map
   const navLinks = [
@@ -109,13 +142,18 @@ export function Navigation() {
       style={{
         position: "sticky",
         top: 0,
-        zIndex: 100,
+        zIndex: 1000,
+        transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+        transition: "transform 0.3s ease, box-shadow 0.2s ease",
         boxShadow: scrolled ? "0 4px 20px rgba(57, 41, 42, 0.08)" : "none",
-        transition: "box-shadow 0.2s ease",
       }}
     >
       <header
+        ref={headerRef}
+        className="site-header-container"
         style={{
+          position: "relative",
+          zIndex: 1001,
           padding: "16px clamp(20px, 5vw, 64px)",
           borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
           backgroundColor: isEventsPage ? "var(--color-bg-events, #fefdf9)" : "var(--color-bg, #fdf8f2)",
@@ -136,10 +174,12 @@ export function Navigation() {
             <img
               src="/assets/logo-mark-alpha.png"
               alt="The Mothers"
+              className="site-logo-mark"
               style={{ height: isAdminRoute ? "46px" : "54px", width: "auto", display: "block" }}
             />
             <span
               aria-hidden="true"
+              className="site-logo-divider"
               style={{
                 width: "1px",
                 height: isAdminRoute ? "22px" : "26px",
@@ -151,6 +191,7 @@ export function Navigation() {
             <img
               src="/assets/logo-wordmark-alpha.png"
               alt="The Mothers"
+              className="site-logo-wordmark"
               style={{ height: isAdminRoute ? "12px" : "13.5px", width: "auto", display: "block" }}
             />
           </Link>
@@ -283,6 +324,7 @@ export function Navigation() {
               cursor: "pointer",
               padding: "8px",
               color: "var(--color-text, #39292a)",
+              zIndex: 1002,
             }}
           >
             <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="1.8" fill="none">
@@ -297,23 +339,24 @@ export function Navigation() {
       </header>
 
       {/* Sticky Countdown Banner on every page (§S-03) */}
-      <StickyCountdownBanner />
+      {!mobileMenuOpen && <StickyCountdownBanner />}
 
       {/* Mobile Drawer Overlay Matching UI Extras #3 */}
       {mobileMenuOpen && (
         <div
           style={{
             position: "fixed",
-            top: "var(--site-header-height, 120px)",
+            top: headerHeight || 74,
             left: 0,
             right: 0,
             bottom: 0,
+            height: `calc(100dvh - ${headerHeight || 74}px)`,
             backgroundColor: "#fdf8f2",
-            zIndex: 99,
+            zIndex: 1000,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            padding: "16px 24px 32px",
+            padding: "16px 20px 32px",
             overflowY: "auto",
             WebkitOverflowScrolling: "touch",
             fontFamily: "'Lora', Georgia, serif",
@@ -379,7 +422,7 @@ export function Navigation() {
                     textDecoration: "none",
                   }}
                 >
-                  {lang === "en" ? "Book your first event" : "Reserva tu primer evento"}
+                  {lang === "en" ? "See what's on" : "Ver qué hay en el calendario"}
                 </Link>
 
                 <button
@@ -571,7 +614,21 @@ export function Navigation() {
             display: none !important;
           }
           .mobile-burger-btn {
-            display: block !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+          }
+          .site-header-container {
+            padding: 12px 18px !important;
+          }
+          .site-logo-mark {
+            height: 42px !important;
+          }
+          .site-logo-divider {
+            height: 20px !important;
+          }
+          .site-logo-wordmark {
+            height: 12px !important;
           }
         }
       `}</style>

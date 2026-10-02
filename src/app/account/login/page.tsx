@@ -317,8 +317,8 @@ function LoginForm() {
               }}
             >
               {lang === "en"
-                ? "Book your first event and your account comes with it — or open a free account now to post in La Gazette. No joining fee if you join before launch."
-                : "Reserva tu primer evento y tu cuenta vendrá incluida — o crea una cuenta gratuita para participar en La Gazette. Sin cuota de alta si te unes antes del lanzamiento."}
+                ? "Open a free account to post in La Gazette, save events and book your place in one tap."
+                : "Abre una cuenta gratuita para participar en La Gazette, guardar eventos y reservar tu plaza en un toque."}
             </p>
 
             <div
@@ -330,8 +330,12 @@ function LoginForm() {
                 marginTop: "4px",
               }}
             >
-              <Link
-                href="/events"
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("create");
+                  setErrorMsg(null);
+                }}
                 style={{
                   display: "inline-block",
                   padding: "11px 20px",
@@ -342,7 +346,7 @@ function LoginForm() {
                   fontFamily: "var(--font-heading)",
                   fontWeight: 600,
                   fontSize: "14.5px",
-                  textDecoration: "none",
+                  cursor: "pointer",
                   transition: "background-color 0.15s ease",
                   whiteSpace: "nowrap",
                 }}
@@ -353,37 +357,6 @@ function LoginForm() {
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = "#568b05";
                   e.currentTarget.style.borderColor = "#568b05";
-                }}
-              >
-                {lang === "en" ? "Book your first event" : "Reserva tu primer evento"}
-              </Link>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("create");
-                  setErrorMsg(null);
-                }}
-                style={{
-                  display: "inline-block",
-                  padding: "11px 20px",
-                  backgroundColor: "transparent",
-                  color: "#3b5e04",
-                  border: "1px solid #568b05",
-                  borderRadius: "4px",
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 600,
-                  fontSize: "14.5px",
-                  textDecoration: "none",
-                  cursor: "pointer",
-                  transition: "background-color 0.15s ease",
-                  whiteSpace: "nowrap",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "rgba(86, 139, 5, 0.08)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
                 }}
               >
                 {lang === "en" ? "Open a free account" : "Abre una cuenta gratuita"}

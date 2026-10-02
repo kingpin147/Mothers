@@ -158,7 +158,7 @@ export function StickyCountdownBanner() {
           }}
         >
           {/* Headline and descriptive subtitle */}
-          <div style={{ flex: "1 1 280px", minWidth: "220px" }}>
+          <div style={{ flex: "1 1 280px", minWidth: 0, width: "100%" }}>
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -190,13 +190,13 @@ export function StickyCountdownBanner() {
           </div>
 
           {/* Right Side: 4 Countdown Boxes + CTA Button */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", gap: "6px", flexWrap: "nowrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
               {countdownUnits.map((u, idx) => (
                 <div
                   key={idx}
                   style={{
-                    minWidth: "48px",
+                    minWidth: "44px",
                     textAlign: "center",
                     border: "1px solid rgba(201, 162, 39, 0.45)",
                     borderRadius: "4px",

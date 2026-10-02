@@ -114,10 +114,10 @@ export default function EventDetailPage() {
   }, [ev, isMember, eventId]);
 
   const handleMemberBook = async (targetEv: PublicEvent) => {
-    const isFreeWalk = targetEv.isFreeWalk || targetEv.creditCost === 0;
+    const isFree = targetEv.creditCost === 0 || targetEv.memberCredits === 0;
 
-    // Check credits if not free walk
-    if (!isFreeWalk && currentCreditBalance < targetEv.creditCost) {
+    // Check credits if not free event
+    if (!isFree && currentCreditBalance < targetEv.creditCost) {
       setTopUpEvent(targetEv);
       return;
     }
@@ -127,7 +127,7 @@ export default function EventDetailPage() {
     try {
       const res = await bookEvent(targetEv.id);
       if (res.success) {
-        if (!isFreeWalk) {
+        if (!isFree) {
           setMemberCredits((prev) => Math.max(0, (prev ?? targetEv.creditCost) - targetEv.creditCost));
         }
         setIsAlreadyBooked(true);
@@ -393,7 +393,12 @@ export default function EventDetailPage() {
                 <strong style={{ fontWeight: 600, color: "#39292a" }}>
                   {lang === "en" ? "Cancellation: " : "Cancelación: "}
                 </strong>
-                {lang === "en" ? "Free cancellation up to 24 hours before." : "Cancelación gratuita hasta 24 horas antes."}
+                {(() => {
+                  const win = (ev as any).cancellationWindowHours ?? 24;
+                  if (win === 0) return lang === "en" ? "Free cancellation any time." : "Cancelación gratuita en cualquier momento.";
+                  if (win === 168) return lang === "en" ? "Free cancellation up to 7 days before." : "Cancelación gratuita hasta 7 días antes.";
+                  return lang === "en" ? `Free cancellation up to ${win} hours before.` : `Cancelación gratuita hasta ${win} horas antes.`;
+                })()}
               </p>
               {ev.minToConfirm && ev.minToConfirm > 0 && (
                 <p style={{ margin: 0 }}>
@@ -452,7 +457,12 @@ export default function EventDetailPage() {
                 <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
-              {lang === "en" ? "Cancel any time up to 24h before" : "Cancela gratis hasta 24h antes"}
+              {(() => {
+                const win = (ev as any).cancellationWindowHours ?? 24;
+                if (win === 0) return lang === "en" ? "Cancel any time" : "Cancela en cualquier momento";
+                if (win === 168) return lang === "en" ? "Cancel any time up to 7 days before" : "Cancela gratis hasta 7 días antes";
+                return lang === "en" ? `Cancel any time up to ${win}h before` : `Cancela gratis hasta ${win}h antes`;
+              })()}
             </div>
 
             {/* Main Booking Button */}

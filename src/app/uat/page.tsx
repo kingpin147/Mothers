@@ -24,12 +24,12 @@ const GROUPS: UATGroup[] = [
     title: "Global — header, banner, footer",
     page: "All pages",
     items: [
-      { id: "G-01", prio: "P1", title: "Header on every page", steps: "Open each page.", expected: "Logo, Membership, Events, The Circle, ES/EN and Login / My Account identical everywhere. Logo → Home." },
+      { id: "G-01", prio: "P1", title: "Header on every page", steps: "Open each page.", expected: "Logo, Membership, Events, La Gazette, ES/EN and Login / My Account identical everywhere. Logo → Home." },
       { id: "G-02", prio: "P1", title: "Sticky header + banner", steps: "Scroll a long page.", expected: "Nav and countdown banner stay pinned." },
       { id: "G-03", prio: "P1", title: "Countdown", steps: "Compare with 6 Jan 2027 00:00 Madrid; wait 5 s.", expected: "Correct values, ticking every minute on every page." },
       { id: "G-04", prio: "P2", title: "Join the list (banner)", steps: "Click it, reload, open another page.", expected: 'Becomes "You\'re on the list" everywhere. Email stored in leads.' },
       { id: "G-05", prio: "P2", title: "Account button", steps: "Check signed out, then signed in.", expected: '"Login" → Sign In; "My Account" → Account.' },
-      { id: "G-06", prio: "P2", title: "Footer links + Instagram", steps: "Click every footer link and the Instagram icon.", expected: "All pages open (incl. Become a host, The Circle, Cookie settings). Mail opens client; Instagram opens profile." },
+      { id: "G-06", prio: "P2", title: "Footer links + Instagram", steps: "Click every footer link and the Instagram icon.", expected: "All pages open (incl. Become a host, La Gazette, Cookie settings). Mail opens client; Instagram opens profile." },
       { id: "G-07", prio: "P2", title: "Footer newsletter", steps: "Submit empty, invalid, valid email.", expected: 'Errors for empty/invalid; confirmation for valid; stored with source "footer".' },
       { id: "G-08", prio: "P1", title: "No launch leaks", steps: 'Search pages for "guest", "€19", "no joining fee, ever".', expected: "None appear. Fee only described as waived before launch." },
       { id: "G-09", prio: "P3", title: "Language toggle", steps: "Click ES.", expected: "Label switches between EN and ES." }
@@ -39,7 +39,7 @@ const GROUPS: UATGroup[] = [
     title: "Home",
     page: "Home",
     items: [
-      { id: "H-01", prio: "P1", title: "Hero CTAs", steps: 'Click "See what\'s on" and "Book your first event".', expected: "Both open Events." },
+      { id: "H-01", prio: "P1", title: "Hero CTA", steps: 'Click "See what\'s on".', expected: "Opens Events." },
       { id: "H-02", prio: "P2", title: "Next on the calendar", steps: "Click an event card.", expected: "Correct Event detail opens; labels match filter categories." },
       { id: "H-03", prio: "P2", title: "Godmother module", steps: 'Read bullets; click "Get your invite code", "How it works", "become a host".', expected: "5 credits marked Members only; 2 credits for hosting. Links → Account, FAQ, Host." },
       { id: "H-04", prio: "P2", title: "Membership block", steps: 'Click "What membership will be" and the list button.', expected: "Membership opens; list button toggles and persists." }
@@ -61,8 +61,8 @@ const GROUPS: UATGroup[] = [
     ]
   },
   {
-    title: "The Circle (Forum)",
-    page: "The Circle",
+    title: "La Gazette (Forum)",
+    page: "La Gazette",
     items: [
       { id: "C-01", prio: "P1", title: "Read without account", steps: "Open signed out.", expected: "Feed readable; composer asks to sign in or open a free account." },
       { id: "C-02", prio: "P1", title: "Post + persist", steps: "Post 10+ characters; reload.", expected: "Post appears on top and survives reload." },
@@ -83,8 +83,8 @@ const GROUPS: UATGroup[] = [
     items: [
       { id: "UI-01", prio: "P1", title: "Cookie banner", steps: "Open site in a private window.", expected: "Accept all / Reject all / Choose, equal weight. No analytics or marketing scripts before consent." },
       { id: "UI-02", prio: "P1", title: "Cookie choices saved", steps: 'Choose Analytics only; reload; open "Cookie settings" in footer.', expected: "Choice kept; settings re-open and can be changed." },
-      { id: "UI-03", prio: "P2", title: "404 page", steps: "Visit a made-up URL.", expected: "404 with Events, The Circle and Home links; header, banner, footer present." },
-      { id: "UI-04", prio: "P1", title: "Mobile menu", steps: "On a phone, open the menu signed out, then signed in.", expected: 'Full-screen; header and banner stay; signed out shows "Book your first event" + "Join the list"; signed in shows My Account + Log out.' }
+      { id: "UI-03", prio: "P2", title: "404 page", steps: "Visit a made-up URL.", expected: "404 with Events, La Gazette and Home links; header, banner, footer present." },
+      { id: "UI-04", prio: "P1", title: "Mobile menu", steps: "On a phone, open the menu signed out, then signed in.", expected: 'Full-screen; header and banner stay; signed out shows "See what\'s on" + "Join the list"; signed in shows My Account + Log out.' }
     ]
   },
   {

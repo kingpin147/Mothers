@@ -135,13 +135,13 @@ export default function MembershipClient({
 
   const col1Items = isEn
     ? [
-        "A private community of mothers, vetted at the door",
+        "A circle of mothers at your stage",
         "20 credits a month, rolling over",
         "Partner perks",
         "Priority booking on everything",
       ]
     : [
-        "Una comunidad privada de madres, seleccionada con cuidado",
+        "Un círculo de madres en tu misma etapa",
         "20 créditos al mes, acumulables",
         "Ventajas con partners",
         "Prioridad de reserva en todo",
@@ -260,7 +260,7 @@ export default function MembershipClient({
         }}
       >
         {/* Left column */}
-        <div style={{ flex: "1 1 420px", minWidth: "290px" }}>
+        <div style={{ flex: "1 1 420px", minWidth: 0, width: "100%", maxWidth: "100%" }}>
           <div
             style={{
               fontFamily: "'Cormorant Garamond', serif",
@@ -281,9 +281,10 @@ export default function MembershipClient({
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 400,
-              fontSize: "clamp(32px, 4.6vw, 58px)",
-              lineHeight: 1.06,
+              fontSize: "clamp(30px, 6vw, 56px)",
+              lineHeight: 1.08,
               margin: "0 0 18px",
+              wordBreak: "break-word",
             }}
           >
             {isEn ? "Your circle of mothers, all year round." : "Tu círculo de madres, todo el año."}
@@ -291,7 +292,7 @@ export default function MembershipClient({
 
           <p
             style={{
-              fontSize: "17.5px",
+              fontSize: "clamp(15px, 3.5vw, 17.5px)",
               lineHeight: 1.6,
               color: "rgba(57, 41, 42, 0.74)",
               margin: "0 0 26px",
@@ -304,17 +305,20 @@ export default function MembershipClient({
           </p>
 
           {/* 4 Countdown Boxes */}
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "26px" }}>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "26px", width: "100%", maxWidth: "420px" }}>
             {countdownItems.map((u, idx) => (
               <div
                 key={idx}
                 style={{
-                  minWidth: "76px",
+                  flex: "1 1 calc(25% - 8px)",
+                  minWidth: "62px",
+                  maxWidth: "96px",
                   textAlign: "center",
                   background: "#ecdcd0",
                   border: "1px solid rgba(57, 41, 42, 0.18)",
                   borderRadius: "5px",
-                  padding: "14px 10px",
+                  padding: "12px 6px",
+                  boxSizing: "border-box",
                 }}
               >
                 <div
@@ -322,7 +326,7 @@ export default function MembershipClient({
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 400,
-                    fontSize: "34px",
+                    fontSize: "clamp(24px, 5.5vw, 34px)",
                     lineHeight: 1,
                     fontFeatureSettings: "'tnum'",
                     color: "#7b1f2c",
@@ -332,11 +336,11 @@ export default function MembershipClient({
                 </div>
                 <div
                   style={{
-                    fontSize: "10px",
+                    fontSize: "9.5px",
                     letterSpacing: "0.12em",
                     textTransform: "uppercase",
                     color: "rgba(57, 41, 42, 0.72)",
-                    marginTop: "7px",
+                    marginTop: "6px",
                   }}
                 >
                   {u.label}
@@ -346,7 +350,7 @@ export default function MembershipClient({
           </div>
 
           {/* CTAs */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "flex-start", width: "100%" }}>
             {!inlineJoinOpen ? (
               waitlisted ? (
                 <div
@@ -545,31 +549,35 @@ export default function MembershipClient({
         {/* Right column: Burgundy Card */}
         <div
           style={{
-            flex: "1 1 380px",
-            minWidth: "290px",
+            flex: "1 1 360px",
+            minWidth: 0,
+            width: "100%",
+            maxWidth: "100%",
             borderRadius: "8px",
             background: "#7b1f2c",
             color: "#f8efe2",
-            padding: "clamp(22px, 3vw, 32px)",
+            padding: "clamp(20px, 3.5vw, 32px)",
             boxShadow: "0 14px 34px rgba(57, 41, 42, 0.18)",
+            boxSizing: "border-box",
           }}
         >
           {/* Green Badge */}
           <div
             style={{
               display: "inline-block",
-              fontSize: "11px",
+              fontSize: "clamp(10px, 2.8vw, 11px)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
               color: "#ffffff",
               background: "#568b05",
               borderRadius: "12px",
-              padding: "5px 14px",
+              padding: "5px 12px",
               marginBottom: "18px",
               maxWidth: "100%",
               boxSizing: "border-box",
               lineHeight: 1.4,
               fontWeight: 600,
+              wordBreak: "break-word",
             }}
           >
             {isEn ? "NO JOINING FEE IF YOU JOIN US BEFORE LAUNCH" : "SIN CUOTA DE ALTA SI TE UNES ANTES DEL LANZAMIENTO"}
@@ -694,26 +702,6 @@ export default function MembershipClient({
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px, 3.2vw, 36px)", lineHeight: 1.12, margin: 0 }}>
                 {isEn ? "Start meeting mothers now." : "Empieza a conocer madres ahora."}
               </h2>
-            </div>
-            <div>
-              <Link
-                href="/events"
-                style={{
-                  border: "1px solid #7b1f2c",
-                  color: "#7b1f2c",
-                  padding: "11px 20px",
-                  borderRadius: "4px",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  whiteSpace: "nowrap",
-                  textDecoration: "none",
-                  display: "inline-block",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                {isEn ? "Book your first event" : "Reserva tu primer evento"}
-              </Link>
             </div>
           </div>
 

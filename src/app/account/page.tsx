@@ -338,7 +338,9 @@ function AccountPageContent() {
               {lang === "en" ? "Member Account" : "Cuenta de Socia"}
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(34px, 5vw, 54px)", margin: "0 0 4px 0", lineHeight: 1.1 }}>
-              {lang === "en" ? "Welcome back." : "Bienvenida de nuevo."}
+              {detailsForm.firstName
+                ? (lang === "en" ? `Welcome, ${detailsForm.firstName}.` : `Bienvenida, ${detailsForm.firstName}.`)
+                : (lang === "en" ? "Welcome." : "Bienvenida.")}
             </h1>
             <p style={{ fontSize: "16px", color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
               {lang === "en"
@@ -628,15 +630,15 @@ function AccountPageContent() {
             {/* WhatsApp Circles: Always show General Circle for all members */}
             <div style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#f4f7ee" }}>
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "9px" }}>
-                {lang === "en" ? "Community WhatsApp Circle" : "Círculo de la Comunidad en WhatsApp"}
+                {lang === "en" ? "Community WhatsApp Group" : "Grupo de la Comunidad en WhatsApp"}
               </div>
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px" }}>
-                General — The Circle WA Group
+                General — La Gazette WhatsApp Group
               </h2>
               <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 18px" }}>
                 {lang === "en"
-                  ? "The main community circle for all members across Barcelona. Announcements, conversations, and club updates are shared here."
-                  : "El círculo principal para todas las socias en Barcelona. Anuncios, conversaciones y novedades del club se comparten aquí."}
+                  ? "The main community WhatsApp group for all members across Barcelona. Announcements, conversations, and club updates are shared here."
+                  : "El grupo principal de WhatsApp para todas las socias en Barcelona. Anuncios, conversaciones y novedades del club se comparten aquí."}
               </p>
               <a
                 href={GENERAL_WHATSAPP_LINK}

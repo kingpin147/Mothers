@@ -144,13 +144,13 @@ export default function AdminDashboardPage() {
   const week = data?.week || [];
   
   const queues = [
-    { kicker: 'Queue 01 · Pre-launch desk', title: 'Hosts, attendance, The Circle, accounts', body: 'Host requests, attendance records, circle moderation and pre-launch accounts.', cta: 'Open the desk', href: '/admin/pre-launch' },
+    { kicker: 'Queue 01 · Pre-launch desk', title: 'Hosts, attendance, La Gazette, accounts', body: 'Host requests, attendance records, forum moderation and pre-launch accounts.', cta: 'Open the desk', href: '/admin/pre-launch' },
     { kicker: 'Queue 02 · Events', title: 'Calendar & thresholds', body: 'Publish gatherings, set minimums and decision points, confirm or cancel with automatic refunds.', cta: 'Open the calendar', href: '/admin/events' },
     { kicker: 'Queue 03 · Member care', title: 'Directory & credit ledger', body: 'Search by name, stage or neighbourhood, spot at-risk accounts, adjust credits with a reason.', cta: 'Open the directory', href: '/admin/members' },
     { kicker: 'Queue 04 · Finance', title: 'Payments & revenue', body: 'Subscriptions, credit top-ups, member fees, refunds and shop orders.', cta: 'Open the ledger', href: '/admin/finance' }
   ];
   const cms = [
-    { label: 'The Circle — reports & moderation', href: '/admin/reports' },
+    { label: 'La Gazette — reports & moderation', href: '/admin/reports' },
     { label: 'Host requests & attendance', href: '/admin/pre-launch' },
     { label: 'Accounts & the list (newsletter)', href: '/admin/subscribers' },
     { label: 'Partners — directory (perks from launch)', href: '/admin/partners' },

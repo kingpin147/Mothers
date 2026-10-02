@@ -147,18 +147,20 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3. Send Place Still Open reminder ONLY to holds that expired (releaseReason = 'hold_expired') (F-17)
+    // 3. Send Place Still Open reminder ONLY once, exactly 24h after hold expired (R-02 / F-17)
     const abandonedCandidates = await db
       .select({
         bookingId: booking.id,
         personId: booking.personId,
         eventId: booking.eventId,
         createdAt: booking.createdAt,
+        releasedAt: booking.releasedAt,
         personEmail: person.email,
         personFirstName: person.firstName,
         eventTitle: event.title,
         eventStartsAt: event.startsAt,
         eventStatus: event.status,
+        capacityMember: event.capacityMember,
       })
       .from(booking)
       .innerJoin(event, eq(booking.eventId, event.id))
@@ -168,15 +170,16 @@ export async function GET(req: NextRequest) {
           eq(booking.status, "released"),
           eq(booking.releaseReason, "hold_expired"),
           sql`${booking.releasedAt} IS NOT NULL`,
-          sql`${booking.createdAt} >= NOW() - INTERVAL '24 hours'`,
-          sql`${booking.createdAt} <= NOW() - INTERVAL '30 minutes'`,
-          sql`${event.startsAt} > NOW()`,
+          sql`${booking.reminderSentAt} IS NULL`,
+          sql`${booking.releasedAt} <= NOW() - INTERVAL '24 hours'`,
+          sql`${booking.releasedAt} >= NOW() - INTERVAL '48 hours'`,
+          sql`${event.startsAt} > NOW() + INTERVAL '24 hours'`,
           sql`${event.status} IN ('confirmed', 'published_pending')`
         )
       );
 
     for (const cand of abandonedCandidates) {
-      // Ensure the mother hasn't subsequently confirmed another booking for this event
+      // Ensure the mother hasn't subsequently booked/confirmed for this event
       const activeBooking = await db.query.booking.findFirst({
         where: and(
           eq(booking.personId, cand.personId),
@@ -187,6 +190,24 @@ export async function GET(req: NextRequest) {
 
       if (activeBooking) continue;
 
+      // Check if places are still left for this event
+      if (cand.capacityMember && cand.capacityMember > 0) {
+        const activeBookingsCount = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(booking)
+          .where(
+            and(
+              eq(booking.eventId, cand.eventId),
+              sql`${booking.status} IN ('held', 'confirmed')`
+            )
+          );
+        const currentTaken = activeBookingsCount[0]?.count || 0;
+        if (currentTaken >= cand.capacityMember) {
+          // Event is full, don't send "Place Still Open"
+          continue;
+        }
+      }
+
       try {
         await sendPlaceStillOpenEmail({
           personId: cand.personId,
@@ -195,6 +216,12 @@ export async function GET(req: NextRequest) {
           eventTitle: cand.eventTitle,
           eventId: cand.eventId,
         });
+
+        await db
+          .update(booking)
+          .set({ reminderSentAt: new Date() })
+          .where(eq(booking.id, cand.bookingId));
+
         remindersSent++;
       } catch (sendErr) {
         console.warn(`[abandoned-checkout] Failed to send reminder to ${cand.personEmail}:`, sendErr);

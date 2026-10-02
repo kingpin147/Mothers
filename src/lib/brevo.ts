@@ -266,17 +266,17 @@ export function generateSubscriptionConfirmationEmailHtml(params: {
 <td class="px" style="padding:26px 48px 0;">
   <div style="background-color:#f4f7ee;border:1px solid rgba(86,139,5,0.35);border-radius:6px;padding:18px 22px;">
     <div style="font-size:11.5px;letter-spacing:1.5px;text-transform:uppercase;color:#568b05;font-weight:bold;margin-bottom:6px;">
-      ${isEs ? "Comunidad The Circle en WhatsApp" : "WhatsApp Community Circle"}
+      ${isEs ? "Comunidad La Gazette en WhatsApp" : "WhatsApp Community Group"}
     </div>
     <p style="font-size:14px;line-height:22px;color:rgba(57,41,42,0.85);margin:0 0 10px;">
       ${
         isEs
-          ? "Únete a <strong>The Circle en WhatsApp</strong> para conectar con otras madres de Barcelona y recibir avisos de nuevos encuentros."
-          : "Join <strong>The Circle WhatsApp Group</strong> to connect with other mothers in Barcelona and receive updates."
+          ? "Únete a <strong>La Gazette en WhatsApp</strong> para conectar con otras madres de Barcelona y recibir avisos de nuevos encuentros."
+          : "Join <strong>La Gazette WhatsApp Group</strong> to connect with other mothers in Barcelona and receive updates."
       }
     </p>
     <a href="${waCircleUrl}" style="color:#456f04;font-weight:bold;font-size:14px;text-decoration:underline;">
-      ${isEs ? "Unirme al grupo de WhatsApp &rarr;" : "Join The Circle on WhatsApp &rarr;"}
+      ${isEs ? "Unirme al grupo de WhatsApp &rarr;" : "Join La Gazette on WhatsApp &rarr;"}
     </a>
   </div>
 </td>
@@ -1172,7 +1172,7 @@ export async function sendAccountReinstatedEmail(params: {
   const firstName = params.firstName || "Friend";
   const htmlContent = renderPublicEmailTemplate("Email - Account Reinstated.html", {
     first_name: firstName,
-  }) || `<p>Your account is active again, ${firstName}. You can now book events and participate in The Circle.</p>`;
+  }) || `<p>Your account is active again, ${firstName}. You can now book events and participate in La Gazette.</p>`;
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1347,7 +1347,7 @@ export async function sendAfterFirstEventEmail(params: {
   const htmlContent = renderPublicEmailTemplate("Email - After Your First Event.html", {
     first_name: firstName,
     event_title: params.eventTitle,
-  }) || `<p>Hi ${firstName}, we loved having you at ${params.eventTitle} yesterday. You can now post in The Circle and explore more gatherings.</p>`;
+  }) || `<p>Hi ${firstName}, we loved having you at ${params.eventTitle} yesterday. You can now post in La Gazette and explore more gatherings.</p>`;
 
   return queueAndSendEmail({
     personId: params.personId,

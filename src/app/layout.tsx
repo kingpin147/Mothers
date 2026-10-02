@@ -26,11 +26,11 @@ const lora = Lora({
 export const metadata: Metadata = {
   metadataBase: new URL("https://themothers.cc"),
   title: {
-    default: "The Mothers — A private membership club for mothers · Barcelona",
+    default: "The Mothers — A way of life for the modern Mother · Barcelona",
     template: "%s — The Mothers",
   },
   description:
-    "A private club for mothers in Barcelona: curated events, genuine community, credit-based booking, and trusted partner care.",
+    "Curated gatherings, genuine community, credit-based booking, and trusted partner care for mothers in Barcelona.",
   keywords: [
     "The Mothers",
     "mothers club Barcelona",
@@ -65,23 +65,23 @@ export const metadata: Metadata = {
     alternateLocale: ["es_ES"],
     url: "https://themothers.cc",
     siteName: "The Mothers",
-    title: "The Mothers — A private membership club for mothers · Barcelona",
+    title: "The Mothers — A way of life for the modern Mother · Barcelona",
     description:
-      "A private club for mothers in Barcelona: curated events, genuine community, credit-based booking, and trusted partner care.",
+      "Curated gatherings, genuine community, credit-based booking, and trusted partner care for mothers in Barcelona.",
     images: [
       {
         url: "/assets/home-hero.webp",
         width: 1200,
         height: 630,
-        alt: "The Mothers — A private membership club for mothers in Barcelona",
+        alt: "The Mothers — Barcelona",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "The Mothers — A private membership club for mothers · Barcelona",
+    title: "The Mothers — A way of life for the modern Mother · Barcelona",
     description:
-      "A private club for mothers in Barcelona: curated events, genuine community, credit-based booking, and trusted partner care.",
+      "Curated gatherings, genuine community, credit-based booking, and trusted partner care for mothers in Barcelona.",
     images: ["/assets/home-hero.webp"],
   },
   robots: {

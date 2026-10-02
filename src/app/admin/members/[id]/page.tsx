@@ -287,7 +287,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
               {(() => {
                 const stageStr = member.stage || "—";
                 const stageLower = stageStr.toLowerCase();
-                const circles = ["General — The Circle"];
+                const circles = ["General — La Gazette"];
                 if (stageLower.includes("preg") || stageLower.includes("expect")) circles.push("Pregnant");
                 if (stageLower.includes("baby") || stageLower.includes("babies")) circles.push("Babies");
                 if (stageLower.includes("toddler") || stageLower.includes("peque")) circles.push("Toddlers");

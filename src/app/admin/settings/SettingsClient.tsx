@@ -419,7 +419,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
             ],
           },
           {
-            title: "The Circle",
+            title: "La Gazette",
             intro: "Control what appears in 'Talked about this week'.",
             fields: [
               { key: "pinnedCircleTag", label: "Pinned tag (slug)", help: "Example: 'health', 'toddlers'. Leaves room for 5 organic tags." },

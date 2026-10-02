@@ -172,7 +172,10 @@ export async function createAdminEvent(data: {
   decisionAt?: Date;
   publishedAt?: Date;
   targetStages?: string[];
+  memberCredits?: number;
+  nonMemberCredits?: number;
   nonMemberCreditCost?: number;
+  cancellationWindowHours?: number;
   needsHost?: boolean;
   nonMemberOpensAt?: Date | null;
   imageId?: string | null;
@@ -210,6 +213,9 @@ export async function createAdminEvent(data: {
       safeDecisionAt = t7 > now ? t7 : new Date(Math.min(data.startsAt.getTime() - 3600000, Math.max(now.getTime() + 3600000, data.startsAt.getTime() - 2 * 86400000)));
     }
 
+    const memberCost = data.memberCredits !== undefined ? data.memberCredits : data.creditCost;
+    const nonMemberCost = data.nonMemberCredits !== undefined ? data.nonMemberCredits : (data.nonMemberCreditCost !== undefined ? data.nonMemberCreditCost : memberCost);
+
     const inserted = await db
       .insert(event)
       .values({
@@ -222,13 +228,14 @@ export async function createAdminEvent(data: {
         meetingPoint: data.meetingPoint,
         startsAt: data.startsAt,
         endsAt: data.endsAt,
-        creditCost: data.creditCost,
-        memberCredits: data.creditCost,
-        nonMemberCredits: data.nonMemberCreditCost !== undefined ? data.nonMemberCreditCost : data.creditCost,
+        creditCost: memberCost,
+        memberCredits: memberCost,
+        nonMemberCredits: nonMemberCost,
+        cancellationWindowHours: data.cancellationWindowHours !== undefined ? data.cancellationWindowHours : 24,
         capacityMember: data.capacityMember,
         minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 0,
         isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
-        isFreeWalk: data.creditCost === 0,
+        isFreeWalk: memberCost === 0,
         needsHost: !!data.needsHost,
         nonMemberOpensAt: data.nonMemberOpensAt === undefined ? null : data.nonMemberOpensAt,
         imageId: data.imageId || null,
@@ -287,6 +294,9 @@ export async function updateAdminEvent(eventId: string, data: {
   startsAt?: Date;
   endsAt?: Date;
   creditCost?: number;
+  memberCredits?: number;
+  nonMemberCredits?: number;
+  cancellationWindowHours?: number;
   capacityMember?: number;
   minToConfirm?: number;
   isSignature?: boolean;
@@ -339,6 +349,9 @@ export async function updateAdminEvent(eventId: string, data: {
     ? data.isSignature
     : (data.category?.toLowerCase().includes("signature") ?? existing.isSignature);
 
+  const updatedMemberCost = data.memberCredits !== undefined ? data.memberCredits : (data.creditCost !== undefined ? data.creditCost : undefined);
+  const updatedNonMemberCost = data.nonMemberCredits !== undefined ? data.nonMemberCredits : (data.nonMemberCreditCost !== undefined ? data.nonMemberCreditCost : (data.creditCost !== undefined ? data.creditCost : undefined));
+
   await db
     .update(event)
     .set({
@@ -350,13 +363,15 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.meetingPoint !== undefined && { meetingPoint: data.meetingPoint }),
       ...(data.startsAt !== undefined && { startsAt: data.startsAt }),
       ...(data.endsAt !== undefined && { endsAt: data.endsAt }),
-      ...(data.creditCost !== undefined && {
-        creditCost: data.creditCost,
-        memberCredits: data.creditCost,
-        nonMemberCredits: data.nonMemberCreditCost !== undefined ? data.nonMemberCreditCost : data.creditCost,
-        isFreeWalk: data.creditCost === 0,
+      ...(updatedMemberCost !== undefined && {
+        creditCost: updatedMemberCost,
+        memberCredits: updatedMemberCost,
+        isFreeWalk: updatedMemberCost === 0,
       }),
-      ...(data.nonMemberCreditCost !== undefined && { nonMemberCredits: data.nonMemberCreditCost }),
+      ...(updatedNonMemberCost !== undefined && {
+        nonMemberCredits: updatedNonMemberCost,
+      }),
+      ...(data.cancellationWindowHours !== undefined && { cancellationWindowHours: data.cancellationWindowHours }),
       ...(data.capacityMember !== undefined && { capacityMember: data.capacityMember }),
       ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
       ...(data.needsHost !== undefined && { needsHost: data.needsHost }),

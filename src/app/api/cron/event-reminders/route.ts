@@ -20,14 +20,13 @@ export async function GET(req: NextRequest) {
   let t1Reminders = 0;
 
   try {
-    // ── T-3 REMINDERS: Free walk confirmation ───────────────────────────────
+    // ── T-3 REMINDERS: 3-day event confirmation ────────────────────────────
     const t3Events = await db
       .select()
       .from(event)
       .where(
         and(
           sql`status IN ('confirmed', 'published_pending')`,
-          eq(event.isFreeWalk, true),
           sql`starts_at > NOW() + INTERVAL '2 days'`,
           sql`starts_at <= NOW() + INTERVAL '3 days'`
         )

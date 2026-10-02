@@ -43,6 +43,9 @@ export interface PublicEvent {
   imageUrl?: string | null;
   status: string;
   creditCost: number;
+  memberCredits?: number | null;
+  nonMemberCredits?: number | null;
+  cancellationWindowHours?: number | null;
   isFreeWalk?: boolean | null;
   isOnline?: boolean | null;
   isSignature?: boolean | null;
@@ -442,7 +445,7 @@ export function SignedOutMemberModal({
             href={`/account/login?create=1&callbackUrl=${encodeURIComponent(targetCallback)}`}
             style={{ fontSize: "14px", color: "#7b1f2c", textDecoration: "underline", marginLeft: "8px" }}
           >
-            {lang === "en" ? "Not a member yet? Join" : "¿Aún no eres socia? Únete"}
+            {lang === "en" ? "New here? Open a free account" : "¿Nueva aquí? Abre una cuenta gratuita"}
           </Link>
         </div>
       </div>
@@ -516,8 +519,8 @@ export function WaitlistModal({
 
         <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 24px" }}>
           {lang === "en"
-            ? `We'll hold place ${position} for you on “${displayTitle}”. If someone cancels — and inside 24 hours they often do — we email you straight away and the place is yours for two hours. No credits are spent until you take it.`
-            : `Guardamos el puesto ${position} para ti en “${displayTitle}”. Si alguien cancela — y dentro de las 24 horas suele pasar — te enviamos un correo al momento y la plaza es tuya durante dos horas. No se gastan créditos hasta que la aceptes.`}
+            ? `We'll hold place ${position} for you on “${displayTitle}”. If someone cancels, we email you; you have 12 hours to take it — inside 24 hours, the first to take it gets it. No credits are spent until you take it.`
+            : `Guardamos el puesto ${position} para ti en “${displayTitle}”. Si alguien cancela, te enviamos un correo; tienes 12 horas para aceptarla — dentro de las 24 horas, la primera en reservar se la queda. No se gastan créditos hasta que la aceptes.`}
         </p>
 
         <button
@@ -1194,8 +1197,8 @@ function EventCard({
           </div>
           {/* Credit cost */}
           <span style={{ fontSize: "11.5px", color: "rgba(57,41,42,0.7)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 500, paddingTop: "3px" }}>
-            {ev.creditCost === 0 || ev.isFreeWalk
-              ? (lang === "en" ? "Included / Free" : "Incluido / Gratis")
+            {ev.creditCost === 0 || ev.memberCredits === 0
+              ? (lang === "en" ? "Free" : "Gratis")
               : `${ev.creditCost} ${lang === "en" ? "credits" : "créditos"}`}
           </span>
         </div>
