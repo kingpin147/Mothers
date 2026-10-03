@@ -80,7 +80,7 @@ export default function NotFound() {
         </Link>
 
         <Link
-          href="/circle"
+          href="/gazette"
           style={{
             border: "1px solid #7b1f2c",
             backgroundColor: "transparent",

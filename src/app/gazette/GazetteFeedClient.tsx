@@ -9,7 +9,7 @@ import {
   createCircleReply,
   toggleCircleHeart,
   reportCirclePost,
-} from "@/app/actions/circle";
+} from "@/app/actions/gazette";
 import { compressImageClient } from "@/lib/imageCompression";
 
 const TOPICS = [
@@ -34,7 +34,7 @@ const REPORT_REASONS = [
   { id: "child_photo_no_consent", label: "Child photo without consent" },
 ];
 
-export function CircleFeedClient({
+export function GazetteFeedClient({
   initialPosts,
   currentUser,
   eligibility,

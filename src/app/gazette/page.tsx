@@ -1,7 +1,7 @@
 import React from "react";
-import { getCirclePosts, checkPostingEligibility, getTrendingCircleTags } from "@/app/actions/circle";
+import { getCirclePosts, checkPostingEligibility, getTrendingCircleTags } from "@/app/actions/gazette";
 import { auth } from "@/lib/auth";
-import { CircleFeedClient } from "./CircleFeedClient";
+import { GazetteFeedClient } from "./GazetteFeedClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,14 +9,14 @@ export const metadata: Metadata = {
   description: "Share what you are living, ask for advice, and cheer each other on in La Gazette.",
 };
 
-export default async function CirclePage() {
+export default async function GazettePage() {
   const session = await auth();
   const initialPosts = await getCirclePosts();
   const eligibility = await checkPostingEligibility();
   const trendingTopics = await getTrendingCircleTags();
 
   return (
-    <CircleFeedClient
+    <GazetteFeedClient
       initialPosts={initialPosts}
       currentUser={session?.user || null}
       eligibility={eligibility}

@@ -400,7 +400,7 @@ export async function createCirclePost(data: {
     })
     .returning();
 
-  revalidatePath("/circle");
+  revalidatePath("/gazette");
   return { success: true, post: newPost };
 }
 
@@ -420,7 +420,7 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
       throw new Error("Your account is currently paused.");
     }
     if (eligibility.reason === "membership_required") {
-      throw new Error(eligibility.message || "You have used your 3 free Circle posts/replies. Become a member for unlimited Circle conversations.");
+      throw new Error(eligibility.message || "You have used your 3 free posts/replies in La Gazette. Become a member for unlimited conversations.");
     }
     throw new Error("You are not eligible to reply.");
   }
@@ -463,7 +463,7 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     })
     .where(eq(circlePost.id, postId));
 
-  revalidatePath("/circle");
+  revalidatePath("/gazette");
   return { success: true };
 }
 
@@ -562,7 +562,7 @@ export async function reportCirclePost(postId: string, reason: string, details?:
     })
     .where(eq(circlePost.id, postId));
 
-  revalidatePath("/circle");
+  revalidatePath("/gazette");
   return { success: true };
 }
 

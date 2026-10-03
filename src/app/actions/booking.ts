@@ -101,15 +101,17 @@ export async function bookEvent(eventId: string) {
         throw new Error("MEMBERS_FIRST_WINDOW_ACTIVE");
       }
 
-      // 4. Calculate required credits (F-18)
+      // 4. Calculate required credits (F-18 / Audit 18 & 19: one price before launch, member + non-member after)
       let requiredCredits = 0;
-      if (!clubSettings.membershipLive) {
-        // Pre-launch mode: everyone pays the non-member credit cost (€2/credit)
-        requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
+      if (ev.isFreeWalk && (isMember || !clubSettings.membershipLive)) {
+        requiredCredits = 0;
+      } else if (!clubSettings.membershipLive) {
+        // Pre-launch mode: single base price for everyone
+        requiredCredits = ev.creditCost ?? 0;
       } else if (isMember) {
-        requiredCredits = ev.memberCredits ?? ev.creditCost;
+        requiredCredits = ev.memberCredits ?? ev.creditCost ?? 0;
       } else {
-        requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
+        requiredCredits = ev.nonMemberCredits ?? ev.creditCost ?? 0;
       }
 
       // 5. Count existing active bookings for this person & on this event (excluding expired holds)
@@ -388,12 +390,14 @@ export async function holdBookingForTopUp(eventId: string) {
       }
 
       let requiredCredits = 0;
-      if (!clubSettings.membershipLive) {
-        requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
+      if (ev.isFreeWalk && (isMember || !clubSettings.membershipLive)) {
+        requiredCredits = 0;
+      } else if (!clubSettings.membershipLive) {
+        requiredCredits = ev.creditCost ?? 0;
       } else if (isMember) {
-        requiredCredits = ev.memberCredits ?? ev.creditCost;
+        requiredCredits = ev.memberCredits ?? ev.creditCost ?? 0;
       } else {
-        requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
+        requiredCredits = ev.nonMemberCredits ?? ev.creditCost ?? 0;
       }
 
       const heldUntil = new Date(Date.now() + 10 * 60 * 1000); // 10-minute hold window

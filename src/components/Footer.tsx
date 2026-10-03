@@ -297,7 +297,7 @@ export function Footer() {
               <Link href="/events" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 {lang === "en" ? "Events" : "Eventos"}
               </Link>
-              <Link href="/circle" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
+              <Link href="/gazette" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 La Gazette
               </Link>
               {isMembershipLive && (

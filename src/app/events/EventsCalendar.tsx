@@ -1619,6 +1619,15 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [signedOutEvent, setSignedOutEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
+      getPublicClubSettings().then((s) => {
+        if (s.membershipLive) setIsLive(true);
+      }).catch(() => {});
+    });
+  }, []);
 
   useEffect(() => {
     setEventsList(events);
@@ -1669,7 +1678,12 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     try {
       const res = await bookEvent(ev.id);
       if (res.success) {
-        const chargedCost = isMember ? (ev.memberCredits ?? ev.creditCost ?? 0) : (ev.nonMemberCredits ?? ev.creditCost ?? 0);
+        const isFree = ev.creditCost === 0 || (ev.isFreeWalk && (isMember || !isLive));
+        const chargedCost = isFree
+          ? 0
+          : (isLive
+              ? (isMember ? (ev.memberCredits ?? ev.creditCost ?? 0) : (ev.nonMemberCredits ?? ev.creditCost ?? 0))
+              : (ev.creditCost ?? 0));
         const newCredits = Math.max(0, currentCreditBalance - chargedCost);
         setCurrentCreditBalance(newCredits);
 
@@ -1711,7 +1725,16 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       }
     } catch (err: any) {
       console.error("Booking error:", err);
-      setBookingError(err?.message || (lang === "en" ? "Booking failed." : "Error al reservar."));
+      const msg = err?.message || "";
+      if (msg.includes("Server Action") || msg.includes("failed to fetch") || msg.includes("Failed to fetch")) {
+        setBookingError(
+          lang === "en"
+            ? "The site has updated in the background. Please refresh the page and try again."
+            : "El sitio se ha actualizado. Por favor recarga la página e inténtalo de nuevo."
+        );
+      } else {
+        setBookingError(err?.message || (lang === "en" ? "Booking failed." : "Error al reservar."));
+      }
     } finally {
       setBookingLoadingId(null);
     }

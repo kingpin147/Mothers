@@ -153,8 +153,17 @@ export default function EventDetailPage() {
           );
         }
       }
-    } catch {
-      setBookingError(lang === "en" ? "Something went wrong." : "Algo falló.");
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("Server Action") || msg.includes("failed to fetch") || msg.includes("Failed to fetch")) {
+        setBookingError(
+          lang === "en"
+            ? "The site has updated in the background. Please refresh the page and try again."
+            : "El sitio se ha actualizado. Por favor recarga la página e inténtalo de nuevo."
+        );
+      } else {
+        setBookingError(err?.message || (lang === "en" ? "Something went wrong." : "Algo falló."));
+      }
     } finally {
       setActionLoading(false);
     }

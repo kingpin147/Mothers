@@ -225,7 +225,7 @@ function AccountPageContent() {
   if (status === "loading" || accountLoading) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#fdf8f2" }}>
-        <ThemeLoader text={lang === "en" ? "Loading your circle..." : "Cargando tu círculo..."} size="large" />
+        <ThemeLoader text={lang === "en" ? "Loading your account..." : "Cargando tu cuenta..."} size="large" />
       </div>
     );
   }
