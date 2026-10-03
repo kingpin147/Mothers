@@ -5,6 +5,9 @@ import { db } from "@/db";
 import { person, memberCredential, member, adminUser } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+import { checkSignInRateLimit } from "@/lib/rate-limit";
+import { captureException } from "@/lib/error-monitoring";
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
@@ -21,6 +24,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const email = String(credentials.email).toLowerCase().trim();
         const password = String(credentials.password);
+
+        // Rate limit check
+        const rateCheck = checkSignInRateLimit(email);
+        if (!rateCheck.success) {
+          throw new Error("RATE_LIMIT_EXCEEDED");
+        }
 
         // Find person
         const personRecord = await db.query.person.findFirst({
@@ -70,6 +79,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const email = String(credentials.email).toLowerCase().trim();
         const password = String(credentials.password);
+
+        // Rate limit check
+        const rateCheck = checkSignInRateLimit(`admin:${email}`);
+        if (!rateCheck.success) {
+          throw new Error("RATE_LIMIT_EXCEEDED");
+        }
 
         const admin = await db.query.adminUser.findFirst({
           where: eq(adminUser.email, email),
@@ -131,3 +146,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     maxAge: 12 * 60 * 60, // 12 hours
   },
 });
+
+/**
+ * Shared Admin Authentication & Role Authorization Helper
+ * 
+ * Enforces admin authorization across all server actions.
+ * Refuses regular member accounts and unauthenticated requests with UNAUTHORIZED_ADMIN.
+ */
+export async function verifyAdminSession(
+  allowedRoles: string[] = ["owner", "manager", "host", "super_admin"]
+) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const adminId = session?.user?.id;
+
+  if (!session?.user || !role || !allowedRoles.includes(role)) {
+    throw new Error("UNAUTHORIZED_ADMIN");
+  }
+
+  return {
+    adminId: adminId || "admin",
+    role,
+    user: session.user,
+  };
+}

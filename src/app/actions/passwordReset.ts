@@ -8,6 +8,8 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { getAppUrl } from "@/lib/urls";
 import { z } from "zod";
+import { checkPasswordResetRequestRateLimit, checkPasswordResetCompleteRateLimit, getClientIp } from "@/lib/rate-limit";
+import { captureException } from "@/lib/error-monitoring";
 
 const requestResetSchema = z.object({
   email: z.string().trim().email().toLowerCase(),
@@ -24,12 +26,23 @@ const completeResetSchema = z.object({
 // ─── 1. REQUEST PASSWORD RESET (PREVENTS ENUMERATION) ───────────────────────
 
 export async function requestPasswordReset(rawEmail: string, rawLocale: "en" | "es" = "en") {
+  const ip = await getClientIp();
   const parsed = requestResetSchema.safeParse({ email: rawEmail, locale: rawLocale });
   // If invalid email format, still return success to prevent timing/format enumeration
   if (!parsed.success) {
     return { success: true };
   }
   const { email: cleanEmail, locale } = parsed.data;
+
+  // Rate limit by email and IP
+  const rateCheckEmail = checkPasswordResetRequestRateLimit(cleanEmail);
+  const rateCheckIp = checkPasswordResetRequestRateLimit(ip);
+  if (!rateCheckEmail.success || !rateCheckIp.success) {
+    return {
+      success: false,
+      error: "Too many password reset requests. Please wait a few minutes before trying again.",
+    };
+  }
 
   try {
 
@@ -258,6 +271,15 @@ export async function verifyResetToken(rawToken: string) {
 // ─── 3. COMPLETE PASSWORD RESET ─────────────────────────────────────────────
 
 export async function completePasswordReset(rawToken: string, rawNewPassword: string) {
+  const ip = await getClientIp();
+  const rateCheck = checkPasswordResetCompleteRateLimit(`${ip}:${rawToken.slice(0, 10)}`);
+  if (!rateCheck.success) {
+    return {
+      success: false,
+      error: "Too many reset attempts. Please wait a few minutes before trying again.",
+    };
+  }
+
   const parsed = completeResetSchema.safeParse({ token: rawToken, newPassword: rawNewPassword });
   if (!parsed.success) {
     const isPwErr = parsed.error.issues.some(i => i.message === "PASSWORD_TOO_SHORT");
@@ -303,7 +325,7 @@ export async function completePasswordReset(rawToken: string, rawNewPassword: st
 
     return { success: true };
   } catch (error: any) {
-    console.error("completePasswordReset error:", error);
+    await captureException(error, { source: "passwordReset", action: "completePasswordReset" });
     return { success: false, error: error?.message || "RESET_FAILED" };
   }
 }

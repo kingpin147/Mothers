@@ -224,7 +224,7 @@ All background routes are located under `/api/cron/*` and protected by the `Auth
 | `/api/cron/minimum-not-reached` | Daily | Flags under-capacity events for admin decision. |
 | `/api/cron/expire-offers` | Every 15 mins | Expires unclaimed 12h waitlist offers and advances queue. |
 | `/api/cron/expire-credits` | Daily | Expires credit batches older than 6 months. |
-| `/api/cron/abandoned-checkout` | Hourly | Sends recovery reminder for abandoned checkout sessions. |
+| `/api/cron/abandoned-checkout` | Daily | Sends recovery reminder for abandoned checkout sessions and releases expired holds/offers. |
 | `/api/cron/quarterly-tranche` | Daily | Active only when `membership_live = true`; grants scheduled tranches. |
 | `/api/cron/event-reminders` | Daily | Sends 48h and 2h pre-event reminders to confirmed attendees. |
 | `/api/cron/complete-events` | Hourly | Marks concluded events as completed and triggers attendance reconciliations. |

@@ -54,8 +54,16 @@ export default function MembershipClient({
   const [inlineJoinOpen, setInlineJoinOpen] = useState(false);
   const { data: session } = useSession();
 
-  const waysRailRef = useRef<HTMLDivElement>(null);
-  const [isLive, setIsLive] = useState(false);
+  const [waysRailRef] = [useRef<HTMLDivElement>(null)];
+  const [isLive, setIsLive] = useState<boolean>(() => Boolean(publicSettings?.membershipLive));
+
+  const launchDate = new Date(targetDateMs);
+  const launchFormatted = !isNaN(launchDate.getTime())
+    ? launchDate.toLocaleDateString(isEn ? "en-GB" : "es-ES", {
+        month: "long",
+        year: "numeric",
+      })
+    : (isEn ? "January 2027" : "enero 2027");
 
   useEffect(() => {
     setMounted(true);
@@ -274,7 +282,7 @@ export default function MembershipClient({
           >
             {isLive
               ? (isEn ? "Membership · Now open" : "Membresía · Abierta")
-              : (isEn ? "Membership · Opening January 2027" : "Membresía · Apertura enero 2027")}
+              : (isEn ? `Membership · Opening ${launchFormatted}` : `Membresía · Apertura ${launchFormatted}`)}
           </div>
 
           <h1
@@ -605,9 +613,15 @@ export default function MembershipClient({
           </div>
 
           <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(248,239,226,0.82)", margin: "0 0 18px" }}>
-            {isEn
-              ? "Open your account before January 2027 — free, or with your first booking — and you won't pay a joining fee."
-              : "Abre tu cuenta antes de enero de 2027 — gratis, o con tu primera reserva — y no pagarás cuota de alta."}
+            {isLive ? (
+              isEn
+                ? "Open your account today — free, or with your first booking — to access members-only events and community."
+                : "Abre tu cuenta hoy — gratis, o con tu primera reserva — para acceder a eventos para socias y la comunidad."
+            ) : (
+              isEn
+                ? `Open your account before ${launchFormatted} — free, or with your first booking — and you won't pay a joining fee.`
+                : `Abre tu cuenta antes de ${launchFormatted} — gratis, o con tu primera reserva — y no pagarás cuota de alta.`
+            )}
           </p>
 
           <div
@@ -981,8 +995,8 @@ export default function MembershipClient({
                   ? "Ask for advice at 3:00 AM, share a win, find the mother down the street. Members enjoy their own private rooms and discussions."
                   : "Pide consejo a las 3:00 AM, comparte un logro o encuentra a una madre de tu misma calle. Las socias disfrutan de sus propias salas y debates privados.")
                 : (isEn
-                  ? "Ask for advice at 3:00 AM, share a win, find the mother down the street. La Gazette is open to read today — and from January 2027, members get a private room of their own."
-                  : "Pide consejo a las 3:00 AM, comparte un logro o encuentra a una madre de tu misma calle. La Gazette está abierta para leer hoy — y a partir de enero de 2027, las socias tendrán su propia sala privada.")}
+                  ? `Ask for advice at 3:00 AM, share a win, find the mother down the street. La Gazette is open to read today — and from ${launchFormatted}, members get a private room of their own.`
+                  : `Pide consejo a las 3:00 AM, comparte un logro o encuentra a una madre de tu misma calle. La Gazette está abierta para leer hoy — y a partir de ${launchFormatted}, las socias tendrán su propia sala privada.`)}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
               <Link

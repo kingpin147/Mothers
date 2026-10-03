@@ -2,9 +2,10 @@
 
 import { db } from "@/db";
 import { setting, auditLog, person, member, leadEntry } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { sendMembershipIsOpenEmail } from "@/lib/brevo";
 
 async function verifyAdmin() {
   const session = await auth();
@@ -213,6 +214,97 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
         .insert(setting)
         .values({ key: "membership_live_at", value: new Date().toISOString() })
         .onConflictDoNothing();
+    }
+
+    // On the first switch-on: send "Membership is open" email once to the list and to every account, and log it
+    const alreadyBroadcast = await db.query.setting.findFirst({
+      where: eq(setting.key, "membership_is_open_broadcast_sent_at"),
+    });
+
+    if (!alreadyBroadcast) {
+      const [allPersons, allLeads] = await Promise.all([
+        db
+          .select({
+            id: person.id,
+            email: person.email,
+            firstName: person.firstName,
+          })
+          .from(person)
+          .where(sql`${person.deletedAt} IS NULL`),
+        db
+          .select({
+            id: leadEntry.id,
+            email: leadEntry.email,
+          })
+          .from(leadEntry),
+      ]);
+
+      const recipientMap = new Map<string, { id: string; email: string; firstName?: string }>();
+
+      // 1. Add all registered accounts
+      for (const p of allPersons) {
+        if (p.email && p.email.includes("@")) {
+          recipientMap.set(p.email.toLowerCase().trim(), {
+            id: p.id,
+            email: p.email.trim(),
+            firstName: p.firstName || undefined,
+          });
+        }
+      }
+
+      // 2. Add all waitlist/leads not already covered
+      for (const l of allLeads) {
+        if (l.email && l.email.includes("@")) {
+          const cleanEmail = l.email.toLowerCase().trim();
+          if (!recipientMap.has(cleanEmail)) {
+            recipientMap.set(cleanEmail, {
+              id: l.id,
+              email: l.email.trim(),
+              firstName: undefined,
+            });
+          }
+        }
+      }
+
+      let emailsSent = 0;
+      for (const recipient of recipientMap.values()) {
+        try {
+          await sendMembershipIsOpenEmail({
+            personId: recipient.id,
+            email: recipient.email,
+            firstName: recipient.firstName,
+          });
+          emailsSent++;
+        } catch (sendErr) {
+          console.warn(`[setMembershipLiveMode] Failed to send membership open email to ${recipient.email}:`, sendErr);
+        }
+      }
+
+      const broadcastTimestamp = new Date().toISOString();
+
+      await db
+        .insert(setting)
+        .values({
+          key: "membership_is_open_broadcast_sent_at",
+          value: broadcastTimestamp,
+        })
+        .onConflictDoUpdate({
+          target: setting.key,
+          set: { value: broadcastTimestamp, updatedAt: new Date() },
+        });
+
+      await db.insert(auditLog).values({
+        actorId: adminId,
+        actorType: "admin",
+        action: "broadcast_membership_is_open_email",
+        entity: "broadcast",
+        entityId: "membership_is_open",
+        after: {
+          emailsSent,
+          totalRecipients: recipientMap.size,
+          broadcastAt: broadcastTimestamp,
+        },
+      });
     }
   }
 

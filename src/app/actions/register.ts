@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { getPublicClubSettings } from "@/app/actions/adminSettings";
 import { z } from "zod";
+import { checkSignUpRateLimit, getClientIp } from "@/lib/rate-limit";
+import { captureException } from "@/lib/error-monitoring";
 
 const registerSchema = z.object({
   name: z.string().trim().min(1, "Please tell us your name."),
@@ -22,6 +24,15 @@ export async function registerFreeAccount(rawData: {
   letter?: boolean;
   locale?: "en" | "es";
 }) {
+  const ip = await getClientIp();
+  const rateCheck = checkSignUpRateLimit(ip);
+  if (!rateCheck.success) {
+    return {
+      success: false,
+      error: rateCheck.error || "Too many registration attempts. Please try again later.",
+    };
+  }
+
   const parsed = registerSchema.safeParse(rawData);
   if (!parsed.success) {
     return {
@@ -139,7 +150,7 @@ export async function registerFreeAccount(rawData: {
 
     return { success: true };
   } catch (err: any) {
-    console.error("registerFreeAccount error:", err);
+    await captureException(err, { source: "register", action: "registerFreeAccount" });
     return {
       success: false,
       error: err.message || "Failed to create account. Please try again.",

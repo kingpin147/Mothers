@@ -115,6 +115,68 @@ const GROUPS: UATGroup[] = [
       { id: "CR-01", prio: "P1", title: "Godmother trigger", steps: "Invitee registers, then books.", expected: "+5 pending after register, active only after first confirmed booking." },
       { id: "CR-03", prio: "P1", title: "Delete account", steps: "Delete from Account settings.", expected: 'Signed out; posts show "A mother in Barcelona"; photos gone; payment records kept.' }
     ]
+  },
+  {
+    title: "Rehearse the switch",
+    page: "Settings · Membership · Events · Gazette · Account",
+    items: [
+      {
+        id: "RS-01",
+        prio: "P1",
+        title: "Switch on Membership in Settings",
+        steps: "In /admin/settings, turn membershipLive = true and save.",
+        expected: "Membership plan activates; broadcast email dispatches once to all accounts and waitlist; auditLog records broadcast event."
+      },
+      {
+        id: "RS-02",
+        prio: "P1",
+        title: "Subscribe to Membership",
+        steps: "Visit /membership, select Monthly or Quarterly plan, and complete checkout with test card 4242 4242 4242 4242.",
+        expected: "User upgraded to active member tier; quarterly credit grant awarded to account immediately; confirmation email queued."
+      },
+      {
+        id: "RS-03",
+        prio: "P1",
+        title: "Book as Member",
+        steps: "Open /events, select a paid event, and click 'Book with N credits'.",
+        expected: "Credits deducted from member wallet balance; event confirmed; booking appears on My Account."
+      },
+      {
+        id: "RS-04",
+        prio: "P1",
+        title: "Book as Non-Member",
+        steps: "In an incognito window, open /events with dual pricing active, book as a non-member.",
+        expected: "Shows non-member price; requires top-up or account creation; books after completing step."
+      },
+      {
+        id: "RS-05",
+        prio: "P1",
+        title: "Post 3 times as Non-Member",
+        steps: "Open /gazette with a non-member account. Submit 3 posts or replies.",
+        expected: "First 3 posts succeed; 4th attempt blocks with 'You have used your 3 free La Gazette posts/replies. Become a member for unlimited conversations.'"
+      },
+      {
+        id: "RS-06",
+        prio: "P1",
+        title: "Fail a test card",
+        steps: "In Top-Up or Checkout, use Stripe test card ending in 0002 (decline) or 0005 (insufficient funds).",
+        expected: "Displays explicit card decline error; no credits or bookings granted; transaction recorded safely."
+      },
+      {
+        id: "RS-07",
+        prio: "P1",
+        title: "Cancel booking within refund window",
+        steps: "From /account, click 'Cancel booking' on an upcoming event before the cancellation deadline.",
+        expected: "100% of event credits returned to wallet; ledger updated; spot released back to event capacity."
+      },
+      {
+        id: "RS-08",
+        prio: "P1",
+        title: "Switch off and on again",
+        steps: "In /admin/settings, toggle membershipLive off, verify site returns to single pre-launch pricing, then toggle back on.",
+        expected: "Transitions seamlessly without error; broadcast email does not re-send; settings persist cleanly."
+      }
+    ]
   }
 ];
 

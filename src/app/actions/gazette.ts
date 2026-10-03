@@ -5,6 +5,8 @@ import { circlePost, circleReply, circleHeart, circleReport, person, member, set
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { checkGazettePostRateLimit, checkGazetteReplyRateLimit } from "@/lib/rate-limit";
+import { captureException } from "@/lib/error-monitoring";
 
 export interface PostItem {
   id: string;
@@ -329,7 +331,13 @@ export async function createCirclePost(data: {
     throw new Error("You are not eligible to post.");
   }
 
-  // Rate limit: 5 posts per 24 hours, minimum 30s gap
+  // In-memory sliding window rate limiter check
+  const memRateCheck = checkGazettePostRateLimit(personId);
+  if (!memRateCheck.success) {
+    throw new Error(memRateCheck.error || "Rate limit reached: Maximum 5 posts per 24 hours.");
+  }
+
+  // Database Rate limit check: 5 posts per 24 hours, minimum 30s gap
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const recentPosts = await db.query.circlePost.findMany({
     where: and(eq(circlePost.personId, personId), gte(circlePost.createdAt, last24h)),
@@ -429,7 +437,13 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     throw new Error("Reply cannot be empty.");
   }
 
-  // Rate limit: 20 replies per 24 hours, minimum 30s gap
+  // In-memory sliding window rate limiter check
+  const memRateCheck = checkGazetteReplyRateLimit(personId);
+  if (!memRateCheck.success) {
+    throw new Error(memRateCheck.error || "Rate limit reached: Maximum 20 replies per 24 hours.");
+  }
+
+  // Database Rate limit: 20 replies per 24 hours, minimum 30s gap
   const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const recentReplies = await db.query.circleReply.findMany({
     where: and(eq(circleReply.personId, personId), gte(circleReply.createdAt, last24h)),
@@ -625,3 +639,11 @@ export async function getTrendingCircleTags(): Promise<{ topic: string; label: s
 
   return sorted;
 }
+
+// Named Aliases
+export const getGazettePosts = getCirclePosts;
+export const createGazettePost = createCirclePost;
+export const createGazetteReply = createCircleReply;
+export const toggleGazetteHeart = toggleCircleHeart;
+export const reportGazettePost = reportCirclePost;
+export const getTrendingGazetteTags = getTrendingCircleTags;

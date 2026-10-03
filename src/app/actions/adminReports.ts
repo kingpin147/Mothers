@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { circlePost, circleReply, circleReport, person, adminUser } from "@/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
-import { auth } from "@/lib/auth";
+import { auth, verifyAdminSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 export interface ReportItem {
@@ -31,13 +31,7 @@ export interface ReportItem {
 }
 
 export async function getAdminReports(): Promise<ReportItem[]> {
-  const session = await auth();
-  const role = (session?.user as any)?.role;
-  const isAdmin = ["owner", "manager", "host", "super_admin"].includes(role);
-
-  if (!isAdmin) {
-    throw new Error("Unauthorized");
-  }
+  await verifyAdminSession();
 
   const reports = await db.query.circleReport.findMany({
     orderBy: [desc(circleReport.createdAt)],
@@ -95,11 +89,7 @@ export async function getAdminReports(): Promise<ReportItem[]> {
 }
 
 export async function updateReportStatus(reportId: string, status: "resolved_hidden" | "resolved_dismissed") {
-  const session = await auth();
-  const role = (session?.user as any)?.role;
-  if (!["owner", "manager", "host", "super_admin"].includes(role)) {
-    throw new Error("Unauthorized");
-  }
+  await verifyAdminSession();
 
   await db
     .update(circleReport)
@@ -114,11 +104,7 @@ export async function updateReportStatus(reportId: string, status: "resolved_hid
 }
 
 export async function moderatePost(postId: string, action: "hide" | "restore") {
-  const session = await auth();
-  const role = (session?.user as any)?.role;
-  if (!["owner", "manager", "host", "super_admin"].includes(role)) {
-    throw new Error("Unauthorized");
-  }
+  await verifyAdminSession();
 
   await db
     .update(circlePost)
@@ -135,11 +121,7 @@ export async function moderatePost(postId: string, action: "hide" | "restore") {
 }
 
 export async function togglePauseAuthorAccount(personId: string, pause: boolean, reasonText?: string) {
-  const session = await auth();
-  const role = (session?.user as any)?.role;
-  if (!["owner", "manager", "host", "super_admin"].includes(role)) {
-    throw new Error("Unauthorized");
-  }
+  await verifyAdminSession();
 
   await db
     .update(person)

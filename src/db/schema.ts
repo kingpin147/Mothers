@@ -789,9 +789,9 @@ export const hostRequest = pgTable(
   ]
 );
 
-// ─── 12. THE CIRCLE (FORUM & MODERATION) ────────────────────────────────────
+// ─── 12. LA GAZETTE (FORUM & MODERATION) ────────────────────────────────────
 
-export const circlePost = pgTable(
+export const gazettePost = pgTable(
   "circle_post",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -818,11 +818,11 @@ export const circlePost = pgTable(
   ]
 );
 
-export const circleReply = pgTable(
+export const gazetteReply = pgTable(
   "circle_reply",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    postId: text("post_id").notNull().references(() => circlePost.id, { onDelete: "cascade" }),
+    postId: text("post_id").notNull().references(() => gazettePost.id, { onDelete: "cascade" }),
     personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
     isAnonymous: boolean("is_anonymous").default(false).notNull(),
     anonymousArea: text("anonymous_area"),
@@ -838,13 +838,13 @@ export const circleReply = pgTable(
   ]
 );
 
-export const circleHeart = pgTable(
+export const gazetteHeart = pgTable(
   "circle_heart",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
-    postId: text("post_id").references(() => circlePost.id, { onDelete: "cascade" }),
-    replyId: text("reply_id").references(() => circleReply.id, { onDelete: "cascade" }),
+    postId: text("post_id").references(() => gazettePost.id, { onDelete: "cascade" }),
+    replyId: text("reply_id").references(() => gazetteReply.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
@@ -853,12 +853,12 @@ export const circleHeart = pgTable(
   ]
 );
 
-export const circleReport = pgTable(
+export const gazetteReport = pgTable(
   "circle_report",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    postId: text("post_id").references(() => circlePost.id, { onDelete: "cascade" }),
-    replyId: text("reply_id").references(() => circleReply.id, { onDelete: "cascade" }),
+    postId: text("post_id").references(() => gazettePost.id, { onDelete: "cascade" }),
+    replyId: text("reply_id").references(() => gazetteReply.id, { onDelete: "cascade" }),
     reporterPersonId: text("reporter_person_id").notNull().references(() => person.id),
     reason: text("reason").notNull(), // 'unkind', 'selling_spam', 'unsafe_private', 'child_photo_no_consent', 'other'
     details: text("details"),
@@ -873,5 +873,11 @@ export const circleReport = pgTable(
     uniqueIndex("idx_unique_circle_report_post_user").on(table.postId, table.reporterPersonId),
   ]
 );
+
+// Backward-compatible aliases
+export const circlePost = gazettePost;
+export const circleReply = gazetteReply;
+export const circleHeart = gazetteHeart;
+export const circleReport = gazetteReport;
 
 
