@@ -130,10 +130,69 @@ export function StickyCountdownBanner() {
     { value: pad(timeLeft.seconds), label: lang === "en" ? "SECS" : "SEGS" },
   ];
 
+  const shortMonthStr = (() => {
+    if (!targetDate) return "JAN 2027";
+    const d = new Date(targetDate);
+    if (isNaN(d.getTime())) return "JAN 2027";
+    return d.toLocaleDateString(lang === "es" ? "es-ES" : "en-GB", { month: "short", year: "numeric" });
+  })();
+
+  const mobileLaunchText = lang === "en"
+    ? `OPENS ${shortMonthStr.toUpperCase()}`
+    : `ABRE ${shortMonthStr.toUpperCase()}`;
+
+  const mobileTimeText = `${timeLeft.days}d · ${pad(timeLeft.hours)}h · ${pad(timeLeft.minutes)}m`;
+
   return (
     <>
+      {/* Mobile Slim Countdown Strip (Pinned below header, visible always) */}
+      <div
+        className="countdown-banner-mobile"
+        style={{
+          display: "none",
+          backgroundColor: "#39292a",
+          color: "#f8efe2",
+          padding: "8px clamp(16px, 5vw, 24px)",
+          borderBottom: "1px solid rgba(201, 162, 39, 0.2)",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontWeight: 600,
+            fontSize: "12px",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: "#c9a227",
+            lineHeight: 1,
+          }}
+        >
+          {mobileLaunchText}
+        </span>
+        <span
+          suppressHydrationWarning
+          style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontWeight: 500,
+            fontSize: "13.5px",
+            letterSpacing: "0.06em",
+            color: "rgba(248, 239, 226, 0.92)",
+            fontFeatureSettings: "'tnum'",
+            lineHeight: 1,
+          }}
+        >
+          {mounted ? mobileTimeText : "--d · --h · --m"}
+        </span>
+      </div>
+
+      {/* Desktop Rich Countdown Banner */}
       <div
         id="countdown-banner"
+        className="countdown-banner-desktop"
         style={{
           position: "relative",
           backgroundColor: "#39292a",
@@ -190,13 +249,13 @@ export function StickyCountdownBanner() {
           </div>
 
           {/* Right Side: 4 Countdown Boxes + CTA Button */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "nowrap", maxWidth: "100%" }}>
+            <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
               {countdownUnits.map((u, idx) => (
                 <div
                   key={idx}
                   style={{
-                    minWidth: "44px",
+                    minWidth: "42px",
                     textAlign: "center",
                     border: "1px solid rgba(201, 162, 39, 0.45)",
                     borderRadius: "4px",
@@ -209,7 +268,7 @@ export function StickyCountdownBanner() {
                     style={{
                       fontFamily: "'Cormorant Garamond', Georgia, serif",
                       fontWeight: 400,
-                      fontSize: "21px",
+                      fontSize: "20px",
                       lineHeight: 1,
                       fontFeatureSettings: "'tnum'",
                       color: "#f8efe2",
@@ -220,10 +279,10 @@ export function StickyCountdownBanner() {
                   <div
                     style={{
                       fontSize: "8.5px",
-                      letterSpacing: "0.1em",
+                      letterSpacing: "0.08em",
                       textTransform: "uppercase",
                       color: "rgba(248, 239, 226, 0.65)",
-                      marginTop: "3px",
+                      marginTop: "2px",
                       fontFamily: "'Lora', Georgia, serif",
                     }}
                   >
@@ -234,44 +293,22 @@ export function StickyCountdownBanner() {
             </div>
 
             {joined ? (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    color: "#c9a227",
-                    fontFamily: "'Cormorant Garamond', Georgia, serif",
-                    fontWeight: 600,
-                    letterSpacing: "0.04em",
-                    padding: "8px 14px",
-                    border: "1px solid rgba(201, 162, 39, 0.3)",
-                    borderRadius: "4px",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {lang === "en" ? "✓ On the list" : "✓ En la lista"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setJoined(false);
-                    if (typeof window !== "undefined") {
-                      localStorage.removeItem("tm_pre_joined_list");
-                    }
-                  }}
-                  title={lang === "en" ? "Change or join again" : "Cambiar o unirte de nuevo"}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "rgba(248, 239, 226, 0.6)",
-                    cursor: "pointer",
-                    padding: "4px 6px",
-                    fontSize: "13px",
-                    lineHeight: 1,
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
+              <span
+                style={{
+                  fontSize: "13px",
+                  color: "#c9a227",
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
+                  padding: "8px 14px",
+                  border: "1px solid rgba(201, 162, 39, 0.4)",
+                  borderRadius: "4px",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                {lang === "en" ? "✓ On the list" : "✓ En la lista"}
+              </span>
             ) : (
               <button
                 type="button"
@@ -287,7 +324,7 @@ export function StickyCountdownBanner() {
                   background: "transparent",
                   color: "#c9a227",
                   borderRadius: "4px",
-                  padding: "9px 18px",
+                  padding: "8px 16px",
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
                   fontWeight: 600,
                   fontSize: "14px",

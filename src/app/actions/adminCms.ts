@@ -153,6 +153,7 @@ export async function getAdminMembers() {
         neighbourhood: member.neighbourhood,
         children: member.children,
         joinedAt: member.joinedAt,
+        createdAt: person.createdAt,
         monthlyPriceCents: member.monthlyPriceCents,
         currentPeriodEnd: member.currentPeriodEnd,
         cancelAtPeriodEnd: member.cancelAtPeriodEnd,
@@ -166,7 +167,7 @@ export async function getAdminMembers() {
       })
       .from(member)
       .innerJoin(person, eq(member.personId, person.id))
-      .orderBy(desc(member.joinedAt));
+      .orderBy(desc(sql`COALESCE(${member.joinedAt}, ${person.createdAt})`));
 
     return { success: true, members };
   } catch (err: any) {
@@ -226,6 +227,7 @@ export async function getAdminMemberDetail(memberId: string) {
       stage: member.stage,
       neighbourhood: member.neighbourhood,
       joinedAt: member.joinedAt,
+      createdAt: person.createdAt,
       monthlyPriceCents: member.monthlyPriceCents,
       currentPeriodEnd: member.currentPeriodEnd,
       cancelAtPeriodEnd: member.cancelAtPeriodEnd,
@@ -264,6 +266,7 @@ export async function getAdminMemberDetail(memberId: string) {
         stage: "Pre-launch account",
         neighbourhood: "Barcelona",
         joinedAt: personRec.createdAt,
+        createdAt: personRec.createdAt,
         monthlyPriceCents: 0,
         currentPeriodEnd: null,
         cancelAtPeriodEnd: false,

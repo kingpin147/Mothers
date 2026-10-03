@@ -65,7 +65,7 @@ export default function AdminMembersPage() {
       STATUS_LABELS[m.status] || m.status,
       m.credits || 0,
       m.attended || 0,
-      new Date(m.joinedAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+      m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : (m.createdAt ? new Date(m.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—'),
       m.atRiskSince ? 'At risk' : ''
     ]);
 
@@ -135,7 +135,11 @@ export default function AdminMembersPage() {
   } else if (sortFilter === 'quiet') {
     filtered = filtered.slice().sort((a,b) => (a.attended || 0) - (b.attended || 0));
   } else if (sortFilter === 'joined') {
-    filtered = filtered.slice().sort((a,b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
+    filtered = filtered.slice().sort((a,b) => {
+      const tB = b.joinedAt ? new Date(b.joinedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      const tA = a.joinedAt ? new Date(a.joinedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      return tB - tA;
+    });
   }
 
   const riskyCount = members.filter(m => !!m.atRiskSince).length;
@@ -259,7 +263,13 @@ export default function AdminMembersPage() {
                 const attendColor = (m.attended || 0) === 0 ? WINE : (m.attended || 0) <= 2 ? AMBER : GREEN;
                 const isAdjustingThis = adjustingId === m.id;
                 
-                const joinedDate = new Date(m.joinedAt);
+                const rawDate = m.joinedAt || m.createdAt;
+                const dateObj = rawDate ? new Date(rawDate) : null;
+                const dateStr = dateObj && !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null;
+                const joinedLabel = m.joinedAt
+                  ? `Member since ${dateStr || '—'}`
+                  : (dateStr ? `Account created ${dateStr}` : '—');
+
                 let lastSeenText = 'Not seen yet';
                 if (m.lastSeenDate) {
                   const daysSince = Math.floor((new Date().getTime() - new Date(m.lastSeenDate).getTime()) / (1000 * 3600 * 24));
@@ -275,7 +285,7 @@ export default function AdminMembersPage() {
                     <div>
                       <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", lineHeight: 1.3, marginBottom: "3px" }}>{m.firstName} {m.lastName}</div>
                       <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.68)" }}>{m.email}</div>
-                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.55)", marginTop: "3px" }}>Member since {joinedDate.toLocaleDateString('en-GB', {month:'short', year:'numeric'})}</div>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.55)", marginTop: "3px" }}>{joinedLabel}</div>
                     </div>
 
                     <div>

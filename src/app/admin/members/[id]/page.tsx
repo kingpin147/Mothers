@@ -232,7 +232,13 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
               {member.firstName} {member.lastName}
             </h1>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0 }}>
-              {member.email} · {member.phone || "No phone"} · {member.neighbourhood || "Outside Barcelona"} · member since {member.joinedAt ? new Date(member.joinedAt).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+              {member.email} · {member.phone || "No phone"} · {member.neighbourhood || "Outside Barcelona"} · {(() => {
+                const dateRaw = member.joinedAt || member.createdAt;
+                const dateFormatted = dateRaw && !isNaN(new Date(dateRaw).getTime())
+                  ? new Date(dateRaw).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+                  : 'recently';
+                return member.joinedAt ? `member since ${dateFormatted}` : `account created ${dateFormatted}`;
+              })()}
             </p>
           </div>
           <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", alignItems: "center" }}>

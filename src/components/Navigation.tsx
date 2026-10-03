@@ -19,20 +19,24 @@ export function Navigation() {
   const [leadEmail, setLeadEmail] = useState("");
   const [leadLoading, setLeadLoading] = useState(false);
   const [leadMsg, setLeadMsg] = useState("");
-  const headerRef = useRef<HTMLElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(74);
+  const stickyContainerRef = useRef<HTMLDivElement>(null);
+  const [navTotalHeight, setNavTotalHeight] = useState(102);
 
-  // Measure and update header height
+  // Measure combined height of sticky container (header + countdown banner)
   useEffect(() => {
-    const updateHeaderHeight = () => {
-      if (headerRef.current) {
-        setHeaderHeight(headerRef.current.offsetHeight);
+    const updateHeight = () => {
+      if (stickyContainerRef.current) {
+        setNavTotalHeight(stickyContainerRef.current.offsetHeight);
       }
     };
-    updateHeaderHeight();
-    window.addEventListener("resize", updateHeaderHeight, { passive: true });
-    return () => window.removeEventListener("resize", updateHeaderHeight);
-  }, []);
+    updateHeight();
+    const timer = setTimeout(updateHeight, 60);
+    window.addEventListener("resize", updateHeight, { passive: true });
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", updateHeight);
+    };
+  }, [mobileMenuOpen, pathname]);
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -52,8 +56,8 @@ export function Navigation() {
   }, [mobileMenuOpen]);
 
   useEffect(() => {
-    const saved = localStorage.getItem("tm_pre_joined_list");
-    if (saved) setJoinedList(true);
+    const saved = typeof window !== "undefined" ? localStorage.getItem("tm_pre_joined_list") : null;
+    if (saved === "true") setJoinedList(true);
   }, []);
 
   // Fetch credit balance for logged-in members
@@ -86,7 +90,9 @@ export function Navigation() {
       });
       if (res.ok) {
         setJoinedList(true);
-        localStorage.setItem("tm_pre_joined_list", "true");
+        if (typeof window !== "undefined") {
+          localStorage.setItem("tm_pre_joined_list", "true");
+        }
         setJoinModalOpen(false);
       }
     } catch {
@@ -105,7 +111,8 @@ export function Navigation() {
       const currentScrollY = window.scrollY;
       setScrolled(currentScrollY > 10);
 
-      if (mobileMenuOpen) {
+      // On mobile (screen width <= 768) or when menu is open, always keep pinned
+      if (mobileMenuOpen || window.innerWidth <= 768) {
         setHeaderVisible(true);
         lastScrollY.current = currentScrollY;
         return;
@@ -113,11 +120,9 @@ export function Navigation() {
 
       if (currentScrollY < 10) {
         setHeaderVisible(true);
-      } else if (currentScrollY > lastScrollY.current + 8 && currentScrollY > (headerHeight || 74)) {
-        // Scrolling down past the header -> hide
+      } else if (currentScrollY > lastScrollY.current + 8 && currentScrollY > 100) {
         setHeaderVisible(false);
       } else if (currentScrollY < lastScrollY.current - 8) {
-        // Scrolling up -> show
         setHeaderVisible(true);
       }
       lastScrollY.current = currentScrollY;
@@ -125,7 +130,7 @@ export function Navigation() {
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [mobileMenuOpen, headerHeight]);
+  }, [mobileMenuOpen]);
 
   // Nav links per pre-membership page map
   const navLinks = [
@@ -139,6 +144,7 @@ export function Navigation() {
 
   return (
     <div
+      ref={stickyContainerRef}
       style={{
         position: "sticky",
         top: 0,
@@ -149,7 +155,6 @@ export function Navigation() {
       }}
     >
       <header
-        ref={headerRef}
         className="site-header-container"
         style={{
           position: "relative",
@@ -311,10 +316,10 @@ export function Navigation() {
             )}
           </nav>
 
-          {/* Mobile Hamburger Button */}
+          {/* Mobile Hamburger / Close Button (44x44 Target) */}
           <button
             type="button"
-            aria-label="Toggle menu"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="mobile-burger-btn"
             style={{
@@ -322,9 +327,16 @@ export function Navigation() {
               background: "transparent",
               border: "none",
               cursor: "pointer",
-              padding: "8px",
+              padding: "0",
+              width: "44px",
+              height: "44px",
+              minWidth: "44px",
+              minHeight: "44px",
               color: "var(--color-text, #39292a)",
               zIndex: 1002,
+              alignItems: "center",
+              justifyContent: "center",
+              touchAction: "manipulation",
             }}
           >
             <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="1.8" fill="none">
@@ -338,31 +350,32 @@ export function Navigation() {
         </div>
       </header>
 
-      {/* Sticky Countdown Banner on every page (§S-03) */}
-      {!mobileMenuOpen && <StickyCountdownBanner />}
+      {/* Sticky Countdown Banner (Always pinned below header, renders desktop or mobile strip) */}
+      <StickyCountdownBanner />
 
-      {/* Mobile Drawer Overlay Matching UI Extras #3 */}
+      {/* Mobile Drawer Overlay: Below Banner, matching client design */}
       {mobileMenuOpen && (
         <div
           style={{
             position: "fixed",
-            top: headerHeight || 74,
+            top: navTotalHeight || 102,
             left: 0,
             right: 0,
             bottom: 0,
-            height: `calc(100dvh - ${headerHeight || 74}px)`,
+            height: `calc(100dvh - ${navTotalHeight || 102}px)`,
             backgroundColor: "#fdf8f2",
-            zIndex: 1000,
+            zIndex: 999,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            padding: "16px 20px 32px",
+            padding: "8px 24px 28px",
             overflowY: "auto",
             WebkitOverflowScrolling: "touch",
             fontFamily: "'Lora', Georgia, serif",
+            boxSizing: "border-box",
           }}
         >
-          {/* Main Links */}
+          {/* Main Links: Membership, Events, La Gazette, Login / My Account */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             {[
               { href: "/membership", label: lang === "en" ? "Membership" : "Membresía" },
@@ -382,28 +395,39 @@ export function Navigation() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    minHeight: "56px",
+                    minHeight: "58px",
                     borderBottom: "1px solid rgba(57, 41, 42, 0.12)",
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: isActive ? 600 : 400,
-                    fontSize: "24px",
+                    fontSize: "25px",
                     color: isActive ? "#7b1f2c" : "#39292a",
                     textDecoration: "none",
                   }}
                 >
                   <span>{item.label}</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="rgba(57, 41, 42, 0.45)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
-                    <path d="m9 6 6 6-6 6" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={isActive ? "#7b1f2c" : "rgba(57, 41, 42, 0.45)"}
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    width="18"
+                    height="18"
+                  >
+                    <path d="m9 18 6-6-6-6" />
                   </svg>
                 </Link>
               );
             })}
           </div>
 
-          {/* Bottom Actions */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "auto", paddingTop: "24px" }}>
+          {/* Bottom Action Area: Guest vs Member States */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "auto", paddingTop: "20px" }}>
             {!session?.user ? (
+              /* Guest / Signed Out State (Screen 2) */
               <>
+                {/* Primary CTA: Book your first event */}
                 <Link
                   href="/events"
                   onClick={() => setMobileMenuOpen(false)}
@@ -418,13 +442,14 @@ export function Navigation() {
                     borderRadius: "4px",
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: 600,
-                    fontSize: "16px",
+                    fontSize: "17px",
                     textDecoration: "none",
                   }}
                 >
-                  {lang === "en" ? "See what's on" : "Ver qué hay en el calendario"}
+                  {lang === "en" ? "Book your first event" : "Reserva tu primer evento"}
                 </Link>
 
+                {/* Secondary CTA: Join the list */}
                 <button
                   type="button"
                   onClick={() => setJoinModalOpen(true)}
@@ -439,7 +464,7 @@ export function Navigation() {
                     borderRadius: "4px",
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: 600,
-                    fontSize: "16px",
+                    fontSize: "17px",
                     cursor: "pointer",
                   }}
                 >
@@ -449,10 +474,14 @@ export function Navigation() {
                 </button>
               </>
             ) : (
+              /* Member / Signed In State (Screen 3) */
               <>
-                <Link
-                  href="/account"
-                  onClick={() => setMobileMenuOpen(false)}
+                {/* Primary CTA: You're on the list / Join the list */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!joinedList) setJoinModalOpen(true);
+                  }}
                   style={{
                     minHeight: "48px",
                     display: "flex",
@@ -464,13 +493,16 @@ export function Navigation() {
                     borderRadius: "4px",
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: 600,
-                    fontSize: "16px",
-                    textDecoration: "none",
+                    fontSize: "17px",
+                    cursor: joinedList ? "default" : "pointer",
                   }}
                 >
-                  {lang === "en" ? "Go to My Account" : "Ir a Mi Cuenta"}
-                </Link>
+                  {joinedList
+                    ? (lang === "en" ? "You're on the list" : "Estás en la lista")
+                    : (lang === "en" ? "Join the list" : "Unirme a la lista")}
+                </button>
 
+                {/* Secondary CTA: Log out */}
                 <button
                   type="button"
                   onClick={async () => {
@@ -489,7 +521,7 @@ export function Navigation() {
                     borderRadius: "4px",
                     fontFamily: "'Cormorant Garamond', Georgia, serif",
                     fontWeight: 600,
-                    fontSize: "16px",
+                    fontSize: "17px",
                     cursor: "pointer",
                   }}
                 >
@@ -498,38 +530,74 @@ export function Navigation() {
               </>
             )}
 
-            {/* Foot info & language switch */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <span
+            {/* Foot info: Language Switch (Left) & Instagram / Credits (Right) */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "8px",
+                fontSize: "14px",
+                fontFamily: "'Lora', Georgia, serif",
+                color: "rgba(57, 41, 42, 0.72)",
+              }}
+            >
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <button
+                  type="button"
                   onClick={() => switchLang("en")}
                   style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
                     cursor: "pointer",
-                    color: lang === "en" ? "#7b1f2c" : "#39292a",
-                    borderBottom: lang === "en" ? "1px solid #7b1f2c" : "none",
+                    color: lang === "en" ? "#7b1f2c" : "rgba(57, 41, 42, 0.65)",
+                    textDecoration: lang === "en" ? "underline" : "none",
                     fontWeight: lang === "en" ? 600 : 400,
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px",
                   }}
                 >
                   EN
-                </span>
+                </button>
                 <span>·</span>
-                <span
+                <button
+                  type="button"
                   onClick={() => switchLang("es")}
                   style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
                     cursor: "pointer",
-                    color: lang === "es" ? "#7b1f2c" : "#39292a",
-                    borderBottom: lang === "es" ? "1px solid #7b1f2c" : "none",
+                    color: lang === "es" ? "#7b1f2c" : "rgba(57, 41, 42, 0.65)",
+                    textDecoration: lang === "es" ? "underline" : "none",
                     fontWeight: lang === "es" ? 600 : 400,
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px",
                   }}
                 >
                   ES
-                </span>
+                </button>
               </div>
 
               <span>
-                {session?.user && memberCredits !== null
-                  ? `${Math.max(0, memberCredits)} ${lang === "en" ? "credits" : "créditos"}`
-                  : "Instagram"}
+                {session?.user ? (
+                  memberCredits !== null ? `${Math.max(0, memberCredits)} ${lang === "en" ? "credits" : "créditos"}` : ""
+                ) : (
+                  <a
+                    href="https://www.instagram.com/themothers.club"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: "rgba(57, 41, 42, 0.75)",
+                      textDecoration: "none",
+                      fontFamily: "'Lora', Georgia, serif",
+                      fontSize: "14px",
+                    }}
+                  >
+                    Instagram
+                  </a>
+                )}
               </span>
             </div>
           </div>
@@ -617,6 +685,10 @@ export function Navigation() {
             display: flex !important;
             align-items: center;
             justify-content: center;
+            width: 44px !important;
+            height: 44px !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
           }
           .site-header-container {
             padding: 12px 18px !important;
@@ -629,6 +701,20 @@ export function Navigation() {
           }
           .site-logo-wordmark {
             height: 12px !important;
+          }
+          .countdown-banner-desktop {
+            display: none !important;
+          }
+          .countdown-banner-mobile {
+            display: flex !important;
+          }
+        }
+        @media (min-width: 769px) {
+          .countdown-banner-mobile {
+            display: none !important;
+          }
+          .countdown-banner-desktop {
+            display: block !important;
           }
         }
       `}</style>
