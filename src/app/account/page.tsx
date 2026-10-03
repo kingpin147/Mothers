@@ -459,7 +459,7 @@ function AccountPageContent() {
                               {categoryLabel}
                             </span>
                             <span style={{ fontSize: "11px", fontWeight: 600, color: "#7b1f2c", border: "1px solid rgba(123, 31, 44, 0.28)", borderRadius: "12px", padding: "2px 9px", display: "inline-block", backgroundColor: "#fdf6f2" }}>
-                              {b.creditsCharged > 0 ? `${b.creditsCharged} ${lang === "en" ? "credits" : "créditos"}` : (lang === "en" ? "Included / Free" : "Incluido / Gratis")}
+                              {b.creditsCharged > 0 ? `${b.creditsCharged} ${lang === "en" ? "credits" : "créditos"}` : (lang === "en" ? "0 credits" : "0 créditos")}
                             </span>
                           </div>
                           

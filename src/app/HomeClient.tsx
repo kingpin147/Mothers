@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
 import {
   getEventDisplayTitle,
@@ -13,6 +14,8 @@ import { getPublicEvents } from "@/app/actions/events";
 
 export default function HomeClient({ initialEvents = [] }: { initialEvents?: any[] }) {
   const { language: lang } = useLanguage();
+  const { data: session } = useSession();
+  const isMember = (session?.user as any)?.role === "member" && !!(session?.user as any)?.memberId;
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [eventsList, setEventsList] = useState<any[]>(initialEvents);
   const [waitlisted, setWaitlisted] = useState(false);
@@ -450,13 +453,17 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             const catInfo = getCategoryInfo(ev, lang);
             const title = getEventDisplayTitle(ev, lang);
             const dateDisplay = formatEventDate(ev.startsAt, lang);
+            const viewerCost = isLive
+              ? (isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost))
+              : ev.creditCost;
+            const isViewerFree = viewerCost === 0 || (ev.isFreeWalk && (isMember || !isLive));
             const priceDisplay =
-              ev.creditCost === 0 || ev.isFreeWalk
+              isViewerFree || viewerCost === 0
                 ? lang === "en"
                   ? "0 credits"
                   : "0 créditos"
-                : `${ev.creditCost} ${
-                    ev.creditCost === 1
+                : `${viewerCost} ${
+                    viewerCost === 1
                       ? lang === "en"
                         ? "credit"
                         : "crédito"
@@ -703,8 +710,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 </span>
                 <br />
                 {lang === "en"
-                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother who becomes a member with your code{isLive ? "" : " (from January 2027)"}</>
-                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre que se haga socia con tu código{isLive ? "" : " (a partir de enero de 2027)"}</>}
+                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother who becomes a member with your code{isLive ? "" : " (once membership opens)"}</>
+                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre que se haga socia con tu código{isLive ? "" : " (una vez abierta la membresía)"}</>}
               </span>
             </div>
 

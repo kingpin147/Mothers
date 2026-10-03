@@ -615,8 +615,8 @@ function LoginForm() {
                 }}
               >
                 {lang === "en"
-                  ? "Post in The Circle, keep your credits and book in one tap. No joining fee if you join before launch."
-                  : "Publica en The Circle, conserva tus créditos y reserva en un toque. Sin cuota de alta si te unes antes del lanzamiento."}
+                  ? "Post in La Gazette, keep your credits and book in one tap. No joining fee if you join before launch."
+                  : "Publica en La Gazette, conserva tus créditos y reserva en un toque. Sin cuota de alta si te unes antes del lanzamiento."}
               </p>
 
               {/* Error message */}

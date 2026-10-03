@@ -61,9 +61,9 @@ export const CANONICAL_FAQS: FaqItemData[] = [
   {
     group: "Coming to an event now",
     qEn: "Can I cancel?",
-    aEn: "Yes. Each event has its own cancellation window, shown on the card and at booking — 0-credit events any time, hosted coffees 24 hours, classes and sessions 48 hours, suppers and signature moments 7 days. Cancel inside the window and your credits come straight back; after it, they return only if someone takes your place. Two no-shows in three months pause your booking until you write to us.",
+    aEn: "Yes. Each event has its own cancellation window, shown on the card and at booking — 0-credit events any time, hosted coffees 24 hours, classes and sessions 48 hours, suppers and signature moments 7 days. Cancel inside the window and your credits come straight back; after it, they return only if someone takes your place. If you book and don’t come, you can’t host for 90 days. Booking stays open.",
     qEs: "¿Puedo cancelar mi reserva?",
-    aEs: "Sí. Cada evento dispone de su propio plazo de cancelación indicado en la ficha y al reservar: eventos de 0 créditos en cualquier momento, cafés con anfitriona 24 horas, clases y talleres 48 horas, cenas y Signature moments 7 días. Si cancelas dentro del plazo, tus créditos vuelven íntegros de inmediato; fuera de plazo, solo si otra persona ocupa tu plaza. Dos ausencias en 3 meses pausan la posibilidad de reservar hasta que nos contactes.",
+    aEs: "Sí. Cada evento dispone de su propio plazo de cancelación indicado en la ficha y al reservar: eventos de 0 créditos en cualquier momento, cafés con anfitriona 24 horas, clases y talleres 48 horas, cenas y Signature moments 7 días. Si cancelas dentro del plazo, tus créditos vuelven íntegros de inmediato; fuera de plazo, solo si otra persona ocupa tu plaza. Si reservas y no asistes, no podrás ser anfitriona durante 90 días. Tu acceso a reservar se mantiene abierto.",
   },
   {
     group: "Coming to an event now",
@@ -142,9 +142,9 @@ export const CANONICAL_FAQS: FaqItemData[] = [
   {
     group: "Membership after launch",
     qEn: "Will there still be free events?",
-    aEn: "Walks and park socials stay free for members. Without membership you can still come to all of them, at a small non-member price in credits — every card shows both prices.",
+    aEn: "Each event has a member and a non-member price, shown on the card. Some are free for members.",
     qEs: "¿Seguirá habiendo eventos gratuitos?",
-    aEs: "Los paseos y encuentros en el parque seguirán siendo gratuitos e ilimitados para las socias. Sin membresía se podrá asistir con una pequeña aportación en créditos.",
+    aEs: "Cada evento tiene un precio para socias y un precio general, indicados en la ficha. Algunos son gratuitos para socias.",
   },
 
   // 4. The club itself

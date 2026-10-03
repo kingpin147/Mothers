@@ -545,11 +545,13 @@ export function TopUpModal({
   event: ev,
   lang,
   creditBalance,
+  isMember = false,
   onClose,
 }: {
   event: PublicEvent | null;
   lang: Lang;
   creditBalance: number;
+  isMember?: boolean;
   onClose: () => void;
 }) {
   const [loading, setLoading] = useState(false);
@@ -557,7 +559,8 @@ export function TopUpModal({
 
   if (!ev) return null;
 
-  const shortfall = ev.creditCost - creditBalance;
+  const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
+  const shortfall = viewerCost - creditBalance;
   if (shortfall <= 0) return null;
 
   const handleTopUp = async () => {
@@ -616,8 +619,8 @@ export function TopUpModal({
         </div>
         <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", margin: "0 0 18px" }}>
           {lang === "en"
-            ? <>This one costs {ev.creditCost} credits and you have {creditBalance}. Add {shortfall} credits for &euro;{shortfall * 2} and we&rsquo;ll book you in straight away.</>
-            : <>Este encuentro cuesta {ev.creditCost} créditos y tienes {creditBalance}. Añade {shortfall} créditos por {shortfall * 2}€ y te reservaremos directamente.</>}
+            ? <>This one costs {viewerCost} credits and you have {creditBalance}. Add {shortfall} credits for &euro;{shortfall * 2} and we&rsquo;ll book you in straight away.</>
+            : <>Este encuentro cuesta {viewerCost} créditos y tienes {creditBalance}. Añade {shortfall} créditos por {shortfall * 2}€ y te reservaremos directamente.</>}
         </p>
 
         <div
@@ -632,7 +635,7 @@ export function TopUpModal({
               {lang === "en" ? "This experience" : "Esta experiencia"}
             </span>
             <span style={{ fontFamily: "var(--font-heading)", fontSize: "14.5px", color: "#39292a" }}>
-              {ev.creditCost} {lang === "en" ? "credits" : "créditos"}
+              {viewerCost} {lang === "en" ? "credits" : "créditos"}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "5px 0", borderTop: "1px solid rgba(57,41,42,0.1)" }}>
@@ -726,16 +729,19 @@ export function BookingSuccessModal({
   event: ev,
   lang,
   remainingCredits,
+  isMember = false,
   onClose,
 }: {
   event: PublicEvent;
   lang: Lang;
   remainingCredits: number;
+  isMember?: boolean;
   onClose: () => void;
 }) {
   const displayTitle = getEventDisplayTitle(ev, lang);
   const formattedDate = formatEventDate(ev.startsAt, lang);
-  const isFreeWalk = ev.isFreeWalk || ev.creditCost === 0;
+  const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
+  const isFreeWalk = viewerCost === 0 || (ev.isFreeWalk && isMember);
 
   const isGathering =
     (ev.status === "pending" || ev.status === "published_pending") &&
@@ -978,11 +984,11 @@ export function BookingSuccessModal({
         <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 16px" }}>
           {lang === "en" ? (
             <>
-              Your place at “{displayTitle}” on {formattedDate} is booked, using {ev.creditCost} credit{ev.creditCost === 1 ? "" : "s"}. You have {remainingCredits} credit{remainingCredits === 1 ? "" : "s"} left this month.
+              Your place at “{displayTitle}” on {formattedDate} is booked, using {viewerCost} credit{viewerCost === 1 ? "" : "s"}. You have {remainingCredits} credit{remainingCredits === 1 ? "" : "s"} left this month.
             </>
           ) : (
             <>
-              Tu plaza en “{displayTitle}” el {formattedDate} está reservada, usando {ev.creditCost} crédito{ev.creditCost === 1 ? "" : "s"}. Te quedan {remainingCredits} crédito{remainingCredits === 1 ? "" : "s"} este mes.
+              Tu plaza en “{displayTitle}” el {formattedDate} está reservada, usando {viewerCost} crédito{viewerCost === 1 ? "" : "s"}. Te quedan {remainingCredits} crédito{remainingCredits === 1 ? "" : "s"} este mes.
             </>
           )}
         </p>
@@ -1128,6 +1134,8 @@ function EventCard({
   const [showMoreDetails, setShowMoreDetails] = useState(false);
 
   const catInfo = getCategoryInfo(ev, lang);
+  const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
+  const isViewerFree = viewerCost === 0 || (ev.isFreeWalk && isMember);
 
   const handleBookClick = () => {
     if (!isMember) {
@@ -1137,7 +1145,7 @@ function EventCard({
 
     if (isFull) {
       onMemberWaitlist(ev);
-    } else if (ev.creditCost > 0 && creditBalance < ev.creditCost) {
+    } else if (viewerCost > 0 && creditBalance < viewerCost) {
       onOpenTopUp(ev);
     } else {
       onMemberBook(ev);
@@ -1197,9 +1205,9 @@ function EventCard({
           </div>
           {/* Credit cost */}
           <span style={{ fontSize: "11.5px", color: "rgba(57,41,42,0.7)", whiteSpace: "nowrap", flexShrink: 0, fontWeight: 500, paddingTop: "3px" }}>
-            {ev.creditCost === 0 || ev.memberCredits === 0
-              ? (lang === "en" ? "Free" : "Gratis")
-              : `${ev.creditCost} ${lang === "en" ? "credits" : "créditos"}`}
+            {isViewerFree || viewerCost === 0
+              ? (lang === "en" ? "0 credits" : "0 créditos")
+              : `${viewerCost} ${lang === "en" ? "credits" : "créditos"}`}
           </span>
         </div>
 
@@ -1369,19 +1377,19 @@ function EventCard({
 
             <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)", marginTop: "2px" }}>
               {lang === "en"
-                ? (ev.creditCost === 0
+                ? (isViewerFree || viewerCost === 0
                     ? (ev.userStatus?.isBooked
                         ? `Your place is held. Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
                         : `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Free to join.`)
                     : (ev.userStatus?.isBooked
-                        ? `Your ${ev.creditCost} credits are held, not spent. Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                        ? `Your ${viewerCost} credits are held, not spent. Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
                         : `Confirms or cancels by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Credits are only taken if it goes ahead.`))
-                : (ev.creditCost === 0
+                : (isViewerFree || viewerCost === 0
                     ? (ev.userStatus?.isBooked
                         ? `Tu plaza está reservada. Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
                         : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Actividad gratuita.`)
                     : (ev.userStatus?.isBooked
-                        ? `Tus ${ev.creditCost} créditos están retenidos, no gastados. Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                        ? `Tus ${viewerCost} créditos están retenidos, no gastados. Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
                         : `Se confirma o cancela el ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}. Los créditos solo se cobran si se confirma.`))}
             </div>
           </div>
@@ -1661,7 +1669,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     try {
       const res = await bookEvent(ev.id);
       if (res.success) {
-        const newCredits = Math.max(0, currentCreditBalance - (ev.creditCost || 0));
+        const chargedCost = isMember ? (ev.memberCredits ?? ev.creditCost ?? 0) : (ev.nonMemberCredits ?? ev.creditCost ?? 0);
+        const newCredits = Math.max(0, currentCreditBalance - chargedCost);
         setCurrentCreditBalance(newCredits);
 
         const newBookedCount = (ev.bookedMember || 0) + 1;
@@ -1680,7 +1689,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
             ...ev.userStatus,
             isBooked: true,
             bookedAt: new Date(),
-            creditsCharged: ev.creditCost,
+            creditsCharged: chargedCost,
           },
         };
 
@@ -1797,7 +1806,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const filtered = eventsList.filter((ev) => {
     // 0. Free events only
     if (freeOnly) {
-      const isFree = ev.creditCost === 0 || ev.isFreeWalk === true;
+      const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
+      const isFree = viewerCost === 0 || (ev.isFreeWalk === true && isMember);
       if (!isFree) return false;
     }
 
@@ -2712,6 +2722,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           event={bookingSuccessEvent}
           lang={lang}
           remainingCredits={currentCreditBalance}
+          isMember={isMember}
           onClose={() => setBookingSuccessEvent(null)}
         />
       )}
@@ -2742,6 +2753,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           event={topUpEvent}
           lang={lang}
           creditBalance={currentCreditBalance}
+          isMember={isMember}
           onClose={() => setTopUpEvent(null)}
         />
       )}
