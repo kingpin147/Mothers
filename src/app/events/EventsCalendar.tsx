@@ -1697,6 +1697,11 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           prev.map((e) => (e.id === ev.id ? updatedEv : e))
         );
         setBookingSuccessEvent(updatedEv);
+
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("tm_first_booking_done", "1");
+          window.dispatchEvent(new Event("tm_first_booking_done"));
+        }
       } else {
         if (res.error === "INSUFFICIENT_CREDITS") {
           setTopUpEvent(ev);

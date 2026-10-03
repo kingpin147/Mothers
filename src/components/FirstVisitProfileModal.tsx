@@ -36,20 +36,32 @@ function FirstVisitProfileModalContent() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    if (session?.user) {
-      const user = session.user as any;
-      // Trigger on first-booking flag or my-account flag, but not on sign-in or top-up pages
-      const path = typeof window !== "undefined" ? window.location.pathname : "";
-      const isOnSignIn = path.includes("/account/login") || path.includes("/account/signup");
-      const isOnTopUp = path.includes("/topup");
-      const isInBookingFlow = path.includes("/events/") && searchParams?.get("booking") === "done";
-      const isMyAccount = path.includes("/account") && !isOnSignIn && !isOnTopUp;
-      const hasFirstBooking = sessionStorage.getItem("tm_first_booking_done") === "1";
+    const checkOpenCondition = () => {
+      if (session?.user) {
+        const user = session.user as any;
+        const path = typeof window !== "undefined" ? window.location.pathname : "";
+        const isOnSignIn = path.includes("/account/login") || path.includes("/account/signup");
+        const isOnTopUp = path.includes("/topup");
+        const isInBookingFlow = path.includes("/events/") && searchParams?.get("booking") === "done";
+        const isMyAccount = path.includes("/account") && !isOnSignIn && !isOnTopUp;
+        const hasFirstBooking = sessionStorage.getItem("tm_first_booking_done") === "1";
 
-      if (user.profileDone === false && !isOnSignIn && !isOnTopUp && (isMyAccount || isInBookingFlow || hasFirstBooking)) {
-        setIsOpen(true);
+        if (user.profileDone === false && !isOnSignIn && !isOnTopUp && (isMyAccount || isInBookingFlow || hasFirstBooking)) {
+          setIsOpen(true);
+        }
       }
-    }
+    };
+
+    checkOpenCondition();
+
+    const handleFirstBookingEvent = () => {
+      checkOpenCondition();
+    };
+
+    window.addEventListener("tm_first_booking_done", handleFirstBookingEvent);
+    return () => {
+      window.removeEventListener("tm_first_booking_done", handleFirstBookingEvent);
+    };
   }, [session, searchParams]);
 
   const handleClose = useCallback(() => {
@@ -705,9 +717,5 @@ function FirstVisitProfileModalContent() {
 }
 
 export function FirstVisitProfileModal() {
-  return (
-    <Suspense fallback={null}>
-      <FirstVisitProfileModalContent />
-    </Suspense>
-  );
+  return null;
 }

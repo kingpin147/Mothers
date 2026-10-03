@@ -224,7 +224,7 @@ function AccountPageContent() {
 
   if (status === "loading" || accountLoading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f8efe2" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#fdf8f2" }}>
         <ThemeLoader text={lang === "en" ? "Loading your circle..." : "Cargando tu círculo..."} size="large" />
       </div>
     );
@@ -232,7 +232,7 @@ function AccountPageContent() {
 
   if (!session?.user || !accountData || accountError) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "16px", backgroundColor: "#f8efe2", fontFamily: "'Lora', Georgia, serif" }}>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "16px", backgroundColor: "#fdf8f2", fontFamily: "'Lora', Georgia, serif" }}>
         <p style={{ fontSize: "18px", color: "#7b1f2c", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600 }}>Unable to load your account</p>
         {accountError && <p style={{ fontSize: "14px", color: "var(--color-accent)" }}>{accountError}</p>}
       </div>
@@ -328,7 +328,7 @@ function AccountPageContent() {
   };
 
   return (
-    <div style={{ backgroundColor: "#f8efe2", color: "#39292a", minHeight: "100vh", fontFamily: "'Lora', Georgia, serif", padding: "clamp(40px, 5vw, 64px) clamp(24px, 5vw, 64px) 88px" }}>
+    <div style={{ backgroundColor: "#fdf8f2", color: "#39292a", minHeight: "100vh", fontFamily: "'Lora', Georgia, serif", padding: "clamp(40px, 5vw, 64px) clamp(24px, 5vw, 64px) 88px" }}>
       <div style={{ maxWidth: "760px", margin: "0 auto" }}>
         
         {/* Header Greeting */}
@@ -2070,7 +2070,7 @@ export default function AccountPage() {
   return (
     <Suspense
       fallback={
-        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#f8efe2" }}>
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#fdf8f2" }}>
           <ThemeLoader text="Loading..." size="large" />
         </div>
       }

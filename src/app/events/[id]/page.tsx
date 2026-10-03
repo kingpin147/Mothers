@@ -25,7 +25,7 @@ import {
 export default function EventDetailPage() {
   const params = useParams();
   const eventId = params?.id as string;
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   const [lang, setLang] = useState<Lang>("en");
   const [ev, setEv] = useState<PublicEvent | null>(null);
@@ -97,12 +97,12 @@ export default function EventDetailPage() {
 
   // Handle URL intent triggers
   useEffect(() => {
-    if (typeof window !== "undefined" && ev) {
+    if (typeof window !== "undefined" && ev && status !== "loading") {
       const query = new URLSearchParams(window.location.search);
       if (query.get("booking_success") === "true") {
         setBookingSuccessEvent(ev);
         window.history.replaceState({}, "", `/events/${eventId}`);
-      } else if (query.get("action") === "book") {
+      } else if (query.get("topup_success") === "true" || query.get("action") === "book") {
         window.history.replaceState({}, "", `/events/${eventId}`);
         if (!isMember) {
           setSignedOutEvent(ev);
@@ -111,7 +111,7 @@ export default function EventDetailPage() {
         }
       }
     }
-  }, [ev, isMember, eventId]);
+  }, [ev, isMember, status, eventId]);
 
   const handleMemberBook = async (targetEv: PublicEvent) => {
     const viewerCost = isLive
@@ -135,6 +135,11 @@ export default function EventDetailPage() {
         }
         setIsAlreadyBooked(true);
         setBookingSuccessEvent(targetEv);
+
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("tm_first_booking_done", "1");
+          window.dispatchEvent(new Event("tm_first_booking_done"));
+        }
       } else {
         if (res.error === "INSUFFICIENT_CREDITS") {
           setTopUpEvent(targetEv);

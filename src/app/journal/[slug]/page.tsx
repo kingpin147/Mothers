@@ -228,12 +228,12 @@ export default function JournalSlugPage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#f8efe2",
+          backgroundColor: "#fdf8f2",
           fontFamily: "'Lora', Georgia, serif",
           color: "#39292a",
         }}
       >
-        Loading article...
+        {lang === "en" ? "Loading article..." : "Cargando artículo..."}
       </div>
     );
   }
@@ -242,39 +242,45 @@ export default function JournalSlugPage() {
     return (
       <div
         style={{
-          maxWidth: "760px",
-          margin: "0 auto",
+          backgroundColor: "#fdf8f2",
+          minHeight: "70vh",
           padding: "80px 24px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
           textAlign: "center",
           fontFamily: "'Lora', Georgia, serif",
           color: "#39292a",
         }}
       >
-        <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "36px", marginBottom: "16px" }}>
-          {lang === "en" ? "Article not found" : "Artículo no encontrado"}
-        </h1>
-        <p style={{ color: "rgba(57,41,42,0.7)", marginBottom: "28px" }}>
-          {lang === "en"
-            ? "The article you are looking for does not exist or has been removed."
-            : "El artículo que buscas no existe o ha sido retirado."}
-        </p>
-        <Link
-          href="/journal"
-          style={{
-            border: "1px solid #7b1f2c",
-            backgroundColor: "#7b1f2c",
-            color: "#f8efe2",
-            padding: "10px 20px",
-            borderRadius: "4px",
-            fontFamily: "'Cormorant Garamond', serif",
-            fontWeight: 600,
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-          }}
-        >
-          <BackArrow /> {lang === "en" ? "Return to Journal" : "Volver al Diario"}
-        </Link>
+        <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "36px", marginBottom: "16px" }}>
+            {lang === "en" ? "Article not found" : "Artículo no encontrado"}
+          </h1>
+          <p style={{ color: "rgba(57,41,42,0.7)", marginBottom: "28px" }}>
+            {lang === "en"
+              ? "The article you are looking for does not exist or has been removed."
+              : "El artículo que buscas no existe o ha sido retirado."}
+          </p>
+          <Link
+            href="/journal"
+            style={{
+              border: "1px solid #7b1f2c",
+              backgroundColor: "#7b1f2c",
+              color: "#f8efe2",
+              padding: "10px 20px",
+              borderRadius: "4px",
+              fontFamily: "'Cormorant Garamond', serif",
+              fontWeight: 600,
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+            }}
+          >
+            <BackArrow /> {lang === "en" ? "Return to Journal" : "Volver al Diario"}
+          </Link>
+        </div>
       </div>
     );
   }
@@ -292,7 +298,7 @@ export default function JournalSlugPage() {
   return (
     <div
       style={{
-        backgroundColor: "#f8efe2",
+        backgroundColor: "#fdf8f2",
         color: "#39292a",
         fontFamily: "'Lora', Georgia, serif",
         minHeight: "100vh",
@@ -484,8 +490,8 @@ export default function JournalSlugPage() {
         <div
           style={{
             border: "1px solid rgba(57, 41, 42, 0.2)",
-            backgroundColor: "#f8efe2",
-            borderRadius: "6px",
+            backgroundColor: "#ffffff",
+            borderRadius: "8px",
             padding: "clamp(22px, 3vw, 32px)",
             marginTop: "36px",
           }}
@@ -495,7 +501,7 @@ export default function JournalSlugPage() {
               fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 600,
               fontSize: "12.5px",
-              letterSpacing: "0.12em",
+              letterSpacing: "0.14em",
               textTransform: "uppercase",
               color: "#7b1f2c",
               marginBottom: "10px",
@@ -506,37 +512,37 @@ export default function JournalSlugPage() {
           <h3
             style={{
               fontFamily: "'Cormorant Garamond', serif",
-              fontWeight: 500,
+              fontWeight: 400,
               fontSize: "26px",
               lineHeight: 1.2,
               margin: "0 0 10px",
             }}
           >
             {lang === "en"
-              ? "The Mothers Circle is waiting for you"
-              : "El Círculo de The Mothers te está esperando"}
+              ? "The writing is free. The room is the point."
+              : "La lectura es libre. El encuentro es lo importante."}
           </h3>
           <p
             style={{
               fontSize: "15px",
               lineHeight: 1.65,
-              color: "rgba(57, 41, 42, 0.72)",
-              margin: "0 0 20px",
-              maxWidth: "36em",
+              color: "rgba(57, 41, 42, 0.7)",
+              margin: "0 0 16px",
+              maxWidth: "56ch",
             }}
           >
             {lang === "en"
-              ? "Walks, play dates, dinners and expert sessions across Barcelona — with the mothers you keep seeing until they become friends."
-              : "Paseos, play dates, cenas y sesiones con expertas por toda Barcelona — con las madres a las que sigues viendo hasta que se convierten en amigas."}
+              ? "Walks, play dates, suppers and expert sessions across Barcelona — open to every mother until membership opens."
+              : "Paseos, play dates, cenas y sesiones con expertas por toda Barcelona — abiertos a todas las madres hasta la apertura de la membresía."}
           </p>
           <Link
-            href="/membership"
+            href="/events"
             style={{
               display: "inline-block",
               border: "1px solid #7b1f2c",
-              backgroundColor: "#7b1f2c",
-              color: "#f8efe2",
-              padding: "12px 24px",
+              backgroundColor: "transparent",
+              color: "#7b1f2c",
+              padding: "12px 22px",
               borderRadius: "4px",
               fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 600,
@@ -544,7 +550,7 @@ export default function JournalSlugPage() {
               textDecoration: "none",
             }}
           >
-            {lang === "en" ? "See the membership" : "Ver la membresía"}
+            {lang === "en" ? "See the calendar" : "Ver el calendario"}
           </Link>
         </div>
 

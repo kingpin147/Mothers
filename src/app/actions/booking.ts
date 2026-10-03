@@ -669,6 +669,15 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
   if (!personRecord) return { success: false, error: "PERSON_NOT_FOUND" };
 
   try {
+    // If topping up to book a specific event, hold the seat for 10 minutes
+    if (eventId) {
+      try {
+        await holdBookingForTopUp(eventId);
+      } catch (err) {
+        console.warn("Could not hold booking during topup:", err);
+      }
+    }
+
     const clubSettings = await getPublicClubSettings();
     const topUpUnitAmount = clubSettings.topUpPriceCents ?? 200;
     const { stripe } = await import("@/lib/stripe");

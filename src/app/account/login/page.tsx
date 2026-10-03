@@ -65,7 +65,7 @@ function LoginForm() {
         role === "manager" ||
         role === "host" ||
         role === "super_admin";
-      const callbackUrl = searchParams?.get("callbackUrl");
+      const callbackUrl = searchParams?.get("callbackUrl") || searchParams?.get("next");
 
       if (isAdmin) {
         window.location.href = callbackUrl || "/admin";
@@ -93,7 +93,7 @@ function LoginForm() {
     setLoading(true);
     setErrorMsg(null);
 
-    const callbackUrl = searchParams?.get("callbackUrl");
+    const callbackUrl = searchParams?.get("callbackUrl") || searchParams?.get("next");
 
     // 1. Try Member Credentials first
     let res = await signIn("member-credentials", {
@@ -184,7 +184,7 @@ function LoginForm() {
     }
 
     // Auto sign-in after successful registration
-    const callbackUrl = searchParams?.get("callbackUrl");
+    const callbackUrl = searchParams?.get("callbackUrl") || searchParams?.get("next");
     const targetRoute =
       callbackUrl && !callbackUrl.startsWith("/admin")
         ? callbackUrl

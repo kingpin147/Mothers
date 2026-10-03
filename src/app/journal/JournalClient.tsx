@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Locale } from "@/lib/i18n";
-import { subscribeToLetter } from "@/app/actions/publicWindow";
 import { JOURNAL_CATEGORIES, getCategoryLabel, normalizeCategoryId } from "@/lib/journalCategories";
 
 /* ─── Article Data Model ──────────────────────────────────── */
@@ -151,12 +150,6 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
   const [lang, setLang] = useState<Locale>("en");
   const [selectedCat, setSelectedCat] = useState<string>("all");
 
-  // Newsletter state
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupError, setSignupError] = useState(false);
-  const [signupDone, setSignupDone] = useState(false);
-  const [alreadySubscribed, setAlreadySubscribed] = useState(false);
-
   useEffect(() => {
     const updateLang = () => {
       const saved = localStorage.getItem("tm_lang");
@@ -166,31 +159,6 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
     window.addEventListener("tm_lang_change", updateLang);
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
-
-  const handleSignup = async () => {
-    const email = signupEmail.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setSignupError(true);
-      return;
-    }
-    setSignupError(false);
-    setAlreadySubscribed(false);
-    try {
-      const res = await subscribeToLetter(email);
-      if (res.success) {
-        if (res.alreadySubscribed) {
-          setAlreadySubscribed(true);
-        } else {
-          setSignupDone(true);
-          setSignupEmail("");
-        }
-      } else {
-        setSignupError(true);
-      }
-    } catch (e) {
-      setSignupError(true);
-    }
-  };
 
   // Only display real articles published in the database
   const allArticles: PublicArticle[] = dynamicArticles;
@@ -217,7 +185,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
   return (
     <div
       style={{
-        backgroundColor: "#f8efe2",
+        backgroundColor: "#fdf8f2",
         color: "#39292a",
         fontFamily: "'Lora', Georgia, serif",
         minHeight: "100vh",
@@ -228,7 +196,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
         style={{
           maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(48px, 7vw, 88px) clamp(24px, 5vw, 64px) clamp(28px, 4vw, 44px)",
+          padding: "clamp(38px, 5vw, 66px) clamp(20px, 5vw, 64px) clamp(18px, 3vw, 26px)",
         }}
       >
         <div
@@ -239,7 +207,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
             letterSpacing: "0.14em",
             textTransform: "uppercase",
             color: "#7b1f2c",
-            marginBottom: "18px",
+            marginBottom: "12px",
           }}
         >
           {lang === "en" ? "The Journal" : "El Diario"}
@@ -248,30 +216,28 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontWeight: 400,
-            fontSize: "clamp(40px, 5.5vw, 66px)",
-            lineHeight: 1.06,
-            letterSpacing: "-0.01em",
-            margin: "0 0 20px",
-            maxWidth: "16em",
-          }}
-        >
-          {lang === "en"
-            ? "Useful writing about motherhood in Barcelona."
-            : "Textos útiles sobre la maternidad en Barcelona."}
-        </h1>
-        <p
-          style={{
-            fontSize: "17px",
-            lineHeight: 1.7,
-            color: "rgba(57, 41, 42, 0.72)",
-            maxWidth: "44em",
-            margin: 0,
+            fontSize: "clamp(32px, 4.4vw, 52px)",
+            lineHeight: 1.1,
+            margin: "0 0 16px",
             textWrap: "pretty",
           }}
         >
           {lang === "en"
-            ? "Free to read, no membership needed. A small library of practical answers from the midwives, doulas, consultants and mothers we actually work with — written for the questions people ask at three in the morning."
-            : "De lectura libre, sin membresía. Una pequeña biblioteca de respuestas prácticas de las matronas, doulas, asesoras y madres con las que trabajamos — escritas para las preguntas que aparecen a las tres de la mañana."}
+            ? "What mothers are talking about."
+            : "De qué están hablando las madres."}
+        </h1>
+        <p
+          style={{
+            fontSize: "16.5px",
+            lineHeight: 1.65,
+            color: "rgba(57, 41, 42, 0.72)",
+            maxWidth: "64ch",
+            margin: 0,
+          }}
+        >
+          {lang === "en"
+            ? "Free to read, no account needed. A small library of practical answers from the midwives, doulas, consultants and mothers we actually work with — written for the questions people ask at three in the morning."
+            : "De lectura libre, sin necesidad de cuenta. Una pequeña biblioteca de respuestas prácticas de las matronas, doulas, asesoras y madres con las que trabajamos — escritas para las preguntas que aparecen a las tres de la mañana."}
         </p>
       </section>
 
@@ -562,161 +528,6 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
             </div>
           </>
         )}
-      </section>
-
-      {/* ─── Newsletter Signup (The Letter) ─────────────────── */}
-      <section
-        style={{
-          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-          backgroundColor: "#f8efe2",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1160px",
-            margin: "0 auto",
-            padding: "clamp(40px, 5vw, 64px) clamp(24px, 5vw, 64px)",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "32px",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ flex: "1 1 380px", minWidth: "280px" }}>
-            <div
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 600,
-                fontSize: "12.5px",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "#7b1f2c",
-                marginBottom: "10px",
-              }}
-            >
-              {lang === "en" ? "The letter" : "La carta"}
-            </div>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 500,
-                fontSize: "clamp(26px, 3vw, 34px)",
-                lineHeight: 1.15,
-                margin: "0 0 10px",
-              }}
-            >
-              {lang === "en" ? "One letter a month." : "Una carta al mes."}
-            </h2>
-            <p
-              style={{
-                fontSize: "15px",
-                lineHeight: 1.65,
-                color: "rgba(57, 41, 42, 0.7)",
-                margin: 0,
-                maxWidth: "34em",
-              }}
-            >
-              {lang === "en"
-                ? "New writing, what is coming up in the calendar, and when the next Window opens. No membership required, and nothing else in your inbox."
-                : "Textos nuevos, lo que viene en el calendario y cuándo se abre la próxima Ventana. Sin membresía, y nada más en tu bandeja."}
-            </p>
-          </div>
-
-          <div style={{ flex: "1 1 320px", minWidth: "280px" }}>
-            {signupDone ? (
-              <div
-                style={{
-                  border: "1px solid rgba(86, 139, 5, 0.4)",
-                  backgroundColor: "rgba(86, 139, 5, 0.08)",
-                  borderRadius: "5px",
-                  padding: "16px 18px",
-                  display: "flex",
-                  gap: "10px",
-                  alignItems: "flex-start",
-                }}
-              >
-                <span style={{ color: "#568b05", flex: "none", marginTop: "1px" }}>✓</span>
-                <span style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.78)" }}>
-                  {lang === "en"
-                    ? "You're on the list — the next letter comes at the start of the month."
-                    : "Ya estás en la lista — la próxima carta sale a principios de mes."}
-                </span>
-              </div>
-            ) : (
-              <div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                  <input
-                    type="email"
-                    value={signupEmail}
-                    onChange={(e) => {
-                      setSignupEmail(e.target.value);
-                      setAlreadySubscribed(false);
-                      setSignupError(false);
-                    }}
-                    placeholder={lang === "en" ? "you@email.com" : "tu@email.com"}
-                    style={{
-                      flex: "1 1 200px",
-                      minHeight: "48px",
-                      padding: "12px 16px",
-                      fontSize: "15px",
-                      fontFamily: "'Lora', Georgia, serif",
-                      color: "#39292a",
-                      backgroundColor: "#f8efe2",
-                      border: "1px solid rgba(57, 41, 42, 0.25)",
-                      borderRadius: "5px",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSignup}
-                    style={{
-                      border: "1px solid #7b1f2c",
-                      backgroundColor: "#7b1f2c",
-                      color: "#f8efe2",
-                      padding: "13px 24px",
-                      borderRadius: "5px",
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontWeight: 600,
-                      fontSize: "15px",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {lang === "en" ? "Sign up" : "Apuntarme"}
-                  </button>
-                </div>
-                {alreadySubscribed && (
-                  <p style={{ fontSize: "13.5px", color: "#a8752c", margin: "10px 0 0" }}>
-                    {lang === "en"
-                      ? "You are already subscribed to The Letter with this email."
-                      : "Ya estás suscrita a La Carta con este email."}
-                  </p>
-                )}
-                {signupError && (
-                  <p style={{ fontSize: "13px", color: "#993842", margin: "10px 0 0" }}>
-                    {lang === "en"
-                      ? "Please enter a valid email address."
-                      : "Introduce un email válido."}
-                  </p>
-                )}
-                <p
-                  style={{
-                    fontSize: "12px",
-                    lineHeight: 1.6,
-                    color: "rgba(57, 41, 42, 0.5)",
-                    margin: "12px 0 0",
-                  }}
-                >
-                  {lang === "en"
-                    ? "We only use it for the letter. Unsubscribe in one click."
-                    : "Solo lo usamos para la carta. Puedes darte de baja en un clic."}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
       </section>
     </div>
   );
