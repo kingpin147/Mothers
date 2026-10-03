@@ -65,7 +65,7 @@ export async function getPreLaunchDeskData() {
         color: Number(pastEventsToRunCountRow[0]?.count || 0) > 0 ? "#568b05" : "#39292a",
       },
       {
-        label: "Circle reports open",
+        label: "La Gazette reports open",
         value: Number(openReportsCountRow[0]?.count || 0),
         color: Number(openReportsCountRow[0]?.count || 0) > 0 ? "#993842" : "#39292a",
       },

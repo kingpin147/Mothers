@@ -331,7 +331,7 @@ export default function AdminDashboardPage() {
               </div>
               <Link href="/admin/pre-launch" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Open the desk <ForwardArrow /></Link>
             </div>
-            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 15px", textWrap: "pretty" }}>Host requests, attendance records, Circle moderation, and pre-launch accounts waiting for review.</p>
+            <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 15px", textWrap: "pretty" }}>Host requests, attendance records, La Gazette moderation, and pre-launch accounts waiting for review.</p>
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>Open the desk to see what is waiting.</div>
             </div>

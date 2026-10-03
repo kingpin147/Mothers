@@ -137,7 +137,7 @@ export async function checkPostingEligibility() {
       return {
         canPost: false,
         reason: "membership_required",
-        message: "You have used your 3 free Circle posts/replies. Become a member for unlimited Circle conversations.",
+        message: "You have used your 3 free La Gazette posts/replies. Become a member for unlimited conversations.",
         remaining: 0,
         totalUsed,
         isMember: false,
@@ -324,7 +324,7 @@ export async function createCirclePost(data: {
       throw new Error("Your account is currently paused.");
     }
     if (eligibility.reason === "membership_required") {
-      throw new Error(eligibility.message || "You have used your 3 free Circle posts/replies. Become a member for unlimited Circle conversations.");
+      throw new Error(eligibility.message || "You have used your 3 free La Gazette posts/replies. Become a member for unlimited conversations.");
     }
     throw new Error("You are not eligible to post.");
   }

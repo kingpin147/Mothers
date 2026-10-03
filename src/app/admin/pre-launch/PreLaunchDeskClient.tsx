@@ -155,7 +155,7 @@ export function PreLaunchDeskClient({ initialData }: PreLaunchDeskProps) {
           Pre-launch desk
         </h1>
         <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: "0 0 22px", maxWidth: "64ch" }}>
-          The operations desk running until membership opens. Manage host requests, mark event attendance, moderate Circle posts, and audit pre-launch accounts.
+          The operations desk running until membership opens. Manage host requests, mark event attendance, moderate La Gazette posts, and audit pre-launch accounts.
         </p>
 
         {/* ─── STAT CARDS ─── */}
@@ -177,7 +177,7 @@ export function PreLaunchDeskClient({ initialData }: PreLaunchDeskProps) {
           {[
             { id: "hosts", label: "Host requests" },
             { id: "attendance", label: 'Attendance & "Mark as run"' },
-            { id: "circle", label: "Circle reports" },
+            { id: "circle", label: "La Gazette reports" },
             { id: "accounts", label: "Accounts & list" },
           ].map((t) => {
             const isActive = activeTab === t.id;
@@ -433,7 +433,7 @@ export function PreLaunchDeskClient({ initialData }: PreLaunchDeskProps) {
 
             {circleReports.length === 0 ? (
               <p style={{ fontSize: "14.5px", color: "rgba(57, 41, 42, 0.72)", border: "1px solid rgba(57, 41, 42, 0.16)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "20px", margin: 0 }}>
-                No active Circle reports.
+                No active La Gazette reports.
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>

@@ -29,8 +29,8 @@ const QUOTED_PAGES: Record<string, [string, string]> = {
   releaseDeadlineHours: ["Release deadline (hours before)", "Events, FAQ, Legal §05"],
   godmotherBonusReferrer: ["Godmother bonus (credits)", "Godmother, Membership, FAQ"],
   pauseAllowanceMonths: ["Pause allowance (months per year)", "FAQ, Account, Legal §07"],
-  pinnedCircleTag: ["Pinned tag", "Circle"],
-  blockedCircleTags: ["Blocked tags", "Circle"],
+  pinnedCircleTag: ["Pinned tag", "La Gazette"],
+  blockedCircleTags: ["Blocked tags", "La Gazette"],
 };
 
 interface SettingsClientProps {

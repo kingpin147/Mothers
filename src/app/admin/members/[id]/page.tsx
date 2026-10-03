@@ -479,7 +479,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                 {member.isSuspended ? "Lift suspension (Reactivate)" : "Suspend account"}
               </button>
               <p style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.7)", margin: "6px 0 0" }}>
-                {member.isSuspended ? `Suspended: "${member.suspendedReason || 'House rules'}"` : "Blocks booking and Circle posting; freezes credits."}
+                {member.isSuspended ? `Suspended: "${member.suspendedReason || 'House rules'}"` : "Blocks booking and La Gazette posting; freezes credits."}
               </p>
             </div>
 
@@ -488,7 +488,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                 type="button"
                 disabled={isSubmitting}
                 onClick={async () => {
-                  if (!confirm(`Permanently delete ${member.firstName}'s account under GDPR? Personal data will be erased, active bookings cancelled, and Circle posts anonymized.`)) return;
+                  if (!confirm(`Permanently delete ${member.firstName}'s account under GDPR? Personal data will be erased, active bookings cancelled, and La Gazette posts anonymized.`)) return;
                   setIsSubmitting(true);
                   await adminDeleteAccountGDPR(member.personId || member.id);
                   setIsSubmitting(false);
