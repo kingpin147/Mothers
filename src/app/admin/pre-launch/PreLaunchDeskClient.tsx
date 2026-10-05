@@ -160,6 +160,7 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
   const openReportsCount = circleReports.filter((r) => r.status === "open" || r.status === "pending").length;
   const toMarkCount = attendanceEvents.filter((e) => !e.isRan).length;
   const accountsCount = initialData.preLaunchAccounts?.length || 0;
+  const deletedThisMonth = initialData.stats?.find((s: any) => s.label === "Deleted this month")?.value || initialData.deletedAccounts?.length || 0;
 
   const statsList = [
     {
@@ -184,6 +185,12 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
       label: "Accounts before launch",
       value: String(accountsCount),
       color: "#3b5e04",
+      tab: "accounts",
+    },
+    {
+      label: "Deleted this month",
+      value: String(deletedThisMonth),
+      color: deletedThisMonth > 0 ? "#993842" : "#39292a",
       tab: "accounts",
     },
   ];
@@ -779,6 +786,49 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
                       <span>{n.email}</span>
                       <span style={{ color: "rgba(57, 41, 42, 0.7)" }}>
                         {n.source} · {n.createdAt}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Deleted accounts */}
+              <div style={{ border: "1px solid rgba(57, 41, 42, 0.16)", borderRadius: "8px", background: "#fffdfa", padding: "16px 18px", gridColumn: "1 / -1" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px" }}>
+                    Deleted accounts
+                  </div>
+                  {deletedThisMonth > 0 && (
+                    <span style={{ fontSize: "11.5px", color: "#993842", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {deletedThisMonth} deleted this month
+                    </span>
+                  )}
+                </div>
+                {(!initialData.deletedAccounts || initialData.deletedAccounts.length === 0) ? (
+                  <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)", margin: 0 }}>No deleted accounts recorded.</p>
+                ) : (
+                  initialData.deletedAccounts.map((d: any) => (
+                    <div
+                      key={d.id}
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "6px 16px",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "10px 0",
+                        borderTop: "1px solid rgba(57, 41, 42, 0.1)",
+                        fontSize: "13.5px",
+                      }}
+                    >
+                      <div>
+                        <strong style={{ fontWeight: 600 }}>{d.who}</strong>
+                        <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.65)", marginTop: "2px" }}>
+                          {d.freed}
+                        </div>
+                      </div>
+                      <span style={{ color: "rgba(57, 41, 42, 0.7)", fontSize: "12.5px" }}>
+                        {d.date}
                       </span>
                     </div>
                   ))

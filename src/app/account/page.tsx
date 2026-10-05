@@ -133,6 +133,41 @@ function AccountPageContent() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Membership waitlist state
+  const [listJoined, setListJoined] = useState(false);
+  const [listLoading, setListLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("tm_pre_joined_list") === "true") {
+      setListJoined(true);
+    }
+  }, []);
+
+  const handleNotifyMe = async () => {
+    if (listJoined || listLoading) return;
+    setListLoading(true);
+    try {
+      const userEmail = accountData?.member?.email || session?.user?.email;
+      const userName = accountData?.member?.fullName || session?.user?.name || "";
+      if (userEmail) {
+        await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: userEmail, name: userName, source: "account_membership_waitlist" }),
+        });
+      }
+      setListJoined(true);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("tm_pre_joined_list", "true");
+      }
+    } catch (err) {
+      console.error(err);
+      setListJoined(true);
+    } finally {
+      setListLoading(false);
+    }
+  };
+
   // Hosting tab state
   const [hostLoading, setHostLoading] = useState(false);
   const [hostEvents, setHostEvents] = useState<any[]>([]);
@@ -1765,64 +1800,135 @@ function AccountPageContent() {
 
             {/* When Membership is Not Live (Pre-Launch) */}
             {!accountData?.settings?.membershipLive && (
-              <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "clamp(26px, 4vw, 36px)" }}>
+              <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "clamp(22px, 3vw, 30px)" }}>
                 <div
                   style={{
-                    fontFamily: "'Cormorant Garamond', Georgia, serif",
-                    fontWeight: 600,
-                    fontSize: "12px",
+                    fontSize: "11.5px",
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
                     color: "#7b1f2c",
                     marginBottom: "12px",
+                    fontWeight: 600,
                   }}
                 >
-                  {lang === "en" ? "PRE-LAUNCH ACCESS" : "ACCESO PREVIO AL LANZAMIENTO"}
+                  {lang === "en" ? "MEMBERSHIP OPENS JANUARY 2027" : "LA MEMBRESÍA ABRE EN ENERO DE 2027"}
                 </div>
 
                 <h2
                   style={{
-                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 400,
-                    fontSize: "clamp(26px, 4vw, 36px)",
-                    lineHeight: "1.15",
-                    margin: "0 0 14px",
+                    fontSize: "24px",
+                    lineHeight: "1.2",
+                    margin: "0 0 10px",
                     color: "#39292a",
                   }}
                 >
-                  {lang === "en" ? "Pay-as-you-go credit model" : "Modelo de pago por créditos"}
+                  {lang === "en" ? "You do not have one yet — nobody does." : "Aún no tienes una — nadie la tiene todavía."}
                 </h2>
 
                 <p
                   style={{
-                    fontSize: "15.5px",
+                    fontSize: "15px",
                     lineHeight: "1.65",
-                    color: "rgba(57, 41, 42, 0.78)",
-                    margin: "0 0 24px",
-                    maxWidth: "58ch",
+                    color: "rgba(57, 41, 42, 0.74)",
+                    margin: "0 0 18px",
+                    maxWidth: "62ch",
                   }}
                 >
                   {lang === "en"
-                    ? "Until full club launch, all gatherings are booked with credits (€2 per credit) with no recurring fee. No joining fee if you join before launch."
-                    : "Hasta el lanzamiento completo del club, todos los encuentros se reservan con créditos (2€ por crédito) sin cuota recurrente. Sin cuota de alta si te unes antes del lanzamiento."}
+                    ? "€39 a month or €99 quarterly, twenty credits granted each month, and the partner list. As an early mother you join without a joining fee, and credits already in your wallet keep their full six-month life."
+                    : "39 € al mes o 99 € al trimestre, veinte créditos concedidos cada mes y la lista de partners. Como madre pionera te unes sin cuota de alta, y los créditos que ya tengas en tu monedero conservan su validez completa de seis meses."}
                 </p>
 
+                <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", marginBottom: "20px" }}>
+                  {[
+                    { label: lang === "en" ? "DAYS" : "DÍAS", value: timeLeft.days },
+                    { label: lang === "en" ? "HOURS" : "HORAS", value: timeLeft.hours },
+                    { label: lang === "en" ? "MINS" : "MINS", value: timeLeft.minutes },
+                    { label: lang === "en" ? "SECS" : "SEGS", value: timeLeft.seconds },
+                  ].map((unit, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        minWidth: "62px",
+                        textAlign: "center",
+                        backgroundColor: "#ecdcd0",
+                        border: "1px solid rgba(57,41,42,0.18)",
+                        borderRadius: "5px",
+                        padding: "11px 8px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontSize: "24px",
+                          lineHeight: "1",
+                          fontFeatureSettings: "'tnum'",
+                          color: "#7b1f2c",
+                        }}
+                      >
+                        {unit.value}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "9.5px",
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          color: "rgba(57,41,42,0.72)",
+                          marginTop: "5px",
+                        }}
+                      >
+                        {unit.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
-                  <span
+                  <button
+                    type="button"
+                    onClick={handleNotifyMe}
+                    disabled={listJoined || listLoading}
                     style={{
-                      fontSize: "14px",
-                      color: "#568b05",
-                      fontFamily: "'Cormorant Garamond', Georgia, serif",
-                      fontWeight: 600,
-                      padding: "9px 16px",
-                      border: "1px solid rgba(86, 139, 5, 0.4)",
-                      backgroundColor: "rgba(86, 139, 5, 0.08)",
+                      border: "1px solid #7b1f2c",
+                      backgroundColor: "#7b1f2c",
+                      color: "#fdf8f2",
                       borderRadius: "4px",
+                      padding: "12px 24px",
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "15px",
                       whiteSpace: "nowrap",
+                      cursor: listJoined ? "default" : "pointer",
                     }}
                   >
-                    {lang === "en" ? "✓ Early Mother — No joining fee if you join before launch" : "✓ Madre Pionera — Sin cuota de alta si te unes antes del lanzamiento"}
-                  </span>
+                    {listJoined
+                      ? (lang === "en" ? "✓ We'll notify you" : "✓ Te avisaremos")
+                      : listLoading
+                      ? (lang === "en" ? "Saving..." : "Guardando...")
+                      : (lang === "en" ? "Tell me when it opens" : "Avísame cuando abra")}
+                  </button>
+
+                  <Link
+                    href="/membership"
+                    style={{
+                      border: "1px solid rgba(57,41,42,0.24)",
+                      backgroundColor: "transparent",
+                      color: "#39292a",
+                      borderRadius: "4px",
+                      padding: "12px 22px",
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "15px",
+                      whiteSpace: "nowrap",
+                      textDecoration: "none",
+                      display: "inline-flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {lang === "en" ? "What it will be" : "Cómo será"}
+                  </Link>
                 </div>
               </div>
             )}
@@ -2234,53 +2340,8 @@ function AccountPageContent() {
               </div>
             )}
 
-            {/* GDPR Privacy & Account Deletion */}
-            <div style={{ border: "1px solid rgba(153,56,66,0.25)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#fffdfa", marginTop: "24px" }}>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "20px", margin: "0 0 8px", color: "#993842" }}>
-                {lang === "en" ? "GDPR Account Deletion" : "Eliminación de Cuenta y Datos (RGPD)"}
-              </h2>
-              <p style={{ fontSize: "13.5px", lineHeight: "1.5", color: "rgba(57,41,42,0.7)", margin: "0 0 16px" }}>
-                {lang === "en"
-                  ? "Under GDPR Article 17, you can permanently delete your personal profile, contact info, and scrub community forum posts."
-                  : "Conforme al artículo 17 del RGPD, puedes solicitar la eliminación permanente de tu perfil, datos personales y publicaciones en el foro."}
-              </p>
-              {!showDeleteModal ? (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(true)}
-                  style={{ border: "1px solid #993842", color: "#993842", backgroundColor: "transparent", padding: "8px 18px", borderRadius: "4px", fontSize: "13.5px", fontWeight: 600, cursor: "pointer" }}
-                >
-                  {lang === "en" ? "Delete my account permanently" : "Eliminar mi cuenta permanentemente"}
-                </button>
-              ) : (
-                <div style={{ backgroundColor: "#fdf2f2", border: "1px solid rgba(153,56,66,0.3)", borderRadius: "6px", padding: "16px 18px" }}>
-                  <p style={{ fontSize: "13.5px", color: "#7b1f2c", margin: "0 0 12px", fontWeight: 600 }}>
-                    {lang === "en" ? "This action is permanent and cannot be undone." : "Esta acción es permanente y no se puede deshacer."}
-                  </p>
-                  {deleteError && <p style={{ color: "#b91c1c", fontSize: "13px", margin: "0 0 8px" }}>{deleteError}</p>}
-                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      disabled={deleteLoading}
-                      onClick={handleDeleteAccount}
-                      style={{ backgroundColor: "#993842", color: "#faf7f1", border: "none", padding: "8px 18px", borderRadius: "4px", fontSize: "13px", fontWeight: 600, cursor: deleteLoading ? "wait" : "pointer" }}
-                    >
-                      {deleteLoading ? (lang === "en" ? "Deleting..." : "Eliminando...") : (lang === "en" ? "Confirm Delete" : "Confirmar Eliminación")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteModal(false)}
-                      style={{ backgroundColor: "transparent", border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "8px 16px", borderRadius: "4px", fontSize: "13px", cursor: "pointer" }}
-                    >
-                      {lang === "en" ? "Cancel" : "Cancelar"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Logout button at the very bottom */}
-            <div style={{ marginTop: "12px", borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "24px", display: "flex", justifyContent: "flex-end" }}>
+            {/* Sign out and Delete account at the bottom */}
+            <div style={{ marginTop: "24px", borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "24px", display: "flex", flexDirection: "column", gap: "16px", alignItems: "flex-start" }}>
               <button
                 type="button"
                 onClick={async () => {
@@ -2288,19 +2349,95 @@ function AccountPageContent() {
                   window.location.href = "/";
                 }}
                 style={{
-                  border: "1px solid rgba(57, 41, 42, 0.3)",
-                  color: "#39292a",
-                  padding: "9px 16px",
-                  borderRadius: "4px",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "14px",
+                  border: "1px solid rgba(57, 41, 42, 0.28)",
                   background: "transparent",
-                  cursor: "pointer"
+                  color: "rgba(57, 41, 42, 0.78)",
+                  borderRadius: "4px",
+                  padding: "10px 20px",
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "13.5px",
+                  cursor: "pointer",
                 }}
               >
-                {lang === "en" ? "Log out" : "Cerrar sesión"}
+                {lang === "en" ? "Sign out" : "Cerrar sesión"}
               </button>
+
+              {!showDeleteModal ? (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(true)}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "rgba(153, 56, 66, 0.8)",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    padding: 0,
+                    textDecoration: "underline",
+                  }}
+                >
+                  {lang === "en" ? "Delete my account" : "Eliminar mi cuenta"}
+                </button>
+              ) : (
+                <div style={{ width: "100%", maxWidth: "560px", backgroundColor: "#fdf2f2", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "8px", padding: "20px 22px" }}>
+                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#993842", margin: "0 0 10px" }}>
+                    {lang === "en" ? "Delete your account permanently?" : "¿Eliminar tu cuenta de forma permanente?"}
+                  </h3>
+                  <p style={{ fontSize: "14px", lineHeight: "1.55", color: "#39292a", margin: "0 0 12px" }}>
+                    {lang === "en"
+                      ? "If you delete your account, here is what happens:"
+                      : "Si eliminas tu cuenta, esto es lo que ocurrirá:"}
+                  </p>
+                  <ul style={{ fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.85)", margin: "0 0 18px", paddingLeft: "20px" }}>
+                    <li>{lang === "en" ? "Your upcoming bookings will be cancelled and the places freed" : "Tus reservas próximas se cancelarán y las plazas quedarán libres"}</li>
+                    <li>{lang === "en" ? "Any remaining credits in your wallet are forfeited" : "Los créditos restantes en tu monedero se perderán"}</li>
+                    <li>{lang === "en" ? "Your La Gazette posts stay, signed \"A mother in Barcelona\"" : "Tus publicaciones en La Gazette permanecerán firmadas como \"Una madre en Barcelona\""}</li>
+                    <li><strong>{lang === "en" ? "This action is permanent and cannot be undone" : "Esta acción es definitiva y no se puede deshacer"}</strong></li>
+                  </ul>
+                  {deleteError && (
+                    <div style={{ color: "#b91c1c", fontSize: "13px", marginBottom: "12px" }}>{deleteError}</div>
+                  )}
+                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+                    <button
+                      type="button"
+                      disabled={deleteLoading}
+                      onClick={handleDeleteAccount}
+                      style={{
+                        backgroundColor: "#993842",
+                        color: "#faf7f1",
+                        border: "1px solid #993842",
+                        padding: "10px 20px",
+                        borderRadius: "4px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "14.5px",
+                        cursor: deleteLoading ? "wait" : "pointer",
+                      }}
+                    >
+                      {deleteLoading
+                        ? (lang === "en" ? "Deleting…" : "Eliminando…")
+                        : (lang === "en" ? "Delete permanently" : "Eliminar permanentemente")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteModal(false)}
+                      style={{
+                        backgroundColor: "transparent",
+                        border: "1px solid rgba(57,41,42,0.3)",
+                        color: "#39292a",
+                        padding: "10px 18px",
+                        borderRadius: "4px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "14.5px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {lang === "en" ? "Keep my account" : "Conservar mi cuenta"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

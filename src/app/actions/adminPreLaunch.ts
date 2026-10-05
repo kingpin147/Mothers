@@ -12,8 +12,9 @@ import {
   subscriber,
   leadEntry,
   setting,
+  auditLog,
 } from "@/db/schema";
-import { eq, desc, asc, and, sql, or, lt, inArray } from "drizzle-orm";
+import { eq, desc, asc, and, sql, or, lt, inArray, gte } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
@@ -28,6 +29,7 @@ export async function getPreLaunchDeskData() {
 
   try {
     const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // 1. Fetch Stats & Aggregates
     const [
@@ -35,12 +37,13 @@ export async function getPreLaunchDeskData() {
       pendingHostsCountRow,
       pastEventsToRunCountRow,
       openReportsCountRow,
+      deletedThisMonthRow,
     ] = await Promise.all([
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(member)
         .innerJoin(person, eq(member.personId, person.id))
-        .where(sql`${person.firstName} != 'Subscriber'`),
+        .where(and(sql`${person.firstName} != 'Subscriber'`, sql`${person.deletedAt} IS NULL`)),
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(hostRequest)
@@ -53,7 +56,18 @@ export async function getPreLaunchDeskData() {
         .select({ count: sql<number>`count(*)::int` })
         .from(circleReport)
         .where(sql`${circleReport.status} IN ('pending', 'open')`),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(auditLog)
+        .where(
+          and(
+            sql`${auditLog.action} IN ('self_delete_account', 'admin_delete_account', 'member_delete_account')`,
+            gte(auditLog.at, startOfMonth)
+          )
+        ),
     ]);
+
+    const deletedThisMonth = Number(deletedThisMonthRow[0]?.count || 0);
 
     const stats = [
       {
@@ -75,6 +89,12 @@ export async function getPreLaunchDeskData() {
         label: "Accounts before launch",
         value: Number(accountsCountRow[0]?.count || 0),
         color: "#3b5e04",
+      },
+      {
+        label: "Deleted this month",
+        value: deletedThisMonth,
+        color: deletedThisMonth > 0 ? "#993842" : "#39292a",
+        alerted: deletedThisMonth > 0,
       },
     ];
 
@@ -284,6 +304,38 @@ export async function getPreLaunchDeskData() {
       }
     } catch {}
 
+    // 7. Deleted Accounts
+    const deletedLogsRaw = await db
+      .select({
+        id: auditLog.id,
+        action: auditLog.action,
+        actorType: auditLog.actorType,
+        at: auditLog.at,
+        before: auditLog.before,
+        after: auditLog.after,
+      })
+      .from(auditLog)
+      .where(sql`${auditLog.action} IN ('self_delete_account', 'admin_delete_account', 'member_delete_account')`)
+      .orderBy(desc(auditLog.at))
+      .limit(50);
+
+    const deletedAccounts = deletedLogsRaw.map((l: any) => {
+      const isSelf = l.action === "self_delete_account" || l.actorType === "member";
+      const name = l.before?.name || "A member";
+      const freedText = l.after?.releasedBookings
+        ? `${l.after.releasedBookings} future booking(s) freed`
+        : "No future bookings";
+      const subText = l.after?.subCancelled ? " · membership cancelled" : "";
+
+      return {
+        id: l.id,
+        name,
+        who: isSelf ? `${name} (self-deletion)` : "Team deletion (by Admin)",
+        freed: `${freedText}${subText}`,
+        date: l.at ? new Date(l.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—",
+      };
+    });
+
     return {
       success: true as const,
       stats,
@@ -301,6 +353,7 @@ export async function getPreLaunchDeskData() {
         isSuspended: !!a.isSuspended,
         createdBeforeLaunch: a.createdBeforeLaunch !== false,
       })),
+      deletedAccounts,
       subscribers: allLeads.map((s) => ({
         id: s.id,
         email: s.email,

@@ -562,6 +562,12 @@ export async function getAdminDashboardMetrics() {
       if (log.action === "delete_subscriber") {
         return "Removed newsletter subscriber";
       }
+      if (log.action === "self_delete_account" || log.action === "member_delete_account") {
+        return after?.summary || `${before?.name || "A member"} deleted her own account`;
+      }
+      if (log.action === "admin_delete_account" || log.action === "team_delete_account") {
+        return after?.summary || `Team deleted account for ${before?.name || "a member"}`;
+      }
       if (log.action === "save_internal_note") {
         return "Added internal note";
       }
@@ -583,6 +589,7 @@ export async function getAdminDashboardMetrics() {
       event: "event",
       booking: "booking",
       member: "membership",
+      person: "account",
       setting: "settings",
       window: "membership window",
       credit_batch: "credits",

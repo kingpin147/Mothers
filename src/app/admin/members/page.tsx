@@ -260,24 +260,21 @@ export default function AdminMembersPage() {
               {filtered.map(m => {
                 const isRisk = !!m.atRiskSince;
                 const creditColor = (m.credits || 0) <= 8 ? AMBER : '#39292a';
-                const attendColor = (m.attended || 0) === 0 ? WINE : (m.attended || 0) <= 2 ? AMBER : GREEN;
+                const attendColor = (m.bookedCount || m.attended || 0) === 0 ? WINE : (m.bookedCount || m.attended || 0) <= 2 ? AMBER : GREEN;
                 const isAdjustingThis = adjustingId === m.id;
                 
                 const rawDate = m.joinedAt || m.createdAt;
                 const dateObj = rawDate ? new Date(rawDate) : null;
-                const dateStr = dateObj && !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null;
-                const joinedLabel = m.joinedAt
-                  ? `Member since ${dateStr || '—'}`
-                  : (dateStr ? `Account created ${dateStr}` : '—');
-
-                let lastSeenText = 'Not seen yet';
-                if (m.lastSeenDate) {
-                  const daysSince = Math.floor((new Date().getTime() - new Date(m.lastSeenDate).getTime()) / (1000 * 3600 * 24));
-                  lastSeenText = `Last seen ${daysSince} days ago`;
-                }
+                const dateStrMonthYear = dateObj && !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : null;
+                const dateStrDayMonth = dateObj && !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
                 
-                let childrenStr = m.children && m.children.length > 0 ? `${m.children.length} child(ren)` : '—';
-                const statusName = STATUS_LABELS[m.status] || m.status;
+                const joinedLabel = m.joinedAt && m.status === 'active'
+                  ? `Member since ${dateStrMonthYear || '—'}`
+                  : (dateStrMonthYear ? `Account since ${dateStrMonthYear}` : '—');
+
+                const isNoPlan = m.status === 'applicant' || m.status !== 'active';
+                const countBooked = m.bookedCount || m.attended || 0;
+                const bookedLabel = countBooked === 0 ? "Not seen yet" : countBooked === 1 ? "Booked 1 event" : `Booked ${countBooked} events`;
 
                 return (
                   <div key={m.id} style={{ display: "grid", gridTemplateColumns: "2fr 1.2fr 1.1fr 1fr 0.8fr 1fr 1.4fr", gap: "14px", padding: "15px 18px", borderBottom: "1px solid rgba(57,41,42,0.1)", alignItems: "start", background: isRisk ? 'rgba(168,117,44,0.04)' : 'transparent' }}>
@@ -289,29 +286,69 @@ export default function AdminMembersPage() {
                     </div>
 
                     <div>
-                      <div style={{ fontSize: "13.5px", lineHeight: 1.5 }}>{m.stage || "Not given"}</div>
-                      <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.65)", marginTop: "3px" }}>{m.neighbourhood || "Not given"}</div>
-                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.55)", marginTop: "3px" }}>{childrenStr}</div>
+                      <div style={{ fontSize: "13.5px", lineHeight: 1.4 }}>{m.stage || "Not given"}</div>
+                      <div style={{ fontSize: "12.5px", lineHeight: 1.4, color: "rgba(57,41,42,0.65)", marginTop: "3px" }}>{m.neighbourhood || "Not given"}</div>
+                      <div style={{ fontSize: "11.5px", lineHeight: 1.4, color: "rgba(57,41,42,0.45)", marginTop: "3px" }}>—</div>
                     </div>
 
                     <div>
-                      <div style={{ fontSize: "13.5px", lineHeight: 1.5, fontVariantNumeric: "tabular-nums" }}>€{(m.monthlyPriceCents / 100).toFixed(0)} / {m.planName?.includes('quarter') ? 'quarter' : 'month'}</div>
-                      <div style={{ fontSize: "11.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>{m.planSubtext || m.planName || "Standard"}</div>
+                      {isNoPlan ? (
+                        <div>
+                          <div style={{ fontSize: "13px", lineHeight: 1.4, fontWeight: 600, color: "#39292a" }}>
+                            Account · no membership
+                          </div>
+                          <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
+                            Pay per event in credits · membership from January 2027
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div style={{ fontSize: "13.5px", lineHeight: 1.4, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
+                            €{(m.monthlyPriceCents / 100).toFixed(0)} / {m.planName?.includes('quarter') ? 'quarter' : 'month'}
+                          </div>
+                          <div style={{ fontSize: "11.5px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
+                            Standard
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div>
-                      <span style={{ display: "inline-block", border: `1px solid ${STATUS_COLORS[m.status] || GREY}`, color: STATUS_COLORS[m.status] || GREY, borderRadius: "3px", padding: "4px 9px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>{statusName}</span>
-                      {m.statusSubtext && <div style={{ fontSize: "11.5px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>{m.statusSubtext}</div>}
+                      {isNoPlan ? (
+                        <div>
+                          <span style={{ display: "inline-block", border: `1px solid rgba(57,41,42,0.35)`, color: "#39292a", backgroundColor: "#ffffff", borderRadius: "3px", padding: "3px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            Account
+                          </span>
+                          <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
+                            Opened {dateStrDayMonth || "recently"}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <span style={{ display: "inline-block", border: `1px solid ${STATUS_COLORS[m.status] || GREEN}`, color: STATUS_COLORS[m.status] || GREEN, backgroundColor: "rgba(63,102,4,0.06)", borderRadius: "3px", padding: "3px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            {STATUS_LABELS[m.status] || m.status}
+                          </span>
+                          {m.statusSubtext && <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>{m.statusSubtext}</div>}
+                        </div>
+                      )}
                     </div>
 
                     <div>
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: creditColor }}>{m.credits || 0}</div>
-                      {m.creditsSubtext && <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>{m.creditsSubtext}</div>}
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: creditColor }}>
+                        {m.credits || 0}
+                      </div>
+                      <div style={{ fontSize: "11px", lineHeight: 1.35, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
+                        Bought or earned (hosting, Godmother)
+                      </div>
                     </div>
 
                     <div>
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: attendColor }}>{m.attended || 0}</div>
-                      <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>{lastSeenText}</div>
+                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.1, fontVariantNumeric: "tabular-nums", color: attendColor }}>
+                        {countBooked}
+                      </div>
+                      <div style={{ fontSize: "11px", lineHeight: 1.35, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
+                        {bookedLabel}
+                      </div>
                     </div>
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "7px", alignItems: "flex-start" }}>
@@ -323,9 +360,9 @@ export default function AdminMembersPage() {
                       )}
                       
                       <div style={{ display: "flex", gap: "7px", flexWrap: "wrap", alignItems: "center" }}>
-                        <Link href={`/admin/members/${m.id}`} style={{ fontSize: "12.5px", color: "#39292a" }}>Record</Link>
+                        <Link href={`/admin/members/${m.id}`} style={{ fontSize: "12.5px", color: "#7b1f2c", textDecoration: "underline" }}>Record</Link>
                         <span style={{ color: "rgba(57,41,42,0.3)" }}>·</span>
-                        <Link href={`/admin/members/${m.id}`} style={{ fontSize: "12.5px", color: "#39292a" }}>Ledger</Link>
+                        <Link href={`/admin/members/${m.id}#ledger`} style={{ fontSize: "12.5px", color: "#7b1f2c", textDecoration: "underline" }}>Ledger</Link>
                       </div>
                       <button type="button" onClick={() => setAdjustingId(isAdjustingThis ? null : m.id)} style={{ border: "none", background: "transparent", color: "#7b1f2c", fontFamily: "'Lora', Georgia, serif", fontSize: "12.5px", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Adjust credits</button>
 

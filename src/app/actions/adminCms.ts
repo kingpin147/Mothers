@@ -149,8 +149,20 @@ export async function getAdminMembers() {
         id: member.id,
         personId: member.personId,
         status: member.status,
-        stage: member.stage,
-        neighbourhood: member.neighbourhood,
+        stage: sql<string>`COALESCE(
+          NULLIF(${member.stage}, ''),
+          CASE 
+            WHEN jsonb_typeof(${person.profileData}->'stages') = 'array' 
+            THEN (SELECT string_agg(elem, ', ') FROM jsonb_array_elements_text(${person.profileData}->'stages') AS elem)
+            ELSE ${person.profileData}->>'stages'
+          END,
+          'Not given'
+        )`.as('stage'),
+        neighbourhood: sql<string>`COALESCE(
+          NULLIF(${member.neighbourhood}, ''),
+          ${person.profileData}->>'neighbourhood',
+          'Not given'
+        )`.as('neighbourhood'),
         children: member.children,
         joinedAt: member.joinedAt,
         createdAt: person.createdAt,
@@ -162,11 +174,13 @@ export async function getAdminMembers() {
         lastName: person.lastName,
         email: person.email,
         credits: sql<number>`(SELECT COALESCE(SUM(remaining), 0) FROM ${creditBatch} WHERE person_id = ${member.personId} AND remaining > 0 AND expires_at > NOW())::int`.as('credits'),
-        attended: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended' AND e.starts_at >= NOW() - INTERVAL '90 days')`.as('attended'),
-        lastSeenDate: sql<Date>`(SELECT MAX(e.starts_at) FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.member_id = ${member.id} AND b.status = 'attended')`.as('last_seen_date'),
+        attended: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.person_id = ${person.id} AND b.status = 'attended' AND e.starts_at >= NOW() - INTERVAL '90 days')`.as('attended'),
+        bookedCount: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b WHERE b.person_id = ${person.id} AND b.status IN ('held', 'confirmed', 'attended'))`.as('booked_count'),
+        lastSeenDate: sql<Date>`(SELECT MAX(e.starts_at) FROM ${booking} b INNER JOIN ${event} e ON b.event_id = e.id WHERE b.person_id = ${person.id} AND b.status = 'attended')`.as('last_seen_date'),
       })
       .from(member)
       .innerJoin(person, eq(member.personId, person.id))
+      .where(sql`${person.deletedAt} IS NULL`)
       .orderBy(desc(sql`COALESCE(${member.joinedAt}, ${person.createdAt})`));
 
     return { success: true, members };
@@ -1704,7 +1718,27 @@ export async function toggleSuspendAccount(personId: string, suspend: boolean, r
 }
 
 export async function adminDeleteAccountGDPR(personId: string) {
-  await verifyAdminRole();
+  const { adminId } = await verifyAdminRole();
+
+  const personRecord = await db.query.person.findFirst({
+    where: eq(person.id, personId),
+  });
+  const personName = `${personRecord?.firstName || "A member"} ${personRecord?.lastName || ""}`.trim();
+  const originalEmail = personRecord?.email || "";
+
+  const memberRecord = await db.query.member.findFirst({
+    where: eq(member.personId, personId),
+  });
+  const hadActiveSub = !!memberRecord?.stripeSubscriptionId || memberRecord?.status === "active";
+
+  if (memberRecord?.stripeSubscriptionId) {
+    try {
+      const { stripe } = await import("@/lib/stripe");
+      await stripe.subscriptions.cancel(memberRecord.stripeSubscriptionId);
+    } catch (e) {
+      console.warn("Stripe cancel error:", e);
+    }
+  }
 
   // 1. Anonymize circle posts and delete attached photos
   await db
@@ -1727,11 +1761,25 @@ export async function adminDeleteAccountGDPR(personId: string) {
     })
     .where(eq(circleReply.personId, personId));
 
-  // 3. Cancel active future bookings & forfeit remaining credits
-  await db
-    .update(booking)
-    .set({ status: "released" })
-    .where(and(eq(booking.personId, personId), sql`${booking.status} IN ('held', 'confirmed')`));
+  // 3. Cancel active future bookings & count them
+  const futureBookings = await db
+    .select({ id: booking.id })
+    .from(booking)
+    .innerJoin(event, eq(booking.eventId, event.id))
+    .where(
+      and(
+        eq(booking.personId, personId),
+        sql`${booking.status} IN ('held', 'confirmed')`,
+        sql`${event.startsAt} > NOW()`
+      )
+    );
+
+  for (const b of futureBookings) {
+    await db
+      .update(booking)
+      .set({ status: "released", releaseReason: "admin_account_deleted", releasedAt: new Date(), updatedAt: new Date() })
+      .where(eq(booking.id, b.id));
+  }
 
   // 4. Scrub personal details (GDPR Right to Erasure)
   await db
@@ -1744,8 +1792,40 @@ export async function adminDeleteAccountGDPR(personId: string) {
       email: `deleted_${personId.slice(0, 8)}@themothers.cc`,
       deletedAt: new Date(),
       isSuspended: true,
+      updatedAt: new Date(),
     })
     .where(eq(person.id, personId));
+
+  if (memberRecord) {
+    await db
+      .update(member)
+      .set({
+        status: "cancelled_at_period_end",
+        stripeSubscriptionId: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(member.id, memberRecord.id));
+  }
+
+  // 5. Activity log
+  const parts = [`Team deleted account for ${personName}`];
+  if (futureBookings.length > 0) {
+    parts.push(`${futureBookings.length} future booking${futureBookings.length > 1 ? "s" : ""} released`);
+  }
+  if (hadActiveSub) {
+    parts.push("membership cancelled");
+  }
+  const summaryText = parts.join(" · ");
+
+  await db.insert(auditLog).values({
+    actorId: adminId,
+    actorType: "admin",
+    action: "admin_delete_account",
+    entity: "person",
+    entityId: personId,
+    before: { name: personName, email: originalEmail, hadActiveSub, futureBookingsCount: futureBookings.length },
+    after: { summary: summaryText, releasedBookings: futureBookings.length, subCancelled: hadActiveSub },
+  });
 
   revalidatePath("/admin/members");
   revalidatePath("/admin/pre-launch");

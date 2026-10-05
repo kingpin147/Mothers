@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { member, person, creditBatch, circlePost, circleReply, booking, event, eventCategory, partner, partnerPerk, perkCodePool, perkReveal, eventWaitlist } from "@/db/schema";
+import { member, person, creditBatch, circlePost, circleReply, booking, event, eventCategory, partner, partnerPerk, perkCodePool, perkReveal, eventWaitlist, auditLog, emailLog } from "@/db/schema";
 import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getAppUrl } from "@/lib/urls";
@@ -797,6 +797,22 @@ export async function submitFirstVisitProfile(formData: {
     })
     .where(eq(person.id, personId));
 
+  // Also sync stage & neighbourhood to member table
+  const memberRec = await db.query.member.findFirst({
+    where: eq(member.personId, personId),
+  });
+  if (memberRec) {
+    const stageStr = Array.isArray(formData.stages) ? formData.stages.join(", ") : formData.stages || null;
+    await db
+      .update(member)
+      .set({
+        stage: stageStr,
+        neighbourhood: formData.neighbourhood || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(member.id, memberRec.id));
+  }
+
   return { success: true };
 }
 
@@ -809,10 +825,18 @@ export async function deleteMyAccountGDPR() {
   const personId = (session.user as any).personId || session.user.id;
 
   try {
+    const personRecord = await db.query.person.findFirst({
+      where: eq(person.id, personId),
+    });
+    const personName = `${personRecord?.firstName || "A mother"} ${personRecord?.lastName || ""}`.trim() || "A mother in Barcelona";
+    const originalEmail = personRecord?.email || "";
+
     // 1. Cancel Stripe subscription if any (§M-04)
     const memberRecord = await db.query.member.findFirst({
       where: eq(member.personId, personId),
     });
+
+    const hadActiveSub = !!memberRecord?.stripeSubscriptionId || memberRecord?.status === "active";
 
     if (memberRecord?.stripeSubscriptionId) {
       try {
@@ -899,6 +923,53 @@ export async function deleteMyAccountGDPR() {
           updatedAt: new Date(),
         })
         .where(eq(member.id, memberRecord.id));
+    }
+
+    // 7. Activity log entry
+    const parts = [`${personName} deleted her own account`];
+    if (futureBookings.length > 0) {
+      parts.push(`${futureBookings.length} future booking${futureBookings.length > 1 ? "s" : ""} released`);
+    }
+    if (hadActiveSub) {
+      parts.push("membership cancelled");
+    }
+    const summaryText = parts.join(" · ");
+
+    await db.insert(auditLog).values({
+      actorId: personId,
+      actorType: "member",
+      action: "self_delete_account",
+      entity: "person",
+      entityId: personId,
+      before: {
+        name: personName,
+        email: originalEmail,
+        hadActiveSub,
+        futureBookingsCount: futureBookings.length,
+      },
+      after: {
+        summary: summaryText,
+        releasedBookings: futureBookings.length,
+        subCancelled: hadActiveSub,
+      },
+    });
+
+    // 8. Team email alert if future bookings released or active subscription
+    if (futureBookings.length > 0 || hadActiveSub) {
+      await db.insert(emailLog).values({
+        personId: personId,
+        templateKey: "team_alert_account_deletion",
+        dedupeKey: `team_alert_delete_${personId}_${Date.now()}`,
+        payload: {
+          recipientEmail: "hello@themothers.cc",
+          name: personName,
+          email: originalEmail,
+          futureBookingsCount: futureBookings.length,
+          hadActiveSub,
+        },
+        status: "sent",
+        sentAt: new Date(),
+      });
     }
 
     return { success: true };
