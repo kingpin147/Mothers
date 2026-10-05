@@ -607,13 +607,31 @@ export async function getAdminDashboardMetrics() {
 
     const audit =
       (recentLogs && recentLogs.length > 0)
-        ? recentLogs.map((l) => ({
-            who: l.actorType ? l.actorType.toLowerCase() : "system",
-            did: entityMap[l.entity] || (l.action === "update_club_settings" ? "settings" : (l.entity || "system")),
-            change: formatAuditAction(l),
-            when: l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "-",
-            where: "web",
-          }))
+        ? recentLogs.map((l) => {
+            const before = (l.before as any) || {};
+            const after = (l.after as any) || {};
+
+            if (l.action === "self_delete_account") {
+              const name = before.name || "A mother";
+              const bookings = after.releasedBookings ?? before.futureBookingsCount ?? 0;
+              const bStr = bookings > 0 ? `${bookings} future booking${bookings > 1 ? "s" : ""} released · ` : "";
+              return {
+                who: name,
+                did: "deleted her own account",
+                change: `${bStr}Barcelona · web`,
+                when: l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).replace(",", " ·") : "-",
+                where: "web",
+              };
+            }
+
+            return {
+              who: l.actorType ? l.actorType.toLowerCase() : "system",
+              did: entityMap[l.entity] || (l.action === "update_club_settings" ? "settings" : (l.entity || "system")),
+              change: formatAuditAction(l),
+              when: l.createdAt ? new Date(l.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "-",
+              where: "web",
+            };
+          })
         : [
             { who: "system", did: "awaiting logs", change: "Audit logs will appear here once actions are taken.", when: "-", where: "-" },
           ];

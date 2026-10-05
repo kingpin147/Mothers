@@ -849,7 +849,12 @@ export async function deleteMyAccountGDPR() {
 
     // 2. Free / cancel future bookings
     const futureBookings = await db
-      .select({ id: booking.id })
+      .select({
+        id: booking.id,
+        eventTitle: event.title,
+        startsAt: event.startsAt,
+        capacityMember: event.capacityMember,
+      })
       .from(booking)
       .innerJoin(event, eq(booking.eventId, event.id))
       .where(
@@ -956,20 +961,23 @@ export async function deleteMyAccountGDPR() {
 
     // 8. Team email alert if future bookings released or active subscription
     if (futureBookings.length > 0 || hadActiveSub) {
-      await db.insert(emailLog).values({
-        personId: personId,
-        templateKey: "team_alert_account_deletion",
-        dedupeKey: `team_alert_delete_${personId}_${Date.now()}`,
-        payload: {
-          recipientEmail: "hello@themothers.cc",
+      const formattedBookings = futureBookings.map((fb) => ({
+        title: fb.eventTitle || "Event",
+        date: fb.startsAt
+          ? new Date(fb.startsAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+          : "",
+      }));
+
+      try {
+        const { sendAccountDeletionAlertEmail } = await import("@/lib/brevo");
+        await sendAccountDeletionAlertEmail({
           name: personName,
-          email: originalEmail,
-          futureBookingsCount: futureBookings.length,
+          futureBookings: formattedBookings,
           hadActiveSub,
-        },
-        status: "sent",
-        sentAt: new Date(),
-      });
+        });
+      } catch (emailErr) {
+        console.warn("[GDPR Delete] Email dispatch warning:", emailErr);
+      }
     }
 
     return { success: true };

@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
           email: b.personEmail,
           firstName: b.personFirstName || "Friend",
           eventTitle: b.eventTitle,
-        }).catch((err) => console.error("Failed to send after-first-event email:", err));
+        }).catch((err: any) => console.error("Failed to send after-first-event email:", err));
         emailsSent++;
       }
     }

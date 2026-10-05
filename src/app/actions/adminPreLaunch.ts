@@ -321,18 +321,29 @@ export async function getPreLaunchDeskData() {
 
     const deletedAccounts = deletedLogsRaw.map((l: any) => {
       const isSelf = l.action === "self_delete_account" || l.actorType === "member";
-      const name = l.before?.name || "A member";
-      const freedText = l.after?.releasedBookings
-        ? `${l.after.releasedBookings} future booking(s) freed`
-        : "No future bookings";
+      const name = l.before?.name || "A mother";
+      const bookingsCount = l.after?.releasedBookings ?? l.before?.futureBookingsCount ?? 0;
+      const freedText = bookingsCount > 0
+        ? `${bookingsCount} future booking${bookingsCount > 1 ? "s" : ""} released`
+        : "no future bookings";
       const subText = l.after?.subCancelled ? " · membership cancelled" : "";
+      const teamAlerted = (bookingsCount > 0 || l.after?.subCancelled) ? " · team alerted" : "";
+
+      const formattedDate = l.at
+        ? new Date(l.at).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          }).replace(",", " ·")
+        : "—";
 
       return {
         id: l.id,
         name,
-        who: isSelf ? `${name} (self-deletion)` : "Team deletion (by Admin)",
-        freed: `${freedText}${subText}`,
-        date: l.at ? new Date(l.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—",
+        line1: isSelf ? `Deleted by herself · ${name}` : `Deleted by team · ${name}`,
+        line2: `${formattedDate} · ${freedText}${subText}${teamAlerted}`,
+        date: formattedDate,
       };
     });
 

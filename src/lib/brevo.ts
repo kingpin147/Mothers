@@ -1361,3 +1361,49 @@ export async function sendAfterFirstEventEmail(params: {
   });
 }
 
+export async function sendAccountDeletionAlertEmail(params: {
+  name: string;
+  futureBookings: Array<{ title: string; date: string }>;
+  hadActiveSub?: boolean;
+}) {
+  const deletionDateStr = new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const emailSubject = `${params.name} deleted her account — ${
+    params.futureBookings.length > 0
+      ? `${params.futureBookings.length} place${params.futureBookings.length > 1 ? "s" : ""} released`
+      : "membership cancelled"
+  }`;
+
+  const changesList = [
+    ...params.futureBookings.map((fb) => `${fb.title} · ${fb.date} — place released`),
+    ...(params.hadActiveSub ? ["Active membership subscription cancelled in Stripe"] : []),
+  ];
+
+  const htmlContent = `
+    <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; line-height: 1.6;">
+      <p>${params.name} deleted her account from My Account on ${deletionDateStr}.</p>
+      <p><strong>What changed:</strong></p>
+      <ul style="border-left: 2px solid #7b1f2c; padding-left: 14px; margin: 12px 0; list-style: none;">
+        ${changesList.map((c) => `<li style="margin-bottom: 6px;">${c}</li>`).join("")}
+      </ul>
+      <p style="color: rgba(57,41,42,0.7); font-size: 13.5px; margin-top: 18px;">Her personal data has been removed. Payment records are kept for tax.</p>
+    </div>
+  `;
+
+  return queueAndSendEmail({
+    personId: "admin",
+    toEmail: "hello@themothers.cc",
+    toName: "The Mothers Team",
+    templateKey: "team_alert_account_deletion",
+    dedupeKey: `team_alert_delete_${Date.now()}`,
+    subject: emailSubject,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+

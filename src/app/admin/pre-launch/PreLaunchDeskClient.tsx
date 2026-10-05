@@ -792,11 +792,11 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
                 )}
               </div>
 
-              {/* Deleted accounts */}
+              {/* Deleted this month */}
               <div style={{ border: "1px solid rgba(57, 41, 42, 0.16)", borderRadius: "8px", background: "#fffdfa", padding: "16px 18px", gridColumn: "1 / -1" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                   <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px" }}>
-                    Deleted accounts
+                    Deleted this month
                   </div>
                   {deletedThisMonth > 0 && (
                     <span style={{ fontSize: "11.5px", color: "#993842", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
@@ -805,31 +805,23 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
                   )}
                 </div>
                 {(!initialData.deletedAccounts || initialData.deletedAccounts.length === 0) ? (
-                  <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)", margin: 0 }}>No deleted accounts recorded.</p>
+                  <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)", margin: 0 }}>No deleted accounts recorded this month.</p>
                 ) : (
                   initialData.deletedAccounts.map((d: any) => (
                     <div
                       key={d.id}
                       style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "6px 16px",
-                        justifyContent: "space-between",
-                        alignItems: "center",
                         padding: "10px 0",
                         borderTop: "1px solid rgba(57, 41, 42, 0.1)",
                         fontSize: "13.5px",
                       }}
                     >
-                      <div>
-                        <strong style={{ fontWeight: 600 }}>{d.who}</strong>
-                        <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.65)", marginTop: "2px" }}>
-                          {d.freed}
-                        </div>
+                      <div style={{ color: "#39292a", fontWeight: 600 }}>
+                        {d.line1 || (d.who ? `Deleted by herself · ${d.who}` : "Deleted by herself")}
                       </div>
-                      <span style={{ color: "rgba(57, 41, 42, 0.7)", fontSize: "12.5px" }}>
-                        {d.date}
-                      </span>
+                      <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.65)", marginTop: "2px" }}>
+                        {d.line2 || `${d.date} · ${d.freed}`}
+                      </div>
                     </div>
                   ))
                 )}
