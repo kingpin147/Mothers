@@ -1886,29 +1886,69 @@ function AccountPageContent() {
                 </div>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
-                  <button
-                    type="button"
-                    onClick={handleNotifyMe}
-                    disabled={listJoined || listLoading}
-                    style={{
-                      border: "1px solid #7b1f2c",
-                      backgroundColor: "#7b1f2c",
-                      color: "#fdf8f2",
-                      borderRadius: "4px",
-                      padding: "12px 24px",
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontWeight: 600,
-                      fontSize: "15px",
-                      whiteSpace: "nowrap",
-                      cursor: listJoined ? "default" : "pointer",
-                    }}
-                  >
-                    {listJoined
-                      ? (lang === "en" ? "✓ We'll notify you" : "✓ Te avisaremos")
-                      : listLoading
-                      ? (lang === "en" ? "Saving..." : "Guardando...")
-                      : (lang === "en" ? "Tell me when it opens" : "Avísame cuando abra")}
-                  </button>
+                  {listJoined ? (
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        border: "1px solid rgba(86,139,5,0.45)",
+                        backgroundColor: "#f4f7ee",
+                        color: "#3e6308",
+                        borderRadius: "4px",
+                        padding: "11px 18px",
+                        fontFamily: "'Lora', Georgia, serif",
+                        fontSize: "14px",
+                        fontWeight: 500,
+                      }}
+                    >
+                      <span>✓ {lang === "en" ? "You're on the list" : "Estás en la lista"}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setListJoined(false);
+                          if (typeof window !== "undefined") {
+                            localStorage.removeItem("tm_pre_joined_list");
+                          }
+                        }}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          color: "#3e6308",
+                          cursor: "pointer",
+                          padding: "0 2px",
+                          fontSize: "13px",
+                          marginLeft: "6px",
+                          lineHeight: 1,
+                        }}
+                        title={lang === "en" ? "Leave waitlist" : "Salir de la lista"}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleNotifyMe}
+                      disabled={listLoading}
+                      style={{
+                        border: "1px solid #7b1f2c",
+                        backgroundColor: "#7b1f2c",
+                        color: "#fdf8f2",
+                        borderRadius: "4px",
+                        padding: "12px 24px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15px",
+                        whiteSpace: "nowrap",
+                        cursor: listLoading ? "wait" : "pointer",
+                      }}
+                    >
+                      {listLoading
+                        ? (lang === "en" ? "Saving..." : "Guardando...")
+                        : (lang === "en" ? "Tell me when it opens" : "Avísame cuando abra")}
+                    </button>
+                  )}
 
                   <Link
                     href="/membership"
@@ -2006,7 +2046,11 @@ function AccountPageContent() {
                       style={{ width: "100%", boxSizing: "border-box", minHeight: "46px", padding: "11px 14px", fontSize: "15px", fontFamily: "'Lora', Georgia, serif", background: "rgba(57,41,42,0.05)", color: "rgba(57,41,42,0.55)", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", cursor: "not-allowed" }}
                     />
                     <div style={{ fontSize: "12px", lineHeight: "1.5", color: "rgba(57,41,42,0.5)", marginTop: "6px" }}>
-                      {lang === "en" ? "Your email is your membership login. Write to us and we will move it for you." : "Tu email es tu acceso de socia. Escríbenos y lo cambiamos por ti."}
+                      {lang === "en" ? (
+                        <>Your email is your login. <a href="mailto:hello@themothers.cc" style={{ color: "inherit", textDecoration: "underline" }}>Write to us</a> and we will move it for you.</>
+                      ) : (
+                        <>Tu email es tu acceso. <a href="mailto:hello@themothers.cc" style={{ color: "inherit", textDecoration: "underline" }}>Escríbenos</a> y lo cambiamos por ti.</>
+                      )}
                     </div>
                   </div>
 
@@ -2035,6 +2079,7 @@ function AccountPageContent() {
                         <option key={n} value={n}>{n}</option>
                       ))}
                       <option value="Outside Barcelona">{lang === "en" ? "Outside Barcelona" : "Fuera de Barcelona"}</option>
+                      <option value="Not sure yet">{lang === "en" ? "Not sure yet" : "Aún no lo sé"}</option>
                     </select>
                   </div>
 
@@ -2107,338 +2152,347 @@ function AccountPageContent() {
                   </button>
                 </div>
               </form>
-            </div>
 
-            {/* Pause Membership */}
-            <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#fffdfa" }}>
-              <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px", color: "#39292a" }}>
-                {lang === "en" ? "Pause allowance" : "Pausas disponibles"}
-              </h2>
-              <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.78)", margin: "0 0 18px" }}>
-                {lang === "en"
-                  ? "Pause for up to two whole months a calendar year, free of charge. While you are paused your credits are frozen — the six-month expiry clock stops with them — and nothing is billed."
-                  : "Puedes pausar hasta dos meses completos por año natural, sin coste. Mientras estás en pausa tus créditos quedan congelados — el reloj de caducidad de seis meses se detiene con ellos — y no se cobra nada."}
-              </p>
+              {/* Sign out and Delete account divider inside Personal details card */}
+              <div style={{ marginTop: "28px", borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "22px", display: "flex", flexDirection: "column", gap: "16px", alignItems: "flex-start" }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await signOut({ redirect: false });
+                    window.location.href = "/";
+                  }}
+                  style={{
+                    border: "1px solid rgba(57, 41, 42, 0.28)",
+                    background: "transparent",
+                    color: "rgba(57, 41, 42, 0.78)",
+                    borderRadius: "4px",
+                    padding: "10px 20px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "13.5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {lang === "en" ? "Sign out" : "Cerrar sesión"}
+                </button>
 
-              {memberData?.status === "paused" || pauseResult?.success ? (
-                <div style={{ padding: "16px 20px", backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "6px", fontSize: "14px", color: "rgba(57,41,42,0.88)", marginBottom: "12px" }}>
-                  <div style={{ fontWeight: 600, marginBottom: "4px", color: "#3e6308" }}>✓ {lang === "en" ? "Your membership is paused." : "Tu membresía está pausada."}</div>
-                  <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)" }}>
-                    {lang === "en" ? "Your credits are frozen and nothing will be billed while you're away." : "Tus créditos están congelados y no se cobrará nada mientras estés en pausa."}
-                  </div>
-                  <div style={{ display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      disabled={resumeLoading}
-                      onClick={async () => {
-                        setResumeLoading(true);
-                        try {
-                          const res = await resumeMembership();
-                          if (res.success) {
-                            setPauseResult(null);
-                            const refreshed = await getAccountData();
-                            if (refreshed.success) setAccountData(refreshed);
-                          } else {
-                            alert(res.error || (lang === "en" ? "Failed to resume membership." : "Error al reanudar la membresía."));
-                          }
-                        } finally {
-                          setResumeLoading(false);
-                        }
-                      }}
-                      style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "9px 20px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: resumeLoading ? "wait" : "pointer" }}
-                    >
-                      {resumeLoading ? (lang === "en" ? "Resuming…" : "Reanudando…") : (lang === "en" ? "Resume membership" : "Reanudar membresía")}
-                    </button>
-                  </div>
-                </div>
-              ) : pauseResult?.error ? (
-                <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "14px" }}>
-                  {pauseResult.error}
-                </div>
-              ) : null}
-
-              {memberData?.status !== "paused" && !pauseResult?.success && (
-                !showPauseConfirm ? (
+                {!showDeleteModal ? (
                   <button
                     type="button"
-                    disabled={pauseLoading}
-                    onClick={() => setShowPauseConfirm(true)}
+                    onClick={() => setShowDeleteModal(true)}
                     style={{
-                      border: "1px solid #7b1f2c",
-                      color: "#7b1f2c",
-                      backgroundColor: "transparent",
-                      padding: "10px 22px",
-                      borderRadius: "4px",
-                      fontFamily: "var(--font-heading)",
-                      fontWeight: 600,
-                      fontSize: "14.5px",
+                      border: "none",
+                      background: "transparent",
+                      color: "rgba(153, 56, 66, 0.8)",
+                      fontSize: "13px",
                       cursor: "pointer",
-                      transition: "all 0.15s ease",
+                      padding: 0,
+                      textDecoration: "underline",
                     }}
                   >
-                    {lang === "en" ? "Request a pause" : "Solicitar una pausa"}
+                    {lang === "en" ? "Delete my account" : "Eliminar mi cuenta"}
                   </button>
                 ) : (
-                  <div style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "6px", padding: "18px 20px", backgroundColor: "#f4f7ee" }}>
-                    <p style={{ fontSize: "14px", lineHeight: "1.55", color: "#39292a", margin: "0 0 14px" }}>
+                  <div style={{ width: "100%", maxWidth: "560px", backgroundColor: "#fdf2f2", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "8px", padding: "20px 22px" }}>
+                    <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#993842", margin: "0 0 10px" }}>
+                      {lang === "en" ? "Delete your account permanently?" : "¿Eliminar tu cuenta de forma permanente?"}
+                    </h3>
+                    <p style={{ fontSize: "14px", lineHeight: "1.55", color: "#39292a", margin: "0 0 12px" }}>
                       {lang === "en"
-                        ? "Pause for up to two months a year at no cost — your credit expiry clock pauses too, so nothing lapses while you're away."
-                        : "Pausa hasta dos meses al año sin coste — el reloj de caducidad de créditos también se detiene, así que no pierdes nada mientras estás fuera."}
+                        ? "If you delete your account, here is what happens:"
+                        : "Si eliminas tu cuenta, esto es lo que ocurrirá:"}
                     </p>
-                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                    <ul style={{ fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.85)", margin: "0 0 18px", paddingLeft: "20px" }}>
+                      <li>{lang === "en" ? "Your upcoming bookings will be cancelled and the places freed" : "Tus reservas próximas se cancelarán y las plazas quedarán libres"}</li>
+                      <li>{lang === "en" ? "Any remaining credits in your wallet are forfeited" : "Los créditos restantes en tu monedero se perderán"}</li>
+                      <li>{lang === "en" ? "Your La Gazette posts stay, signed \"A mother in Barcelona\"" : "Tus publicaciones en La Gazette permanecerán firmadas como \"Una madre en Barcelona\""}</li>
+                      <li><strong>{lang === "en" ? "This action is permanent and cannot be undone" : "Esta acción es definitiva y no se puede deshacer"}</strong></li>
+                    </ul>
+                    {deleteError && (
+                      <div style={{ color: "#b91c1c", fontSize: "13px", marginBottom: "12px" }}>{deleteError}</div>
+                    )}
+                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        disabled={deleteLoading}
+                        onClick={handleDeleteAccount}
+                        style={{
+                          backgroundColor: "#993842",
+                          color: "#faf7f1",
+                          border: "1px solid #993842",
+                          padding: "10px 20px",
+                          borderRadius: "4px",
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontWeight: 600,
+                          fontSize: "14.5px",
+                          cursor: deleteLoading ? "wait" : "pointer",
+                        }}
+                      >
+                        {deleteLoading
+                          ? (lang === "en" ? "Deleting…" : "Eliminando…")
+                          : (lang === "en" ? "Delete permanently" : "Eliminar permanentemente")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={deleteLoading}
+                        onClick={() => {
+                          setShowDeleteModal(false);
+                          setDeleteError(null);
+                        }}
+                        style={{
+                          backgroundColor: "transparent",
+                          border: "1px solid rgba(57,41,42,0.3)",
+                          color: "#39292a",
+                          padding: "10px 18px",
+                          borderRadius: "4px",
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontWeight: 600,
+                          fontSize: "14.5px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {lang === "en" ? "Keep my account" : "Conservar mi cuenta"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Pause & Cancel Membership — only shown to paying / active members when membership is live */}
+            {accountData?.settings?.membershipLive && (memberData?.status === "active" || memberData?.status === "paused" || memberData?.cancelAtPeriodEnd) && (
+              <>
+                {/* Pause Membership */}
+                <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#fffdfa" }}>
+                  <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px", color: "#39292a" }}>
+                    {lang === "en" ? "Pause allowance" : "Pausas disponibles"}
+                  </h2>
+                  <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.78)", margin: "0 0 18px" }}>
+                    {lang === "en"
+                      ? "Pause for up to two whole months a calendar year, free of charge. While you are paused your credits are frozen — the six-month expiry clock stops with them — and nothing is billed."
+                      : "Puedes pausar hasta dos meses completos por año natural, sin coste. Mientras estás en pausa tus créditos quedan congelados — el reloj de caducidad de seis meses se detiene con ellos — y no se cobra nada."}
+                  </p>
+
+                  {memberData?.status === "paused" || pauseResult?.success ? (
+                    <div style={{ padding: "16px 20px", backgroundColor: "#f4f7ee", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "6px", fontSize: "14px", color: "rgba(57,41,42,0.88)", marginBottom: "12px" }}>
+                      <div style={{ fontWeight: 600, marginBottom: "4px", color: "#3e6308" }}>✓ {lang === "en" ? "Your membership is paused." : "Tu membresía está pausada."}</div>
+                      <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)" }}>
+                        {lang === "en" ? "Your credits are frozen and nothing will be billed while you're away." : "Tus créditos están congelados y no se cobrará nada mientras estés en pausa."}
+                      </div>
+                      <div style={{ display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          disabled={resumeLoading}
+                          onClick={async () => {
+                            setResumeLoading(true);
+                            try {
+                              const res = await resumeMembership();
+                              if (res.success) {
+                                setPauseResult(null);
+                                const refreshed = await getAccountData();
+                                if (refreshed.success) setAccountData(refreshed);
+                              } else {
+                                alert(res.error || (lang === "en" ? "Failed to resume membership." : "Error al reanudar la membresía."));
+                              }
+                            } finally {
+                              setResumeLoading(false);
+                            }
+                          }}
+                          style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "9px 20px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: resumeLoading ? "wait" : "pointer" }}
+                        >
+                          {resumeLoading ? (lang === "en" ? "Resuming…" : "Reanudando…") : (lang === "en" ? "Resume membership" : "Reanudar membresía")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : pauseResult?.error ? (
+                    <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "14px" }}>
+                      {pauseResult.error}
+                    </div>
+                  ) : null}
+
+                  {memberData?.status !== "paused" && !pauseResult?.success && (
+                    !showPauseConfirm ? (
                       <button
                         type="button"
                         disabled={pauseLoading}
-                        onClick={async () => {
-                          setPauseLoading(true);
-                          try {
-                            const res = await pauseMembership();
-                            setPauseResult(res);
-                            setShowPauseConfirm(false);
-                            if (res.success) {
-                              const refreshed = await getAccountData();
-                              if (refreshed.success) setAccountData(refreshed);
-                            }
-                          } finally {
-                            setPauseLoading(false);
-                          }
+                        onClick={() => setShowPauseConfirm(true)}
+                        style={{
+                          border: "1px solid #7b1f2c",
+                          color: "#7b1f2c",
+                          backgroundColor: "transparent",
+                          padding: "10px 22px",
+                          borderRadius: "4px",
+                          fontFamily: "var(--font-heading)",
+                          fontWeight: 600,
+                          fontSize: "14.5px",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
                         }}
-                        style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "10px 20px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: pauseLoading ? "wait" : "pointer" }}
                       >
-                        {pauseLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, pause my membership" : "Sí, pausar mi membresía")}
+                        {lang === "en" ? "Request a pause" : "Solicitar una pausa"}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowPauseConfirm(false)}
-                        style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "10px 20px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", backgroundColor: "transparent", cursor: "pointer" }}
-                      >
-                        {lang === "en" ? "Keep my membership active" : "Mantener mi membresía activa"}
-                      </button>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-
-            {/* Cancel Membership — always rendered; text changes when scheduled */}
-            {!memberData?.cancelAtPeriodEnd ? (
-              <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#fffdfa" }}>
-                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px", color: "#993842" }}>
-                  {lang === "en" ? "Cancel membership" : "Cancelar la membresía"}
-                </h2>
-                <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 18px" }}>
-                  {lang === "en"
-                    ? "Cancel any time; there is never a cancellation fee. You keep your place until the end of the period you have paid for."
-                    : "Puedes cancelar cuando quieras; nunca hay cuota de cancelación. Conservas tu plaza hasta el final del periodo que ya has pagado."}
-                </p>
-
-                {cancelResult?.error && (
-                  <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "12px" }}>
-                    {cancelResult.error}
-                  </div>
-                )}
-
-                {!showCancelConfirm ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowCancelConfirm(true)}
-                    style={{
-                      border: "1px solid #993842",
-                      color: "#993842",
-                      backgroundColor: "transparent",
-                      padding: "12px 22px",
-                      borderRadius: "4px",
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontWeight: 600,
-                      fontSize: "14.5px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    {lang === "en" ? "Cancel membership" : "Cancelar membresía"}
-                  </button>
-                ) : (
-                  <div style={{ border: "1px solid rgba(153,56,66,0.4)", borderRadius: "6px", padding: "18px 20px", backgroundColor: "#fdf2f2" }}>
-                    <p style={{ fontSize: "14px", lineHeight: "1.55", color: "#39292a", margin: "0 0 14px" }}>
-                      {lang === "en"
-                        ? "Cancelling ends your membership at the close of the current billing period. Pausing allows you to step away for up to two months per year at no cost; cancelling ends your membership."
-                        : "Cancelar finaliza tu membresía al cierre del periodo de facturación actual. Pausar te permite ausentarte hasta dos meses al año sin coste; cancelar finaliza tu membresía."}
-                    </p>
-                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        disabled={cancelLoading}
-                        onClick={async () => {
-                          setCancelLoading(true);
-                          setCancelResult(null);
-                          try {
-                            const res = await cancelMembership();
-                            setCancelResult(res);
-                            if (res.success) {
-                              const refreshed = await getAccountData();
-                              if (refreshed.success) setAccountData(refreshed);
-                            }
-                          } finally {
-                            setCancelLoading(false);
-                          }
-                        }}
-                        style={{ border: "1px solid #993842", color: "#993842", padding: "10px 20px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", backgroundColor: "transparent", cursor: "pointer" }}
-                      >
-                        {cancelLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, cancel my membership" : "Sí, cancelar mi membresía")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowCancelConfirm(false)}
-                        style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "10px 20px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", backgroundColor: "transparent", cursor: "pointer" }}
-                      >
-                        {lang === "en" ? "Keep my membership" : "Mantener mi membresía"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{ padding: "16px 20px", backgroundColor: "#fdf2f2", border: "1px solid rgba(153,56,66,0.4)", borderRadius: "6px", marginBottom: "14px" }}>
-                <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "17px", color: "#993842", margin: "0 0 6px" }}>
-                  {lang === "en" ? "Membership scheduled for cancellation" : "Membresía programada para cancelación"}
-                </h3>
-                <p style={{ fontSize: "14px", color: "#39292a", margin: "0 0 14px", lineHeight: 1.5 }}>
-                  {lang === "en"
-                    ? "Your membership has been cancelled and will end at the close of your current billing period. If you changed your mind, you can reactivate it anytime before the end of the period."
-                    : "Tu membresía ha sido cancelada y finalizará al cierre de tu periodo de facturación actual. Si has cambiado de opinión, puedes reactivarla en cualquier momento antes de que finalice el periodo."}
-                </p>
-                <button
-                  type="button"
-                  disabled={reactivateLoading}
-                  onClick={async () => {
-                    setReactivateLoading(true);
-                    try {
-                      const res = await reactivateMembership();
-                      if (res.success) {
-                        const refreshed = await getAccountData();
-                        if (refreshed.success) setAccountData(refreshed);
-                      } else {
-                        alert(res.error || "Failed to reactivate membership");
-                      }
-                    } finally {
-                      setReactivateLoading(false);
-                    }
-                  }}
-                  style={{
-                    border: "1px solid #3f6604",
-                    color: "#3f6604",
-                    backgroundColor: "transparent",
-                    padding: "10px 18px",
-                    borderRadius: "4px",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "14px",
-                    cursor: "pointer"
-                  }}
-                >
-                  {reactivateLoading ? (lang === "en" ? "Reactivating…" : "Reactivando…") : (lang === "en" ? "Reactivate my membership" : "Reactivar mi membresía")}
-                </button>
-              </div>
-            )}
-
-            {/* Sign out and Delete account at the bottom */}
-            <div style={{ marginTop: "24px", borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "24px", display: "flex", flexDirection: "column", gap: "16px", alignItems: "flex-start" }}>
-              <button
-                type="button"
-                onClick={async () => {
-                  await signOut({ redirect: false });
-                  window.location.href = "/";
-                }}
-                style={{
-                  border: "1px solid rgba(57, 41, 42, 0.28)",
-                  background: "transparent",
-                  color: "rgba(57, 41, 42, 0.78)",
-                  borderRadius: "4px",
-                  padding: "10px 20px",
-                  fontFamily: "'Lora', Georgia, serif",
-                  fontSize: "13.5px",
-                  cursor: "pointer",
-                }}
-              >
-                {lang === "en" ? "Sign out" : "Cerrar sesión"}
-              </button>
-
-              {!showDeleteModal ? (
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteModal(true)}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    color: "rgba(153, 56, 66, 0.8)",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    padding: 0,
-                    textDecoration: "underline",
-                  }}
-                >
-                  {lang === "en" ? "Delete my account" : "Eliminar mi cuenta"}
-                </button>
-              ) : (
-                <div style={{ width: "100%", maxWidth: "560px", backgroundColor: "#fdf2f2", border: "1px solid rgba(153,56,66,0.35)", borderRadius: "8px", padding: "20px 22px" }}>
-                  <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#993842", margin: "0 0 10px" }}>
-                    {lang === "en" ? "Delete your account permanently?" : "¿Eliminar tu cuenta de forma permanente?"}
-                  </h3>
-                  <p style={{ fontSize: "14px", lineHeight: "1.55", color: "#39292a", margin: "0 0 12px" }}>
-                    {lang === "en"
-                      ? "If you delete your account, here is what happens:"
-                      : "Si eliminas tu cuenta, esto es lo que ocurrirá:"}
-                  </p>
-                  <ul style={{ fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.85)", margin: "0 0 18px", paddingLeft: "20px" }}>
-                    <li>{lang === "en" ? "Your upcoming bookings will be cancelled and the places freed" : "Tus reservas próximas se cancelarán y las plazas quedarán libres"}</li>
-                    <li>{lang === "en" ? "Any remaining credits in your wallet are forfeited" : "Los créditos restantes en tu monedero se perderán"}</li>
-                    <li>{lang === "en" ? "Your La Gazette posts stay, signed \"A mother in Barcelona\"" : "Tus publicaciones en La Gazette permanecerán firmadas como \"Una madre en Barcelona\""}</li>
-                    <li><strong>{lang === "en" ? "This action is permanent and cannot be undone" : "Esta acción es definitiva y no se puede deshacer"}</strong></li>
-                  </ul>
-                  {deleteError && (
-                    <div style={{ color: "#b91c1c", fontSize: "13px", marginBottom: "12px" }}>{deleteError}</div>
+                    ) : (
+                      <div style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "6px", padding: "18px 20px", backgroundColor: "#f4f7ee" }}>
+                        <p style={{ fontSize: "14px", lineHeight: "1.55", color: "#39292a", margin: "0 0 14px" }}>
+                          {lang === "en"
+                            ? "Pause for up to two months a year at no cost — your credit expiry clock pauses too, so nothing lapses while you're away."
+                            : "Pausa hasta dos meses al año sin coste — el reloj de caducidad de créditos también se detiene, así que no pierdes nada mientras estás fuera."}
+                        </p>
+                        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            disabled={pauseLoading}
+                            onClick={async () => {
+                              setPauseLoading(true);
+                              try {
+                                const res = await pauseMembership();
+                                setPauseResult(res);
+                                setShowPauseConfirm(false);
+                                if (res.success) {
+                                  const refreshed = await getAccountData();
+                                  if (refreshed.success) setAccountData(refreshed);
+                                }
+                              } finally {
+                                setPauseLoading(false);
+                              }
+                            }}
+                            style={{ border: "1px solid #568b05", color: "#456f04", backgroundColor: "transparent", padding: "10px 20px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", cursor: pauseLoading ? "wait" : "pointer" }}
+                          >
+                            {pauseLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, pause my membership" : "Sí, pausar mi membresía")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowPauseConfirm(false)}
+                            style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "10px 20px", borderRadius: "4px", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "14px", backgroundColor: "transparent", cursor: "pointer" }}
+                          >
+                            {lang === "en" ? "Keep my membership active" : "Mantener mi membresía activa"}
+                          </button>
+                        </div>
+                      </div>
+                    )
                   )}
-                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+                </div>
+
+                {/* Cancel Membership — always rendered for active subscribers; text changes when scheduled */}
+                {!memberData?.cancelAtPeriodEnd ? (
+                  <div style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#fffdfa" }}>
+                    <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px", color: "#993842" }}>
+                      {lang === "en" ? "Cancel membership" : "Cancelar la membresía"}
+                    </h2>
+                    <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 18px" }}>
+                      {lang === "en"
+                        ? "Cancel any time; there is never a cancellation fee. You keep your place until the end of the period you have paid for."
+                        : "Puedes cancelar cuando quieras; nunca hay cuota de cancelación. Conservas tu plaza hasta el final del periodo que ya has pagado."}
+                    </p>
+
+                    {cancelResult?.error && (
+                      <div style={{ padding: "12px 16px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.25)", borderRadius: "6px", fontSize: "13.5px", color: "#b91c1c", marginBottom: "12px" }}>
+                        {cancelResult.error}
+                      </div>
+                    )}
+
+                    {!showCancelConfirm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowCancelConfirm(true)}
+                        style={{
+                          border: "1px solid #993842",
+                          color: "#993842",
+                          backgroundColor: "transparent",
+                          padding: "12px 22px",
+                          borderRadius: "4px",
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontWeight: 600,
+                          fontSize: "14.5px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        {lang === "en" ? "Cancel membership" : "Cancelar membresía"}
+                      </button>
+                    ) : (
+                      <div style={{ border: "1px solid rgba(153,56,66,0.4)", borderRadius: "6px", padding: "18px 20px", backgroundColor: "#fdf2f2" }}>
+                        <p style={{ fontSize: "14px", lineHeight: "1.55", color: "#39292a", margin: "0 0 14px" }}>
+                          {lang === "en"
+                            ? "Cancelling ends your membership at the close of the current billing period. Pausing allows you to step away for up to two months per year at no cost; cancelling ends your membership."
+                            : "Cancelar finaliza tu membresía al cierre del periodo de facturación actual. Pausar te permite ausentarte hasta dos meses al año sin coste; cancelar finaliza tu membresía."}
+                        </p>
+                        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            disabled={cancelLoading}
+                            onClick={async () => {
+                              setCancelLoading(true);
+                              setCancelResult(null);
+                              try {
+                                const res = await cancelMembership();
+                                setCancelResult(res);
+                                if (res.success) {
+                                  const refreshed = await getAccountData();
+                                  if (refreshed.success) setAccountData(refreshed);
+                                }
+                              } finally {
+                                setCancelLoading(false);
+                              }
+                            }}
+                            style={{ border: "1px solid #993842", color: "#993842", padding: "10px 20px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", backgroundColor: "transparent", cursor: "pointer" }}
+                          >
+                            {cancelLoading ? (lang === "en" ? "Processing…" : "Procesando…") : (lang === "en" ? "Yes, cancel my membership" : "Sí, cancelar mi membresía")}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowCancelConfirm(false)}
+                            style={{ border: "1px solid rgba(57,41,42,0.3)", color: "#39292a", padding: "10px 20px", borderRadius: "4px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", backgroundColor: "transparent", cursor: "pointer" }}
+                          >
+                            {lang === "en" ? "Keep my membership" : "Mantener mi membresía"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ padding: "16px 20px", backgroundColor: "#fdf2f2", border: "1px solid rgba(153,56,66,0.4)", borderRadius: "6px", marginBottom: "14px" }}>
+                    <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 500, fontSize: "17px", color: "#993842", margin: "0 0 6px" }}>
+                      {lang === "en" ? "Membership scheduled for cancellation" : "Membresía programada para cancelación"}
+                    </h3>
+                    <p style={{ fontSize: "14px", color: "#39292a", margin: "0 0 14px", lineHeight: 1.5 }}>
+                      {lang === "en"
+                        ? "Your membership has been cancelled and will end at the close of your current billing period. If you changed your mind, you can reactivate it anytime before the end of the period."
+                        : "Tu membresía ha sido cancelada y finalizará al cierre de tu periodo de facturación actual. Si has cambiado de opinión, puedes reactivarla en cualquier momento antes de que finalice el periodo."}
+                    </p>
                     <button
                       type="button"
-                      disabled={deleteLoading}
-                      onClick={handleDeleteAccount}
-                      style={{
-                        backgroundColor: "#993842",
-                        color: "#faf7f1",
-                        border: "1px solid #993842",
-                        padding: "10px 20px",
-                        borderRadius: "4px",
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: deleteLoading ? "wait" : "pointer",
+                      disabled={reactivateLoading}
+                      onClick={async () => {
+                        setReactivateLoading(true);
+                        try {
+                          const res = await reactivateMembership();
+                          if (res.success) {
+                            const refreshed = await getAccountData();
+                            if (refreshed.success) setAccountData(refreshed);
+                          } else {
+                            alert(res.error || "Failed to reactivate membership");
+                          }
+                        } finally {
+                          setReactivateLoading(false);
+                        }
                       }}
-                    >
-                      {deleteLoading
-                        ? (lang === "en" ? "Deleting…" : "Eliminando…")
-                        : (lang === "en" ? "Delete permanently" : "Eliminar permanentemente")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteModal(false)}
                       style={{
+                        border: "1px solid #3f6604",
+                        color: "#3f6604",
                         backgroundColor: "transparent",
-                        border: "1px solid rgba(57,41,42,0.3)",
-                        color: "#39292a",
                         padding: "10px 18px",
                         borderRadius: "4px",
                         fontFamily: "'Cormorant Garamond', serif",
                         fontWeight: 600,
-                        fontSize: "14.5px",
-                        cursor: "pointer",
+                        fontSize: "14px",
+                        cursor: "pointer"
                       }}
                     >
-                      {lang === "en" ? "Keep my account" : "Conservar mi cuenta"}
+                      {reactivateLoading ? (lang === "en" ? "Reactivating…" : "Reactivando…") : (lang === "en" ? "Reactivate my membership" : "Reactivar mi membresía")}
                     </button>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>

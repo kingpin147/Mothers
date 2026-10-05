@@ -144,10 +144,41 @@ export default function AdminDashboardPage() {
   const week = data?.week || [];
 
   const queues = [
-    { kicker: 'Queue 01 · Pre-launch desk', title: 'Hosts, attendance, La Gazette, accounts', body: 'Host requests, attendance records, forum moderation and pre-launch accounts.', cta: 'Open the desk', href: '/admin/pre-launch' },
-    { kicker: 'Queue 02 · Events', title: 'Calendar & thresholds', body: 'Publish gatherings, set minimums and decision points, confirm or cancel with automatic refunds.', cta: 'Open the calendar', href: '/admin/events' },
-    { kicker: 'Queue 03 · Member care', title: 'Directory & credit ledger', body: 'Search by name, stage or neighbourhood, spot at-risk accounts, adjust credits with a reason.', cta: 'Open the directory', href: '/admin/members' },
-    { kicker: 'Queue 04 · Finance', title: 'Payments & revenue', body: 'Subscriptions, credit top-ups, member fees, refunds and shop orders.', cta: 'Open the ledger', href: '/admin/finance' }
+    {
+      kicker: 'QUEUE 00 · PRE-LAUNCH',
+      title: 'Hosts, La Gazette & attendance',
+      body: 'Accept or decline host requests, moderate reported posts, mark no-shows and events that ran (+2 host credits), see accounts opened before launch.',
+      cta: 'Open the pre-launch desk →',
+      href: '/admin/pre-launch'
+    },
+    {
+      kicker: 'QUEUE 01 · MEMBERSHIP',
+      title: 'Members & subscriptions',
+      body: 'No applications — mothers subscribe from My Account once membership is on. See plans, credits and renewals.',
+      cta: 'Open members →',
+      href: '/admin/subscribers'
+    },
+    {
+      kicker: 'QUEUE 02 · EVENTS',
+      title: 'Calendar & thresholds',
+      body: 'Publish gatherings, set minimums and decision points, confirm or cancel with automatic refunds.',
+      cta: 'Open the calendar →',
+      href: '/admin/events'
+    },
+    {
+      kicker: 'QUEUE 03 · MEMBER CARE',
+      title: 'Directory & credit ledger',
+      body: 'Search by name, stage or neighbourhood, spot at-risk accounts, adjust credits with a reason.',
+      cta: 'Open the directory →',
+      href: '/admin/members'
+    },
+    {
+      kicker: 'QUEUE 04 · FINANCE',
+      title: 'Payments & revenue',
+      body: 'Subscriptions, credit top-ups, €19 joining fees and refunds.',
+      cta: 'Open the ledger →',
+      href: '/admin/finance'
+    }
   ];
   const cms = [
     { label: 'La Gazette — reports & moderation', href: '/admin/reports' },
@@ -394,13 +425,15 @@ export default function AdminDashboardPage() {
 
 
         {/* QUEUES */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,230px),1fr))", gap: "16px", marginBottom: "18px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,220px),1fr))", gap: "16px", marginBottom: "22px" }}>
           {queues.map((q: any, idx: number) => (
-            <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "20px", display: "flex", flexDirection: "column", gap: "9px" }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)" }}>{q.kicker}</div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", lineHeight: 1.25 }}>{q.title}</div>
-              <p style={{ fontSize: "13px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 6px", textWrap: "pretty" }}>{q.body}</p>
-              <Link href={q.href} style={{ marginTop: "auto", border: "1px solid #7b1f2c", color: "#7b1f2c", borderRadius: "4px", padding: "9px 14px", textAlign: "center", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{q.cta} <ForwardArrow /></Link>
+            <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px", background: "#fffdfa", padding: "22px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)" }}>{q.kicker}</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", lineHeight: 1.25, color: "#39292a" }}>{q.title}</div>
+              <p style={{ fontSize: "13.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.72)", margin: "0 0 8px", textWrap: "pretty" }}>{q.body}</p>
+              <Link href={q.href} style={{ marginTop: "auto", border: "1px solid rgba(123,31,44,0.4)", color: "#7b1f2c", background: "transparent", borderRadius: "4px", padding: "10px 16px", textAlign: "center", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {q.cta}
+              </Link>
             </div>
           ))}
         </div>
