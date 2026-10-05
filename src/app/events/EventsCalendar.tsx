@@ -908,12 +908,12 @@ export function BookingSuccessModal({
               {lang === "en" ? (
                 <>
                   · Your place is held — there is no limit on places for this one, so nothing to wait on.<br />
-                  · The day before — we send you the exact meeting point on WhatsApp.
+                  · The day before — we send you the exact meeting point by email.
                 </>
               ) : (
                 <>
                   · Tu plaza está reservada — no hay límite de plazas para este encuentro, no hay que esperar.<br />
-                  · El día anterior — te enviamos el punto de encuentro exacto por WhatsApp.
+                  · El día anterior — te enviamos el punto de encuentro exacto por email.
                 </>
               )}
             </div>
@@ -1009,13 +1009,13 @@ export function BookingSuccessModal({
           <div style={{ fontSize: "13px", lineHeight: "1.6", color: "rgba(57,41,42,0.78)" }}>
             {lang === "en" ? (
               <>
-                · Three days before — a WhatsApp message confirming whether you have a place.<br />
-                · The day before — we send you the exact meeting point on WhatsApp.
+                · Three days before — an email confirming whether you have a place.<br />
+                · The day before — we send you the exact meeting point by email.
               </>
             ) : (
               <>
-                · Tres días antes — un mensaje de WhatsApp confirmando si tienes plaza.<br />
-                · El día anterior — te enviamos el punto de encuentro exacto por WhatsApp.
+                · Tres días antes — un email confirmando si tienes plaza.<br />
+                · El día anterior — te enviamos el punto de encuentro exacto por email.
               </>
             )}
           </div>
@@ -1087,21 +1087,22 @@ export function EventCardImage({
           width: "100%",
           height: "100%",
           textAlign: "center",
-          color: "rgba(57, 41, 42, 0.45)",
+          color: "rgba(57, 41, 42, 0.55)",
           fontSize: "13px",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: "6px",
-          backgroundColor: "#ecdcd0",
+          gap: "3px",
+          backgroundColor: "transparent",
         }}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" width="28" height="28" style={{ opacity: 0.7, marginBottom: "2px" }}>
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
           <polyline points="21 15 16 10 5 21" />
         </svg>
-        <span>{lang === "en" ? "Event photograph" : "Fotografía del evento"}</span>
+        <span style={{ fontSize: "13px", fontWeight: 500 }}>{lang === "en" ? "Event photo" : "Foto del evento"}</span>
+        <span style={{ fontSize: "11px", color: "rgba(57,41,42,0.4)" }}>{lang === "en" ? "or browse files" : "o explorar fotos"}</span>
       </div>
     );
   }
@@ -1135,7 +1136,6 @@ function EventCard({
   const isPending = ev.status === "published_pending" || ev.status === "pending";
   const isFull = ev.isFull || false;
   const isOpenList = !ev.capacityTotal || ev.capacityTotal === 0;
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
 
   const catInfo = getCategoryInfo(ev, lang);
   const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
@@ -1156,6 +1156,12 @@ function EventCard({
     }
   };
 
+  const photoBorderColor = isPast || isCancelled
+    ? "rgba(57,41,42,0.22)"
+    : isPending
+    ? "rgba(164,118,31,0.4)"
+    : "rgba(86,139,5,0.4)";
+
   return (
     <article
       style={{
@@ -1174,13 +1180,12 @@ function EventCard({
       <div
         style={{
           position: "relative",
-          width: "calc(100% + 40px)",
-          margin: "-20px -20px 0 -20px",
-          height: "160px",
-          borderRadius: "7px 7px 0 0",
+          width: "100%",
+          height: "170px",
+          borderRadius: "6px",
           overflow: "hidden",
-          backgroundColor: "#ecdcd0",
-          borderBottom: `1px solid ${getCardBorder(ev, isPast)}`,
+          backgroundColor: "rgba(255,255,255,0.25)",
+          border: `1px dashed ${photoBorderColor}`,
         }}
       >
         <Link
@@ -1205,8 +1210,8 @@ function EventCard({
         <div
           style={{
             position: "absolute",
-            top: "12px",
-            left: "12px",
+            top: "10px",
+            left: "10px",
             pointerEvents: "none",
             zIndex: 2,
             display: "flex",
@@ -1223,7 +1228,7 @@ function EventCard({
               borderRadius: "12px",
               padding: "3px 11px",
               whiteSpace: "nowrap",
-              background: "rgba(255, 255, 255, 0.92)",
+              background: "rgba(255, 255, 255, 0.94)",
               backdropFilter: "blur(4px)",
               boxShadow: "0 2px 5px rgba(0,0,0,0.06)",
               fontWeight: 500,
@@ -1231,6 +1236,26 @@ function EventCard({
           >
             {catInfo.label}
           </span>
+          {ev.userStatus?.isBooked && !isCancelled && (
+            <span
+              style={{
+                fontSize: "11px",
+                letterSpacing: "0.04em",
+                color: isPending ? "#7a5612" : "#456f04",
+                background: isPending ? "rgba(164,118,31,0.12)" : "rgba(86,139,5,0.12)",
+                border: isPending ? "1px solid rgba(164,118,31,0.45)" : "1px solid rgba(86,139,5,0.45)",
+                borderRadius: "10px",
+                padding: "3px 9px",
+                whiteSpace: "nowrap",
+                fontWeight: 600,
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              {isPending
+                ? (lang === "en" ? "Place held" : "Plaza retenida")
+                : (lang === "en" ? "Booked" : "Reservada")}
+            </span>
+          )}
           {isCancelled && (
             <span
               style={{
@@ -1239,7 +1264,7 @@ function EventCard({
                 textTransform: "uppercase",
                 color: "#993842",
                 border: "1px solid rgba(153,56,66,0.45)",
-                background: "rgba(255,255,255,0.92)",
+                background: "rgba(255,255,255,0.94)",
                 borderRadius: "10px",
                 padding: "3px 9px",
                 whiteSpace: "nowrap",
@@ -1277,6 +1302,8 @@ function EventCard({
           justifyContent: "space-between",
           gap: "10px",
           marginTop: "14px",
+          paddingTop: "12px",
+          borderTop: "1px dotted rgba(57, 41, 42, 0.22)",
         }}
       >
         <div
@@ -1352,7 +1379,7 @@ function EventCard({
       </h3>
 
       {/* Date & Location snippet */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "3px", fontSize: "13px", color: "rgba(57,41,42,0.72)", marginTop: "8px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "13px", color: "rgba(57,41,42,0.72)", marginTop: "8px" }}>
         <div>{formatEventDate(ev.startsAt, lang)}</div>
         <div>
           {[
@@ -1361,6 +1388,15 @@ function EventCard({
             ev.partnerName || "The Mothers",
           ].filter(Boolean).join(" · ")}
         </div>
+        {ev.languages && ev.languages.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12.5px", color: "rgba(57,41,42,0.72)" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" />
+            </svg>
+            <span>{ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}</span>
+          </div>
+        )}
       </div>
 
       {/* Status & More Details Section */}
@@ -1401,19 +1437,15 @@ function EventCard({
           </div>
         )}
 
-        {/* More details link / toggle */}
-        <button
-          type="button"
-          onClick={() => setShowMoreDetails((prev) => !prev)}
+        {/* More details link that opens the event page */}
+        <Link
+          href={`/events/${ev.slug || ev.id}`}
           style={{
-            background: "none",
-            border: "none",
             color: "#7b1f2c",
-            padding: 0,
             fontSize: "12.5px",
             fontWeight: 600,
-            cursor: "pointer",
-            textAlign: "left",
+            textDecoration: "underline",
+            textUnderlineOffset: "2px",
             display: "inline-flex",
             alignItems: "center",
             gap: "4px",
@@ -1421,33 +1453,9 @@ function EventCard({
             marginTop: "2px",
           }}
         >
-          <span style={{ textDecoration: "underline", textUnderlineOffset: "2px" }}>
-            {lang === "en" ? (showMoreDetails ? "Less details" : "More details") : (showMoreDetails ? "Menos detalles" : "Más detalles")}
-          </span>
-          <span style={{ fontSize: "11px" }}>{showMoreDetails ? "↑" : "→"}</span>
-        </button>
-
-        {showMoreDetails && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px", paddingTop: "8px", borderTop: "1px dashed rgba(57,41,42,0.15)", marginTop: "4px" }}>
-            {getEventDisplayDesc(ev, lang) && (
-              <p style={{ fontSize: "13px", lineHeight: "1.5", color: "rgba(57,41,42,0.72)", margin: 0 }}>
-                {getEventDisplayDesc(ev, lang)}
-              </p>
-            )}
-            {ev.meetingPointNote && (
-              <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="13" height="13" style={{ flexShrink: 0 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
-                {ev.meetingPointNote}
-              </span>
-            )}
-            {ev.languages && ev.languages.length > 0 && (
-              <span style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" /></svg>
-                {ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}
-              </span>
-            )}
-          </div>
-        )}
+          <span>{lang === "en" ? "More details" : "Más detalles"}</span>
+          <span style={{ fontSize: "11px", textDecoration: "none" }}>→</span>
+        </Link>
       </div>
 
       {/* ─── Compact Footer (1b): Places on left, Button on right ─── */}
@@ -1466,8 +1474,8 @@ function EventCard({
         <div
           style={{
             fontSize: "13px",
-            color: isFull ? "#993842" : "rgba(57, 41, 42, 0.75)",
-            fontWeight: isFull ? 600 : 400,
+            color: isFull || (!isOpenList && (ev.capacityRemaining ?? ev.capacityTotal ?? 10) <= 3) ? "#993842" : "rgba(57, 41, 42, 0.75)",
+            fontWeight: isFull || (!isOpenList && (ev.capacityRemaining ?? ev.capacityTotal ?? 10) <= 3) ? 600 : 400,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -1477,14 +1485,6 @@ function EventCard({
             lang === "en" ? "Past event" : "Evento pasado"
           ) : isCancelled ? (
             lang === "en" ? "Cancelled" : "Cancelado"
-          ) : ev.userStatus?.isBooked ? (
-            <span style={{ color: "#456f04", fontWeight: 600 }}>
-              {lang === "en" ? "Place booked" : "Plaza reservada"}
-            </span>
-          ) : ev.userStatus?.isWaitlisted ? (
-            <span style={{ color: "#8a6116", fontWeight: 600 }}>
-              {lang === "en" ? `Waitlist #${ev.userStatus.waitlistPosition || 1}` : `Lista #${ev.userStatus.waitlistPosition || 1}`}
-            </span>
           ) : isOpenList ? (
             lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"
           ) : isFull ? (
@@ -1519,21 +1519,19 @@ function EventCard({
           ) : isCancelled ? null : ev.userStatus?.isBooked ? (
             <span
               style={{
-                border: "1px solid rgba(86,139,5,0.4)",
+                border: "1px solid rgba(86,139,5,0.45)",
                 backgroundColor: "rgba(86,139,5,0.08)",
                 color: "#456f04",
-                padding: "8px 16px",
+                padding: "8px 18px",
                 borderRadius: "4px",
                 fontFamily: "var(--font-heading)",
                 fontWeight: 600,
-                fontSize: "13.5px",
+                fontSize: "14px",
                 whiteSpace: "nowrap",
                 display: "inline-block",
               }}
             >
-              {isPending
-                ? (lang === "en" ? "Reserved" : "Reservada")
-                : (lang === "en" ? "Booked" : "Reservada")}
+              {lang === "en" ? "Booked" : "Reservada"}
             </span>
           ) : ev.userStatus?.isWaitlisted ? (
             <Link

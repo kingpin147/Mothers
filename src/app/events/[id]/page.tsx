@@ -403,7 +403,7 @@ export default function EventDetailPage() {
             </div>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: isAlreadyBooked ? "#39292a" : "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "60ch" }}>
               {isAlreadyBooked
-                ? (ev.meetingPointNote || ev.venueAddress || ev.venueName || "Meeting point details will be sent via WhatsApp.")
+                ? (ev.meetingPointNote || ev.venueAddress || ev.venueName || (lang === "en" ? "Meeting point details will be sent via email." : "Los detalles del punto de encuentro se enviarán por email."))
                 : (lang === "en"
                     ? `The exact address is sent when you book. ${ev.neighbourhood || "Barcelona"}, a short walk from public transport.`
                     : `La dirección exacta se envía al reservar. ${ev.neighbourhood || "Barcelona"}, cerca del transporte público.`)}

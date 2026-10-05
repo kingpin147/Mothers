@@ -7,6 +7,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Locale } from "@/lib/i18n";
 import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, reactivateMembership, getStripePortalUrl, deleteMyAccountGDPR, leaveWaitlist } from "@/app/actions/memberAccount";
 import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
+import { getUpcomingEventsNeedingHost, checkHostEligibility, applyToHostEvent, withdrawHostRequest } from "@/app/actions/host";
+import { formatEventDate } from "@/app/events/EventsCalendar";
 import ThemeLoader from "@/components/ThemeLoader";
 import { ForwardArrow } from "@/components/Icons";
 import CountryPhoneInput from "@/components/CountryPhoneInput";
@@ -131,6 +133,92 @@ function AccountPageContent() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Hosting tab state
+  const [hostLoading, setHostLoading] = useState(false);
+  const [hostEvents, setHostEvents] = useState<any[]>([]);
+  const [hostEligibility, setHostEligibility] = useState<any>(null);
+  const [userHostBookings, setUserHostBookings] = useState<string[]>([]);
+  const [userHostRequests, setUserHostRequests] = useState<any[]>([]);
+  const [hostActionLoadingId, setHostActionLoadingId] = useState<string | null>(null);
+  const [hostMessage, setHostMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const loadHostData = async () => {
+    try {
+      setHostLoading(true);
+      const [eligRes, eventsRes] = await Promise.all([
+        checkHostEligibility(),
+        getUpcomingEventsNeedingHost(),
+      ]);
+      setHostEligibility(eligRes);
+      if (eventsRes.success) {
+        setHostEvents(eventsRes.events || []);
+        setUserHostBookings(eventsRes.userBookings || []);
+        setUserHostRequests(eventsRes.userHostRequests || []);
+      }
+    } catch (err: any) {
+      console.error("loadHostData error:", err);
+    } finally {
+      setHostLoading(false);
+    }
+  };
+
+  const handleApplyToHost = async (eventId: string) => {
+    setHostActionLoadingId(eventId);
+    setHostMessage(null);
+    try {
+      const res = await applyToHostEvent(eventId);
+      if (res.success) {
+        setHostMessage({
+          type: "success",
+          text: lang === "en"
+            ? "Your request has been submitted! The team will review and confirm by email."
+            : "¡Tu solicitud ha sido enviada! El equipo la revisará y te confirmará por correo.",
+        });
+        await loadHostData();
+      } else {
+        setHostMessage({
+          type: "error",
+          text: res.error || (lang === "en" ? "Failed to submit host request" : "Error al enviar la solicitud"),
+        });
+      }
+    } catch (err: any) {
+      setHostMessage({
+        type: "error",
+        text: err?.message || (lang === "en" ? "Something went wrong" : "Ha ocurrido un error"),
+      });
+    } finally {
+      setHostActionLoadingId(null);
+    }
+  };
+
+  const handleWithdrawHost = async (requestId: string, eventId: string) => {
+    if (!confirm(lang === "en" ? "Withdraw your host request?" : "¿Retirar tu solicitud de anfitriona?")) return;
+    setHostActionLoadingId(eventId);
+    setHostMessage(null);
+    try {
+      const res = await withdrawHostRequest(requestId);
+      if (res.success) {
+        setHostMessage({
+          type: "success",
+          text: lang === "en" ? "Host request withdrawn." : "Solicitud de anfitriona retirada.",
+        });
+        await loadHostData();
+      } else {
+        setHostMessage({
+          type: "error",
+          text: res.error || (lang === "en" ? "Failed to withdraw request" : "Error al retirar la solicitud"),
+        });
+      }
+    } catch (err: any) {
+      setHostMessage({
+        type: "error",
+        text: err?.message || (lang === "en" ? "Something went wrong" : "Ha ocurrido un error"),
+      });
+    } finally {
+      setHostActionLoadingId(null);
+    }
+  };
+
   const handleLeaveWaitlist = async (waitlistId: string) => {
     if (!confirm(lang === "en" ? "Are you sure you want to leave this waitlist?" : "¿Segura que deseas salir de la lista de espera?")) return;
     setLeavingWaitlistId(waitlistId);
@@ -192,7 +280,11 @@ function AccountPageContent() {
       const loadData = async () => {
         try {
           setAccountLoading(true);
-          const res = await getAccountData();
+          const [res, eligRes, eventsRes] = await Promise.all([
+            getAccountData(),
+            checkHostEligibility(),
+            getUpcomingEventsNeedingHost(),
+          ]);
           if (res.success) {
             setAccountData(res);
             setAccountError(null);
@@ -211,6 +303,12 @@ function AccountPageContent() {
             setSelectedStages(currentStages);
           } else {
             setAccountError(res.error || "Failed to load account data");
+          }
+          setHostEligibility(eligRes);
+          if (eventsRes.success) {
+            setHostEvents(eventsRes.events || []);
+            setUserHostBookings(eventsRes.userBookings || []);
+            setUserHostRequests(eventsRes.userHostRequests || []);
           }
         } catch (err: any) {
           setAccountError(err.message || "Error loading account");
@@ -1162,9 +1260,9 @@ function AccountPageContent() {
           </div>
         )}
 
-        {/* ─── TAB: HOSTING (MATCHING IMAGE 2 MOCKUP) ─── */}
+        {/* ─── TAB: HOSTING ─── */}
         {activeTab === "hosting" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             <div style={{ border: "1px solid rgba(57, 41, 42, 0.14)", borderRadius: "8px", padding: "clamp(24px, 4vw, 36px)", backgroundColor: "#fffdfa" }}>
               <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "baseline", gap: "12px", marginBottom: "8px" }}>
                 <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "26px", color: "#39292a", margin: 0 }}>
@@ -1186,100 +1284,243 @@ function AccountPageContent() {
 
               <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57, 41, 42, 0.72)", margin: "0 0 24px" }}>
                 {(() => {
-                  const attended = accountData?.member?.eventsAttendedCount || 0;
-                  if (attended < 2) {
-                    const needed = 2 - attended;
+                  const attended = hostEligibility?.totalAttended ?? (accountData?.member?.eventsAttendedCount || 0);
+                  const isElig = hostEligibility?.eligible === true;
+                  if (!isElig) {
+                    if (attended < 2) {
+                      const needed = Math.max(1, 2 - attended);
+                      return lang === "en"
+                        ? `You have been to ${attended} event${attended === 1 ? "" : "s"}. Come to ${needed} more and you can host.`
+                        : `Has asistido a ${attended} evento${attended === 1 ? "" : "s"}. Ven a ${needed} más y podrás ser anfitriona.`;
+                    }
                     return lang === "en"
-                      ? `You have been to ${attended} event. Come to ${needed} more and you can host.`
-                      : `Has asistido a ${attended} evento. Ven a ${needed} más y podrás ser anfitriona.`;
+                      ? "Hosting is temporarily paused due to a recent cancellation or account status."
+                      : "La opción de ser anfitriona está en pausa por el momento.";
                   }
                   return lang === "en"
-                    ? "You have attended 2+ events and are eligible to host! Select an event below or submit a custom gathering proposal."
-                    : "¡Has asistido a más de 2 eventos y puedes ser anfitriona! Elige un evento a continuación o propone un encuentro.";
+                    ? "You have attended 2+ events and are eligible to host! Select an event below."
+                    : "¡Has asistido a más de 2 eventos y puedes ser anfitriona! Elige un evento a continuación.";
                 })()}
               </p>
 
-              {/* Events List needing host matching mockup image 2 */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                {[
-                  {
-                    id: "h1",
-                    titleEn: "Morning walk — Ciutadella Park",
-                    titleEs: "Paseo matutino — Parque de la Ciutadella",
-                    dateEn: "Wednesday 7 October · 10:00",
-                    dateEs: "Miércoles 7 de Octubre · 10:00",
-                    area: "Ciutat Vella",
-                    type: "Walks",
-                  },
-                  {
-                    id: "h2",
-                    titleEn: "Hosted coffee & conversation — Gràcia",
-                    titleEs: "Café con anfitriona y conversación — Gràcia",
-                    dateEn: "Friday 9 October · 10:30",
-                    dateEs: "Viernes 9 de Octubre · 10:30",
-                    area: "Gràcia",
-                    type: "Circles",
-                  },
-                  {
-                    id: "h3",
-                    titleEn: "Park social — Turó Park lawn",
-                    titleEs: "Encuentro en el parque — Turó Park",
-                    dateEn: "Wednesday 14 October · 17:30",
-                    dateEs: "Miércoles 14 de Octubre · 17:30",
-                    area: "Sarrià-Sant Gervasi",
-                    type: "Play dates",
-                  },
-                ].map((ev) => (
-                  <div
-                    key={ev.id}
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "16px",
-                      padding: "18px 20px",
-                      border: "1px solid rgba(57, 41, 42, 0.14)",
-                      borderRadius: "6px",
-                      backgroundColor: "#fdf8f2",
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                        <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#3b5e04", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "10px", padding: "2px 8px", backgroundColor: "rgba(86,139,5,0.06)", fontWeight: 600 }}>
-                          {ev.type}
-                        </span>
-                        <span style={{ fontSize: "11px", color: "#568b05", fontWeight: 600 }}>
-                          +2 credits reward
-                        </span>
-                      </div>
-                      <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a", margin: "0 0 4px" }}>
-                        {lang === "en" ? ev.titleEn : ev.titleEs}
-                      </h3>
-                      <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)" }}>
-                        {lang === "en" ? ev.dateEn : ev.dateEs} · {ev.area}
-                      </div>
-                    </div>
+              {hostMessage && (
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: "6px",
+                    marginBottom: "18px",
+                    fontSize: "13.5px",
+                    backgroundColor: hostMessage.type === "success" ? "rgba(86,139,5,0.1)" : "rgba(153,56,66,0.1)",
+                    border: `1px solid ${hostMessage.type === "success" ? "rgba(86,139,5,0.4)" : "rgba(153,56,66,0.4)"}`,
+                    color: hostMessage.type === "success" ? "#3b5e04" : "#993842",
+                  }}
+                >
+                  {hostMessage.text}
+                </div>
+              )}
 
-                    <Link
-                      href="/host#host-form"
-                      style={{
-                        border: "1px solid #568b05",
-                        backgroundColor: "#568b05",
-                        color: "#ffffff",
-                        padding: "9px 18px",
-                        borderRadius: "4px",
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontWeight: 600,
-                        fontSize: "14.5px",
-                        textDecoration: "none",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {lang === "en" ? "Host this event" : "Ser anfitriona"}
-                    </Link>
+              {/* Real Events List needing host */}
+              {hostLoading ? (
+                <div style={{ textAlign: "center", padding: "24px", color: "rgba(57,41,42,0.6)" }}>
+                  {lang === "en" ? "Loading hosting opportunities..." : "Cargando eventos para anfitrionas..."}
+                </div>
+              ) : hostEvents.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "32px 16px", backgroundColor: "#fdf8f2", borderRadius: "6px", border: "1px dashed rgba(57,41,42,0.16)" }}>
+                  <p style={{ margin: 0, fontSize: "14px", color: "rgba(57,41,42,0.68)", fontStyle: "italic" }}>
+                    {lang === "en"
+                      ? "All upcoming events currently have a host confirmed. Check back soon!"
+                      : "Todos los próximos eventos ya cuentan con anfitriona confirmada. ¡Vuelve a consultar pronto!"}
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {hostEvents.map((ev) => {
+                    const isBooked = userHostBookings.includes(ev.id);
+                    const hostReq = userHostRequests.find((r) => r.eventId === ev.id);
+                    const isElig = hostEligibility?.eligible === true;
+                    const dateFormatted = formatEventDate(ev.startsAt, lang as any);
+
+                    return (
+                      <div
+                        key={ev.id}
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "16px",
+                          padding: "18px 20px",
+                          border: "1px solid rgba(57, 41, 42, 0.14)",
+                          borderRadius: "6px",
+                          backgroundColor: "#fdf8f2",
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "11px", letterSpacing: "0.04em", color: "#3b5e04", border: "1px solid rgba(86,139,5,0.35)", borderRadius: "10px", padding: "2px 8px", backgroundColor: "rgba(86,139,5,0.06)", fontWeight: 600 }}>
+                              +2 credits reward
+                            </span>
+                          </div>
+                          <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a", margin: "0 0 4px" }}>
+                            {ev.title}
+                          </h3>
+                          <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)" }}>
+                            {dateFormatted} · {ev.neighbourhood || ev.venueName || "Barcelona"}
+                          </div>
+                        </div>
+
+                        {/* CTA button or status on right */}
+                        <div>
+                          {hostReq ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <span style={{ fontSize: "13px", fontWeight: 500, color: hostReq.status === "confirmed" ? "#3b5e04" : "#8a6116" }}>
+                                {hostReq.status === "confirmed"
+                                  ? (lang === "en" ? "You're hosting · confirmed" : "Eres la anfitriona · confirmada")
+                                  : (lang === "en" ? "Request pending" : "Solicitud en revisión")}
+                              </span>
+                              {hostReq.status === "pending" && (
+                                <button
+                                  type="button"
+                                  disabled={hostActionLoadingId === ev.id}
+                                  onClick={() => handleWithdrawHost(hostReq.id, ev.id)}
+                                  style={{
+                                    border: "none",
+                                    background: "transparent",
+                                    color: "rgba(57, 41, 42, 0.6)",
+                                    fontSize: "12.5px",
+                                    textDecoration: "underline",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {lang === "en" ? "Cancel" : "Retirar"}
+                                </button>
+                              )}
+                            </div>
+                          ) : !isElig ? (
+                            /* When conditions are not met, DO NOT show the host CTA */
+                            null
+                          ) : !isBooked ? (
+                            <Link
+                              href={`/events/${ev.id}`}
+                              style={{
+                                border: "1px solid rgba(57, 41, 42, 0.28)",
+                                backgroundColor: "transparent",
+                                color: "#39292a",
+                                padding: "9px 18px",
+                                borderRadius: "4px",
+                                fontFamily: "'Cormorant Garamond', serif",
+                                fontWeight: 600,
+                                fontSize: "14.5px",
+                                textDecoration: "none",
+                                whiteSpace: "nowrap",
+                                display: "inline-block",
+                              }}
+                            >
+                              {lang === "en" ? "Book first to host" : "Reservar plaza primero"}
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={hostActionLoadingId === ev.id}
+                              onClick={() => handleApplyToHost(ev.id)}
+                              style={{
+                                border: "1px solid #568b05",
+                                backgroundColor: "#568b05",
+                                color: "#ffffff",
+                                padding: "9px 18px",
+                                borderRadius: "4px",
+                                fontFamily: "'Cormorant Garamond', serif",
+                                fontWeight: 600,
+                                fontSize: "14.5px",
+                                cursor: hostActionLoadingId === ev.id ? "wait" : "pointer",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {hostActionLoadingId === ev.id
+                                ? "..."
+                                : (lang === "en" ? "Host this event" : "Ser anfitriona")}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* ─── CONDITIONS MODULE (Simple, and fair.) ─── */}
+            <div style={{ border: "1px solid rgba(57, 41, 42, 0.16)", borderRadius: "8px", backgroundColor: "#fffdfa", padding: "clamp(24px, 4vw, 36px)" }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "8px" }}>
+                {lang === "en" ? "CONDITIONS" : "CONDICIONES"}
+              </div>
+              <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(24px, 3.4vw, 34px)", margin: "0 0 24px", color: "#39292a" }}>
+                {lang === "en" ? "Simple, and fair." : "Sencillas y transparentes."}
+              </h3>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "20px" }}>
+                {/* 1. Eligibility */}
+                <div style={{ border: "1px solid rgba(57, 41, 42, 0.14)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px 20px" }}>
+                  <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a", margin: "0 0 14px" }}>
+                    {lang === "en" ? "Eligibility" : "Requisitos"}
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "10px 0", fontSize: "13.5px", color: "#39292a", lineHeight: "1.5" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" style={{ flexShrink: 0, marginTop: "2px" }}><path d="m5 12 5 5L20 7" /></svg>
+                      <span>{lang === "en" ? "An account on themothers.cc" : "Tener cuenta en themothers.cc"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "10px 0", borderTop: "1px solid rgba(57,41,42,0.08)", fontSize: "13.5px", color: "#39292a", lineHeight: "1.5" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" style={{ flexShrink: 0, marginTop: "2px" }}><path d="m5 12 5 5L20 7" /></svg>
+                      <span>{lang === "en" ? "At least 2 events attended in person" : "Haber asistido al menos a 2 eventos"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "10px 0", borderTop: "1px solid rgba(57,41,42,0.08)", fontSize: "13.5px", color: "#39292a", lineHeight: "1.5" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" style={{ flexShrink: 0, marginTop: "2px" }}><path d="m5 12 5 5L20 7" /></svg>
+                      <span>{lang === "en" ? "No no-shows in the last 3 months" : "Sin ausencias injustificadas en 3 meses"}</span>
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                {/* 2. Commitment */}
+                <div style={{ border: "1px solid rgba(57, 41, 42, 0.14)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px 20px" }}>
+                  <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a", margin: "0 0 14px" }}>
+                    {lang === "en" ? "Commitment" : "Compromiso"}
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "10px 0", fontSize: "13.5px", color: "#39292a", lineHeight: "1.5" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" style={{ flexShrink: 0, marginTop: "2px" }}><path d="m5 12 5 5L20 7" /></svg>
+                      <span>{lang === "en" ? "Arrive 10 minutes early at the meeting point" : "Llegar 10 minutos antes al punto de encuentro"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "10px 0", borderTop: "1px solid rgba(57,41,42,0.08)", fontSize: "13.5px", color: "#39292a", lineHeight: "1.5" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" style={{ flexShrink: 0, marginTop: "2px" }}><path d="m5 12 5 5L20 7" /></svg>
+                      <span>{lang === "en" ? "Welcome mothers as they arrive" : "Dar la bienvenida a cada madre al llegar"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "10px 0", borderTop: "1px solid rgba(57,41,42,0.08)", fontSize: "13.5px", color: "#39292a", lineHeight: "1.5" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" style={{ flexShrink: 0, marginTop: "2px" }}><path d="m5 12 5 5L20 7" /></svg>
+                      <span>{lang === "en" ? "No commercial selling or promotion" : "Prohibida la venta o promoción comercial"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Rewards */}
+                <div style={{ border: "1px solid rgba(57, 41, 42, 0.14)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px 20px" }}>
+                  <h4 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "19px", color: "#39292a", margin: "0 0 14px" }}>
+                    {lang === "en" ? "Rewards" : "Compensación"}
+                  </h4>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "10px 0", fontSize: "13.5px", color: "#39292a", lineHeight: "1.5" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" style={{ flexShrink: 0, marginTop: "2px" }}><path d="m5 12 5 5L20 7" /></svg>
+                      <span>{lang === "en" ? "2 credits awarded once the event runs" : "2 créditos al completarse el encuentro"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "10px 0", borderTop: "1px solid rgba(57,41,42,0.08)", fontSize: "13.5px", color: "#39292a", lineHeight: "1.5" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" style={{ flexShrink: 0, marginTop: "2px" }}><path d="m5 12 5 5L20 7" /></svg>
+                      <span>{lang === "en" ? "50% credit refund on your booked place" : "50% de devolución en créditos de tu plaza"}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", padding: "10px 0", borderTop: "1px solid rgba(57,41,42,0.08)", fontSize: "13.5px", color: "#39292a", lineHeight: "1.5" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#568b05" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" style={{ flexShrink: 0, marginTop: "2px" }}><path d="m5 12 5 5L20 7" /></svg>
+                      <span>{lang === "en" ? "Credits valid for 6 months across calendar" : "Créditos válidos durante 6 meses"}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
