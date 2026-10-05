@@ -10,9 +10,12 @@ import {
   circlePost,
   circleReport,
   subscriber,
+  leadEntry,
+  setting,
 } from "@/db/schema";
 import { eq, desc, asc, and, sql, or, lt, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { revalidatePath } from "next/cache";
 
 export async function getPreLaunchDeskData() {
   const session = await auth();
@@ -33,7 +36,11 @@ export async function getPreLaunchDeskData() {
       pastEventsToRunCountRow,
       openReportsCountRow,
     ] = await Promise.all([
-      db.select({ count: sql<number>`count(*)::int` }).from(person),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(member)
+        .innerJoin(person, eq(member.personId, person.id))
+        .where(sql`${person.firstName} != 'Subscriber'`),
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(hostRequest)
@@ -50,24 +57,24 @@ export async function getPreLaunchDeskData() {
 
     const stats = [
       {
-        label: "Accounts opened",
-        value: Number(accountsCountRow[0]?.count || 0),
-        color: "#7b1f2c",
-      },
-      {
-        label: "Host requests pending",
+        label: "Host requests to review",
         value: Number(pendingHostsCountRow[0]?.count || 0),
-        color: Number(pendingHostsCountRow[0]?.count || 0) > 0 ? "#7b1f2c" : "#39292a",
+        color: Number(pendingHostsCountRow[0]?.count || 0) > 0 ? "#7a5612" : "#39292a",
       },
       {
-        label: "Events to mark as run",
-        value: Number(pastEventsToRunCountRow[0]?.count || 0),
-        color: Number(pastEventsToRunCountRow[0]?.count || 0) > 0 ? "#568b05" : "#39292a",
-      },
-      {
-        label: "La Gazette reports open",
+        label: "Gazette reports open",
         value: Number(openReportsCountRow[0]?.count || 0),
         color: Number(openReportsCountRow[0]?.count || 0) > 0 ? "#993842" : "#39292a",
+      },
+      {
+        label: "Past events to mark",
+        value: Number(pastEventsToRunCountRow[0]?.count || 0),
+        color: Number(pastEventsToRunCountRow[0]?.count || 0) > 0 ? "#7a5612" : "#39292a",
+      },
+      {
+        label: "Accounts before launch",
+        value: Number(accountsCountRow[0]?.count || 0),
+        color: "#3b5e04",
       },
     ];
 
@@ -209,7 +216,8 @@ export async function getPreLaunchDeskData() {
     // 5. Tab 4: Pre-launch Accounts & Waitlist
     const preLaunchAccountsRaw = await db
       .select({
-        id: person.id,
+        id: member.id,
+        personId: person.id,
         firstName: person.firstName,
         lastName: person.lastName,
         email: person.email,
@@ -219,20 +227,62 @@ export async function getPreLaunchDeskData() {
         isSuspended: person.isSuspended,
         createdBeforeLaunch: person.createdBeforeLaunch,
       })
-      .from(person)
+      .from(member)
+      .innerJoin(person, eq(member.personId, person.id))
+      .where(sql`${person.firstName} != 'Subscriber'`)
       .orderBy(desc(person.createdAt))
       .limit(100);
 
-    const subscribers = await db
-      .select({
-        id: subscriber.id,
-        email: subscriber.email,
-        source: subscriber.source,
-        createdAt: subscriber.createdAt,
-      })
-      .from(subscriber)
-      .orderBy(desc(subscriber.createdAt))
-      .limit(100);
+    const [subscribersRaw, leadsRaw] = await Promise.all([
+      db
+        .select({
+          id: subscriber.id,
+          email: subscriber.email,
+          source: subscriber.source,
+          createdAt: subscriber.createdAt,
+        })
+        .from(subscriber)
+        .orderBy(desc(subscriber.createdAt))
+        .limit(100),
+      db
+        .select({
+          id: leadEntry.id,
+          email: leadEntry.email,
+          source: leadEntry.source,
+          createdAt: leadEntry.createdAt,
+        })
+        .from(leadEntry)
+        .orderBy(desc(leadEntry.createdAt))
+        .limit(100),
+    ]);
+
+    // Merge and deduplicate waitlist leads
+    const seenEmails = new Set<string>();
+    const allLeads: Array<{ id: string; email: string; source: string; createdAt: Date }> = [];
+
+    for (const s of [...subscribersRaw, ...leadsRaw]) {
+      const lower = (s.email || "").toLowerCase().trim();
+      if (lower && !seenEmails.has(lower)) {
+        seenEmails.add(lower);
+        allLeads.push({
+          id: s.id,
+          email: s.email,
+          source: s.source || "The Letter",
+          createdAt: s.createdAt,
+        });
+      }
+    }
+
+    // 6. Topics & Tags
+    let topics = { pinned: "Winter walks", blocked: ["Selling", "Politics"] };
+    try {
+      const topicRow = await db.query.setting.findFirst({
+        where: eq(setting.key, "gazette_topics"),
+      });
+      if (topicRow?.value) {
+        topics = typeof topicRow.value === "string" ? JSON.parse(topicRow.value) : topicRow.value;
+      }
+    } catch {}
 
     return {
       success: true as const,
@@ -240,6 +290,7 @@ export async function getPreLaunchDeskData() {
       hostRequests,
       attendanceEvents,
       circleReports,
+      topics,
       preLaunchAccounts: preLaunchAccountsRaw.map((a) => ({
         id: a.id,
         name: `${a.firstName} ${a.lastName}`.trim() || "Mother",
@@ -250,7 +301,7 @@ export async function getPreLaunchDeskData() {
         isSuspended: !!a.isSuspended,
         createdBeforeLaunch: a.createdBeforeLaunch !== false,
       })),
-      subscribers: subscribers.map((s) => ({
+      subscribers: allLeads.map((s) => ({
         id: s.id,
         email: s.email,
         source: s.source || "The Letter",
@@ -260,5 +311,40 @@ export async function getPreLaunchDeskData() {
   } catch (error: any) {
     console.error("getPreLaunchDeskData error:", error);
     return { success: false as const, error: error?.message || "Failed to fetch pre-launch data" };
+  }
+}
+
+export async function saveGazetteTopics(data: { pinned: string; blocked: string[] }) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const isAdmin = ["owner", "manager", "super_admin"].includes(role);
+  if (!isAdmin) {
+    return { success: false, error: "UNAUTHORIZED" };
+  }
+
+  try {
+    const existing = await db.query.setting.findFirst({
+      where: eq(setting.key, "gazette_topics"),
+    });
+
+    if (existing) {
+      await db
+        .update(setting)
+        .set({ value: data, updatedAt: new Date() })
+        .where(eq(setting.key, "gazette_topics"));
+    } else {
+      await db.insert(setting).values({
+        key: "gazette_topics",
+        value: data,
+      });
+    }
+
+    revalidatePath("/gazette");
+    revalidatePath("/admin/pre-launch");
+    revalidatePath("/admin/reports");
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to save topics" };
   }
 }

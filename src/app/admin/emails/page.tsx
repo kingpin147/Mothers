@@ -70,20 +70,7 @@ export default function AdminEmailsPage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", WebkitFontSmoothing: "antialiased" }}>
-      {/* Top Banner */}
-      <div style={{ background: "#39292a", color: "#f8efe2" }}>
-        <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "10px clamp(18px,4vw,34px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px 20px", flexWrap: "wrap", fontSize: "13px", lineHeight: 1.5 }}>
-          <span>
-            <strong style={{ fontWeight: 600, color: "#c9a227", letterSpacing: "0.08em", textTransform: "uppercase", fontSize: "11.5px" }}>Pre-membership mode</strong> · Transactional email templates rendered directly via Brevo integration.
-          </span>
-          <Link
-            href="/admin/pre-launch"
-            style={{ color: "#f8efe2", border: "1px solid rgba(248,239,226,0.5)", borderRadius: "4px", padding: "5px 12px", whiteSpace: "nowrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", textDecoration: "none" }}
-          >
-            Pre-launch desk →
-          </Link>
-        </div>
-      </div>
+      {/* Mode banner is rendered for every admin page by AdminModeBanner (Navigation). */}
 
       <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "clamp(24px,4vw,38px) clamp(18px,4vw,34px) 60px" }}>
         <Link href="/admin" style={{ fontSize: "13px", color: WINE, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", marginBottom: "10px" }}>

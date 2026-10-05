@@ -209,6 +209,8 @@ export default function JournalSlugPage() {
         if (res.related) {
           setRelated(res.related);
         }
+      } else if (STATIC_SEEDS[cleanSlug]) {
+        setArticle(STATIC_SEEDS[cleanSlug]);
       } else {
         setArticle(null);
       }

@@ -1,13 +1,15 @@
 import React from "react";
 import { auth } from "@/lib/auth";
-import { getAdminReports } from "@/app/actions/adminReports";
-import { ReportsAdminClient } from "./ReportsAdminClient";
+import { getPreLaunchDeskData } from "@/app/actions/adminPreLaunch";
+import { PreLaunchDeskClient } from "@/app/admin/pre-launch/PreLaunchDeskClient";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Moderation Queue — The Mothers Admin",
-  description: "Review reports, hide/restore posts, and manage paused accounts.",
+  title: "La Gazette Moderation — The Mothers Admin",
+  description: "Moderation queue and topic settings for La Gazette.",
 };
 
 export default async function AdminReportsPage() {
@@ -16,10 +18,14 @@ export default async function AdminReportsPage() {
   const isAdmin = ["owner", "manager", "host", "super_admin"].includes(role);
 
   if (!isAdmin) {
-    redirect("/admin/login");
+    redirect("/account/login");
   }
 
-  const reports = await getAdminReports();
+  const data = await getPreLaunchDeskData();
 
-  return <ReportsAdminClient initialReports={reports} />;
+  if (!data.success) {
+    redirect("/admin");
+  }
+
+  return <PreLaunchDeskClient initialData={data} defaultTab="circle" />;
 }

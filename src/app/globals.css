@@ -145,24 +145,34 @@ a:hover {
   padding: var(--space-4);
 }
 
-input, select, .input {
+input, select, textarea, .input {
   width: 100%;
   padding: 10px 14px;
   font-family: inherit;
-  font-size: 16px;
-  color: var(--color-text);
-  background: #fff;
-  border: 1px solid var(--color-divider);
-  border-radius: var(--radius-md);
+  font-size: 15px;
+  color: var(--color-text, #39292a);
+  background-color: #ffffff !important;
+  border: 1px solid rgba(57, 41, 42, 0.28);
+  border-radius: var(--radius-md, 4px);
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.input:focus, input:focus, select:focus, textarea:focus {
-  border-color: rgba(57, 41, 42, 0.45);
-  outline: none;
+.input:focus,
+.input:focus-visible,
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  border-color: #c9a227 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.35) !important;
+  background-color: #ffffff !important;
 }
 
-/* Browser autofill styling override - prevent blue background */
+/* Browser autofill styling override - prevent green, yellow or blue tint */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -172,11 +182,28 @@ textarea:-webkit-autofill:hover,
 textarea:-webkit-autofill:focus,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
-select:-webkit-autofill:focus {
+select:-webkit-autofill:focus,
+input:autofill,
+input:autofill:hover,
+input:autofill:focus,
+textarea:autofill,
+textarea:autofill:hover,
+textarea:autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
   -webkit-text-fill-color: #39292a !important;
   caret-color: #39292a !important;
-  transition: background-color 5000s ease-in-out 0s;
+  background-color: #ffffff !important;
+  transition: background-color 50000s ease-in-out 0s !important;
+}
+
+input:-webkit-autofill:focus,
+input:autofill:focus,
+textarea:-webkit-autofill:focus,
+textarea:autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 2px rgba(201, 162, 39, 0.35) !important;
+  box-shadow: 0 0 0 1000px #ffffff inset, 0 0 0 2px rgba(201, 162, 39, 0.35) !important;
+  border-color: #c9a227 !important;
 }
 
 .hide-scrollbar::-webkit-scrollbar {

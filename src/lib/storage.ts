@@ -97,7 +97,7 @@ export async function uploadImage(
     }
 
     if (!altText || altText.trim().length < 2) {
-      return { success: false, error: "Alt text is required (§3.5)" };
+      return { success: false, error: "Alt text is required" };
     }
 
     // 2. Generate unique filename

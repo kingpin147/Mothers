@@ -584,7 +584,7 @@ export async function markEventAsRun(params: {
         halfTicketCredits = Math.floor(creditsCharged * 0.5);
         totalCreditsAwarded = 2 + halfTicketCredits;
 
-        await grantCreditsToPerson(hostPerson.id, totalCreditsAwarded, "host_reward", 6, tx);
+        await grantCreditsToPerson(hostPerson.id, totalCreditsAwarded, "host_reward", null, tx);
 
         await tx
           .update(hostRequest)

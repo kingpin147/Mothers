@@ -599,13 +599,25 @@ export async function getTrendingCircleTags(): Promise<{ topic: string; label: s
 
   const topicScores: Record<string, { score: number; count: number }> = {};
 
-  const settingsRows = await db.select().from(setting).where(sql`key IN ('pinned_circle_tag', 'blocked_circle_tags')`);
+  const settingsRows = await db.select().from(setting).where(sql`key IN ('pinned_circle_tag', 'blocked_circle_tags', 'gazette_topics')`);
   const settingsMap: Record<string, any> = {};
   for (const s of settingsRows) settingsMap[s.key] = s.value;
   
-  const pinnedTag = typeof settingsMap["pinned_circle_tag"] === "string" ? settingsMap["pinned_circle_tag"].trim() : "";
-  const blockedTagsRaw = typeof settingsMap["blocked_circle_tags"] === "string" ? settingsMap["blocked_circle_tags"] : "";
-  const blockedTags = new Set(blockedTagsRaw.split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean));
+  let pinnedTag = "";
+  let blockedTagsList: string[] = [];
+
+  if (settingsMap["gazette_topics"]) {
+    const parsed = typeof settingsMap["gazette_topics"] === "string" ? JSON.parse(settingsMap["gazette_topics"]) : settingsMap["gazette_topics"];
+    if (parsed.pinned) pinnedTag = String(parsed.pinned).trim();
+    if (Array.isArray(parsed.blocked)) blockedTagsList = parsed.blocked;
+    else if (typeof parsed.blocked === "string") blockedTagsList = parsed.blocked.split(",");
+  } else {
+    pinnedTag = typeof settingsMap["pinned_circle_tag"] === "string" ? settingsMap["pinned_circle_tag"].trim() : "";
+    const blockedTagsRaw = typeof settingsMap["blocked_circle_tags"] === "string" ? settingsMap["blocked_circle_tags"] : "";
+    blockedTagsList = blockedTagsRaw.split(",");
+  }
+
+  const blockedTags = new Set(blockedTagsList.map((s: string) => s.trim().toLowerCase()).filter(Boolean));
 
   for (const p of postsLast7d) {
     if (!p.topic) continue;

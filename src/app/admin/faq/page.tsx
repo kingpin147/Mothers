@@ -24,7 +24,7 @@ export default function AdminFaqPage() {
   // Composer State
   const [composing, setComposing] = useState(false);
   const [draftQ, setDraftQ] = useState("");
-  const [draftGroup, setDraftGroup] = useState<string>("Joining");
+  const [draftGroup, setDraftGroup] = useState<string>(FAQ_GROUPS[0] || "Coming to an event now");
   const [draftA, setDraftA] = useState("");
   const [draftQes, setDraftQes] = useState("");
   const [draftAes, setDraftAes] = useState("");
@@ -34,7 +34,7 @@ export default function AdminFaqPage() {
   // Edit State
   const [openId, setOpenId] = useState<string | null>(null);
   const [editQ, setEditQ] = useState("");
-  const [editGroup, setEditGroup] = useState("Joining");
+  const [editGroup, setEditGroup] = useState<string>(FAQ_GROUPS[0] || "Coming to an event now");
   const [editA, setEditA] = useState("");
   const [editQes, setEditQes] = useState("");
   const [editAes, setEditAes] = useState("");
@@ -121,7 +121,7 @@ export default function AdminFaqPage() {
     if (res.success) {
       setComposing(false);
       setDraftQ("");
-      setDraftGroup("Joining");
+      setDraftGroup(FAQ_GROUPS[0] || "Coming to an event now");
       setDraftA("");
       setDraftQes("");
       setDraftAes("");

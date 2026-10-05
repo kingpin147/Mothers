@@ -378,11 +378,11 @@ export function GazetteFeedClient({
               border: "1px solid rgba(57, 41, 42, 0.2)",
               borderRadius: "8px",
               backgroundColor: "#ffffff",
-              padding: "22px",
+              padding: "clamp(16px, 3.5vw, 22px)",
               boxShadow: "0 2px 8px rgba(57, 41, 42, 0.04)",
             }}
           >
-            <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
+            <div style={{ display: "flex", gap: "clamp(10px, 2.5vw, 14px)", alignItems: "flex-start" }}>
               <div
                 style={{
                   flex: "none",
@@ -496,100 +496,120 @@ export function GazetteFeedClient({
                   </div>
                 )}
 
-                {/* Composer Actions */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", justifyContent: "space-between", marginTop: "14px" }}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
-                    <label
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        border: "1px solid rgba(57, 41, 42, 0.25)",
-                        borderRadius: "14px",
-                        padding: "5px 12px",
-                        fontSize: "12.5px",
-                        color: "rgba(57, 41, 42, 0.74)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="14" height="14">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <path d="m21 15-5-5L5 21" />
-                      </svg>
-                      <span>Photo</span>
-                      <input type="file" accept="image/*" multiple onChange={handlePickPhotos} style={{ display: "none" }} />
-                    </label>
+                {/* Topic Pills & Photo Button Row */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginTop: "14px" }}>
+                  <label
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      border: "1px solid rgba(57, 41, 42, 0.25)",
+                      borderRadius: "14px",
+                      padding: "5px 12px",
+                      fontSize: "12.5px",
+                      color: "rgba(57, 41, 42, 0.74)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="14" height="14">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="m21 15-5-5L5 21" />
+                    </svg>
+                    <span>Photo</span>
+                    <input type="file" accept="image/*" multiple onChange={handlePickPhotos} style={{ display: "none" }} />
+                  </label>
 
-                    {COMPOSER_TOPIC_IDS.map((tId) => {
-                      const topicObj = TOPICS.find((t) => t.id === tId);
-                      const isSelected = composerTopic === tId;
-                      return (
-                        <button
-                          key={tId}
-                          type="button"
-                          onClick={() => setComposerTopic(tId)}
-                          style={{
-                            border: isSelected ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.18)",
-                            backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
-                            color: isSelected ? "#7b1f2c" : "#39292a",
-                            borderRadius: "14px",
-                            padding: "5px 12px",
-                            fontFamily: "'Lora', Georgia, serif",
-                            fontSize: "12.5px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {lang === "en" ? topicObj?.labelEn : topicObj?.labelEs}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {COMPOSER_TOPIC_IDS.map((tId) => {
+                    const topicObj = TOPICS.find((t) => t.id === tId);
+                    const isSelected = composerTopic === tId;
+                    return (
+                      <button
+                        key={tId}
+                        type="button"
+                        onClick={() => setComposerTopic(tId)}
+                        style={{
+                          border: isSelected ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.18)",
+                          backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                          color: isSelected ? "#7b1f2c" : "#39292a",
+                          borderRadius: "14px",
+                          padding: "5px 12px",
+                          fontFamily: "'Lora', Georgia, serif",
+                          fontSize: "12.5px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {lang === "en" ? topicObj?.labelEn : topicObj?.labelEs}
+                      </button>
+                    );
+                  })}
+                </div>
 
-                  <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
-                    <label style={{ display: "flex", gap: "6px", alignItems: "center", cursor: "pointer", fontSize: "13px", color: "rgba(57,41,42,0.75)", whiteSpace: "nowrap" }}>
-                      <input
-                        type="checkbox"
-                        checked={isAnon}
-                        onChange={(e) => setIsAnon(e.target.checked)}
-                        style={{ accentColor: "#7b1f2c" }}
-                      />
-                      <span style={{ whiteSpace: "nowrap" }}>{lang === "en" ? "Post anonymously" : "Publicar anónimo"}</span>
-                    </label>
+                {/* Bottom Action Bar: Checkbox & Submit */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: "14px",
+                    paddingTop: "12px",
+                    borderTop: "1px solid rgba(57, 41, 42, 0.08)",
+                  }}
+                >
+                  <label
+                    style={{
+                      display: "inline-flex",
+                      gap: "8px",
+                      alignItems: "center",
+                      cursor: "pointer",
+                      fontSize: "13.5px",
+                      color: "rgba(57, 41, 42, 0.8)",
+                      userSelect: "none",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isAnon}
+                      onChange={(e) => setIsAnon(e.target.checked)}
+                      style={{ accentColor: "#7b1f2c", width: "16px", height: "16px" }}
+                    />
+                    <span>{lang === "en" ? "Post anonymously" : "Publicar anónimo"}</span>
+                  </label>
 
-                    <button
-                      type="button"
-                      disabled={posting}
-                      onClick={handleCreatePost}
-                      style={{
-                        border: "1px solid #7b1f2c",
-                        backgroundColor: isUserSignedIn ? "#7b1f2c" : "transparent",
-                        color: isUserSignedIn ? "#fdf8f2" : "#7b1f2c",
-                        borderRadius: "4px",
-                        padding: "8px 18px",
-                        fontFamily: "'Cormorant Garamond', Georgia, serif",
-                        fontWeight: 600,
-                        fontSize: "15px",
-                        cursor: posting ? "wait" : "pointer",
-                        whiteSpace: "nowrap",
-                        transition: "all 0.15s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isUserSignedIn) {
-                          e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.08)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isUserSignedIn) {
-                          e.currentTarget.style.backgroundColor = "transparent";
-                        }
-                      }}
-                    >
-                      {isUserSignedIn
-                        ? (posting ? "..." : (lang === "en" ? "Post" : "Publicar"))
-                        : (lang === "en" ? "Open an account to post" : "Crear cuenta para publicar")}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    disabled={posting}
+                    onClick={handleCreatePost}
+                    style={{
+                      border: "1px solid #7b1f2c",
+                      backgroundColor: isUserSignedIn ? "#7b1f2c" : "transparent",
+                      color: isUserSignedIn ? "#fdf8f2" : "#7b1f2c",
+                      borderRadius: "4px",
+                      padding: "8px 18px",
+                      fontFamily: "'Cormorant Garamond', Georgia, serif",
+                      fontWeight: 600,
+                      fontSize: "15px",
+                      cursor: posting ? "wait" : "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isUserSignedIn) {
+                        e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.08)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isUserSignedIn) {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }
+                    }}
+                  >
+                    {isUserSignedIn
+                      ? (posting ? "..." : (lang === "en" ? "Post" : "Publicar"))
+                      : (lang === "en" ? "Open an account to post" : "Crear cuenta para publicar")}
+                  </button>
                 </div>
 
                 <div

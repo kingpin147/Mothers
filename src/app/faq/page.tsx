@@ -24,14 +24,14 @@ export default async function FaqPage() {
   const allFaqs =
     publishedFaqs.length > 0
       ? publishedFaqs.map((faq) => ({
-          group: faq.category || "Joining",
+          group: faq.category || faq.groupName || "Coming to an event now",
           qEn: faq.questionEn,
           aEn: faq.answerEn,
           qEs: faq.questionEs && faq.questionEs.trim() ? faq.questionEs : faq.questionEn,
           aEs: faq.answerEs && faq.answerEs.trim() ? faq.answerEs : faq.answerEn,
         }))
       : CANONICAL_FAQS.map((faq) => ({
-          group: faq.group || "Joining",
+          group: faq.group || "Coming to an event now",
           qEn: faq.qEn,
           aEn: faq.aEn,
           qEs: faq.qEs,

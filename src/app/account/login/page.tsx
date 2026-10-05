@@ -214,8 +214,9 @@ function LoginForm() {
     const isFocused = focusedField === fieldName;
     return {
       ...baseInputStyle,
-      borderColor: isFocused ? "#8c6d48" : "rgba(57, 41, 42, 0.22)",
-      boxShadow: isFocused ? "0 0 0 1px rgba(140, 109, 72, 0.25)" : "none",
+      backgroundColor: "#ffffff",
+      borderColor: isFocused ? "#c9a227" : "rgba(57, 41, 42, 0.22)",
+      boxShadow: isFocused ? "0 0 0 2px rgba(201, 162, 39, 0.35)" : "none",
     };
   };
 

@@ -114,7 +114,7 @@ export default function AdminSubscribersPage() {
               The Letter & Subscribers
             </h1>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0 }}>
-              Marketing newsletter subscribers and coming soon waitlist signups with timestamped opt-in consent (§13).
+              Marketing newsletter subscribers and coming soon waitlist signups with timestamped opt-in consent.
             </p>
           </div>
 

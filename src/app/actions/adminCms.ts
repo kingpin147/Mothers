@@ -1014,7 +1014,7 @@ export async function payoutGodmotherReward(referralId: string) {
         referrerMem.personId,
         5,
         "godmother",
-        6,
+        null,
         tx
       );
 
@@ -1050,10 +1050,27 @@ export async function payoutGodmotherReward(referralId: string) {
 export async function getAdminFaqs() {
   await verifyAdminRole();
 
-  const faqs = await db
+  let faqs = await db
     .select()
     .from(faqItem)
     .orderBy(faqItem.sortOrder);
+
+  if (faqs.length === 0) {
+    const { CANONICAL_FAQS } = await import("@/lib/faqData");
+    const seedValues = CANONICAL_FAQS.map((faq, index) => ({
+      groupName: faq.group,
+      category: faq.group,
+      questionEn: faq.qEn,
+      answerEn: faq.aEn,
+      questionEs: faq.qEs,
+      answerEs: faq.aEs,
+      sortOrder: index,
+      active: true,
+      isPublished: true,
+    }));
+    await db.insert(faqItem).values(seedValues);
+    faqs = await db.select().from(faqItem).orderBy(faqItem.sortOrder);
+  }
 
   return { success: true, faqs };
 }
@@ -1080,6 +1097,8 @@ export async function saveFaq(rawData: {
     await verifyAdminRole();
     const grp = data.groupName || data.category || "Coming to an event now";
 
+    const isActive = data.active !== undefined ? data.active : true;
+
     if (data.id) {
       await db
         .update(faqItem)
@@ -1092,7 +1111,8 @@ export async function saveFaq(rawData: {
           answerEs: data.answerEs || "",
           policyQuote: data.policyQuote || null,
           sortOrder: data.sortOrder || 0,
-          active: data.active !== undefined ? data.active : true,
+          active: isActive,
+          isPublished: isActive,
           updatedAt: new Date(),
         })
         .where(eq(faqItem.id, data.id));
@@ -1106,10 +1126,13 @@ export async function saveFaq(rawData: {
         answerEs: data.answerEs || "",
         policyQuote: data.policyQuote || null,
         sortOrder: data.sortOrder || 0,
-        active: data.active !== undefined ? data.active : true,
+        active: isActive,
+        isPublished: isActive,
       });
     }
 
+    revalidatePath("/faq");
+    revalidatePath("/admin/faq");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "SAVE_FAQ_FAILED" };
@@ -1121,8 +1144,10 @@ export async function toggleFaqActive(id: string, active: boolean) {
     await verifyAdminRole();
     await db
       .update(faqItem)
-      .set({ active, updatedAt: new Date() })
+      .set({ active, isPublished: active, updatedAt: new Date() })
       .where(eq(faqItem.id, id));
+    revalidatePath("/faq");
+    revalidatePath("/admin/faq");
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e?.message || "TOGGLE_FAQ_FAILED" };
@@ -1133,6 +1158,8 @@ export async function deleteFaq(id: string) {
   try {
     await verifyAdminRole();
     await db.delete(faqItem).where(eq(faqItem.id, id));
+    revalidatePath("/faq");
+    revalidatePath("/admin/faq");
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e?.message || "DELETE_FAQ_FAILED" };

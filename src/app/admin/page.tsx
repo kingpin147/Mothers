@@ -61,7 +61,7 @@ export default function AdminDashboardPage() {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-    
+
     if (supabaseUrl && supabaseKey) {
       const supabase = createClient(supabaseUrl, supabaseKey, {
         auth: {
@@ -69,7 +69,7 @@ export default function AdminDashboardPage() {
           autoRefreshToken: false,
         },
       });
-      
+
       const channel = supabase
         .channel('admin-dashboard-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'event' }, (payload) => {
@@ -142,7 +142,7 @@ export default function AdminDashboardPage() {
   const applications = data?.applications || [];
   const money = data?.money || [];
   const week = data?.week || [];
-  
+
   const queues = [
     { kicker: 'Queue 01 · Pre-launch desk', title: 'Hosts, attendance, La Gazette, accounts', body: 'Host requests, attendance records, forum moderation and pre-launch accounts.', cta: 'Open the desk', href: '/admin/pre-launch' },
     { kicker: 'Queue 02 · Events', title: 'Calendar & thresholds', body: 'Publish gatherings, set minimums and decision points, confirm or cancel with automatic refunds.', cta: 'Open the calendar', href: '/admin/events' },
@@ -164,7 +164,7 @@ export default function AdminDashboardPage() {
     { label: 'Credit expiry, oldest first', last: 'Runs nightly at 06:00', key: 'expire-credits' },
     { label: 'Godmother credits — referred mother became a member', last: 'Runs nightly at 06:00', key: 'godmother' }
   ];
-  
+
   const stats = data?.stats || [];
   const audit = data?.audit || [
     { who: 'System', did: 'loading / unavailable', change: 'Audit logs could not be loaded.', when: '-', where: '-' }
@@ -173,7 +173,7 @@ export default function AdminDashboardPage() {
   return (
     <>
       <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "clamp(26px,4vw,40px) clamp(18px,4vw,34px) 64px" }}>
-        
+
         {/* TITLE ROW */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "28px" }}>
           <div style={{ flex: "1 1 420px" }}>
@@ -251,8 +251,8 @@ export default function AdminDashboardPage() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
                   <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", color: "#39292a", border: "1px solid rgba(182,130,53,0.65)", borderRadius: "4px", padding: "5px 11px", whiteSpace: "nowrap" }}>{w.group}</span>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => { setActiveDraftWarning(w); setCopiedDraft(false); }}
                     style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "8px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}
                   >
@@ -277,8 +277,8 @@ export default function AdminDashboardPage() {
                     {activeDraftWarning.title}
                   </h3>
                 </div>
-                <button 
-                  onClick={() => setActiveDraftWarning(null)} 
+                <button
+                  onClick={() => setActiveDraftWarning(null)}
                   style={{ background: "transparent", border: "none", fontSize: "20px", cursor: "pointer", color: "rgba(57,41,42,0.6)" }}
                 >
                   ✕
@@ -289,22 +289,22 @@ export default function AdminDashboardPage() {
                 This event is currently at T-10 with {activeDraftWarning.meta}. Send this nudge specifically to the <strong>{activeDraftWarning.group}</strong> WhatsApp thread:
               </p>
 
-              <textarea 
-                readOnly 
+              <textarea
+                readOnly
                 value={activeDraftWarning.draftMessage || `Hi mothers! Quick heads-up: our upcoming "${activeDraftWarning.title}" is coming up in 10 days. We still have a few seats available before threshold decision point. If you'd like to join us, reserve your spot on the platform! ✨`}
                 style={{ width: "100%", height: "120px", padding: "12px", border: "1px solid rgba(57,41,42,0.2)", borderRadius: "6px", fontFamily: "'Lora', serif", fontSize: "13.5px", lineHeight: 1.5, background: "#f8efe2", color: "#39292a", marginBottom: "18px", resize: "none" }}
               />
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setActiveDraftWarning(null)}
                   style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}
                 >
                   Close
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     const text = activeDraftWarning.draftMessage || `Hi mothers! Quick heads-up: our upcoming "${activeDraftWarning.title}" is coming up in 10 days.`;
                     navigator.clipboard.writeText(text);
@@ -322,7 +322,7 @@ export default function AdminDashboardPage() {
 
         {/* 2-COLUMN GRID (Applications / Money) */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: "18px", marginBottom: "18px" }}>
-          
+
           <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#fffdfa", padding: "clamp(18px,2.4vw,24px)" }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "5px" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: "11px" }}>

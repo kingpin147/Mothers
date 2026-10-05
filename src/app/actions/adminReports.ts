@@ -88,7 +88,7 @@ export async function getAdminReports(): Promise<ReportItem[]> {
   return items;
 }
 
-export async function updateReportStatus(reportId: string, status: "resolved_hidden" | "resolved_dismissed") {
+export async function updateReportStatus(reportId: string, status: "open" | "resolved_hidden" | "resolved_dismissed") {
   await verifyAdminSession();
 
   await db
@@ -100,6 +100,7 @@ export async function updateReportStatus(reportId: string, status: "resolved_hid
     .where(eq(circleReport.id, reportId));
 
   revalidatePath("/admin/reports");
+  revalidatePath("/admin/pre-launch");
   return { success: true };
 }
 

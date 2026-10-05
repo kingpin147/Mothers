@@ -197,7 +197,7 @@ async function handleTopUpCheckout({
     });
     if (!pRecord) return null;
 
-    const gResult = await grantCreditsToPerson(personId, creditAmount, "topup", 6, tx);
+    const gResult = await grantCreditsToPerson(personId, creditAmount, "topup", null, tx);
 
     await tx.insert(payment).values({
       personId,
@@ -594,7 +594,7 @@ async function handleMembershipCheckout({
     if (godmotherPersonId && !personRecord.godmotherRewardedAt) {
       const bonusCredits = clubSettings.referralBonusCredits || 5;
 
-      await grantCreditsToPerson(godmotherPersonId, bonusCredits, "godmother", 6, tx);
+      await grantCreditsToPerson(godmotherPersonId, bonusCredits, "godmother", null, tx);
 
       // Mark person as rewarded so re-subscribing won't double pay (F-10)
       await tx

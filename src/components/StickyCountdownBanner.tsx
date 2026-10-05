@@ -138,8 +138,8 @@ export function StickyCountdownBanner() {
   })();
 
   const mobileLaunchText = lang === "en"
-    ? `OPENS ${shortMonthStr.toUpperCase()}`
-    : `ABRE ${shortMonthStr.toUpperCase()}`;
+    ? `MEMBERSHIP OPENS IN ${shortMonthStr.toUpperCase()}`
+    : `MEMBRESÍA A PARTIR DE ${shortMonthStr.toUpperCase()}`;
 
   const mobileTimeText = `${timeLeft.days}d · ${pad(timeLeft.hours)}h · ${pad(timeLeft.minutes)}m`;
 
@@ -152,10 +152,11 @@ export function StickyCountdownBanner() {
           display: "none",
           backgroundColor: "#39292a",
           color: "#f8efe2",
-          padding: "8px clamp(16px, 5vw, 24px)",
+          padding: "8px clamp(12px, 3.5vw, 20px)",
           borderBottom: "1px solid rgba(201, 162, 39, 0.2)",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: "8px",
           width: "100%",
           boxSizing: "border-box",
         }}
@@ -164,11 +165,14 @@ export function StickyCountdownBanner() {
           style={{
             fontFamily: "'Cormorant Garamond', Georgia, serif",
             fontWeight: 600,
-            fontSize: "12px",
-            letterSpacing: "0.14em",
+            fontSize: "clamp(10.5px, 2.8vw, 12px)",
+            letterSpacing: "0.1em",
             textTransform: "uppercase",
             color: "#c9a227",
-            lineHeight: 1,
+            lineHeight: 1.2,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {mobileLaunchText}
@@ -178,11 +182,13 @@ export function StickyCountdownBanner() {
           style={{
             fontFamily: "'Cormorant Garamond', Georgia, serif",
             fontWeight: 500,
-            fontSize: "13.5px",
-            letterSpacing: "0.06em",
+            fontSize: "clamp(12px, 3vw, 13.5px)",
+            letterSpacing: "0.05em",
             color: "rgba(248, 239, 226, 0.92)",
             fontFeatureSettings: "'tnum'",
-            lineHeight: 1,
+            lineHeight: 1.2,
+            whiteSpace: "nowrap",
+            flexShrink: 0,
           }}
         >
           {mounted ? mobileTimeText : "--d · --h · --m"}
@@ -541,6 +547,14 @@ export function StickyCountdownBanner() {
                   placeholder={lang === "en" ? "Your email address" : "Tu correo electrónico"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#c9a227";
+                    e.currentTarget.style.boxShadow = "0 0 0 2px rgba(201, 162, 39, 0.35)";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
                   style={{
                     width: "100%",
                     padding: "12px 14px",
@@ -552,6 +566,7 @@ export function StickyCountdownBanner() {
                     fontFamily: "'Lora', Georgia, serif",
                     outline: "none",
                     boxSizing: "border-box",
+                    transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                   }}
                 />
 

@@ -7,6 +7,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getMyCredits } from "@/app/actions/memberAccount";
 import { StickyCountdownBanner } from "@/components/StickyCountdownBanner";
+import { AdminModeBanner } from "@/components/AdminModeBanner";
 
 export function Navigation() {
   const pathname = usePathname();
@@ -20,9 +21,9 @@ export function Navigation() {
   const [leadLoading, setLeadLoading] = useState(false);
   const [leadMsg, setLeadMsg] = useState("");
   const stickyContainerRef = useRef<HTMLDivElement>(null);
-  const [navTotalHeight, setNavTotalHeight] = useState(102);
+  const [navTotalHeight, setNavTotalHeight] = useState(74);
 
-  // Measure combined height of sticky container (header + countdown banner)
+  // Measure height of sticky header
   useEffect(() => {
     const updateHeight = () => {
       if (stickyContainerRef.current) {
@@ -65,7 +66,7 @@ export function Navigation() {
     const role = (session?.user as any)?.role;
     const isAdminUser = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
     if (session?.user && !isAdminUser) {
-      getMyCredits().then(({ balance }) => setMemberCredits(balance)).catch(() => {});
+      getMyCredits().then(({ balance }) => setMemberCredits(balance)).catch(() => { });
     } else {
       setMemberCredits(null);
     }
@@ -143,25 +144,19 @@ export function Navigation() {
   const isAdminRoute = pathname?.startsWith("/admin");
 
   return (
-    <div
-      ref={stickyContainerRef}
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 1000,
-        transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-        transition: "transform 0.3s ease, box-shadow 0.2s ease",
-        boxShadow: scrolled ? "0 4px 20px rgba(57, 41, 42, 0.08)" : "none",
-      }}
-    >
+    <>
       <header
+        ref={stickyContainerRef}
         className="site-header-container"
         style={{
-          position: "relative",
-          zIndex: 1001,
+          position: "sticky",
+          top: 0,
+          zIndex: 1000,
           padding: "16px clamp(20px, 5vw, 64px)",
           borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
           backgroundColor: isEventsPage ? "var(--color-bg-events, #fefdf9)" : "var(--color-bg, #fdf8f2)",
+          boxShadow: scrolled ? "0 4px 20px rgba(57, 41, 42, 0.08)" : "none",
+          transition: "box-shadow 0.2s ease, background-color 0.2s ease",
         }}
       >
         <div
@@ -350,8 +345,8 @@ export function Navigation() {
         </div>
       </header>
 
-      {/* Sticky Countdown Banner (Always pinned below header, renders desktop or mobile strip) */}
-      <StickyCountdownBanner />
+      {/* Public pages: countdown banner. Admin pages: pre-membership mode banner. */}
+      {isAdminRoute ? <AdminModeBanner /> : <StickyCountdownBanner />}
 
       {/* Mobile Drawer Overlay: Below Banner, matching client design */}
       {mobileMenuOpen && (
@@ -646,11 +641,22 @@ export function Navigation() {
                 placeholder={lang === "en" ? "Your email address" : "Tu correo electrónico"}
                 value={leadEmail}
                 onChange={(e) => setLeadEmail(e.target.value)}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#c9a227";
+                  e.currentTarget.style.boxShadow = "0 0 0 2px rgba(201, 162, 39, 0.35)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(57,41,42,0.3)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
                 style={{
                   padding: "10px 12px",
                   borderRadius: "4px",
                   border: "1px solid rgba(57,41,42,0.3)",
+                  backgroundColor: "#ffffff",
                   fontSize: "14px",
+                  outline: "none",
+                  transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                 }}
               />
               {leadMsg && <div style={{ color: "#993842", fontSize: "12px" }}>{leadMsg}</div>}
@@ -718,6 +724,6 @@ export function Navigation() {
           }
         }
       `}</style>
-    </div>
+    </>
   );
 }

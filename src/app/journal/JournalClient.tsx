@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Locale } from "@/lib/i18n";
-import { JOURNAL_CATEGORIES, getCategoryLabel, normalizeCategoryId } from "@/lib/journalCategories";
+import { normalizeCategoryId } from "@/lib/journalCategories";
 
 /* ─── Article Data Model ──────────────────────────────────── */
 
@@ -133,14 +132,27 @@ const STATIC_FALLBACKS: PublicArticle[] = [
   },
 ];
 
-const DEFAULT_IMAGES = [
-  "/assets/journal-doula.jpg",
-  "/assets/journal-friends.jpg",
-  "/assets/journal-sleep.jpg",
-  "/assets/journal-feeding.jpg",
-  "/assets/journal-yoga.jpg",
-  "/assets/journal-work.jpg",
-];
+const CAT_ORDER = ["all", "postpartum", "feeding", "sleep", "body", "friendship", "work"];
+
+const CATS_EN: Record<string, string> = {
+  all: "Everything",
+  postpartum: "Postpartum",
+  feeding: "Feeding",
+  sleep: "Sleep",
+  body: "Body & pregnancy",
+  friendship: "Friendship",
+  work: "Work",
+};
+
+const CATS_ES: Record<string, string> = {
+  all: "Todo",
+  postpartum: "Posparto",
+  feeding: "Lactancia",
+  sleep: "Sueño",
+  body: "Cuerpo y embarazo",
+  friendship: "Amistad",
+  work: "Trabajo",
+};
 
 interface JournalClientProps {
   dynamicArticles?: PublicArticle[];
@@ -160,27 +172,14 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
 
-  // Only display real articles published in the database
-  const allArticles: PublicArticle[] = dynamicArticles;
+  const allArticles: PublicArticle[] =
+    dynamicArticles.length > 0 ? dynamicArticles : STATIC_FALLBACKS;
 
   // Category filter
   const filtered =
     selectedCat === "all"
       ? allArticles
       : allArticles.filter((a) => normalizeCategoryId(a.cat) === normalizeCategoryId(selectedCat));
-
-  const featured = filtered.length > 0 ? filtered[0] : null;
-  const gridArticles = filtered.length > 1 ? filtered.slice(1) : [];
-
-  // Category Chips
-  const categoryChips = [
-    { id: "all", labelEn: "Everything", labelEs: "Todo" },
-    ...JOURNAL_CATEGORIES.map((c) => ({
-      id: c.id,
-      labelEn: c.labelEn,
-      labelEs: c.labelEs,
-    })),
-  ];
 
   return (
     <div
@@ -201,7 +200,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
       >
         <div
           style={{
-            fontFamily: "'Cormorant Garamond', serif",
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
             fontWeight: 600,
             fontSize: "13px",
             letterSpacing: "0.14em",
@@ -214,7 +213,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
         </div>
         <h1
           style={{
-            fontFamily: "'Cormorant Garamond', serif",
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
             fontWeight: 400,
             fontSize: "clamp(32px, 4.4vw, 52px)",
             lineHeight: 1.1,
@@ -239,294 +238,190 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
             ? "Free to read, no account needed. A small library of practical answers from the midwives, doulas, consultants and mothers we actually work with — written for the questions people ask at three in the morning."
             : "De lectura libre, sin necesidad de cuenta. Una pequeña biblioteca de respuestas prácticas de las matronas, doulas, asesoras y madres con las que trabajamos — escritas para las preguntas que aparecen a las tres de la mañana."}
         </p>
-      </section>
-
-      {/* ─── Category Chips ────────────────────────────────── */}
-      <section
-        style={{
-          maxWidth: "1160px",
-          margin: "0 auto",
-          padding: "0 clamp(24px, 5vw, 64px) clamp(20px, 3vw, 32px)",
-        }}
-      >
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-          {categoryChips.map((chip) => {
-            const isSelected = selectedCat === chip.id;
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "26px" }}>
+          {CAT_ORDER.map((k) => {
+            const isSelected = selectedCat === k;
             return (
               <button
-                key={chip.id}
+                key={k}
                 type="button"
-                onClick={() => setSelectedCat(chip.id)}
+                onClick={() => setSelectedCat(k)}
                 style={{
-                  border: isSelected
-                    ? "1px solid #7b1f2c"
-                    : "1px solid rgba(57, 41, 42, 0.22)",
-                  color: isSelected ? "#f8efe2" : "#39292a",
-                  backgroundColor: isSelected ? "#7b1f2c" : "transparent",
-                  padding: "7px 16px",
-                  borderRadius: "20px",
-                  fontSize: "12.5px",
+                  border: isSelected ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.25)",
+                  background: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                  color: isSelected ? "#7b1f2c" : "#39292a",
+                  borderRadius: "16px",
+                  padding: "8px 16px",
                   fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "13.5px",
                   cursor: "pointer",
-                  whiteSpace: "nowrap",
                   transition: "all 0.15s ease",
                 }}
               >
-                {lang === "en" ? chip.labelEn : chip.labelEs}
+                {lang === "en" ? CATS_EN[k] : CATS_ES[k]}
               </button>
             );
           })}
         </div>
       </section>
 
-      {/* ─── Articles Listing ──────────────────────────────── */}
+      {/* ─── Articles Listing (Claude 3-Column Grid) ────────── */}
       <section
         style={{
           maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(20px, 3vw, 32px) clamp(24px, 5vw, 64px) clamp(48px, 6vw, 72px)",
+          padding: "clamp(22px, 3vw, 34px) clamp(20px, 5vw, 64px) clamp(46px, 6vw, 76px)",
         }}
       >
-        {filtered.length === 0 ? (
-          <p style={{ fontSize: "15px", color: "rgba(57, 41, 42, 0.6)", margin: "40px 0" }}>
-            {lang === "en"
-              ? "Nothing here yet — try another category."
-              : "Aquí todavía no hay nada — prueba otra categoría."}
-          </p>
-        ) : (
-          <>
-            {/* ─── Featured Article ─── */}
-            {featured && (
-              <article
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
+            gap: "26px",
+          }}
+        >
+          {filtered.map((p, idx) => (
+            <div key={p.id || p.slug || idx} style={{ display: "flex", flexDirection: "column" }}>
+              <Link
+                href={`/journal/${p.slug || p.id}`}
                 style={{
+                  border: "none",
+                  background: "transparent",
+                  padding: 0,
+                  cursor: "pointer",
+                  textAlign: "left",
                   display: "flex",
-                  flexWrap: "wrap",
-                  gap: "clamp(24px, 4vw, 48px)",
-                  alignItems: "stretch",
-                  borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
-                  paddingBottom: "clamp(32px, 4vw, 48px)",
-                  marginBottom: "clamp(32px, 4vw, 48px)",
+                  flexDirection: "column",
+                  textDecoration: "none",
+                  color: "inherit",
+                  height: "100%",
                 }}
               >
                 <div
                   style={{
-                    flex: "1 1 380px",
-                    minWidth: "280px",
-                    position: "relative",
-                    borderRadius: "6px",
-                    overflow: "hidden",
-                    height: "clamp(240px, 28vw, 340px)",
-                    backgroundColor: "rgba(57, 41, 42, 0.08)",
+                    background: "#ecdcd0",
+                    padding: "6px",
+                    borderRadius: "5px",
+                    marginBottom: "14px",
                   }}
                 >
-                  <img
-                    src={featured.image || DEFAULT_IMAGES[0]}
-                    alt={featured.imageAlt || (lang === "en" ? featured.titleEn : featured.titleEs)}
+                  <div
                     style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      display: "block",
+                      border: "1px solid rgba(57, 41, 42, 0.16)",
+                      borderRadius: "3px",
+                      overflow: "hidden",
+                      height: "190px",
+                      backgroundColor: "#ecdcd0",
+                      position: "relative",
                     }}
-                  />
+                  >
+                    {p.image ? (
+                      <img
+                        src={p.image}
+                        alt={p.imageAlt || (lang === "en" ? p.titleEn : p.titleEs)}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "16px",
+                          textAlign: "center",
+                          color: "rgba(57, 41, 42, 0.6)",
+                          fontSize: "13px",
+                        }}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.4"
+                          width="28"
+                          height="28"
+                          style={{ marginBottom: "8px", opacity: 0.7 }}
+                        >
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                        <span>{lang === "en" ? p.titleEn : p.titleEs}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div
                   style={{
-                    flex: "1 1 380px",
-                    minWidth: "280px",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
+                    fontSize: "11.5px",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#7b1f2c",
+                    marginBottom: "8px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontWeight: 600,
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "10px",
-                      alignItems: "center",
-                      marginBottom: "14px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        color: "#7b1f2c",
-                        border: "1px solid rgba(123, 31, 44, 0.35)",
-                        borderRadius: "12px",
-                        padding: "4px 11px",
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {getCategoryLabel(featured.cat, lang)}
-                    </span>
-                    <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.5)" }}>
-                      {lang === "en" ? featured.readEn : featured.readEs}
-                    </span>
-                  </div>
-
-                  <h2
-                    style={{
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontWeight: 500,
-                      fontSize: "clamp(28px, 3.4vw, 40px)",
-                      lineHeight: 1.12,
-                      margin: "0 0 14px",
-                      textWrap: "pretty",
-                    }}
-                  >
-                    {lang === "en" ? featured.titleEn : featured.titleEs}
-                  </h2>
-
-                  <p
-                    style={{
-                      fontSize: "16px",
-                      lineHeight: 1.7,
-                      color: "rgba(57, 41, 42, 0.72)",
-                      margin: "0 0 22px",
-                      maxWidth: "34em",
-                      textWrap: "pretty",
-                    }}
-                  >
-                    {lang === "en" ? featured.dekEn : featured.dekEs}
-                  </p>
-
-                  <Link
-                    href={`/journal/${featured.slug || featured.id}`}
-                    style={{
-                      alignSelf: "flex-start",
-                      border: "1px solid #7b1f2c",
-                      color: "#7b1f2c",
-                      backgroundColor: "transparent",
-                      padding: "12px 24px",
-                      borderRadius: "4px",
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontWeight: 600,
-                      fontSize: "15px",
-                      textDecoration: "none",
-                      display: "inline-block",
-                    }}
-                  >
-                    {lang === "en" ? "Read" : "Leer"}
-                  </Link>
+                  {lang === "en"
+                    ? CATS_EN[normalizeCategoryId(p.cat)] || p.cat
+                    : CATS_ES[normalizeCategoryId(p.cat)] || p.cat}
                 </div>
-              </article>
-            )}
 
-            {/* ─── Grid Articles ─── */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                gap: "clamp(24px, 3vw, 40px)",
-              }}
-            >
-              {gridArticles.map((p, idx) => (
-                <article
-                  key={p.id || idx}
-                  style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+                <h2
+                  style={{
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontWeight: 600,
+                    fontSize: "21px",
+                    lineHeight: 1.25,
+                    margin: "0 0 8px",
+                    color: "#39292a",
+                  }}
                 >
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "200px",
-                      borderRadius: "4px",
-                      overflow: "hidden",
-                      backgroundColor: "rgba(57, 41, 42, 0.08)",
-                    }}
-                  >
-                    <img
-                      src={p.image || DEFAULT_IMAGES[(idx + 1) % DEFAULT_IMAGES.length]}
-                      alt={p.imageAlt || (lang === "en" ? p.titleEn : p.titleEs)}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        display: "block",
-                      }}
-                    />
-                  </div>
+                  {lang === "en" ? p.titleEn : p.titleEs}
+                </h2>
 
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        color: "#7b1f2c",
-                        fontFamily: "'Cormorant Garamond', serif",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {getCategoryLabel(p.cat, lang)}
-                    </span>
-                    <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.5)" }}>
-                      {lang === "en" ? p.readEn : p.readEs}
-                    </span>
-                  </div>
+                <p
+                  style={{
+                    fontSize: "14.5px",
+                    lineHeight: 1.6,
+                    color: "rgba(57, 41, 42, 0.74)",
+                    margin: "0 0 10px",
+                    flex: 1,
+                  }}
+                >
+                  {lang === "en" ? p.dekEn : p.dekEs}
+                </p>
 
-                  <h3
-                    style={{
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontWeight: 600,
-                      fontSize: "23px",
-                      lineHeight: 1.2,
-                      margin: 0,
-                      textWrap: "pretty",
-                    }}
-                  >
-                    {lang === "en" ? p.titleEn : p.titleEs}
-                  </h3>
-
-                  <p
-                    style={{
-                      fontSize: "14.5px",
-                      lineHeight: 1.65,
-                      color: "rgba(57, 41, 42, 0.7)",
-                      margin: 0,
-                      textWrap: "pretty",
-                    }}
-                  >
-                    {lang === "en" ? p.dekEn : p.dekEs}
-                  </p>
-
-                  <Link
-                    href={`/journal/${p.slug || p.id}`}
-                    style={{
-                      alignSelf: "flex-start",
-                      color: "#7b1f2c",
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontWeight: 600,
-                      fontSize: "14.5px",
-                      padding: 0,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "7px",
-                      textDecoration: "none",
-                    }}
-                  >
-                    <span>{lang === "en" ? "Read" : "Leer"}</span>
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      width="14"
-                      height="14"
-                    >
-                      <path d="M5 12h14M13 6l6 6-6 6" />
-                    </svg>
-                  </Link>
-                </article>
-              ))}
+                <div
+                  style={{
+                    fontSize: "12.5px",
+                    color: "rgba(57, 41, 42, 0.72)",
+                    fontFeatureSettings: "'tnum'",
+                    fontFamily: "'Lora', Georgia, serif",
+                  }}
+                >
+                  {lang === "en" ? p.dateEn : p.dateEs} · {lang === "en" ? p.readEn : p.readEs}
+                </div>
+              </Link>
             </div>
-          </>
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <p style={{ fontSize: "15.5px", color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
+            {lang === "en"
+              ? "Nothing here yet — try another category."
+              : "Aquí todavía no hay nada — prueba otra categoría."}
+          </p>
         )}
       </section>
     </div>

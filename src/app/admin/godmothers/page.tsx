@@ -55,7 +55,7 @@ export default function AdminGodmothersPage() {
               Godmother Referrals & Rewards
             </h1>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0 }}>
-              Automatic referral program (§13). 5 credits on friend join, 15 credits at 3-month milestone. 1-click reward ledger grant.
+              Automatic referral program. 5 credits on friend join, 15 credits at 3-month milestone. 1-click reward ledger grant.
             </p>
           </div>
 

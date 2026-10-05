@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useSession } from "next-auth/react";
+import { ListButton } from "@/components/ListButton";
 
 function calculateTimeLeft(targetMs: number) {
   const now = new Date().getTime();
@@ -359,184 +360,7 @@ export default function MembershipClient({
 
           {/* CTAs */}
           <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "flex-start", width: "100%" }}>
-            {!inlineJoinOpen ? (
-              waitlisted ? (
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    border: "1px solid #568b05",
-                    background: "rgba(86,139,5,0.08)",
-                    color: "#3b5e04",
-                    borderRadius: "4px",
-                    padding: "11px 18px",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "15.5px",
-                  }}
-                >
-                  <span>{isEn ? "✓ You're on the list" : "✓ Estás en la lista"}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWaitlisted(false);
-                      localStorage.removeItem("tm_pre_joined_list");
-                      setInlineJoinOpen(true);
-                    }}
-                    title={isEn ? "Close / join again" : "Cerrar / unirte de nuevo"}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#3b5e04",
-                      cursor: "pointer",
-                      padding: "2px 4px",
-                      fontSize: "14px",
-                      lineHeight: 1,
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (session?.user?.email) {
-                      setLoading(true);
-                      try {
-                        await fetch("/api/leads", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ email: session.user.email, source: "membership_hero_signed_in" }),
-                        });
-                        setWaitlisted(true);
-                        localStorage.setItem("tm_pre_joined_list", "true");
-                      } catch {}
-                      setLoading(false);
-                    } else {
-                      setInlineJoinOpen(true);
-                    }
-                  }}
-                  style={{
-                    border: "1px solid #7b1f2c",
-                    background: "transparent",
-                    color: "#7b1f2c",
-                    borderRadius: "4px",
-                    padding: "11px 22px",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "15.5px",
-                    whiteSpace: "nowrap",
-                    cursor: "pointer",
-                    transition: "background 0.2s ease",
-                  }}
-                >
-                  {isEn ? "Join the list" : "Únete a la lista"}
-                </button>
-              )
-            ) : (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (!email || !email.includes("@")) {
-                    setErrorMsg(isEn ? "Please enter a valid email." : "Introduce un correo válido.");
-                    return;
-                  }
-                  setLoading(true);
-                  setErrorMsg("");
-                  try {
-                    const res = await fetch("/api/leads", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ email, source: "membership_page_hero_inline" }),
-                    });
-                    if (!res.ok) throw new Error("Failed");
-                    setWaitlisted(true);
-                    localStorage.setItem("tm_pre_joined_list", "true");
-                    setInlineJoinOpen(false);
-                  } catch {
-                    setErrorMsg(isEn ? "Something went wrong." : "Algo ha fallado.");
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", maxWidth: "100%" }}
-              >
-                <input
-                  type="email"
-                  required
-                  autoFocus
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setErrorMsg("");
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setInlineJoinOpen(false);
-                      setEmail("");
-                      setErrorMsg("");
-                    }
-                  }}
-                  placeholder={isEn ? "you@email.com" : "tu@correo.com"}
-                  style={{
-                    padding: "9px 14px",
-                    border: "1px solid rgba(57, 41, 42, 0.28)",
-                    borderRadius: "4px",
-                    fontFamily: "'Lora', Georgia, serif",
-                    fontSize: "14px",
-                    outline: "none",
-                    width: "220px",
-                    maxWidth: "240px",
-                    backgroundColor: "#ffffff",
-                    color: "#39292a",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    border: "1px solid #7b1f2c",
-                    background: "#7b1f2c",
-                    color: "#f8efe2",
-                    padding: "9px 18px",
-                    borderRadius: "4px",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "15px",
-                    cursor: loading ? "wait" : "pointer",
-                  }}
-                >
-                  {loading ? "..." : (isEn ? "Join" : "Unirme")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInlineJoinOpen(false);
-                    setEmail("");
-                    setErrorMsg("");
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "rgba(57, 41, 42, 0.65)",
-                    textDecoration: "underline",
-                    fontSize: "13.5px",
-                    cursor: "pointer",
-                    padding: "4px",
-                  }}
-                >
-                  {isEn ? "Cancel" : "Cancelar"}
-                </button>
-                {errorMsg && (
-                  <div style={{ width: "100%", fontSize: "12px", color: "#993842", marginTop: "2px" }}>
-                    {errorMsg}
-                  </div>
-                )}
-              </form>
-            )}
+            <ListButton tone="outline" source="membership_page_hero" />
 
             <Link
               href="/events"
@@ -592,7 +416,7 @@ export default function MembershipClient({
           </div>
 
           {/* Pricing Row */}
-          <div style={{ borderTop: "1px solid rgba(248,239,226,0.28)", borderBottom: "1px solid rgba(248,239,226,0.28)", padding: "18px 0 16px", marginBottom: "16px" }}>
+          <div style={{ borderBottom: "1px solid rgba(248,239,226,0.28)", padding: "0 0 16px", marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
               <span
                 style={{
@@ -1266,6 +1090,14 @@ export default function MembershipClient({
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = "#c9a227";
+                      e.currentTarget.style.boxShadow = "0 0 0 2px rgba(201, 162, 39, 0.35)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
                     placeholder={isEn ? "Your name (optional)" : "Tu nombre (opcional)"}
                     style={{
                       border: "1px solid rgba(57, 41, 42, 0.24)",
@@ -1276,6 +1108,7 @@ export default function MembershipClient({
                       backgroundColor: "#ffffff",
                       color: "#39292a",
                       outline: "none",
+                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                     }}
                   />
                   <input
@@ -1283,6 +1116,14 @@ export default function MembershipClient({
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = "#c9a227";
+                      e.currentTarget.style.boxShadow = "0 0 0 2px rgba(201, 162, 39, 0.35)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
                     placeholder={isEn ? "Your email address" : "Tu dirección de correo"}
                     style={{
                       border: "1px solid rgba(57, 41, 42, 0.24)",
@@ -1293,6 +1134,7 @@ export default function MembershipClient({
                       backgroundColor: "#ffffff",
                       color: "#39292a",
                       outline: "none",
+                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                     }}
                   />
 

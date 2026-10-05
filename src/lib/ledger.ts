@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { creditBatch, person, member, booking, auditLog, event as eventTable } from "@/db/schema";
+import { creditBatch, person, member, booking, auditLog, event as eventTable, setting } from "@/db/schema";
 import { eq, and, sql, asc, desc, gt, lte } from "drizzle-orm";
 import { queueAndSendEmail } from "@/lib/brevo";
 import { getAppUrl } from "@/lib/urls";
@@ -72,17 +72,30 @@ export async function getPersonWalletBalance(
 
 // ─── 2. GRANT CREDITS TO PERSON WALLET ───────────────────────────────────────
 
+// Reads the credit life from Admin Settings. Godmother credits have their own setting.
+async function resolveValidityMonths(source: string, txOrDb: any): Promise<number> {
+  const key = source === "godmother" ? "godmother_bonus_life" : "credit_life_months";
+  try {
+    const [row] = await txOrDb.select().from(setting).where(eq(setting.key, key)).limit(1);
+    const n = Number(row?.value);
+    return Number.isFinite(n) && n > 0 ? n : 6;
+  } catch {
+    return 6;
+  }
+}
+
 export async function grantCreditsToPerson(
   personId: string,
   amount: number,
   source: "topup" | "subscription" | "godmother" | "host_reward" | "admin_adjustment" | "refund",
-  validityMonths: number = 6,
+  validityMonths: number | null = null,
   txOrDb: any = db
 ): Promise<{ batchId: string; amount: number; expiresAt: Date }> {
   if (amount <= 0) throw new Error("GRANT_AMOUNT_MUST_BE_POSITIVE");
 
+  const months = validityMonths ?? (await resolveValidityMonths(source, txOrDb));
   const expiresAt = new Date();
-  expiresAt.setMonth(expiresAt.getMonth() + validityMonths);
+  expiresAt.setMonth(expiresAt.getMonth() + months);
 
   const [inserted] = await txOrDb
     .insert(creditBatch)

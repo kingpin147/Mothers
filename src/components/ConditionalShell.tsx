@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { CookieBanner } from "@/components/CookieBanner";
+import { FirstVisitProfileModal } from "@/components/FirstVisitProfileModal";
 
 const STANDALONE_PATHS = ["/coming-soon"];
 
@@ -37,6 +38,7 @@ export default function ConditionalShell({
     >
       <Navigation />
       <main style={{ flex: 1 }}>{children}</main>
+      {!isAdminPage && <FirstVisitProfileModal />}
       {!isAdminPage && <Footer />}
       {!isAdminPage && <CookieBanner />}
     </div>

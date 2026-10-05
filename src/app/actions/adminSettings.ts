@@ -52,6 +52,7 @@ export async function getPublicClubSettings() {
       quarterlyCreditsGranted: Number(settingsMap["quarterly_grant_credits"] ?? 60),
       monthlyGrantCredits: Number(settingsMap["monthly_grant_credits"] ?? 20),
       quarterlyGrantCredits: Number(settingsMap["quarterly_grant_credits"] ?? 60),
+      creditLifeMonths: Number(settingsMap["credit_life_months"] ?? 6),
     };
   } catch {
     return {
@@ -67,6 +68,7 @@ export async function getPublicClubSettings() {
       quarterlyCreditsGranted: 60,
       monthlyGrantCredits: 20,
       quarterlyGrantCredits: 60,
+      creditLifeMonths: 6,
     };
   }
 }

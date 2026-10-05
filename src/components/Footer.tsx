@@ -121,6 +121,14 @@ export function Footer() {
                       setEmail(e.target.value);
                       if (errorMsg) setErrorMsg("");
                     }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = "#c9a227";
+                      e.currentTarget.style.boxShadow = "0 0 0 2px rgba(201, 162, 39, 0.35)";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.28)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
                     placeholder={lang === "en" ? "you@email.com" : "tu@correo.com"}
                     style={{
                       flex: "1 1 auto",
@@ -134,6 +142,7 @@ export function Footer() {
                       color: "#39292a",
                       outline: "none",
                       boxSizing: "border-box",
+                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                     }}
                   />
                   <button

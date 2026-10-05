@@ -46,6 +46,8 @@ export default function EventDetailPage() {
   const [isAlreadyWaitlisted, setIsAlreadyWaitlisted] = useState(false);
   const [userWaitlistPos, setUserWaitlistPos] = useState<number | null>(null);
   const [isLive, setIsLive] = useState(false);
+  const [launchAt, setLaunchAt] = useState<Date | null>(null);
+  const [creditLifeMonths, setCreditLifeMonths] = useState<number>(6);
 
   useEffect(() => {
     const saved = localStorage.getItem("tm_lang");
@@ -54,6 +56,11 @@ export default function EventDetailPage() {
     import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
       getPublicClubSettings().then((s) => {
         if (s.membershipLive) setIsLive(true);
+        if (s.creditLifeMonths && s.creditLifeMonths > 0) setCreditLifeMonths(s.creditLifeMonths);
+        if (s.expectedLaunch) {
+          const d = new Date(s.expectedLaunch);
+          if (!isNaN(d.getTime())) setLaunchAt(d);
+        }
       }).catch(() => {});
     });
   }, []);
@@ -444,22 +451,31 @@ export default function EventDetailPage() {
         <aside style={{ flex: "0 1 330px", minWidth: "270px", position: "sticky", top: "90px" }}>
           <div style={{ border: "1px solid rgba(57, 41, 42, 0.2)", borderRadius: "8px", background: "#ffffff", padding: "24px" }}>
             {/* Price Row */}
-            <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "6px" }}>
-              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "44px", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
-                {isFree || viewerCost === 0
-                  ? (lang === "en" ? "0 credits" : "0 créditos")
-                  : `${viewerCost} ${viewerCost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}`}
-              </span>
-              {viewerCost > 0 && (
-                <span style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.72)" }}>
-                  (€{viewerCost * 2})
-                </span>
-              )}
-            </div>
+            {(() => {
+              const cost = isFree ? 0 : viewerCost;
+              return (
+                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "6px" }}>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "44px", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
+                    {cost === 0 ? (lang === "en" ? "Free" : "Gratis") : cost}
+                  </span>
+                  {cost > 0 && (
+                    <span style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.72)" }}>
+                      {cost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
             <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.72)", marginBottom: "18px" }}>
-              {isFree || viewerCost === 0
-                ? (lang === "en" ? "No credits required for this gathering." : "No se requieren créditos para este encuentro.")
-                : (lang === "en" ? "€2 per credit · buy as you go" : "2€ por crédito · compra según necesites")}
+              {(() => {
+                const m = creditLifeMonths;
+                const en = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+                const es = ["", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce"];
+                const word = (lang === "en" ? en : es)[m] || String(m);
+                return lang === "en"
+                  ? `Credits last ${word} ${m === 1 ? "month" : "months"}.`
+                  : `Los créditos duran ${word} ${m === 1 ? "mes" : "meses"}.`;
+              })()}
             </div>
 
             {/* Status Line */}
@@ -468,9 +484,12 @@ export default function EventDetailPage() {
                 ? (lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas")
                 : isFull
                 ? (lang === "en" ? "Full" : "Completo")
-                : (lang === "en"
-                    ? `${ev.capacityRemaining ?? ev.capacityTotal ?? 12} places left`
-                    : `Quedan ${ev.capacityRemaining ?? ev.capacityTotal ?? 12} plazas`)}
+                : (() => {
+                    const left = ev.capacityRemaining ?? ev.capacityTotal ?? 0;
+                    const total = ev.capacityTotal;
+                    if (total) return lang === "en" ? `${left} of ${total} places left` : `Quedan ${left} de ${total} plazas`;
+                    return lang === "en" ? `${left} places left` : `Quedan ${left} plazas`;
+                  })()}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12.5px", color: "rgba(57, 41, 42, 0.74)", marginBottom: "14px" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flex: "none" }}>
@@ -567,11 +586,7 @@ export default function EventDetailPage() {
                 >
                   {actionLoading
                     ? (lang === "en" ? "Booking…" : "Reservando…")
-                    : isOpenList
-                    ? (lang === "en" ? "Join the list" : "Unirme a la lista")
-                    : isFree
-                    ? (lang === "en" ? "Book place — free" : "Reservar plaza — gratis")
-                    : (lang === "en" ? `Book with ${viewerCost} credits` : `Reservar con ${viewerCost} créditos`)}
+                    : (lang === "en" ? "Book" : "Reservar")}
                 </button>
               )
             ) : (
@@ -594,20 +609,34 @@ export default function EventDetailPage() {
                   cursor: "pointer",
                 }}
               >
-                {isOpenList
-                  ? (lang === "en" ? "Join the list" : "Unirme a la lista")
-                  : isFree
-                  ? (lang === "en" ? "Book place — free" : "Reservar plaza — gratis")
-                  : (lang === "en" ? "Book your place" : "Reservar mi plaza")}
+                {lang === "en" ? "Book" : "Reservar"}
               </button>
             )}
 
-            <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", marginTop: "12px" }}>
-              {lang === "en" ? "Your account is created with this booking." : "Tu cuenta se crea con esta reserva."}
-            </div>
+            {!session?.user ? (
+              <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", marginTop: "12px" }}>
+                {lang === "en" ? "No account yet? It is created with this booking." : "¿Aún sin cuenta? Se crea con esta reserva."}
+              </div>
+            ) : memberCredits !== null && (
+              <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", marginTop: "12px" }}>
+                {(() => {
+                  const cr = (n: number) => lang === "en"
+                    ? `${n} ${n === 1 ? "credit" : "credits"}`
+                    : `${n} ${n === 1 ? "crédito" : "créditos"}`;
+                  if (isAlreadyBooked) return lang === "en" ? "Confirmation and the meeting point are in your account." : "La confirmación y el punto de encuentro están en tu cuenta.";
+                  if (isFree || viewerCost === 0) return lang === "en" ? "Nothing is deducted from your wallet." : "No se descuenta nada de tu monedero.";
+                  const need = viewerCost - currentCreditBalance;
+                  if (need <= 0) return lang === "en" ? `Balance after booking: ${cr(currentCreditBalance - viewerCost)}.` : `Saldo tras reservar: ${cr(currentCreditBalance - viewerCost)}.`;
+                  return lang === "en"
+                    ? `You have ${cr(currentCreditBalance)}. Add ${cr(need)} in your account to book.`
+                    : `Tienes ${cr(currentCreditBalance)}. Añade ${cr(need)} en tu cuenta para reservar.`;
+                })()}
+              </div>
+            )}
           </div>
 
           {/* Gold Notice Box below Sidebar */}
+          {!isLive && (
           <div
             style={{
               border: "1px solid rgba(201, 162, 39, 0.5)",
@@ -618,7 +647,12 @@ export default function EventDetailPage() {
             }}
           >
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", whiteSpace: "nowrap", marginBottom: "6px" }}>
-              {lang === "en" ? "Coming before launch?" : "¿Vienes antes del lanzamiento?"}
+              {(() => {
+                const when = launchAt
+                  ? launchAt.toLocaleDateString(lang === "es" ? "es-ES" : "en-GB", { month: "long", year: "numeric" })
+                  : (lang === "en" ? "January 2027" : "enero de 2027");
+                return lang === "en" ? `Coming before ${when}?` : `¿Vienes antes de ${when}?`;
+              })()}
             </div>
             <p style={{ fontSize: "13px", lineHeight: 1.6, color: "#5c4708", margin: 0 }}>
               {lang === "en"
@@ -626,6 +660,7 @@ export default function EventDetailPage() {
                 : "Toda madre que reserve un evento antes de abrir la membresía se enterará antes que nadie."}
             </p>
           </div>
+          )}
         </aside>
       </section>
 

@@ -38,7 +38,7 @@ export default function TermsPage() {
           {
             n: "05",
             title: "Events with a minimum",
-            body: "Some events carry a fixed cost to us — a speaker, a studio, a private room — and are published with the minimum number of attendees needed to run. Reserving a place on one holds your credits rather than spending them: they are deducted when the event is confirmed, which happens no later than ten days before the start time, and they return to your wallet in full if the event does not go ahead or if you release the place before confirmation. Where a minimum is not met, the team decides whether to run the event anyway or cancel it; if it is cancelled, every credit held is returned to your wallet in full.",
+            body: "Some events carry a fixed cost to us — a speaker, a studio, a private room — and are published with the minimum number of attendees needed to run. Reserving a place on one holds your credits rather than spending them: they are deducted when the team confirms the event, which happens no later than seven days before the start time, and they return to your wallet in full if the event does not go ahead or if you release the place before confirmation. Where a minimum is not met, the team decides whether to run the event anyway or cancel it; if it is cancelled, every credit held is returned to your wallet in full.",
           },
           {
             n: "06",
@@ -73,7 +73,7 @@ export default function TermsPage() {
           {
             n: "12",
             title: "Hosting",
-            body: "Some events are marked as needing a host. A host welcomes the other mothers, arrives ten minutes early and makes the introductions. To host you need an account, at least two events attended and no no-show in the last three months. A request is confirmed by the team by email and may be declined. A host receives 2 credits once the event has run, plus 50% of what she paid for her place (rounded down), in credits. A host who cannot attend should cancel at least 48 hours before; a host who cancels later, or does not come, can host again after attending three more events.",
+            body: "Some events are marked as needing a host. A host welcomes the other mothers, arrives ten minutes early and makes the introductions. To host you need an account, at least two events attended and no no-show in the last three months. A request is confirmed by the team by email and may be declined. A host receives 2 credits once the event has run, plus 50% of what she paid for her place (rounded down), in credits. A host who cannot attend should cancel within the event’s own cancellation window, shown on the event; a host who cancels later, or does not come, can host again after attending three more events.",
           },
           {
             n: "13",

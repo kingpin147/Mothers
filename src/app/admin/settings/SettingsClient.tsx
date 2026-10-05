@@ -170,23 +170,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8efe2", color: "#39292a", fontFamily: "'Lora', Georgia, serif", WebkitFontSmoothing: "antialiased" }}>
-      {/* Top Banner */}
-      <div style={{ background: "#39292a", color: "#f8efe2" }}>
-        <div style={{ maxWidth: "1180px", margin: "0 auto", padding: "10px clamp(18px,4vw,34px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px 20px", flexWrap: "wrap", fontSize: "13px", lineHeight: 1.5 }}>
-          <span>
-            <strong style={{ fontWeight: 600, color: "#c9a227", letterSpacing: "0.08em", textTransform: "uppercase", fontSize: "11.5px" }}>
-              {isLive ? "Live Membership Mode" : "Pre-membership mode"}
-            </strong>{" "}
-            · {isLive ? "Subscriptions and member/non-member rates active across the site." : "Until you activate membership in Settings. Subscriptions and joining fees are built and kept ready, but stay dormant until launch. Non-members book with credits at the non-member price."}
-          </span>
-          <Link
-            href="/admin/pre-launch"
-            style={{ color: "#f8efe2", border: "1px solid rgba(248,239,226,0.5)", borderRadius: "4px", padding: "5px 12px", whiteSpace: "nowrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", textDecoration: "none" }}
-          >
-            Pre-launch desk →
-          </Link>
-        </div>
-      </div>
+      {/* Mode banner is rendered for every admin page by AdminModeBanner (Navigation). */}
 
       <div style={{ maxWidth: "1120px", margin: "0 auto", padding: "clamp(24px,3.4vw,36px) clamp(18px,3vw,30px) 60px" }}>
         {/* Header */}

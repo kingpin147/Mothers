@@ -3,11 +3,34 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
-import { FAQ_GROUPS, FAQ_GROUP_NOTES, FaqItemData } from "@/lib/faqData";
+import { FAQ_GROUPS, FAQ_GROUP_NOTES, CANONICAL_FAQS, FaqItemData } from "@/lib/faqData";
 
 interface FaqClientProps {
   dynamicFaqs: FaqItemData[];
   publicSettings?: any;
+}
+
+function normalizeFaqGroup(rawGroup?: string): string {
+  if (!rawGroup) return "Coming to an event now";
+  const g = rawGroup.trim().toLowerCase();
+  if (
+    g.includes("event") ||
+    g.includes("coming") ||
+    g.includes("joining") ||
+    g.includes("general")
+  ) {
+    return "Coming to an event now";
+  }
+  if (g.includes("credit") || g.includes("wallet") || g.includes("topup")) {
+    return "Credits and your wallet";
+  }
+  if (g.includes("member") || g.includes("launch") || g.includes("subscription")) {
+    return "Membership after launch";
+  }
+  if (g.includes("club") || g.includes("host") || g.includes("gazette") || g.includes("forum")) {
+    return "The club itself";
+  }
+  return rawGroup.trim();
 }
 
 export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
@@ -23,22 +46,42 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
     }));
   };
 
-  // Group dynamic or canonical FAQs by group name
-  const groupedFaqs = FAQ_GROUPS.map((groupTitle, gIndex) => {
-    const items = dynamicFaqs.filter((f) => f.group === groupTitle);
-    const note = FAQ_GROUP_NOTES[groupTitle]?.[lang] || "";
-    return {
-      title: groupTitle,
-      note,
-      items,
-      gIndex,
-    };
-  }).filter((g) => g.items.length > 0);
+  const effectiveFaqs =
+    dynamicFaqs && dynamicFaqs.length > 0 ? dynamicFaqs : CANONICAL_FAQS;
+
+  // Group dynamic or canonical FAQs by group name with alias normalization
+  const resolvedGroupsMap = new Map<string, FaqItemData[]>();
+
+  // Pre-seed canonical group order
+  FAQ_GROUPS.forEach((grp) => {
+    resolvedGroupsMap.set(grp, []);
+  });
+
+  effectiveFaqs.forEach((faq: FaqItemData) => {
+    const normalized = normalizeFaqGroup(faq.group);
+    if (!resolvedGroupsMap.has(normalized)) {
+      resolvedGroupsMap.set(normalized, []);
+    }
+    resolvedGroupsMap.get(normalized)!.push(faq);
+  });
+
+  const groupedFaqs = Array.from(resolvedGroupsMap.entries())
+    .map(([groupTitle, items], gIndex) => {
+      const note = FAQ_GROUP_NOTES[groupTitle]?.[lang] || "";
+      return {
+        title: groupTitle,
+        note,
+        items,
+        gIndex,
+      };
+    })
+    .filter((g) => g.items.length > 0);
 
   const groupDisplayTitles: Record<string, { en: string; es: string }> = {
     "Coming to an event now": { en: "Coming to an event now", es: "Asistir a un encuentro ahora" },
     "Credits and your wallet": { en: "Credits and your wallet", es: "Créditos y tu monedero" },
     "Membership after launch": { en: "Membership after launch", es: "Membresía tras el lanzamiento" },
+    "Membership, from January 2027": { en: "Membership, from January 2027", es: "Membresía, a partir de enero 2027" },
     "The club itself": { en: "The club itself", es: "El club y funcionamiento" },
   };
 

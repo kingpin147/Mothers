@@ -24,6 +24,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [isLive, setIsLive] = useState(false);
+  const [canScroll, setCanScroll] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("tm_pre_joined_list");
@@ -72,11 +73,44 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
     }
   };
 
+  const now = new Date();
   const activeEvents = (eventsList || [])
-    .filter((ev: any) => ev.status !== "cancelled" && ev.status !== "draft")
+    .filter((ev: any) => {
+      if (!ev) return false;
+      if (ev.status === "cancelled" || ev.status === "draft" || ev.status === "completed" || ev.status === "past") {
+        return false;
+      }
+      if (!ev.startsAt) return false;
+      const start = new Date(ev.startsAt);
+      if (isNaN(start.getTime())) return false;
+      const isPast = ev.endsAt ? new Date(ev.endsAt) < now : start < now;
+      return !isPast;
+    })
     .sort((a: any, b: any) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 
   const displayEvents = activeEvents.slice(0, 10);
+
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const checkOverflow = () => {
+      if (!el) return;
+      // Arrows are only shown when there is more content to swipe than can fit in the viewport
+      setCanScroll(el.scrollWidth > el.clientWidth + 10);
+    };
+
+    checkOverflow();
+
+    window.addEventListener("resize", checkOverflow);
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(checkOverflow) : null;
+    if (observer) observer.observe(el);
+
+    return () => {
+      window.removeEventListener("resize", checkOverflow);
+      if (observer) observer.disconnect();
+    };
+  }, [displayEvents]);
 
   return (
     <div style={{ backgroundColor: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
@@ -372,105 +406,126 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
           </Link>
         </div>
 
-        {/* Carousel Navigation Arrows */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", margin: "-8px 0 16px" }}>
-          <button
-            type="button"
-            onClick={() => scrollContainerRef.current?.scrollBy({ left: -310, behavior: "smooth" })}
-            aria-label="Previous events"
-            style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "50%",
-              border: "1px solid rgba(57, 41, 42, 0.25)",
-              background: "#ffffff",
-              color: "#39292a",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#7b1f2c";
-              e.currentTarget.style.color = "#7b1f2c";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
-              e.currentTarget.style.color = "#39292a";
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-              <path d="M19 12H5M11 18l-6-6 6-6" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollContainerRef.current?.scrollBy({ left: 310, behavior: "smooth" })}
-            aria-label="Next events"
-            style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "50%",
-              border: "1px solid rgba(57, 41, 42, 0.25)",
-              background: "#ffffff",
-              color: "#39292a",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "#7b1f2c";
-              e.currentTarget.style.color = "#7b1f2c";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
-              e.currentTarget.style.color = "#39292a";
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </button>
-        </div>
+        {/* Carousel Navigation Arrows - ONLY when there is more content to swipe */}
+        {canScroll && (
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", margin: "-8px 0 16px" }}>
+            <button
+              type="button"
+              onClick={() => scrollContainerRef.current?.scrollBy({ left: -310, behavior: "smooth" })}
+              aria-label="Previous events"
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                border: "1px solid rgba(57, 41, 42, 0.25)",
+                background: "#ffffff",
+                color: "#39292a",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "#7b1f2c";
+                e.currentTarget.style.color = "#7b1f2c";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
+                e.currentTarget.style.color = "#39292a";
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                <path d="M19 12H5M11 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollContainerRef.current?.scrollBy({ left: 310, behavior: "smooth" })}
+              aria-label="Next events"
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                border: "1px solid rgba(57, 41, 42, 0.25)",
+                background: "#ffffff",
+                color: "#39292a",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "#7b1f2c";
+                e.currentTarget.style.color = "#7b1f2c";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
+                e.currentTarget.style.color = "#39292a";
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Scrollable Container */}
-        <div
-          ref={scrollContainerRef}
-          style={{
-            display: "flex",
-            gap: "20px",
-            overflowX: "auto",
-            scrollSnapType: "x mandatory",
-            paddingBottom: "14px",
-            WebkitOverflowScrolling: "touch",
-            scrollbarWidth: "none",
-          }}
-        >
-          {displayEvents.map((ev: any) => {
-            const catInfo = getCategoryInfo(ev, lang);
-            const title = getEventDisplayTitle(ev, lang);
-            const dateDisplay = formatEventDate(ev.startsAt, lang);
-            const viewerCost = isLive
-              ? (isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost))
-              : ev.creditCost;
-            const isViewerFree = viewerCost === 0 || (ev.isFreeWalk && (isMember || !isLive));
-            const priceDisplay =
-              isViewerFree || viewerCost === 0
-                ? lang === "en"
-                  ? "0 credits"
-                  : "0 créditos"
-                : `${viewerCost} ${
-                    viewerCost === 1
-                      ? lang === "en"
-                        ? "credit"
-                        : "crédito"
-                      : lang === "en"
-                      ? "credits"
-                      : "créditos"
-                  }`;
+        {displayEvents.length === 0 ? (
+          <div style={{ padding: "40px 0", textAlign: "center", color: "rgba(57, 41, 42, 0.7)" }}>
+            <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", margin: "0 0 8px" }}>
+              {lang === "en" ? "New gatherings are being scheduled." : "Nuevos encuentros próximamente."}
+            </p>
+            <Link
+              href="/events"
+              style={{
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: "14px",
+                color: "#7b1f2c",
+                textDecoration: "underline",
+                textUnderlineOffset: "3px",
+              }}
+            >
+              {lang === "en" ? "Browse calendar →" : "Ver calendario →"}
+            </Link>
+          </div>
+        ) : (
+          <div
+            ref={scrollContainerRef}
+            style={{
+              display: "flex",
+              gap: "20px",
+              overflowX: "auto",
+              scrollSnapType: "x mandatory",
+              paddingBottom: "14px",
+              WebkitOverflowScrolling: "touch",
+              scrollbarWidth: "none",
+            }}
+          >
+            {displayEvents.map((ev: any) => {
+              const catInfo = getCategoryInfo(ev, lang);
+              const title = getEventDisplayTitle(ev, lang);
+              const dateDisplay = formatEventDate(ev.startsAt, lang);
+              const viewerCost = isLive
+                ? (isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost))
+                : ev.creditCost;
+              const isViewerFree = viewerCost === 0 || (ev.isFreeWalk && (isMember || !isLive));
+              const priceDisplay =
+                isViewerFree || viewerCost === 0
+                  ? lang === "en"
+                    ? "Free"
+                    : "Gratis"
+                  : `${viewerCost} ${
+                      viewerCost === 1
+                        ? lang === "en"
+                          ? "credit"
+                          : "crédito"
+                        : lang === "en"
+                        ? "credits"
+                        : "créditos"
+                    }`;
             const locationDisplay = ev.neighbourhood
               ? `${ev.neighbourhood}${ev.venueName ? ` · ${ev.venueName}` : ""}`
               : lang === "en"
@@ -605,6 +660,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             );
           })}
         </div>
+        )}
       </section>
 
       {/* ─── 4. THE GODMOTHER PROGRAM ─── */}
@@ -1015,6 +1071,14 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 placeholder={lang === "en" ? "Your email address" : "Tu correo electrónico"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#c9a227";
+                  e.currentTarget.style.boxShadow = "0 0 0 2px rgba(201, 162, 39, 0.35)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.25)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
                 style={{
                   width: "100%",
                   padding: "12px 14px",
@@ -1026,6 +1090,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                   fontFamily: "'Lora', Georgia, serif",
                   outline: "none",
                   boxSizing: "border-box",
+                  transition: "border-color 0.15s ease, box-shadow 0.15s ease",
                 }}
               />
 
