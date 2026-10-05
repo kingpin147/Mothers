@@ -1627,11 +1627,12 @@ function AccountPageContent() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "18px" }}>
                   <div>
                     <label style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "7px", display: "block" }}>
-                      {lang === "en" ? "Name" : "Nombre"}
+                      {lang === "en" ? "Name and last name" : "Nombre y apellidos"}
                     </label>
                     <div style={{ display: "flex", gap: "10px" }}>
                       <input
                         type="text"
+                        placeholder={lang === "en" ? "First name" : "Nombre"}
                         value={detailsForm.firstName}
                         onChange={(e) => setDetailsForm({ ...detailsForm, firstName: e.target.value })}
                         required
@@ -1639,6 +1640,7 @@ function AccountPageContent() {
                       />
                       <input
                         type="text"
+                        placeholder={lang === "en" ? "Last name" : "Apellidos"}
                         value={detailsForm.lastName}
                         onChange={(e) => setDetailsForm({ ...detailsForm, lastName: e.target.value })}
                         style={{ width: "100%", boxSizing: "border-box", minHeight: "46px", padding: "11px 14px", fontSize: "15px", fontFamily: "'Lora', Georgia, serif", color: "#39292a", background: "#fff", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", outline: "none" }}

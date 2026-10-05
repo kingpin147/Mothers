@@ -36,7 +36,8 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
 
   // Create account state
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [newsletter, setNewsletter] = useState(true);
 
   // Focus states for clean warm border (matching Claude design)
@@ -132,11 +133,19 @@ function LoginForm() {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
+    if (!firstName.trim()) {
       setErrorMsg(
         lang === "en"
-          ? "Please enter your name."
+          ? "Please enter your first name."
           : "Por favor escribe tu nombre."
+      );
+      return;
+    }
+    if (!lastName.trim()) {
+      setErrorMsg(
+        lang === "en"
+          ? "Please enter your last name."
+          : "Por favor escribe tus apellidos."
       );
       return;
     }
@@ -161,7 +170,9 @@ function LoginForm() {
     setErrorMsg(null);
 
     const res = await registerFreeAccount({
-      name: name.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      name: `${firstName.trim()} ${lastName.trim()}`.trim(),
       email: email.trim(),
       password,
       letter: newsletter,
@@ -642,35 +653,65 @@ function LoginForm() {
                 onSubmit={handleCreateSubmit}
                 style={{ display: "flex", flexDirection: "column", gap: "18px" }}
               >
-                {/* Name */}
-                <div>
-                  <label
-                    htmlFor="create-name"
-                    style={{
-                      display: "block",
-                      fontSize: "12.5px",
-                      fontWeight: 600,
-                      letterSpacing: "0.05em",
-                      textTransform: "uppercase",
-                      color: "#39292a",
-                      marginBottom: "7px",
-                      fontFamily: "var(--font-body)",
-                    }}
-                  >
-                    {lang === "en" ? "YOUR NAME" : "TU NOMBRE"}
-                  </label>
-                  <input
-                    id="create-name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onFocus={() => setFocusedField("create-name")}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder={lang === "en" ? "First and last name" : "Nombre y apellidos"}
-                    required
-                    autoFocus
-                    style={getInputStyle("create-name")}
-                  />
+                {/* First Name & Last Name */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label
+                      htmlFor="create-first-name"
+                      style={{
+                        display: "block",
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                        letterSpacing: "0.05em",
+                        textTransform: "uppercase",
+                        color: "#39292a",
+                        marginBottom: "7px",
+                        fontFamily: "var(--font-body)",
+                      }}
+                    >
+                      {lang === "en" ? "FIRST NAME" : "NOMBRE"}
+                    </label>
+                    <input
+                      id="create-first-name"
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      onFocus={() => setFocusedField("create-first-name")}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder={lang === "en" ? "First name" : "Nombre"}
+                      required
+                      autoFocus
+                      style={getInputStyle("create-first-name")}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="create-last-name"
+                      style={{
+                        display: "block",
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                        letterSpacing: "0.05em",
+                        textTransform: "uppercase",
+                        color: "#39292a",
+                        marginBottom: "7px",
+                        fontFamily: "var(--font-body)",
+                      }}
+                    >
+                      {lang === "en" ? "LAST NAME" : "APELLIDOS"}
+                    </label>
+                    <input
+                      id="create-last-name"
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      onFocus={() => setFocusedField("create-last-name")}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder={lang === "en" ? "Last name" : "Apellidos"}
+                      required
+                      style={getInputStyle("create-last-name")}
+                    />
+                  </div>
                 </div>
 
                 {/* Email */}

@@ -9,16 +9,25 @@ import { z } from "zod";
 import { checkSignUpRateLimit, getClientIp } from "@/lib/rate-limit";
 import { captureException } from "@/lib/error-monitoring";
 
-const registerSchema = z.object({
-  name: z.string().trim().min(1, "Please tell us your name."),
-  email: z.string().trim().email("Please enter a valid email address.").toLowerCase(),
-  password: z.string().min(8, "Passwords must be at least 8 characters."),
-  letter: z.boolean().default(true),
-  locale: z.enum(["en", "es"]).default("en"),
-});
+const registerSchema = z
+  .object({
+    firstName: z.string().trim().optional(),
+    lastName: z.string().trim().optional(),
+    name: z.string().trim().optional(),
+    email: z.string().trim().email("Please enter a valid email address.").toLowerCase(),
+    password: z.string().min(8, "Passwords must be at least 8 characters."),
+    letter: z.boolean().default(true),
+    locale: z.enum(["en", "es"]).default("en"),
+  })
+  .refine(
+    (data) => (data.firstName && data.firstName.length > 0) || (data.name && data.name.length > 0),
+    { message: "Please tell us your name." }
+  );
 
 export async function registerFreeAccount(rawData: {
-  name: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
   email: string;
   password: string;
   letter?: boolean;
@@ -41,7 +50,23 @@ export async function registerFreeAccount(rawData: {
     };
   }
 
-  const { name, email, password, letter, locale } = parsed.data;
+  const { firstName: rawFirst, lastName: rawLast, name, email, password, letter, locale } = parsed.data;
+
+  let firstName = rawFirst?.trim() || "";
+  let lastName = rawLast?.trim() || "";
+
+  if (!firstName && name) {
+    const parts = name.trim().split(/\s+/);
+    firstName = parts[0] || "Member";
+    lastName = parts.slice(1).join(" ") || "";
+  } else if (!lastName && name) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length > 1) {
+      lastName = parts.slice(1).join(" ");
+    }
+  }
+
+  if (!firstName) firstName = "Member";
 
   try {
     const clubSettings = await getPublicClubSettings();
@@ -62,6 +87,14 @@ export async function registerFreeAccount(rawData: {
           success: false,
           error: "ACCOUNT_EXISTS",
         };
+      }
+
+      // If existing person doesn't have lastName but new registration provided it, update it
+      if (lastName && !existingPerson.lastName) {
+        await db.update(person).set({
+          firstName: firstName !== "Member" ? firstName : existingPerson.firstName,
+          lastName,
+        }).where(eq(person.id, existingPerson.id));
       }
 
       // Person exists (e.g. from leads/subscribers) but has no password yet
@@ -100,11 +133,6 @@ export async function registerFreeAccount(rawData: {
 
       return { success: true };
     }
-
-    // Split name into first and last name
-    const parts = name.trim().split(/\s+/);
-    const firstName = parts[0] || "Member";
-    const lastName = parts.slice(1).join(" ") || "";
 
     const passwordHash = await bcrypt.hash(password, 10);
 
