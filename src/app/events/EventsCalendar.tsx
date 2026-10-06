@@ -12,13 +12,22 @@ import CountryPhoneInput from "@/components/CountryPhoneInput";
 export type Lang = "en" | "es" | "fr";
 
 export const getLanguageLabel = (code: string, currentLang: Lang) => {
+  if (!code) return "";
   const mapping: Record<string, { en: string; es: string; fr: string }> = {
     en: { en: "English", es: "Inglés", fr: "Anglais" },
+    english: { en: "English", es: "Inglés", fr: "Anglais" },
     es: { en: "Spanish", es: "Español", fr: "Espagnol" },
+    spanish: { en: "Spanish", es: "Español", fr: "Espagnol" },
+    español: { en: "Spanish", es: "Español", fr: "Espagnol" },
     fr: { en: "French", es: "Francés", fr: "Français" },
+    french: { en: "French", es: "Francés", fr: "Français" },
+    français: { en: "French", es: "Francés", fr: "Français" },
     ca: { en: "Catalan", es: "Catalán", fr: "Catalan" },
+    catalan: { en: "Catalan", es: "Catalán", fr: "Catalan" },
+    català: { en: "Catalan", es: "Catalán", fr: "Catalan" },
   };
-  return mapping[code.toLowerCase()] ? mapping[code.toLowerCase()][currentLang] : code;
+  const key = code.trim().toLowerCase();
+  return mapping[key] ? mapping[key][currentLang] : code;
 };
 
 export interface PublicEvent {
@@ -1736,7 +1745,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeDateFilter, setActiveDateFilter] = useState<string>("all");
   const [activeStatus, setActiveStatus] = useState<string>("all");
-  const [activeStage, setActiveStage] = useState<string>("all");
+  const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [activeAudience, setActiveAudience] = useState<string>("all");
   const [freeOnly, setFreeOnly] = useState<boolean>(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -1899,13 +1908,29 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     { key: "past", label: lang === "en" ? "Past" : "Pasados" },
   ];
 
-  const hasActiveFilters = activeCategory !== "all" || activeDateFilter !== "all" || activeStatus !== "all" || activeStage !== "all" || activeAudience !== "all" || freeOnly;
+  const stageSummary = (() => {
+    if (selectedStages.length === 0) {
+      return lang === "fr" ? "Toutes les étapes" : lang === "es" ? "Todas las etapas" : "All stages";
+    }
+    const names = stageOpts
+      .filter((s) => s.key !== "all" && selectedStages.includes(s.key))
+      .map((s) => s.label);
+    if (names.length === 0) {
+      return lang === "fr" ? "Toutes les étapes" : lang === "es" ? "Todas las etapas" : "All stages";
+    }
+    if (names.length > 2) {
+      return `${names.slice(0, 2).join(" · ")} +${names.length - 2}`;
+    }
+    return names.join(" · ");
+  })();
+
+  const hasActiveFilters = activeCategory !== "all" || activeDateFilter !== "all" || activeStatus !== "all" || selectedStages.length > 0 || activeAudience !== "all" || freeOnly;
 
   const clearAllFilters = () => {
     setActiveCategory("all");
     setActiveDateFilter("all");
     setActiveStatus("all");
-    setActiveStage("all");
+    setSelectedStages([]);
     setActiveAudience("all");
     setFreeOnly(false);
   };
@@ -1925,35 +1950,48 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       if (activeCategory !== catInfo.key) return false;
     }
 
-    // 2. Stage match
-    if (activeStage !== "all") {
+    // 2. Multi-stage match
+    if (selectedStages.length > 0) {
       const stageKeys = (ev.targetStages || []).map((s) => s.toLowerCase());
-      const hasMatch = stageKeys.some((sk) => {
-        if (activeStage === "big_kids" || activeStage === "big kids") return sk.includes("big") || sk.includes("grande") || sk.includes("10+") || sk.includes("6–10") || sk.includes("6-10") || sk.includes("6+") || sk.includes("children610");
-        if (activeStage === "babies") return sk.includes("bab") || sk.includes("0–12") || sk.includes("0-12") || sk.includes("postpartum") || sk.includes("posparto");
-        if (activeStage === "toddlers") return sk.includes("toddler") || sk.includes("peque") || sk.includes("1–3") || sk.includes("1-3");
-        if (activeStage === "children") return sk.includes("child") || sk.includes("niño") || sk.includes("3–6") || sk.includes("3-6") || sk.includes("3y+") || sk.includes("children36");
-        if (activeStage === "pregnant") return sk.includes("pregnant") || sk.includes("embaraz") || sk.includes("expecting");
-        return sk.includes(activeStage);
-      });
-      if (!hasMatch) {
-        const rawStage = (ev.stage || "").toLowerCase();
-        let fallbackMatch = false;
-        if (activeStage === "big_kids" || activeStage === "big kids") {
-          fallbackMatch = rawStage.includes("big") || rawStage.includes("grande") || rawStage.includes("10+") || rawStage.includes("6–10") || rawStage.includes("6-10") || rawStage.includes("6+");
-        } else if (activeStage === "babies") {
-          fallbackMatch = rawStage.includes("bab") || rawStage.includes("0–12") || rawStage.includes("0-12") || rawStage.includes("postpartum") || rawStage.includes("posparto");
-        } else if (activeStage === "toddlers") {
-          fallbackMatch = rawStage.includes("toddler") || rawStage.includes("peque") || rawStage.includes("1–3") || rawStage.includes("1-3");
-        } else if (activeStage === "children") {
-          fallbackMatch = rawStage.includes("child") || rawStage.includes("niño") || rawStage.includes("3–6") || rawStage.includes("3-6") || rawStage.includes("3y+");
-        } else if (activeStage === "pregnant") {
-          fallbackMatch = rawStage.includes("pregnant") || rawStage.includes("embaraz");
-        } else {
-          fallbackMatch = rawStage.includes(activeStage);
+      const rawStage = (ev.stage || "").toLowerCase();
+
+      const matchesAnySelected = selectedStages.some((stageKey) => {
+        const hasTargetMatch = stageKeys.some((sk) => {
+          if (stageKey === "big_kids" || stageKey === "big kids") {
+            return sk.includes("big") || sk.includes("grande") || sk.includes("10+") || sk.includes("6–10") || sk.includes("6-10") || sk.includes("6+") || sk.includes("children610") || sk.includes("grand");
+          }
+          if (stageKey === "babies") {
+            return sk.includes("bab") || sk.includes("0–12") || sk.includes("0-12") || sk.includes("postpartum") || sk.includes("posparto") || sk.includes("bébé");
+          }
+          if (stageKey === "toddlers") {
+            return sk.includes("toddler") || sk.includes("peque") || sk.includes("1–3") || sk.includes("1-3") || sk.includes("petit");
+          }
+          if (stageKey === "children") {
+            return sk.includes("child") || sk.includes("niño") || sk.includes("3–6") || sk.includes("3-6") || sk.includes("3y+") || sk.includes("children36") || sk.includes("enfant");
+          }
+          if (stageKey === "pregnant") {
+            return sk.includes("pregnant") || sk.includes("embaraz") || sk.includes("expecting") || sk.includes("enceinte");
+          }
+          return sk.includes(stageKey);
+        });
+
+        if (hasTargetMatch) return true;
+
+        if (stageKey === "big_kids" || stageKey === "big kids") {
+          return rawStage.includes("big") || rawStage.includes("grande") || rawStage.includes("10+") || rawStage.includes("6–10") || rawStage.includes("6-10") || rawStage.includes("6+") || rawStage.includes("grand");
+        } else if (stageKey === "babies") {
+          return rawStage.includes("bab") || rawStage.includes("0–12") || rawStage.includes("0-12") || rawStage.includes("postpartum") || rawStage.includes("posparto") || rawStage.includes("bébé");
+        } else if (stageKey === "toddlers") {
+          return rawStage.includes("toddler") || rawStage.includes("peque") || rawStage.includes("1–3") || rawStage.includes("1-3") || rawStage.includes("petit");
+        } else if (stageKey === "children") {
+          return rawStage.includes("child") || rawStage.includes("niño") || rawStage.includes("3–6") || rawStage.includes("3-6") || rawStage.includes("3y+") || rawStage.includes("children36") || rawStage.includes("enfant");
+        } else if (stageKey === "pregnant") {
+          return rawStage.includes("pregnant") || rawStage.includes("embaraz") || rawStage.includes("expecting") || rawStage.includes("enceinte");
         }
-        if (!fallbackMatch) return false;
-      }
+        return rawStage.includes(stageKey);
+      });
+
+      if (!matchesAnySelected) return false;
     }
 
     // 3. Audience / Kids match
@@ -2317,7 +2355,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                 padding: "12px 38px 12px 22px",
                 cursor: "pointer",
                 borderLeft: "1px solid rgba(57, 41, 42, 0.12)",
-                background: activeStage !== "all" ? "rgba(123, 31, 44, 0.06)" : "transparent",
+                background: selectedStages.length > 0 ? "rgba(123, 31, 44, 0.06)" : "transparent",
                 userSelect: "none",
               }}
               onClick={() => setOpenDropdown(openDropdown === "stage" ? null : "stage")}
@@ -2327,7 +2365,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   fontSize: "10.5px",
                   letterSpacing: "0.12em",
                   textTransform: "uppercase",
-                  color: activeStage !== "all" ? "#7b1f2c" : "rgba(57, 41, 42, 0.66)",
+                  color: selectedStages.length > 0 ? "#7b1f2c" : "rgba(57, 41, 42, 0.66)",
                   display: "block",
                   marginBottom: "2px",
                 }}
@@ -2345,7 +2383,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   textOverflow: "ellipsis",
                 }}
               >
-                {stageOpts.find((o) => o.key === activeStage)?.label || (lang === "en" ? "All stages" : "Todas las etapas")}
+                {stageSummary}
               </div>
               <svg
                 viewBox="0 0 24 24"
@@ -2369,61 +2407,139 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                 <path d="m6 9 6 6 6-6" />
               </svg>
 
-              {/* Floating Menu */}
+              {/* Floating Menu with Multi-Stage Checkboxes */}
               {openDropdown === "stage" && (
                 <div
                   style={{
                     position: "absolute",
                     top: "calc(100% + 8px)",
                     left: 0,
-                    minWidth: "240px",
+                    minWidth: "220px",
                     backgroundColor: "#ffffff",
                     border: "1px solid rgba(57, 41, 42, 0.16)",
                     borderRadius: "12px",
-                    boxShadow: "0 18px 40px rgba(57, 41, 42, 0.16)",
-                    padding: "8px 6px",
+                    boxShadow: "0 14px 34px rgba(57, 41, 42, 0.12)",
+                    padding: "6px",
                     zIndex: 100,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "2px",
+                    cursor: "default",
                   }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {stageOpts.map((o) => {
-                    const isSelected = activeStage === o.key;
+                  {/* All stages button */}
+                  {(() => {
+                    const isAll = selectedStages.length === 0;
                     return (
-                      <div
-                        key={o.key}
-                        onClick={() => {
-                          setActiveStage(o.key);
-                          setOpenDropdown(null);
-                        }}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStages([])}
                         style={{
-                          padding: "11px 16px",
-                          margin: "2px 0",
-                          borderRadius: "8px",
-                          fontFamily: "'Cormorant Garamond', Georgia, serif",
-                          fontSize: "16.5px",
-                          fontWeight: isSelected ? 600 : 400,
-                          color: isSelected ? "#7b1f2c" : "#39292a",
-                          backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
-                          cursor: "pointer",
-                          transition: "background-color 0.15s ease",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "space-between",
+                          gap: "12px",
+                          border: "none",
+                          background: isAll ? "rgba(123, 31, 44, 0.07)" : "transparent",
+                          borderRadius: "8px",
+                          padding: "14px 16px",
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontWeight: 500,
+                          fontSize: "16px",
+                          color: "#39292a",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          width: "100%",
+                          transition: "background 0.15s ease",
                         }}
                         onMouseEnter={(e) => {
-                          if (!isSelected) e.currentTarget.style.backgroundColor = "#f7f3ee";
+                          if (!isAll) e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.05)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isAll) e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: "17px",
+                            height: "17px",
+                            borderRadius: "4px",
+                            border: `1px solid ${isAll ? "#7b1f2c" : "rgba(57, 41, 42, 0.35)"}`,
+                            backgroundColor: isAll ? "#7b1f2c" : "#ffffff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flex: "none",
+                          }}
+                        >
+                          {isAll && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="11" height="11">
+                              <path d="M5 12l5 5 9-10" />
+                            </svg>
+                          )}
+                        </span>
+                        <span>{lang === "fr" ? "Toutes les étapes" : lang === "es" ? "Todas las etapas" : "All stages"}</span>
+                      </button>
+                    );
+                  })()}
+
+                  {/* Individual stages checkboxes */}
+                  {stageOpts.filter((s) => s.key !== "all").map((s) => {
+                    const isSelected = selectedStages.includes(s.key);
+                    return (
+                      <button
+                        key={s.key}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStages((prev) =>
+                            prev.includes(s.key) ? prev.filter((k) => k !== s.key) : [...prev, s.key]
+                          );
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          border: "none",
+                          background: isSelected ? "rgba(123, 31, 44, 0.07)" : "transparent",
+                          borderRadius: "8px",
+                          padding: "14px 16px",
+                          fontFamily: "'Cormorant Garamond', Georgia, serif",
+                          fontWeight: 500,
+                          fontSize: "16px",
+                          color: "#39292a",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          width: "100%",
+                          transition: "background 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.05)";
                         }}
                         onMouseLeave={(e) => {
                           if (!isSelected) e.currentTarget.style.backgroundColor = "transparent";
                         }}
                       >
-                        <span>{o.label}</span>
-                        {isSelected && (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
-                            <path d="m5 12 5 5L20 7" />
-                          </svg>
-                        )}
-                      </div>
+                        <span
+                          style={{
+                            width: "17px",
+                            height: "17px",
+                            borderRadius: "4px",
+                            border: `1px solid ${isSelected ? "#7b1f2c" : "rgba(57, 41, 42, 0.35)"}`,
+                            backgroundColor: isSelected ? "#7b1f2c" : "#ffffff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flex: "none",
+                          }}
+                        >
+                          {isSelected && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="11" height="11">
+                              <path d="M5 12l5 5 9-10" />
+                            </svg>
+                          )}
+                        </span>
+                        <span>{s.label}</span>
+                      </button>
                     );
                   })}
                 </div>

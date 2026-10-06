@@ -300,7 +300,15 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                 if (stageLower.includes("child") && !stageLower.includes("big") && !stageLower.includes("610")) circles.push("Children");
                 if (stageLower.includes("big") || stageLower.includes("610") || stageLower.includes("6-10")) circles.push("Big kids");
 
-                const langDisplay = member.languages === "es" ? "Spanish" : member.languages === "en" ? "English" : member.languages || "English, Spanish";
+                const langMap: Record<string, string> = {
+                  en: "English",
+                  es: "Spanish",
+                  fr: "French",
+                  ca: "Catalan",
+                };
+                const langDisplay = member.languages
+                  ? (langMap[member.languages.toLowerCase()] || member.languages)
+                  : "English, Spanish";
 
                 return [
                   { label: 'Stage', value: stageStr },

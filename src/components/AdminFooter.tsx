@@ -3,28 +3,33 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export function AdminFooter() {
   const pathname = usePathname();
+  const { language: lang } = useLanguage();
+
+  const isFr = lang === "fr";
+  const isEs = lang === "es";
 
   const exploreLinks = [
-    { label: "Membership", href: "/membership" },
-    { label: "Events", href: "/events" },
+    { label: isFr ? "Adhésion" : isEs ? "Membresía" : "Membership", href: "/membership" },
+    { label: isFr ? "Événements" : isEs ? "Eventos" : "Events", href: "/events" },
     { label: "FAQ", href: "/faq" },
   ];
 
   const backOfficeLinks = [
-    { label: "Dashboard", href: "/admin", exact: true },
-    { label: "Events", href: "/admin/events" },
-    { label: "Members", href: "/admin/members" },
-    { label: "Pre-launch", href: "/admin/pre-launch" },
-    { label: "Subscribers", href: "/admin/subscribers" },
-    { label: "Finance", href: "/admin/finance" },
-    { label: "Partners", href: "/admin/partners" },
+    { label: isFr ? "Tableau de bord" : isEs ? "Panel" : "Dashboard", href: "/admin", exact: true },
+    { label: isFr ? "Événements" : isEs ? "Eventos" : "Events", href: "/admin/events" },
+    { label: isFr ? "Membres" : isEs ? "Socias" : "Members", href: "/admin/members" },
+    { label: isFr ? "Pré-lancement" : isEs ? "Prelanzamiento" : "Pre-launch", href: "/admin/pre-launch" },
+    { label: isFr ? "Abonnés" : isEs ? "Suscriptores" : "Subscribers", href: "/admin/subscribers" },
+    { label: isFr ? "Finances" : isEs ? "Finanzas" : "Finance", href: "/admin/finance" },
+    { label: isFr ? "Partenaires" : isEs ? "Colaboradores" : "Partners", href: "/admin/partners" },
     { label: "Journal", href: "/admin/journal" },
     { label: "FAQ (CMS)", href: "/admin/faq" },
-    { label: "Settings", href: "/admin/settings" },
-    { label: "Emails", href: "/admin/emails" },
+    { label: isFr ? "Paramètres" : isEs ? "Ajustes" : "Settings", href: "/admin/settings" },
+    { label: isFr ? "E-mails" : isEs ? "Emails" : "Emails", href: "/admin/emails" },
   ];
 
   const headingStyle: React.CSSProperties = {
@@ -108,13 +113,17 @@ export function AdminFooter() {
               textWrap: "pretty",
             }}
           >
-            A private membership club for mothers, from pregnancy through the school years.
+            {isFr
+              ? "Un club privé pour les mères, de la grossesse aux années d’école."
+              : isEs
+              ? "Un club privado para madres, desde el embarazo hasta la etapa escolar."
+              : "A private membership club for mothers, from pregnancy through the school years."}
           </p>
         </div>
 
         {/* Explore Column */}
         <div>
-          <div style={headingStyle}>Explore</div>
+          <div style={headingStyle}>{isFr ? "Explorer" : isEs ? "Explorar" : "Explore"}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {exploreLinks.map((item) => (
               <Link
@@ -155,7 +164,7 @@ export function AdminFooter() {
 
         {/* Get in touch Column */}
         <div>
-          <div style={headingStyle}>Get in touch</div>
+          <div style={headingStyle}>{isFr ? "Nous contacter" : isEs ? "Contacto" : "Get in touch"}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <a
               href="mailto:hello@themothers.cc"

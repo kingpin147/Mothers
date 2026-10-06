@@ -1,8 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Locale, DICTIONARIES } from "@/lib/i18n";
-import { applyTranslations, initI18nObserver, tStr } from "@/lib/i18nEngine";
+import { applyTranslations, initI18nObserver, scheduleTranslation, tStr } from "@/lib/i18nEngine";
 
 type LanguageContextType = {
   language: Locale;
@@ -14,6 +15,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Locale>("en");
+  const pathname = usePathname();
 
   useEffect(() => {
     const saved =
@@ -26,6 +28,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     initI18nObserver();
     applyTranslations(undefined, initialLang);
   }, []);
+
+  useEffect(() => {
+    scheduleTranslation(language);
+  }, [pathname, language]);
 
   const setLanguage = (lang: Locale) => {
     setLanguageState(lang);

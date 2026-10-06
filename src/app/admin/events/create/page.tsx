@@ -106,8 +106,33 @@ export default function AdminCreateEventPage() {
     setPhotoError("");
   };
 
+  const isLangSelected = (l: string) => {
+    return langs.some(
+      (x) =>
+        x.toLowerCase() === l.toLowerCase() ||
+        (l === "Spanish" && (x.toLowerCase() === "español" || x.toLowerCase() === "es")) ||
+        (l === "French" && (x.toLowerCase() === "français" || x.toLowerCase() === "fr")) ||
+        (l === "Catalan" && (x.toLowerCase() === "català" || x.toLowerCase() === "ca")) ||
+        (l === "English" && x.toLowerCase() === "en")
+    );
+  };
+
   const toggleLang = (l: string) => {
-    setLangs(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
+    setLangs((prev) => {
+      const selected = isLangSelected(l);
+      if (selected) {
+        return prev.filter(
+          (x) =>
+            x.toLowerCase() !== l.toLowerCase() &&
+            !(l === "Spanish" && (x.toLowerCase() === "español" || x.toLowerCase() === "es")) &&
+            !(l === "French" && (x.toLowerCase() === "français" || x.toLowerCase() === "fr")) &&
+            !(l === "Catalan" && (x.toLowerCase() === "català" || x.toLowerCase() === "ca")) &&
+            !(l === "English" && x.toLowerCase() === "en")
+        );
+      } else {
+        return [...prev, l];
+      }
+    });
   };
 
   const toggleStage = (s: string) => {
@@ -348,8 +373,8 @@ export default function AdminCreateEventPage() {
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Languages</label>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", paddingTop: "3px" }}>
-                    {['English', 'Spanish', 'Catalan'].map((l) => {
-                      const c = chip(langs.includes(l));
+                    {['English', 'Spanish', 'French', 'Catalan'].map((l) => {
+                      const c = chip(isLangSelected(l));
                       return <button key={l} type="button" onClick={() => toggleLang(l)} style={{ border: `1px solid ${c.border}`, background: c.bg, color: c.color, borderRadius: "16px", padding: "8px 14px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>{l}</button>
                     })}
                   </div>

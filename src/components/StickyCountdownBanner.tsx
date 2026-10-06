@@ -188,6 +188,8 @@ export function StickyCountdownBanner() {
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
+            fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+            fontVariantNumeric: "lining-nums tabular-nums",
           }}
         >
           {mobileLaunchText}
@@ -200,7 +202,8 @@ export function StickyCountdownBanner() {
             fontSize: "clamp(12px, 3vw, 13.5px)",
             letterSpacing: "0.05em",
             color: "rgba(248, 239, 226, 0.92)",
-            fontFeatureSettings: "'tnum'",
+            fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+            fontVariantNumeric: "lining-nums tabular-nums",
             lineHeight: 1.2,
             whiteSpace: "nowrap",
             flexShrink: 0,
@@ -248,6 +251,8 @@ export function StickyCountdownBanner() {
                 textTransform: "uppercase",
                 color: "#c9a227",
                 marginBottom: "4px",
+                fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+                fontVariantNumeric: "lining-nums tabular-nums",
               }}
             >
               {lang === "fr"

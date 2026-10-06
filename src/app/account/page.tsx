@@ -486,31 +486,33 @@ function AccountPageContent() {
         {/* Balance & Code Strip */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            display: "flex",
+            flexWrap: "wrap",
             border: "1px solid rgba(57, 41, 42, 0.18)",
-            borderRadius: "8px",
+            borderRadius: "6px",
             backgroundColor: "#f8efe2",
             overflow: "hidden",
-            marginBottom: "32px",
+            marginBottom: "36px",
+            boxSizing: "border-box",
+            width: "100%",
           }}
         >
-          <div style={{ padding: "18px 22px", borderRight: "1px solid rgba(57, 41, 42, 0.14)" }}>
+          <div style={{ flex: "1 1 260px", minWidth: "220px", padding: "20px 24px", boxSizing: "border-box", borderRight: "1px solid rgba(57, 41, 42, 0.14)" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.7)", marginBottom: "7px" }}>
-              {lang === "en" ? "Credits Available" : "Créditos Disponibles"}
+              {lang === "fr" ? "Crédits disponibles" : lang === "es" ? "Créditos Disponibles" : "Credits Available"}
             </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: "7px" }}>
               <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "36px", color: "#39292a" }}>{availableCredits}</span>
-              <span style={{ fontSize: "14.5px", color: "rgba(57, 41, 42, 0.75)" }}>{lang === "en" ? "credits remaining" : "créditos restantes"}</span>
+              <span style={{ fontSize: "14.5px", color: "rgba(57, 41, 42, 0.75)" }}>{lang === "fr" ? (availableCredits === 1 ? "crédit restant" : "crédits restants") : lang === "es" ? "créditos restantes" : "credits remaining"}</span>
             </div>
           </div>
 
-          <div style={{ padding: "18px 22px" }}>
+          <div style={{ flex: "1 1 300px", minWidth: "220px", padding: "20px 24px", boxSizing: "border-box" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.7)", marginBottom: "7px" }}>
-              {lang === "en" ? "Your Godmother Code" : "Tu Código de Madrina"}
+              {lang === "fr" ? "Votre code marraine" : lang === "es" ? "Tu Código de Madrina" : "Your Godmother Code"}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", letterSpacing: "0.03em", color: "#456f04" }}>
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", letterSpacing: "0.03em", color: "#456f04", wordBreak: "break-all" }}>
                 {referralCode}
               </span>
               <button
@@ -526,9 +528,10 @@ function AccountPageContent() {
                   fontSize: "13px",
                   background: "transparent",
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
                 }}
               >
-                {copiedCode === "referral" ? (lang === "en" ? "Copied!" : "¡Copiado!") : (lang === "en" ? "Copy" : "Copiar")}
+                {copiedCode === "referral" ? (lang === "fr" ? "Copié !" : lang === "es" ? "¡Copiado!" : "Copied!") : (lang === "fr" ? "Copier" : lang === "es" ? "Copiar" : "Copy")}
               </button>
             </div>
           </div>
@@ -884,416 +887,593 @@ function AccountPageContent() {
         )}
 
         {/* ─── TAB 2: CREDITS & LEDGER ─── */}
-        {activeTab === "credits" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            
-            {/* Active Credit Batches (Pre-membership 6-month validity) */}
-            {accountData?.credits?.batches?.length > 0 && (
-              <div style={{ border: "1px solid rgba(86,139,5,0.35)", borderRadius: "8px", padding: "20px 24px", backgroundColor: "#f4f7ee" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "8px" }}>
-                  {lang === "en" ? "ACTIVE CREDIT BATCHES" : "LOTES DE CRÉDITOS ACTIVOS"}
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {accountData.credits.batches.map((b: any) => {
-                    const expStr = b.expiresAt ? new Date(b.expiresAt).toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short", day: "numeric", year: "numeric" }) : "";
-                    return (
-                      <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "14px", borderBottom: "1px solid rgba(86,139,5,0.15)", paddingBottom: "6px" }}>
-                        <div style={{ fontWeight: 600, color: "#39292a" }}>
-                          +{b.remaining} {lang === "en" ? "credits" : "créditos"} <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.65)", fontSize: "12.5px" }}>({b.source || "top-up"})</span>
-                        </div>
-                        <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.75)" }}>
-                          {lang === "en" ? ("Expires on " + expStr) : ("Caduca el " + expStr)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{ marginTop: "14px" }}>
-                  <Link
-                    href="/topup"
-                    style={{ display: "inline-block", backgroundColor: "#568b05", color: "#faf7f1", padding: "8px 18px", borderRadius: "4px", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}
+        {/* ─── TAB 2: CREDITS & LEDGER ─── */}
+        {activeTab === "credits" && (() => {
+          const now = Date.now();
+          const bal = availableCredits || 0;
+          const pd = (d: any) => {
+            if (!d) return null;
+            const x = new Date(d);
+            return isNaN(x.getTime()) ? null : x;
+          };
+          const fmtD = (d: any) => {
+            const x = pd(d);
+            return x ? x.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "short", year: "numeric" }) : String(d || "");
+          };
+          const rawBatches = (accountData?.credits?.batches || accountData?.credits?.activeBatches || []);
+          const live = rawBatches.filter((b: any) => {
+            const remainingCount = b.remaining != null ? b.remaining : (b.amount != null ? b.amount : (b.n != null ? b.n : 0));
+            return remainingCount > 0 && (!pd(b.expiresAt) || pd(b.expiresAt)!.getTime() > now);
+          });
+          const sortedLive = live.slice().sort((a: any, b: any) => (pd(a.expiresAt)?.getTime() || 0) - (pd(b.expiresAt)?.getTime() || 0));
+          const soonCut = now + 30 * 86400000;
+          const soon = sortedLive
+            .filter((b: any) => pd(b.expiresAt) && pd(b.expiresAt)!.getTime() <= soonCut)
+            .reduce((s: number, b: any) => s + (b.remaining != null ? b.remaining : (b.amount != null ? b.amount : (b.n != null ? b.n : 0))), 0);
+          const soonN = Math.min(soon, bal);
+          const ready = Math.max(0, bal - soonN);
+          const next = sortedLive[0];
+
+          const crTopRight = next && pd(next.expiresAt)
+            ? (lang === "en" ? `Next credits expire on ${fmtD(next.expiresAt)}` : `Los próximos créditos caducan el ${fmtD(next.expiresAt)}`)
+            : (lang === "en" ? "Credits last six months" : "Los créditos duran seis meses");
+
+          const isMember = !!(memberData?.status === "active" && memberData?.hasActiveSubscription);
+          const planLine = isMember
+            ? (memberData?.plan === "quarterly"
+                ? (lang === "en" ? "60 credits every 3 months" : "60 créditos cada 3 meses")
+                : (lang === "en" ? "20 credits each month" : "20 créditos al mes"))
+            : "";
+          const renewLine = isMember && memberData?.currentPeriodEnd
+            ? (lang === "en" ? `Renews on ${fmtD(memberData.currentPeriodEnd)}` : `Se renueva el ${fmtD(memberData.currentPeriodEnd)}`)
+            : "";
+
+          const crUnit = bal === 1
+            ? (lang === "en" ? "credit remaining" : "crédito restante")
+            : (lang === "en" ? "credits remaining" : "créditos restantes");
+          const crReadyPct = bal > 0 ? Math.round((ready / bal) * 100) : 0;
+          const crSoonPct = bal > 0 ? Math.round((soonN / bal) * 100) : 0;
+          const crReadyLabel = lang === "en" ? `${ready} ready to spend` : `${ready} listos para usar`;
+          const crHasSoon = soonN > 0;
+          const crSoonLabel = lang === "en" ? `${soonN} expire within 30 days` : `${soonN} caducan en menos de 30 días`;
+
+          const srcNames: Record<string, { en: string; es: string }> = {
+            hosting: { en: "Hosting reward", es: "Recompensa por anfitriona" },
+            godmother: { en: "Godmother bonus", es: "Bonus Madrina" },
+            refund: { en: "Refund", es: "Reembolso" },
+            membership: { en: "Monthly credits", es: "Créditos mensuales" },
+            subscription: { en: "Monthly credits", es: "Créditos mensuales" },
+            grant: { en: "Monthly credits", es: "Créditos mensuales" },
+            topup: { en: "Top-up", es: "Recarga" },
+            purchase: { en: "Top-up", es: "Recarga" },
+            admin_adjustment: { en: "Adjustment", es: "Ajuste" },
+          };
+
+          const crRows = rawBatches.slice().sort((a: any, b: any) => (pd(b.createdAt)?.getTime() || 0) - (pd(a.createdAt)?.getTime() || 0)).map((b: any) => {
+            const exp = pd(b.expiresAt);
+            const gone = exp && exp.getTime() <= now;
+            const srcObj = srcNames[b.source];
+            const label = srcObj ? (lang === "en" ? srcObj.en : srcObj.es) : (lang === "en" ? "Top-up" : "Recarga");
+            const boughtPart = b.createdAt ? `${fmtD(b.createdAt)} · ` : "";
+            const expPart = gone
+              ? (lang === "en" ? `expired ${fmtD(b.expiresAt)}` : `caducado ${fmtD(b.expiresAt)}`)
+              : (lang === "en" ? `expires ${fmtD(b.expiresAt)}` : `caduca ${fmtD(b.expiresAt)}`);
+            const amt = b.amount != null ? b.amount : (b.remaining != null ? b.remaining : (b.n != null ? b.n : 0));
+            return {
+              label,
+              sub: `${boughtPart}${expPart}`,
+              subColor: gone ? "#993842" : "rgba(57,41,42,0.66)",
+              amount: `+${amt}`,
+            };
+          });
+
+          const currentMonthName = new Date().toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "long" });
+          const m0 = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+          const spent = (accountData?.bookings || [])
+            .filter((b: any) => b.status !== "cancelled" && (pd(b.bookedAt || b.createdAt)?.getTime() || 0) >= m0)
+            .reduce((s: number, b: any) => s + (b.creditsCharged || 0), 0);
+          const crSpentTitle = lang === "en" ? `Spent in ${currentMonthName}` : `Usados en ${currentMonthName}`;
+          const crSpentLine = lang === "en"
+            ? `${spent} ${spent === 1 ? "credit" : "credits"} already gone from your balance.`
+            : `${spent} ${spent === 1 ? "crédito ya descontado" : "créditos ya descontados"} de tu saldo.`;
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              {/* Main Pay-as-you-go Credits Card matching Account.dc.html */}
+              <div
+                style={{
+                  border: "1px solid rgba(57,41,42,0.16)",
+                  borderRadius: "8px",
+                  background: "#fffdfa",
+                  padding: "clamp(22px, 3vw, 34px)",
+                  display: "flex",
+                  flexDirection: "column",
+                  boxShadow: "0 1px 4px rgba(57,41,42,0.04)",
+                }}
+              >
+                {/* Header Row */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "8px 20px",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                    paddingBottom: "16px",
+                    borderBottom: "1px solid rgba(57,41,42,0.12)",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "11.5px",
+                      letterSpacing: "0.16em",
+                      textTransform: "uppercase",
+                      color: "#7b1f2c",
+                      whiteSpace: "nowrap",
+                    }}
                   >
-                    {lang === "en" ? "Buy credits (€2 / credit) →" : "Comprar créditos (2€ / crédito) →"}
-                  </Link>
+                    {lang === "en" ? "Your credits" : "Tus créditos"}
+                  </span>
+                  <span style={{ fontSize: "14px", color: "rgba(57,41,42,0.74)" }}>
+                    {crTopRight}
+                  </span>
                 </div>
-              </div>
-            )}
 
-            {/* Main Credits Card (Image 2 style) */}
-            <div style={{ border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", padding: "clamp(24px, 4vw, 36px)", backgroundColor: "#fffdfa", boxShadow: "0 1px 4px rgba(57,41,42,0.04)" }}>
-              {/* Header row */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "20px", borderBottom: "1px solid rgba(57,41,42,0.12)", paddingBottom: "14px" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c" }}>
-                  {lang === "en" ? "MONTHLY CREDITS" : "CRÉDITOS MENSUALES"}
-                </div>
-                <div style={{ fontSize: "14px", color: "rgba(57,41,42,0.7)", fontWeight: 500 }}>
-                  {(() => {
-                    const d = memberData?.currentPeriodEnd ? new Date(memberData.currentPeriodEnd) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
-                    const renewalDate = isNaN(d.getTime()) ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1) : d;
-                    const renewalDateStr = renewalDate.toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "short", day: "numeric", year: "numeric" });
-                    return lang === "en" ? `Credits renew on ${renewalDateStr}` : `Los créditos se renuevan el ${renewalDateStr}`;
-                  })()}
-                </div>
-              </div>
-
-              {/* Large balance display */}
-              <div style={{ display: "flex", alignItems: "baseline", gap: "10px", marginBottom: "20px" }}>
-                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "56px", color: "#39292a", lineHeight: 1 }}>{availableCredits}</span>
-                <span style={{ fontSize: "17px", color: "rgba(57, 41, 42, 0.78)", fontWeight: 500 }}>{lang === "en" ? "credits remaining" : "créditos restantes"}</span>
-              </div>
-
-              {/* Balance bar */}
-              <div style={{ margin: "24px 0" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.75)", marginBottom: "8px" }}>
-                  {lang === "en" ? "YOUR BALANCE RIGHT NOW" : "TU SALDO AHORA MISMO"}
-                </div>
-                <div style={{ height: "10px", borderRadius: "5px", backgroundColor: "rgba(57,41,42,0.12)", overflow: "hidden", margin: "10px 0 14px" }}>
-                  <div style={{ height: "100%", width: `${Math.min(100, (availableCredits / 20) * 100)}%`, backgroundColor: "#568b05" }} />
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14.5px", color: "#456f04", fontWeight: 600 }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "17px", height: "17px", borderRadius: "3px", border: "2px solid #568b05", fontSize: "11.5px", fontWeight: 700 }}>✓</span>
-                  <span>{lang === "en" ? `${availableCredits} ready to spend` : `${availableCredits} listos para usar`}</span>
-                </div>
-              </div>
-
-              {/* Ledger breakdown (How you got here) */}
-              <div style={{ borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "20px", marginTop: "20px" }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.75)", marginBottom: "14px" }}>
-                  {lang === "en" ? "HOW YOU GOT HERE" : "DE DÓNDE VIENEN"}
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "15px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "8px" }}>
-                    <span style={{ color: "rgba(57, 41, 42, 0.85)" }}>{lang === "en" ? "Rolled over" : "Acumulados"}</span>
-                    <strong style={{ color: "#39292a" }}>+{availableCredits > 20 ? availableCredits - 20 : 0}</strong>
+                {/* Member Banner (Only for active members) */}
+                {isMember && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "6px 20px",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      marginTop: "16px",
+                      padding: "12px 16px",
+                      background: "rgba(86,139,5,0.06)",
+                      border: "1px solid rgba(86,139,5,0.3)",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    <span>
+                      <strong style={{ fontWeight: 600 }}>{lang === "en" ? "Member" : "Socia"}</strong> · {planLine}
+                    </span>
+                    <span style={{ color: "rgba(57,41,42,0.72)" }}>{renewLine}</span>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "8px" }}>
-                    <span style={{ color: "rgba(57, 41, 42, 0.85)" }}>{lang === "en" ? "This month" : "Este mes"}</span>
-                    <strong style={{ color: "#39292a" }}>+{availableCredits > 20 ? 20 : availableCredits}</strong>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 600, fontSize: "16px", paddingTop: "6px", color: "#39292a" }}>
-                    <span>{lang === "en" ? "Credits remaining" : "Créditos disponibles"}</span>
-                    <span>{availableCredits}</span>
-                  </div>
-                </div>
-                <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: "12px 0 0 0", fontStyle: "italic", lineHeight: 1.5 }}>
-                  {lang === "en" ? "Rollover credits will be used first when booking an event." : "Los créditos acumulados se usan primero al reservar un encuentro."}
-                </p>
-              </div>
+                )}
 
-              {/* Spent section */}
-              <div style={{ borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "20px", marginTop: "24px" }}>
-                {(() => {
-                  const spent = accountData.bookings?.reduce((acc: number, b: any) => acc + (b.creditsCharged || 0), 0) || 0;
-                  const monthName = new Date().toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "long" });
-                  return (
-                    <div>
-                      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.75)", marginBottom: "10px" }}>
-                        {lang === "en" ? `SPENT IN ${monthName.toUpperCase()}` : `USADOS EN ${monthName.toUpperCase()}`}
+                {/* Balance Display */}
+                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", margin: "22px 0 4px", flexWrap: "nowrap" }}>
+                  <span
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontSize: "46px",
+                      lineHeight: 1,
+                      fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+                      fontVariantNumeric: "lining-nums tabular-nums",
+                      color: "#39292a",
+                    }}
+                  >
+                    {bal}
+                  </span>
+                  <span style={{ fontSize: "17px", color: "rgba(57,41,42,0.78)", whiteSpace: "nowrap" }}>
+                    {crUnit}
+                  </span>
+                </div>
+
+                {/* Balance Bar */}
+                <div
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "11.5px",
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    color: "rgba(57,41,42,0.62)",
+                    margin: "14px 0 8px",
+                  }}
+                >
+                  {lang === "en" ? "Your balance right now" : "Tu saldo ahora mismo"}
+                </div>
+                <div style={{ height: "8px", borderRadius: "4px", background: "rgba(57,41,42,0.1)", overflow: "hidden", display: "flex" }}>
+                  <div style={{ height: "100%", background: "#568b05", width: `${crReadyPct}%`, transition: "width 0.3s ease" }} />
+                  <div style={{ height: "100%", background: "#c9a227", width: `${crSoonPct}%`, transition: "width 0.3s ease" }} />
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 22px", marginTop: "10px", fontSize: "14px" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", color: "#3b5e04", fontWeight: 600 }}>
+                    <span style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#568b05" }} />
+                    {crReadyLabel}
+                  </span>
+                  {crHasSoon && (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", color: "#7a5612", fontWeight: 600 }}>
+                      <span style={{ width: "10px", height: "10px", borderRadius: "2px", background: "#c9a227" }} />
+                      {crSoonLabel}
+                    </span>
+                  )}
+                </div>
+
+                {/* How You Got Here */}
+                <div style={{ borderTop: "1px solid rgba(57,41,42,0.12)", marginTop: "22px", paddingTop: "18px" }}>
+                  <div
+                    style={{
+                      fontFamily: "'Cormorant Garamond', serif",
+                      fontWeight: 600,
+                      fontSize: "11.5px",
+                      letterSpacing: "0.16em",
+                      textTransform: "uppercase",
+                      color: "rgba(57,41,42,0.62)",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    {lang === "en" ? "How you got here" : "De dónde vienen"}
+                  </div>
+
+                  {crRows.length === 0 ? (
+                    <p style={{ fontSize: "14px", lineHeight: "1.6", color: "rgba(57,41,42,0.72)", margin: "6px 0 0" }}>
+                      {lang === "en"
+                        ? "No credits yet. Buy as many as you need, and they last six months."
+                        : "Aún no tienes créditos. Compra todos los que necesites; caducan a los seis meses."}
+                    </p>
+                  ) : (
+                    <>
+                      {crRows.map((r: any, idx: number) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "4px 16px",
+                            justifyContent: "space-between",
+                            alignItems: "baseline",
+                            padding: "11px 0",
+                            borderBottom: "1px solid rgba(57,41,42,0.1)",
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: "14.5px" }}>{r.label}</div>
+                            <div style={{ fontSize: "12.5px", color: r.subColor }}>{r.sub}</div>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "14.5px",
+                              fontWeight: 600,
+                              fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+                              fontVariantNumeric: "lining-nums tabular-nums",
+                            }}
+                          >
+                            {r.amount}
+                          </span>
+                        </div>
+                      ))}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "13px 0 6px" }}>
+                        <span style={{ fontSize: "15.5px", fontWeight: 600 }}>
+                          {lang === "en" ? "Credits remaining" : "Créditos restantes"}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: "15.5px",
+                            fontWeight: 600,
+                            fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+                            fontVariantNumeric: "lining-nums tabular-nums",
+                          }}
+                        >
+                          {bal}
+                        </span>
                       </div>
-                      <p style={{ fontSize: "15px", color: "rgba(57, 41, 42, 0.85)", margin: "0 0 16px 0" }}>
-                        {lang === "en"
-                          ? `${spent} credits already gone from your balance.`
-                          : `${spent} créditos ya descontados de tu saldo.`}
-                      </p>
-                    </div>
-                  );
-                })()}
+                    </>
+                  )}
+                  <p style={{ fontSize: "13px", fontStyle: "italic", color: "rgba(57,41,42,0.66)", margin: "6px 0 0" }}>
+                    {lang === "en"
+                      ? "Credits expiring soonest are used first when you book."
+                      : "Los créditos que caducan antes se consumen primero al reservar."}
+                  </p>
+                </div>
 
-                {/* Inline action buttons */}
-                <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", flexWrap: "wrap", marginTop: "16px" }}>
+                {/* Spent & Action Row */}
+                <div
+                  style={{
+                    borderTop: "1px solid rgba(57,41,42,0.12)",
+                    marginTop: "20px",
+                    paddingTop: "18px",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "16px 24px",
+                    alignItems: "flex-end",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "11.5px",
+                        letterSpacing: "0.16em",
+                        textTransform: "uppercase",
+                        color: "rgba(57,41,42,0.62)",
+                        marginBottom: "6px",
+                      }}
+                    >
+                      {crSpentTitle}
+                    </div>
+                    <div style={{ fontSize: "14.5px", color: "rgba(57,41,42,0.8)" }}>{crSpentLine}</div>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTopUpError(null);
+                        setTimeout(() => topUpRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+                      }}
+                      style={{
+                        border: "1px solid #7b1f2c",
+                        color: "#7b1f2c",
+                        backgroundColor: "transparent",
+                        borderRadius: "4px",
+                        padding: "12px 22px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15px",
+                        whiteSpace: "nowrap",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {lang === "en" ? "Buy credits" : "Comprar créditos"}
+                    </button>
+                    <Link
+                      href="/events"
+                      style={{
+                        border: "1px solid #7b1f2c",
+                        backgroundColor: "#7b1f2c",
+                        color: "#fdf8f2",
+                        borderRadius: "4px",
+                        padding: "12px 22px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15px",
+                        whiteSpace: "nowrap",
+                        textDecoration: "none",
+                      }}
+                    >
+                      {lang === "en" ? "Book an event" : "Reservar un evento"}
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Statement Download Option */}
+                <div style={{ borderTop: "1px solid rgba(57,41,42,0.12)", marginTop: "18px", paddingTop: "14px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                  <Link
+                    href="/account/statement"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "13.5px",
+                      color: "#7b1f2c",
+                      textDecoration: "underline",
+                      fontWeight: 500,
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                    </svg>
+                    {lang === "en" ? "Download full statement (PDF)" : "Descargar el extracto completo (PDF)"}
+                  </Link>
+                  <span style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.6)" }}>
+                    {lang === "en" ? "Everything since you joined, month by month." : "Todo desde que te uniste, mes a mes."}
+                  </span>
+                </div>
+              </div>
+
+              {/* Purchase Confirmed Banner */}
+              {purchaseConfirmed && (
+                <div
+                  style={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid rgba(57, 41, 42, 0.14)",
+                    borderRadius: "8px",
+                    padding: "20px 24px",
+                    display: "flex",
+                    gap: "14px",
+                    alignItems: "flex-start",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "22px",
+                      height: "22px",
+                      borderRadius: "50%",
+                      border: "1.8px solid #568b05",
+                      color: "#568b05",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "13px",
+                      fontWeight: "bold",
+                      flexShrink: 0,
+                      marginTop: "1px",
+                    }}
+                  >
+                    ✓
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "'Cormorant Garamond', Georgia, serif",
+                        fontWeight: 600,
+                        fontSize: "17px",
+                        color: "#568b05",
+                      }}
+                    >
+                      {lang === "en"
+                        ? `${purchasedAmount} credit${purchasedAmount === 1 ? "" : "s"} added to your balance.`
+                        : `${purchasedAmount} crédito${purchasedAmount === 1 ? "" : "s"} añadido${purchasedAmount === 1 ? "" : "s"} a tu saldo.`}
+                    </div>
+                    <p
+                      style={{
+                        fontSize: "14.5px",
+                        lineHeight: "1.6",
+                        color: "rgba(57, 41, 42, 0.72)",
+                        margin: "4px 0 14px",
+                      }}
+                    >
+                      {lang === "en"
+                        ? `Your balance is now ${bal} credits — ready to book with.`
+                        : `Tu saldo es ahora de ${bal} créditos — listos para reservar.`}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseConfirmed(false)}
+                      style={{
+                        border: "1px solid rgba(57, 41, 42, 0.28)",
+                        backgroundColor: "#ffffff",
+                        color: "#39292a",
+                        padding: "8px 24px",
+                        borderRadius: "4px",
+                        fontFamily: "'Cormorant Garamond', Georgia, serif",
+                        fontWeight: 600,
+                        fontSize: "14.5px",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#7b1f2c")}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.28)")}
+                    >
+                      {lang === "en" ? "Done" : "Hecho"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Styled Add Credits Top Up Form (Image 2) */}
+              <div ref={topUpRef} style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", padding: "clamp(24px, 4vw, 32px)", backgroundColor: "#fff" }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", margin: "0 0 6px" }}>
+                  {lang === "en" ? "Add credits — €2 each (min. 5)" : "Añadir créditos — 2€ cada uno (mín. 5)"}
+                </div>
+                <p style={{ fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.62)", margin: "0 0 22px", maxWidth: "56ch" }}>
+                  {lang === "en"
+                    ? "Buy exactly the number you need. Top-up credits join your balance under the same rules: 6-month expiry, oldest credits used first."
+                    : "Compra exactamente los que necesites. Los créditos extra se suman a tu saldo con las mismas reglas: caducan a los 6 meses y se usan primero los más antiguos."}
+                </p>
+
+                {topUpError && (
+                  <div style={{ padding: "12px 14px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.2)", borderRadius: "4px", fontSize: "13px", color: "#b91c1c", marginBottom: "16px" }}>
+                    {topUpError}
+                  </div>
+                )}
+
+                {/* Quantity selector & Quick add */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "20px" }}>
+                  <div>
+                    <div style={{ fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.6)", marginBottom: "9px" }}>
+                      {lang === "en" ? "HOW MANY" : "CUÁNTOS"}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                      <button
+                        type="button"
+                        onClick={() => setTopUpAmount(Math.max(5, topUpAmount - 1))}
+                        style={{ width: "46px", height: "46px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", backgroundColor: "#f8efe2", color: "#39292a", fontSize: "20px", cursor: "pointer" }}
+                      >
+                        −
+                      </button>
+                      <span
+                        style={{
+                          fontFamily: "'Cormorant Garamond', serif",
+                          fontWeight: 500,
+                          fontSize: "34px",
+                          minWidth: "66px",
+                          textAlign: "center",
+                          fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+                          fontVariantNumeric: "lining-nums tabular-nums",
+                        }}
+                      >
+                        {topUpAmount}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setTopUpAmount(topUpAmount + 1)}
+                        style={{ width: "46px", height: "46px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", backgroundColor: "#f8efe2", color: "#39292a", fontSize: "20px", cursor: "pointer" }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.6)", marginBottom: "9px" }}>
+                      {lang === "en" ? "TOTAL" : "TOTAL"}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 500,
+                        fontSize: "34px",
+                        fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+                        fontVariantNumeric: "lining-nums tabular-nums",
+                      }}
+                    >
+                      {lang === "en" ? `€${topUpAmount * 2}` : `${topUpAmount * 2}€`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Add Pills */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", marginBottom: "24px" }}>
+                  <span style={{ fontSize: "13px", color: "rgba(57,41,42,0.55)", marginRight: "4px" }}>
+                    {lang === "en" ? "Quick add" : "Añadir rápido"}
+                  </span>
+                  {[5, 10, 20].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setTopUpAmount(amt)}
+                      style={{
+                        border: "1px solid rgba(57,41,42,0.25)",
+                        borderRadius: "16px",
+                        padding: "6px 14px",
+                        backgroundColor: "transparent",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        color: "rgba(57,41,42,0.75)",
+                        fontFeatureSettings: "'lnum' 1, 'tnum' 1",
+                        fontVariantNumeric: "lining-nums tabular-nums",
+                      }}
+                    >
+                      +{amt}
+                    </button>
+                  ))}
+                </div>
+
+                {/* PCI-Compliant secure button redirecting to Stripe */}
+                <div style={{ borderTop: "1px solid rgba(57,41,42,0.14)", paddingTop: "18px", display: "flex", justifyContent: "flex-end" }}>
                   <button
                     type="button"
-                    onClick={() => {
-                      setTopUpError(null);
-                      setTimeout(() => topUpRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-                    }}
+                    disabled={topUpLoading}
+                    onClick={handleTopUpSubmit}
                     style={{
                       border: "1px solid #7b1f2c",
                       color: "#7b1f2c",
                       backgroundColor: "transparent",
-                      padding: "11px 22px",
-                      borderRadius: "4px",
+                      padding: "13px 24px",
+                      borderRadius: "5px",
                       fontFamily: "'Cormorant Garamond', serif",
                       fontWeight: 600,
                       fontSize: "15px",
-                      cursor: "pointer",
+                      cursor: topUpLoading ? "wait" : "pointer",
                     }}
                   >
-                    {lang === "en" ? "Buy extra credits" : "Comprar créditos extra"}
+                    {topUpLoading
+                      ? (lang === "en" ? "Processing…" : "Procesando…")
+                      : (lang === "en" ? `Pay €${topUpAmount * 2} & Add Credits` : `Pagar ${topUpAmount * 2}€ y Añadir Créditos`)}
                   </button>
-                  <Link
-                    href="/events"
-                    style={{
-                      border: "1px solid #7b1f2c",
-                      backgroundColor: "#7b1f2c",
-                      color: "#f8efe2",
-                      padding: "11px 22px",
-                      borderRadius: "4px",
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontWeight: 600,
-                      fontSize: "15px",
-                      textDecoration: "none",
-                    }}
-                  >
-                    {lang === "en" ? "Book an event" : "Reservar un evento"}
-                  </Link>
-                </div>
-
-                {/* Extra Credits Purchase Confirmed Box (Image 2) */}
-                {purchaseConfirmed && (
-                  <div
-                    style={{
-                      backgroundColor: "#ffffff",
-                      border: "1px solid rgba(57, 41, 42, 0.14)",
-                      borderRadius: "8px",
-                      padding: "20px 24px",
-                      marginTop: "20px",
-                      display: "flex",
-                      gap: "14px",
-                      alignItems: "flex-start",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: "22px",
-                        height: "22px",
-                        borderRadius: "50%",
-                        border: "1.8px solid #568b05",
-                        color: "#568b05",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "13px",
-                        fontWeight: "bold",
-                        flexShrink: 0,
-                        marginTop: "1px",
-                      }}
-                    >
-                      ✓
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontFamily: "'Cormorant Garamond', Georgia, serif",
-                          fontWeight: 600,
-                          fontSize: "17px",
-                          color: "#568b05",
-                        }}
-                      >
-                        {lang === "en"
-                          ? `${purchasedAmount} credit${purchasedAmount === 1 ? "" : "s"} added to your balance.`
-                          : `${purchasedAmount} crédito${purchasedAmount === 1 ? "" : "s"} añadido${purchasedAmount === 1 ? "" : "s"} a tu saldo.`}
-                      </div>
-                      <p
-                        style={{
-                          fontSize: "14.5px",
-                          lineHeight: "1.6",
-                          color: "rgba(57, 41, 42, 0.72)",
-                          margin: "4px 0 14px",
-                        }}
-                      >
-                        {lang === "en"
-                          ? `Your balance is now ${availableCredits} credits — ready to book with.`
-                          : `Tu saldo es ahora de ${availableCredits} créditos — listos para reservar.`}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setPurchaseConfirmed(false)}
-                        style={{
-                          border: "1px solid rgba(57, 41, 42, 0.28)",
-                          backgroundColor: "#ffffff",
-                          color: "#39292a",
-                          padding: "8px 24px",
-                          borderRadius: "4px",
-                          fontFamily: "'Cormorant Garamond', Georgia, serif",
-                          fontWeight: 600,
-                          fontSize: "14.5px",
-                          cursor: "pointer",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#7b1f2c")}
-                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.28)")}
-                      >
-                        {lang === "en" ? "Done" : "Hecho"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* FIFO Breakdown Section */}
-            <div style={{ border: "1px solid rgba(57, 41, 42, 0.16)", borderRadius: "8px", padding: "clamp(22px, 3vw, 30px)", backgroundColor: "#fffdfa" }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#456f04", marginBottom: "16px" }}>
-                {lang === "en" ? "WHERE YOUR BALANCE CAME FROM" : "DE DÓNDE VIENE TU SALDO"}
-              </div>
-
-              {/* FIFO entries list */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "10px" }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: "15px", color: "#39292a" }}>
-                      {lang === "en" ? "This month's credits, still unspent" : "Créditos de este mes, sin usar"}
-                    </div>
-                    <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.65)", marginTop: "2px" }}>
-                      {new Date().toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "long", year: "numeric" })}
-                    </div>
-                  </div>
-                  <strong style={{ color: "#456f04", fontSize: "15.5px" }}>+{availableCredits > 20 ? 20 : availableCredits} credits</strong>
-                </div>
-
-                {availableCredits > 20 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid rgba(57,41,42,0.08)", paddingBottom: "10px" }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: "15px", color: "#39292a" }}>
-                        {lang === "en" ? "Rolled over from previous month" : "Acumulados del mes anterior"}
-                      </div>
-                      <div style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.65)", marginTop: "2px" }}>
-                        {new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleDateString(lang === "en" ? "en-US" : "es-ES", { month: "long", year: "numeric" })}
-                      </div>
-                    </div>
-                    <strong style={{ color: "#456f04", fontSize: "15.5px" }}>+{availableCredits - 20} credits</strong>
-                  </div>
-                )}
-              </div>
-
-              {/* Download statement (PDF) button */}
-              <div style={{ textAlign: "center", borderTop: "1px solid rgba(57,41,42,0.12)", paddingTop: "18px" }}>
-                <Link
-                  href="/account/statement"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    border: "1px solid rgba(57,41,42,0.3)",
-                    borderRadius: "4px",
-                    padding: "11px 24px",
-                    color: "#39292a",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "15px",
-                    textDecoration: "none",
-                    backgroundColor: "#fffdfa",
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                  </svg>
-                  {lang === "en" ? "Download full statement (PDF)" : "Descargar el extracto completo (PDF)"}
-                </Link>
-                <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", marginTop: "8px" }}>
-                  {lang === "en"
-                    ? "Everything since you joined, month by month — yours to keep."
-                    : "Todo desde que te uniste, mes a mes — para que lo guardes."}
                 </div>
               </div>
             </div>
-
-            {/* Custom Styled Add Credits Top Up Form (Image 2) */}
-            <div ref={topUpRef} style={{ border: "1px solid rgba(57,41,42,0.18)", borderRadius: "8px", padding: "clamp(24px, 4vw, 32px)", backgroundColor: "#fff" }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", margin: "0 0 6px" }}>
-                {lang === "en" ? "Add credits — €2 each (min. 5)" : "Añadir créditos — 2€ cada uno (mín. 5)"}
-              </div>
-              <p style={{ fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.62)", margin: "0 0 22px", maxWidth: "56ch" }}>
-                {lang === "en"
-                  ? "Buy exactly the number you need. Top-up credits join your balance under the same rules: 6-month expiry, oldest credits used first."
-                  : "Compra exactamente los que necesites. Los créditos extra se suman a tu saldo con las mismas reglas: caducan a los 6 meses y se usan primero los más antiguos."}
-              </p>
-
-              {topUpError && (
-                <div style={{ padding: "12px 14px", backgroundColor: "#fff0f0", border: "1px solid rgba(200,0,0,0.2)", borderRadius: "4px", fontSize: "13px", color: "#b91c1c", marginBottom: "16px" }}>
-                  {topUpError}
-                </div>
-              )}
-
-              {/* Quantity selector & Quick add */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "20px" }}>
-                <div>
-                  <div style={{ fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.6)", marginBottom: "9px" }}>
-                    {lang === "en" ? "HOW MANY" : "CUÁNTOS"}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-                    <button
-                      type="button"
-                      onClick={() => setTopUpAmount(Math.max(5, topUpAmount - 1))}
-                      style={{ width: "46px", height: "46px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", backgroundColor: "#f8efe2", color: "#39292a", fontSize: "20px", cursor: "pointer" }}
-                    >
-                      −
-                    </button>
-                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "34px", minWidth: "66px", textAlign: "center" }}>
-                      {topUpAmount}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setTopUpAmount(topUpAmount + 1)}
-                      style={{ width: "46px", height: "46px", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", backgroundColor: "#f8efe2", color: "#39292a", fontSize: "20px", cursor: "pointer" }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.6)", marginBottom: "9px" }}>
-                    {lang === "en" ? "TOTAL" : "TOTAL"}
-                  </div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "34px" }}>
-                    {lang === "en" ? `€${topUpAmount * 2}` : `${topUpAmount * 2}€`}
-                  </div>
-                </div>
-              </div>
-
-              {/* Quick Add Pills */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", marginBottom: "24px" }}>
-                <span style={{ fontSize: "13px", color: "rgba(57,41,42,0.55)", marginRight: "4px" }}>
-                  {lang === "en" ? "Quick add" : "Añadir rápido"}
-                </span>
-                {[5, 10, 20].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() => setTopUpAmount(amt)}
-                    style={{
-                      border: "1px solid rgba(57,41,42,0.25)",
-                      borderRadius: "16px",
-                      padding: "6px 14px",
-                      backgroundColor: "transparent",
-                      cursor: "pointer",
-                      fontSize: "13px",
-                      color: "rgba(57,41,42,0.75)"
-                    }}
-                  >
-                    +{amt}
-                  </button>
-                ))}
-              </div>
-
-              {/* PCI-Compliant secure button redirecting to Stripe */}
-              <div style={{ borderTop: "1px solid rgba(57,41,42,0.14)", paddingTop: "18px", display: "flex", justifyContent: "flex-end" }}>
-                <button
-                  type="button"
-                  disabled={topUpLoading}
-                  onClick={handleTopUpSubmit}
-                  style={{
-                    border: "1px solid #7b1f2c",
-                    color: "#7b1f2c",
-                    backgroundColor: "transparent",
-                    padding: "13px 24px",
-                    borderRadius: "5px",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "15px",
-                    cursor: topUpLoading ? "wait" : "pointer"
-                  }}
-                >
-                  {topUpLoading
-                    ? (lang === "en" ? "Processing…" : "Procesando…")
-                    : (lang === "en" ? `Pay €${topUpAmount} & Add Credits` : `Pagar ${topUpAmount}€ y Añadir Créditos`)}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ─── TAB: HOSTING ─── */}
         {activeTab === "hosting" && (

@@ -123,15 +123,6 @@ export async function verifyOtpAndCreateAccount(rawData: {
   letter?: boolean;
   locale?: "en" | "es" | "fr";
 }) {
-  const ip = await getClientIp();
-  const rateCheck = checkSignUpRateLimit(ip);
-  if (!rateCheck.success) {
-    return {
-      success: false as const,
-      error: rateCheck.error || "Too many registration attempts. Please try again later.",
-    };
-  }
-
   const parsed = registerSchema.safeParse(rawData);
   if (!parsed.success) {
     return {
@@ -141,7 +132,7 @@ export async function verifyOtpAndCreateAccount(rawData: {
   }
 
   const { firstName: rawFirst, lastName: rawLast, name, email, password, letter, locale } = parsed.data;
-  const inputCode = (rawData.code || "").trim();
+  const inputCode = (rawData.code || "").replace(/\D/g, "").trim();
 
   if (!inputCode || inputCode.length !== 6) {
     return {

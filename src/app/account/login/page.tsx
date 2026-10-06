@@ -142,21 +142,33 @@ function LoginForm() {
     }
   };
 
+  // Restore pending OTP verification if user refreshes the page
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("tm_pending_otp");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.email) {
+          setEmail(parsed.email);
+          if (parsed.firstName) setFirstName(parsed.firstName);
+          if (parsed.lastName) setLastName(parsed.lastName);
+          if (parsed.password) setPassword(parsed.password);
+          setMode("verify");
+          setInfoMsg(
+            lang === "en"
+              ? `We sent a 6-digit verification code to ${parsed.email}.`
+              : `Hemos enviado un código de 6 dígitos a ${parsed.email}.`
+          );
+        }
+      }
+    } catch {}
+  }, [lang]);
+
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName.trim()) {
       setErrorMsg(
-        lang === "en"
-          ? "Please enter your first name."
-          : "Por favor escribe tu nombre."
-      );
-      return;
-    }
-    if (!lastName.trim()) {
-      setErrorMsg(
-        lang === "en"
-          ? "Please enter your last name."
-          : "Por favor escribe tus apellidos."
+        lang === "en" ? "Please enter your first name." : "Por favor escribe tu nombre."
       );
       return;
     }
@@ -181,45 +193,70 @@ function LoginForm() {
     setErrorMsg(null);
     setInfoMsg(null);
 
-    // Send 6-digit OTP verification code
-    const res = await sendSignupVerificationOtp({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-      email: email.trim(),
-      password,
-      locale: lang,
-    });
+    try {
+      // Send 6-digit OTP verification code with 15s timeout
+      const sendPromise = sendSignupVerificationOtp({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+        email: email.trim(),
+        password,
+        locale: lang,
+      });
 
-    setLoading(false);
+      const timeoutPromise = new Promise<{ success: false; error: string }>((_, reject) =>
+        setTimeout(() => reject(new Error("Request timed out. Please try again.")), 15000)
+      );
 
-    if (!res.success) {
-      if (res.error === "ACCOUNT_EXISTS") {
-        setErrorMsg(
-          lang === "en"
-            ? "An account with this email already exists. Please sign in instead."
-            : "Ya existe una cuenta con este correo. Por favor inicia sesión."
-        );
-        setMode("signin");
-      } else {
-        setErrorMsg(res.error || "Failed to send verification code. Please try again.");
+      const res = await Promise.race([sendPromise, timeoutPromise]);
+
+      if (!res.success) {
+        if (res.error === "ACCOUNT_EXISTS") {
+          setErrorMsg(
+            lang === "en"
+              ? "An account with this email already exists. Please sign in instead."
+              : "Ya existe una cuenta con este correo. Por favor inicia sesión."
+          );
+          setMode("signin");
+          try { sessionStorage.removeItem("tm_pending_otp"); } catch {}
+        } else {
+          setErrorMsg(res.error || "Failed to send verification code. Please try again.");
+        }
+        return;
       }
-      return;
-    }
 
-    // Move to 2FA / OTP Verification Screen
-    setMode("verify");
-    setResendCooldown(30);
-    setInfoMsg(
-      lang === "en"
-        ? `We sent a 6-digit verification code to ${email.trim()}.`
-        : `Hemos enviado un código de 6 dígitos a ${email.trim()}.`
-    );
+      // Save pending state so refresh does not force restarting from scratch
+      try {
+        sessionStorage.setItem(
+          "tm_pending_otp",
+          JSON.stringify({
+            email: email.trim(),
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            password,
+          })
+        );
+      } catch {}
+
+      // Move to OTP Verification Screen
+      setMode("verify");
+      setResendCooldown(30);
+      setInfoMsg(
+        lang === "en"
+          ? `We sent a 6-digit verification code to ${email.trim()}.`
+          : `Hemos enviado un código de 6 dígitos a ${email.trim()}.`
+      );
+    } catch (err: any) {
+      console.error("Create account error:", err);
+      setErrorMsg(err?.message || (lang === "en" ? "Failed to send verification code. Please try again." : "Error al enviar el código de verificación."));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanCode = otpCode.trim();
+    const cleanCode = otpCode.replace(/\D/g, "").trim();
     if (!cleanCode || cleanCode.length !== 6) {
       setErrorMsg(
         lang === "en"
@@ -233,47 +270,85 @@ function LoginForm() {
     setErrorMsg(null);
     setInfoMsg(null);
 
-    const res = await verifyOtpAndCreateAccount({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-      email: email.trim(),
-      password,
-      code: cleanCode,
-      letter: newsletter,
-      locale: lang,
-    });
+    try {
+      const verifyPromise = verifyOtpAndCreateAccount({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+        email: email.trim(),
+        password,
+        code: cleanCode,
+        letter: newsletter,
+        locale: lang,
+      });
 
-    if (!res.success) {
-      setLoading(false);
-      setErrorMsg(res.error || "Invalid or expired verification code.");
-      return;
-    }
-
-    // Auto sign-in after verification & account creation
-    const callbackUrl = searchParams?.get("callbackUrl") || searchParams?.get("next");
-    const targetRoute =
-      callbackUrl && !callbackUrl.startsWith("/admin")
-        ? callbackUrl
-        : "/account";
-
-    const loginRes = await signIn("member-credentials", {
-      email: email.trim(),
-      password,
-      redirect: false,
-    });
-
-    setLoading(false);
-
-    if (loginRes?.error) {
-      setMode("signin");
-      setErrorMsg(
-        lang === "en"
-          ? "Account created & verified! Please sign in with your credentials."
-          : "¡Cuenta verificada y creada! Por favor inicia sesión con tus datos."
+      const timeoutPromise = new Promise<{ success: false; error: string }>((_, reject) =>
+        setTimeout(() => reject(new Error("Verification timed out. Please try again.")), 15000)
       );
-    } else {
-      window.location.href = targetRoute;
+
+      const res = await Promise.race([verifyPromise, timeoutPromise]);
+
+      if (!res.success) {
+        if (res.error === "ACCOUNT_EXISTS") {
+          try { sessionStorage.removeItem("tm_pending_otp"); } catch {}
+          setMode("signin");
+          setErrorMsg(
+            lang === "en"
+              ? "An account with this email already exists. Please sign in."
+              : "Ya existe una cuenta con este correo. Por favor inicia sesión."
+          );
+        } else {
+          setErrorMsg(res.error || (lang === "en" ? "Invalid or expired verification code." : "Código de verificación inválido o caducado."));
+        }
+        return;
+      }
+
+      // Clear pending signup storage upon success
+      try { sessionStorage.removeItem("tm_pending_otp"); } catch {}
+
+      // Auto sign-in after verification & account creation
+      const callbackUrl = searchParams?.get("callbackUrl") || searchParams?.get("next");
+      const targetRoute =
+        callbackUrl && !callbackUrl.startsWith("/admin")
+          ? callbackUrl
+          : "/account";
+
+      try {
+        const loginRes = await signIn("member-credentials", {
+          email: email.trim(),
+          password,
+          redirect: false,
+        });
+
+        if (loginRes?.error) {
+          setMode("signin");
+          setErrorMsg(
+            lang === "en"
+              ? "Account created & verified! Please sign in with your credentials."
+              : "¡Cuenta verificada y creada! Por favor inicia sesión con tus datos."
+          );
+        } else {
+          window.location.href = targetRoute;
+        }
+      } catch (authErr) {
+        console.error("Auto signin error:", authErr);
+        setMode("signin");
+        setErrorMsg(
+          lang === "en"
+            ? "Account verified! Please sign in with your credentials."
+            : "¡Cuenta verificada! Por favor inicia sesión con tus datos."
+        );
+      }
+    } catch (err: any) {
+      console.error("Verification submit error:", err);
+      setErrorMsg(
+        err?.message ||
+        (lang === "en"
+          ? "Network error or timeout while verifying. Please try again."
+          : "Error de conexión al verificar el código. Por favor inténtalo de nuevo.")
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -283,25 +358,30 @@ function LoginForm() {
     setErrorMsg(null);
     setInfoMsg(null);
 
-    const res = await sendSignupVerificationOtp({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: email.trim(),
-      password,
-      locale: lang,
-    });
+    try {
+      const res = await sendSignupVerificationOtp({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        password,
+        locale: lang,
+      });
 
-    setLoading(false);
-
-    if (res.success) {
-      setResendCooldown(30);
-      setInfoMsg(
-        lang === "en"
-          ? "A new 6-digit verification code has been sent to your email."
-          : "Se ha enviado un nuevo código de 6 dígitos a tu correo."
-      );
-    } else {
-      setErrorMsg(res.error || "Failed to resend code. Please try again.");
+      if (res.success) {
+        setResendCooldown(30);
+        setInfoMsg(
+          lang === "en"
+            ? "A new 6-digit verification code has been sent to your email."
+            : "Se ha enviado un nuevo código de 6 dígitos a tu correo."
+        );
+      } else {
+        setErrorMsg(res.error || (lang === "en" ? "Failed to resend code. Please try again." : "Error al reenviar el código."));
+      }
+    } catch (err: any) {
+      console.error("Resend OTP error:", err);
+      setErrorMsg(err?.message || (lang === "en" ? "Failed to resend code. Please try again." : "Error al reenviar el código."));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1204,6 +1284,7 @@ function LoginForm() {
                       setMode("create");
                       setErrorMsg(null);
                       setInfoMsg(null);
+                      try { sessionStorage.removeItem("tm_pending_otp"); } catch {}
                     }}
                     style={{
                       border: "none",

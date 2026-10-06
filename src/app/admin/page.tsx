@@ -9,8 +9,10 @@ import { confirmEventDecision, cancelEventDecision } from "@/app/actions/adminEv
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import ThemeLoader from "@/components/ThemeLoader";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function AdminDashboardPage() {
+  const { language: lang } = useLanguage();
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -211,7 +213,8 @@ export default function AdminDashboardPage() {
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>The Mothers · Admin</div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(32px,4.4vw,44px)", lineHeight: 1.1, margin: "0 0 9px" }}>What needs you today</h1>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "64ch", textWrap: "pretty" }} suppressHydrationWarning>
-              {mounted ? `${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}. ` : ""}Everything below has a deadline, a payment or a mother waiting behind it. The counts sit at the bottom.
+              {mounted && <span>{new Date().toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", { weekday: "long", day: "numeric", month: "long" })}. </span>}
+              <span>Everything below has a deadline, a payment or a mother waiting behind it. The counts sit at the bottom.</span>
             </p>
           </div>
           <div style={{ display: "flex", gap: "9px", alignItems: "center" }}>

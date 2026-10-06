@@ -180,8 +180,33 @@ export default function AdminEditEventPage() {
     loadEvent();
   }, [eventId, router]);
 
+  const isLangSelected = (l: string) => {
+    return langs.some(
+      (x) =>
+        x.toLowerCase() === l.toLowerCase() ||
+        (l === "Spanish" && (x.toLowerCase() === "español" || x.toLowerCase() === "es")) ||
+        (l === "French" && (x.toLowerCase() === "français" || x.toLowerCase() === "fr")) ||
+        (l === "Catalan" && (x.toLowerCase() === "català" || x.toLowerCase() === "ca")) ||
+        (l === "English" && x.toLowerCase() === "en")
+    );
+  };
+
   const toggleLang = (l: string) => {
-    setLangs(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
+    setLangs((prev) => {
+      const selected = isLangSelected(l);
+      if (selected) {
+        return prev.filter(
+          (x) =>
+            x.toLowerCase() !== l.toLowerCase() &&
+            !(l === "Spanish" && (x.toLowerCase() === "español" || x.toLowerCase() === "es")) &&
+            !(l === "French" && (x.toLowerCase() === "français" || x.toLowerCase() === "fr")) &&
+            !(l === "Catalan" && (x.toLowerCase() === "català" || x.toLowerCase() === "ca")) &&
+            !(l === "English" && x.toLowerCase() === "en")
+        );
+      } else {
+        return [...prev, l];
+      }
+    });
   };
 
   const toggleStage = (s: string) => {
@@ -473,9 +498,9 @@ export default function AdminEditEventPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "14px" }}>
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Languages spoken</label>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    {["English", "Español", "Català"].map(l => (
-                      <button key={l} type="button" onClick={() => toggleLang(l)} style={{ border: `1px solid ${chip(langs.includes(l)).border}`, background: chip(langs.includes(l)).bg, color: chip(langs.includes(l)).color, borderRadius: "20px", padding: "7px 14px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", cursor: "pointer" }}>{l}</button>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    {["English", "Spanish", "French", "Catalan"].map(l => (
+                      <button key={l} type="button" onClick={() => toggleLang(l)} style={{ border: `1px solid ${chip(isLangSelected(l)).border}`, background: chip(isLangSelected(l)).bg, color: chip(isLangSelected(l)).color, borderRadius: "20px", padding: "7px 14px", fontFamily: "'Lora', Georgia, serif", fontSize: "13px", cursor: "pointer" }}>{l}</button>
                     ))}
                   </div>
                 </div>

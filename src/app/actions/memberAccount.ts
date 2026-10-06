@@ -242,6 +242,12 @@ export async function getAccountData(targetMemberId?: string) {
       createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : null,
     }));
 
+    const safeAllBatches = (allBatches || []).map((b: any) => ({
+      ...b,
+      expiresAt: b.expiresAt ? new Date(b.expiresAt).toISOString() : null,
+      createdAt: (b.createdAt || b.purchasedAt) ? new Date(b.createdAt || b.purchasedAt).toISOString() : null,
+    }));
+
     const safeWaitlists = (activeWaitlists || []).map((w: any) => ({
       ...w,
       startsAt: w.startsAt ? new Date(w.startsAt).toISOString() : null,
@@ -307,7 +313,8 @@ export async function getAccountData(targetMemberId?: string) {
       credits: {
         available: Math.max(0, currentBalance),
         ledger: ledger || [],
-        batches: safeBatches,
+        batches: safeAllBatches,
+        activeBatches: safeBatches,
       },
       bookings: safeBookings,
       waitlists: safeWaitlists,
