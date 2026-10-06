@@ -347,6 +347,18 @@ export function formatEventDate(startsAt: string | Date, lang: Lang): string {
   return `${capWeekday} ${day} ${month} ${year} · ${time}`;
 }
 
+export function formatCardDate(startsAt: string | Date, lang: Lang): string {
+  const d = new Date(startsAt);
+  if (isNaN(d.getTime())) return "";
+  const weekday = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "long" });
+  const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+  const day = d.getDate();
+  const month = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { month: "long" });
+  const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return `${capWeekday} ${day} ${capMonth} · ${time}`;
+}
+
 const modalInputStyle: React.CSSProperties = {
   minHeight: "48px",
   padding: "12px 16px",
@@ -1092,17 +1104,21 @@ export function EventCardImage({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: "3px",
-          backgroundColor: "transparent",
+          gap: "4px",
+          backgroundColor: "rgba(57, 41, 42, 0.05)",
         }}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" width="28" height="28" style={{ opacity: 0.7, marginBottom: "2px" }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28" style={{ opacity: 0.6, marginBottom: "2px" }}>
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
           <polyline points="21 15 16 10 5 21" />
         </svg>
-        <span style={{ fontSize: "13px", fontWeight: 500 }}>{lang === "en" ? "Event photo" : "Foto del evento"}</span>
-        <span style={{ fontSize: "11px", color: "rgba(57,41,42,0.4)" }}>{lang === "en" ? "or browse files" : "o explorar fotos"}</span>
+        <span style={{ fontSize: "12.5px", fontWeight: 500, color: "rgba(57, 41, 42, 0.65)" }}>
+          {lang === "en" ? "Event photo" : "Foto del evento"}
+        </span>
+        <span style={{ fontSize: "11px", color: "rgba(57, 41, 42, 0.45)" }}>
+          {lang === "en" ? "or browse files" : "o explorar fotos"}
+        </span>
       </div>
     );
   }
@@ -1111,7 +1127,7 @@ export function EventCardImage({
     <img
       src={resolvedUrl}
       alt={title}
-      style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s ease" }}
+      style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s ease", display: "block" }}
       onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.transform = "scale(1.03)")}
       onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.transform = "scale(1)")}
       onError={() => setError(true)}
@@ -1130,6 +1146,8 @@ function EventCard({
   isMember,
   creditBalance = 0,
 }: EventCardProps) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   const isCancelled = ev.status === "cancelled";
   const isPast = ev.status === "past" || ev.status === "completed" ||
     (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
@@ -1156,12 +1174,6 @@ function EventCard({
     }
   };
 
-  const photoBorderColor = isPast || isCancelled
-    ? "rgba(57,41,42,0.22)"
-    : isPending
-    ? "rgba(164,118,31,0.4)"
-    : "rgba(86,139,5,0.4)";
-
   return (
     <article
       style={{
@@ -1173,19 +1185,19 @@ function EventCard({
         flexDirection: "column",
         height: "100%",
         boxSizing: "border-box",
+        overflow: "hidden",
         transition: "box-shadow 0.2s ease, transform 0.2s ease",
       }}
     >
-      {/* Photo Container with Top Category Badge */}
+      {/* ─── Top Photo Container (Edge-to-edge flush with card top) ─── */}
       <div
         style={{
           position: "relative",
-          width: "100%",
-          height: "170px",
-          borderRadius: "6px",
+          height: "155px",
+          margin: "-20px -20px 14px -20px",
+          borderBottom: "1px solid rgba(57, 41, 42, 0.12)",
+          backgroundColor: "rgba(57, 41, 42, 0.05)",
           overflow: "hidden",
-          backgroundColor: "rgba(255,255,255,0.25)",
-          border: `1px dashed ${photoBorderColor}`,
         }}
       >
         <Link
@@ -1206,7 +1218,7 @@ function EventCard({
           />
         </Link>
 
-        {/* Floating Category Pill on top-left of image */}
+        {/* Floating Category Pill & Status on top-left of image */}
         <div
           style={{
             position: "absolute",
@@ -1294,16 +1306,14 @@ function EventCard({
         </div>
       </div>
 
-      {/* Subheader: Stage & Audience on left, Price/Credits on right */}
+      {/* ─── Subheader: Stage & Audience on left, Price/Credits on right ─── */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "10px",
-          marginTop: "14px",
-          paddingTop: "12px",
-          borderTop: "1px dotted rgba(57, 41, 42, 0.22)",
+          marginBottom: "4px",
         }}
       >
         <div
@@ -1357,13 +1367,13 @@ function EventCard({
         </div>
       </div>
 
-      {/* Event Title */}
+      {/* ─── Event Title (Serif Heading) ─── */}
       <h3
         style={{
           fontFamily: "'Cormorant Garamond', Georgia, serif",
           fontWeight: 600,
           fontSize: "21px",
-          margin: "6px 0 0",
+          margin: "2px 0 10px",
           lineHeight: 1.25,
           color: "#39292a",
         }}
@@ -1378,32 +1388,146 @@ function EventCard({
         </Link>
       </h3>
 
-      {/* Date & Location snippet */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "13px", color: "rgba(57,41,42,0.72)", marginTop: "8px" }}>
-        <div>{formatEventDate(ev.startsAt, lang)}</div>
-        <div>
-          {[
-            ev.neighbourhood,
-            ev.venueName,
-            ev.partnerName || "The Mothers",
-          ].filter(Boolean).join(" · ")}
+      {/* ─── 4 Info Rows with Clean Icons (Date, Place, Language, Audience) ─── */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "6px",
+          fontSize: "13.5px",
+          color: "rgba(57, 41, 42, 0.72)",
+          marginBottom: "10px",
+        }}
+      >
+        {/* 1. Date & Time */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" style={{ flexShrink: 0 }}>
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+          <span>{formatCardDate(ev.startsAt, lang)}</span>
         </div>
-        {(() => {
-          const langs = ev.languages && ev.languages.length > 0 ? ev.languages : ["es", "en"];
-          return (
-            <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12.5px", color: "rgba(57,41,42,0.72)" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13" style={{ flexShrink: 0 }}>
-                <circle cx="12" cy="12" r="10" />
-                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" />
-              </svg>
-              <span>{langs.map((l) => getLanguageLabel(l, lang)).join(", ")}</span>
-            </div>
-          );
-        })()}
+
+        {/* 2. Location */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" style={{ flexShrink: 0 }}>
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          <span>{ev.neighbourhood || ev.venueName || (ev.isOnline ? (lang === "en" ? "Online" : "En línea") : "Barcelona")}</span>
+        </div>
+
+        {/* 3. Languages */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" />
+          </svg>
+          <span>{(ev.languages && ev.languages.length > 0 ? ev.languages : ["es", "en"]).map((l) => getLanguageLabel(l, lang)).join(", ")}</span>
+        </div>
+
+        {/* 4. Audience / Children */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <svg viewBox="0 0 30 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="14" style={{ flexShrink: 0 }}>
+            <circle cx="10" cy="8" r="4" />
+            <path d="M2 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+            <circle cx="24" cy="11" r="2.6" />
+            <path d="M18.5 21c0-2.9 2.5-5.2 5.5-5.2s5.5 2.3 5.5 5.2" />
+          </svg>
+          <span>
+            {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
+              ? (lang === "en" ? "Mothers only" : "Solo madres")
+              : (lang === "en" ? "Children welcome" : "Peques bienvenidos")}
+          </span>
+        </div>
       </div>
 
-      {/* Status & More Details Section */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid rgba(57,41,42,0.12)" }}>
+      {/* ─── Details ▼ / Details ▲ In-place Toggle ─── */}
+      <button
+        type="button"
+        onClick={() => setDetailsOpen((prev) => !prev)}
+        style={{
+          alignSelf: "flex-start",
+          background: "none",
+          border: "none",
+          padding: "0",
+          fontFamily: "inherit",
+          fontSize: "13px",
+          color: "#7b1f2c",
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "4px",
+          marginBottom: detailsOpen ? "10px" : "12px",
+        }}
+      >
+        <span style={{ textDecoration: "underline", textUnderlineOffset: "3px" }}>
+          {lang === "en" ? "Details" : "Detalles"}
+        </span>
+        <span style={{ fontSize: "9px" }}>{detailsOpen ? "▲" : "▼"}</span>
+      </button>
+
+      {/* ─── Expandable Details Content ─── */}
+      {detailsOpen && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            padding: "12px 14px",
+            backgroundColor: "rgba(57, 41, 42, 0.04)",
+            borderRadius: "6px",
+            marginBottom: "12px",
+            fontSize: "13px",
+            lineHeight: "1.55",
+            color: "rgba(57, 41, 42, 0.8)",
+          }}
+        >
+          {ev.partnerName && (
+            <div style={{ fontSize: "12.5px" }}>
+              <span style={{ color: "rgba(57, 41, 42, 0.65)" }}>{lang === "en" ? "Hosted with " : "Organizado con "}</span>
+              <strong style={{ fontWeight: 600 }}>{ev.partnerName}</strong>
+            </div>
+          )}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", fontSize: "12.5px", color: "rgba(57,41,42,0.72)", fontStyle: "italic" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flexShrink: 0, marginTop: "2px" }}>
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+            <span>{ev.userStatus?.isBooked && ev.venueAddress ? ev.venueAddress : (ev.meetingPointNote || (lang === "en" ? "Exact address sent when you book" : "Dirección exacta enviada tras reservar"))}</span>
+          </div>
+          {getEventDisplayDesc(ev, lang) && (
+            <p style={{ margin: 0, fontSize: "13px", color: "rgba(57,41,42,0.76)" }}>
+              {getEventDisplayDesc(ev, lang)}
+            </p>
+          )}
+          <Link
+            href={`/events/${ev.slug || ev.id}`}
+            style={{
+              color: "#7b1f2c",
+              textDecoration: "underline",
+              fontSize: "12.5px",
+              fontWeight: 600,
+              marginTop: "2px",
+              display: "inline-block",
+            }}
+          >
+            {lang === "en" ? "Open event page →" : "Ver página del evento →"}
+          </Link>
+        </div>
+      )}
+
+      {/* ─── Status & Confirmation Line ─── */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
+          marginTop: "auto",
+          paddingTop: "12px",
+          borderTop: "1px solid rgba(57, 41, 42, 0.12)",
+        }}
+      >
         {isCancelled ? (
           <div style={{ fontSize: "13px", color: "#993842", fontWeight: 600 }}>
             {lang === "en" ? "Cancelled" : "Cancelado"}{ev.cancelReason ? ` — ${ev.cancelReason}` : ""}
@@ -1428,7 +1552,7 @@ function EventCard({
             </div>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13.5px", color: "#456f04", fontWeight: 600 }}>
               <span>{lang === "en" ? "Confirmed — going ahead" : "Confirmado — se realiza"}</span>
             </div>
@@ -1439,42 +1563,21 @@ function EventCard({
             </div>
           </div>
         )}
-
-        {/* More details link that opens the event page */}
-        <Link
-          href={`/events/${ev.slug || ev.id}`}
-          style={{
-            color: "#7b1f2c",
-            fontSize: "12.5px",
-            fontWeight: 600,
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "4px",
-            width: "fit-content",
-            marginTop: "2px",
-          }}
-        >
-          <span style={{ textDecoration: "underline", textUnderlineOffset: "2px" }}>
-            {lang === "en" ? "More details" : "Más detalles"}
-          </span>
-          <span style={{ fontSize: "11px", textDecoration: "none", display: "inline-block" }}>→</span>
-        </Link>
       </div>
 
-      {/* ─── Compact Footer (1b): Places on left, Button on right ─── */}
+      {/* ─── Compact Footer: Places on left, Button on right ─── */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "12px",
-          marginTop: "auto",
-          paddingTop: "14px",
+          marginTop: "10px",
+          paddingTop: "12px",
           borderTop: "1px solid rgba(57, 41, 42, 0.12)",
         }}
       >
-        {/* Left: Capacity / Places left */}
+        {/* Left: Capacity / Places left (No duplicate 'Place booked' text) */}
         <div
           style={{
             fontSize: "13px",
@@ -1489,13 +1592,6 @@ function EventCard({
             lang === "en" ? "Past event" : "Evento pasado"
           ) : isCancelled ? (
             lang === "en" ? "Cancelled" : "Cancelado"
-          ) : ev.userStatus?.isBooked ? (
-            /* No need for precision about "place booked" here as the CTA is already "booked" */
-            isOpenList
-              ? (lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas")
-              : (lang === "en"
-                  ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}`
-                  : `Plazas libres: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`)
           ) : isOpenList ? (
             lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"
           ) : isFull ? (
@@ -1608,6 +1704,8 @@ function EventCard({
             >
               {isBooking
                 ? (lang === "en" ? "Booking..." : "Reservando...")
+                : isViewerFree
+                ? (lang === "en" ? "Join — free" : "Unirme — gratis")
                 : (lang === "en" ? "Book" : "Reservar")}
             </button>
           )}

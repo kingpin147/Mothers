@@ -8,6 +8,8 @@ import {
   getEventDisplayTitle,
   getCategoryInfo,
   formatEventDate,
+  formatCardDate,
+  getLanguageLabel,
   EventCardImage,
 } from "@/app/events/EventsCalendar";
 import { getPublicEvents } from "@/app/actions/events";
@@ -545,7 +547,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 key={ev.id}
                 href={`/events/${ev.slug || ev.id}`}
                 style={{
-                  flex: "0 0 clamp(260px, 75vw, 290px)",
+                  flex: "0 0 clamp(280px, 75vw, 320px)",
                   scrollSnapAlign: "start",
                   border: "1px solid rgba(57, 41, 42, 0.18)",
                   borderRadius: "8px",
@@ -568,14 +570,11 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               >
                 <div
                   style={{
-                    height: "140px",
+                    height: "155px",
                     borderBottom: "1px solid rgba(57, 41, 42, 0.12)",
-                    backgroundColor: "#ecdcd0",
+                    backgroundColor: "rgba(57, 41, 42, 0.05)",
                     overflow: "hidden",
                     position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
                   }}
                 >
                   <EventCardImage
@@ -584,23 +583,13 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                     title={title}
                     lang={lang as any}
                   />
-                </div>
-
-                <div
-                  style={{
-                    padding: "16px 18px 18px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "9px",
-                    flex: 1,
-                  }}
-                >
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "8px",
+                      position: "absolute",
+                      top: "10px",
+                      left: "10px",
+                      pointerEvents: "none",
+                      zIndex: 2,
                     }}
                   >
                     <span
@@ -612,15 +601,44 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                         borderRadius: "10px",
                         padding: "3px 10px",
                         whiteSpace: "nowrap",
-                        background: "rgba(255, 255, 255, 0.6)",
+                        background: "rgba(255, 255, 255, 0.94)",
+                        backdropFilter: "blur(4px)",
+                        fontWeight: 500,
                       }}
                     >
                       {catInfo.label}
                     </span>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "16px 18px 18px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                    flex: 1,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "8px",
+                    }}
+                  >
+                    <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.65)" }}>
+                      {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
+                        ? (lang === "en" ? "Mothers only" : "Solo madres")
+                        : (lang === "en" ? "Kids welcome" : "Peques bienvenidos")}
+                    </span>
                     <span
                       style={{
-                        fontSize: "11.5px",
-                        color: "rgba(57, 41, 42, 0.72)",
+                        fontFamily: "'Cormorant Garamond', Georgia, serif",
+                        fontWeight: 600,
+                        fontSize: "14.5px",
+                        color: isViewerFree || viewerCost === 0 ? "#456f04" : "#39292a",
                         whiteSpace: "nowrap",
                         fontFeatureSettings: "'tnum'",
                       }}
@@ -633,27 +651,51 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                     style={{
                       fontFamily: "'Cormorant Garamond', Georgia, serif",
                       fontWeight: 600,
-                      fontSize: "18px",
-                      margin: 0,
-                      lineHeight: 1.3,
+                      fontSize: "20px",
+                      margin: "0 0 2px",
+                      lineHeight: 1.25,
                       color: "#39292a",
                     }}
                   >
                     {title}
                   </h3>
 
-                  {ev.partnerName && (
-                    <div style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.55)" }}>
-                      {lang === "en" ? "Hosted by " : "Organizado por "}
-                      <span>{ev.partnerName}</span>
+                  {/* 4 Info lines */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "5px", fontSize: "13px", color: "rgba(57, 41, 42, 0.72)", marginTop: "2px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flexShrink: 0 }}>
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <path d="M16 2v4M8 2v4M3 10h18" />
+                      </svg>
+                      <span>{formatCardDate(ev.startsAt, lang as any)}</span>
                     </div>
-                  )}
-
-                  <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>
-                    {dateDisplay}
-                  </div>
-                  <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)" }}>
-                    {locationDisplay}
+                    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flexShrink: 0 }}>
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span>{locationDisplay}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flexShrink: 0 }}>
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" />
+                      </svg>
+                      <span>{(ev.languages && ev.languages.length > 0 ? ev.languages : ["es", "en"]).map((l: string) => getLanguageLabel(l, lang as any)).join(", ")}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                      <svg viewBox="0 0 30 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="15" height="13" style={{ flexShrink: 0 }}>
+                        <circle cx="10" cy="8" r="4" />
+                        <path d="M2 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+                        <circle cx="24" cy="11" r="2.6" />
+                        <path d="M18.5 21c0-2.9 2.5-5.2 5.5-5.2s5.5 2.3 5.5 5.2" />
+                      </svg>
+                      <span>
+                        {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
+                          ? (lang === "en" ? "Mothers only" : "Solo madres")
+                          : (lang === "en" ? "Children welcome" : "Peques bienvenidos")}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Link>
