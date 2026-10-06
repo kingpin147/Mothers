@@ -267,7 +267,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                   transition: "all 0.15s ease",
                 }}
               >
-                lang === "fr" ? (CATS_FR[k] || CATS_EN[k]) : lang === "es" ? CATS_ES[k] : CATS_EN[k]
+                {lang === "fr" ? (CATS_FR[k] || CATS_EN[k]) : lang === "es" ? CATS_ES[k] : CATS_EN[k]}
               </button>
             );
           })}
