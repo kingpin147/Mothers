@@ -1927,35 +1927,32 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
 
     // 2. Stage match
     if (activeStage !== "all") {
-      const stageInfo = getEventStageDisplay(ev, "en");
-      if (!stageInfo.isAllStages) {
-        const stageKeys = (ev.targetStages || []).map(s => s.toLowerCase());
-        const hasMatch = stageKeys.some(sk => {
-          if (activeStage === "big_kids" || activeStage === "big kids") return sk.includes("big") || sk.includes("grande") || sk.includes("10+") || sk.includes("6–10") || sk.includes("6-10") || sk.includes("6+") || sk.includes("children610");
-          if (activeStage === "babies") return sk.includes("bab") || sk.includes("0–12") || sk.includes("0-12") || sk.includes("postpartum") || sk.includes("posparto");
-          if (activeStage === "toddlers") return sk.includes("toddler") || sk.includes("peque") || sk.includes("1–3") || sk.includes("1-3");
-          if (activeStage === "children") return sk.includes("child") || sk.includes("niño") || sk.includes("3–6") || sk.includes("3-6") || sk.includes("3y+") || sk.includes("children36");
-          if (activeStage === "pregnant") return sk.includes("pregnant") || sk.includes("embaraz") || sk.includes("expecting");
-          return sk.includes(activeStage);
-        });
-        if (!hasMatch) {
-          const rawStage = (ev.stage || "").toLowerCase();
-          let fallbackMatch = false;
-          if (activeStage === "big_kids" || activeStage === "big kids") {
-            fallbackMatch = rawStage.includes("big") || rawStage.includes("grande") || rawStage.includes("10+") || rawStage.includes("6–10") || rawStage.includes("6-10") || rawStage.includes("6+");
-          } else if (activeStage === "babies") {
-            fallbackMatch = rawStage.includes("bab") || rawStage.includes("0–12") || rawStage.includes("0-12") || rawStage.includes("postpartum") || rawStage.includes("posparto");
-          } else if (activeStage === "toddlers") {
-            fallbackMatch = rawStage.includes("toddler") || rawStage.includes("peque") || rawStage.includes("1–3") || rawStage.includes("1-3");
-          } else if (activeStage === "children") {
-            fallbackMatch = rawStage.includes("child") || rawStage.includes("niño") || rawStage.includes("3–6") || rawStage.includes("3-6") || rawStage.includes("3y+");
-          } else if (activeStage === "pregnant") {
-            fallbackMatch = rawStage.includes("pregnant") || rawStage.includes("embaraz");
-          } else {
-            fallbackMatch = rawStage.includes(activeStage);
-          }
-          if (!fallbackMatch) return false;
+      const stageKeys = (ev.targetStages || []).map((s) => s.toLowerCase());
+      const hasMatch = stageKeys.some((sk) => {
+        if (activeStage === "big_kids" || activeStage === "big kids") return sk.includes("big") || sk.includes("grande") || sk.includes("10+") || sk.includes("6–10") || sk.includes("6-10") || sk.includes("6+") || sk.includes("children610");
+        if (activeStage === "babies") return sk.includes("bab") || sk.includes("0–12") || sk.includes("0-12") || sk.includes("postpartum") || sk.includes("posparto");
+        if (activeStage === "toddlers") return sk.includes("toddler") || sk.includes("peque") || sk.includes("1–3") || sk.includes("1-3");
+        if (activeStage === "children") return sk.includes("child") || sk.includes("niño") || sk.includes("3–6") || sk.includes("3-6") || sk.includes("3y+") || sk.includes("children36");
+        if (activeStage === "pregnant") return sk.includes("pregnant") || sk.includes("embaraz") || sk.includes("expecting");
+        return sk.includes(activeStage);
+      });
+      if (!hasMatch) {
+        const rawStage = (ev.stage || "").toLowerCase();
+        let fallbackMatch = false;
+        if (activeStage === "big_kids" || activeStage === "big kids") {
+          fallbackMatch = rawStage.includes("big") || rawStage.includes("grande") || rawStage.includes("10+") || rawStage.includes("6–10") || rawStage.includes("6-10") || rawStage.includes("6+");
+        } else if (activeStage === "babies") {
+          fallbackMatch = rawStage.includes("bab") || rawStage.includes("0–12") || rawStage.includes("0-12") || rawStage.includes("postpartum") || rawStage.includes("posparto");
+        } else if (activeStage === "toddlers") {
+          fallbackMatch = rawStage.includes("toddler") || rawStage.includes("peque") || rawStage.includes("1–3") || rawStage.includes("1-3");
+        } else if (activeStage === "children") {
+          fallbackMatch = rawStage.includes("child") || rawStage.includes("niño") || rawStage.includes("3–6") || rawStage.includes("3-6") || rawStage.includes("3y+");
+        } else if (activeStage === "pregnant") {
+          fallbackMatch = rawStage.includes("pregnant") || rawStage.includes("embaraz");
+        } else {
+          fallbackMatch = rawStage.includes(activeStage);
         }
+        if (!fallbackMatch) return false;
       }
     }
 
