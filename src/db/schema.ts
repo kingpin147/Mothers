@@ -131,6 +131,21 @@ export const memberCredential = pgTable(
   }
 );
 
+export const emailVerification = pgTable(
+  "email_verification",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    email: text("email").notNull(),
+    code: text("code").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    attempts: integer("attempts").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_email_verification_email").on(table.email),
+  ]
+);
+
 export const member = pgTable(
   "member",
   {
@@ -505,7 +520,7 @@ export const emailLog = pgTable(
   "email_log",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    personId: text("person_id").notNull().references(() => person.id),
+    personId: text("person_id"),
     templateKey: text("template_key").notNull(),
     dedupeKey: text("dedupe_key").notNull().unique(), // template + entity + date
     payload: jsonb("payload").notNull(),

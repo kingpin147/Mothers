@@ -359,7 +359,8 @@ export function StickyCountdownBanner() {
             aria-label={lang === "en" ? "Close announcement" : "Cerrar anuncio"}
             style={{
               position: "absolute",
-              top: "0px",
+              top: "50%",
+              transform: "translateY(-50%)",
               right: "0px",
               width: "32px",
               height: "32px",
@@ -367,7 +368,6 @@ export function StickyCountdownBanner() {
               border: "none",
               borderRadius: "50%",
               color: "rgba(248, 239, 226, 0.8)",
-              fontSize: "15px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -375,6 +375,7 @@ export function StickyCountdownBanner() {
               zIndex: 10,
               touchAction: "manipulation",
               transition: "all 0.15s ease",
+              padding: 0,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = "rgba(248, 239, 226, 0.2)";
@@ -385,7 +386,19 @@ export function StickyCountdownBanner() {
               e.currentTarget.style.color = "rgba(248, 239, 226, 0.8)";
             }}
           >
-            ✕
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
       </div>

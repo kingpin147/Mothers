@@ -1561,32 +1561,154 @@ function AccountPageContent() {
           </div>
         )}
 
-        {/* ─── TAB 3: PERKS (NEW TAB!) ─── */}
+        {/* ─── TAB 3: PERKS ─── */}
         {activeTab === "perks" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div>
-              <div style={{ display: "inline-block", fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7b1f2c", border: "1px solid rgba(123,31,44,0.3)", borderRadius: "10px", padding: "3px 10px", background: "rgba(123,31,44,0.06)", fontWeight: 600, width: "fit-content", marginBottom: "10px" }}>
-                {lang === "en" ? "MEMBERS ONLY" : "SOLO SOCIAS"}
-              </div>
-              <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 400, fontSize: "clamp(28px, 4vw, 36px)", margin: "0 0 10px", color: "#39292a" }}>
-                {lang === "en" ? "Partner perks" : "Ventajas con nuestros partners"}
-              </h2>
-              <p style={{ fontSize: "15px", lineHeight: "1.6", color: "rgba(57,41,42,0.8)", margin: "0 0 28px", maxWidth: "680px" }}>
-                {lang === "en"
-                  ? "What the club opens for you outside the calendar. Every offer below is held for members, arranged one partner at a time, and yours for as long as you are with us."
-                  : "Lo que el club te abre fuera del calendario. Cada ventaja está reservada a las socias, acordada partner a partner, y es tuya mientras estés con nosotras."}
-              </p>
-
-              {/* Perks Grid */}
-              {(!accountData?.partners || accountData.partners.length === 0) ? (
-                <div style={{ textAlign: "center", padding: "48px 24px", backgroundColor: "#fffdfa", borderRadius: "8px", border: "1px solid rgba(57, 41, 42, 0.12)" }}>
-                  <p style={{ color: "rgba(57,41,42,0.65)", fontSize: "14.5px", fontStyle: "italic", margin: 0 }}>
+            {!accountData?.settings?.membershipLive ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                <span
+                  style={{
+                    alignSelf: "flex-start",
+                    fontFamily: "var(--font-heading)",
+                    fontSize: "11px",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: "#7b1f2c",
+                    background: "rgba(123,31,44,0.07)",
+                    border: "1px solid rgba(123,31,44,0.35)",
+                    borderRadius: "8px",
+                    padding: "4px 10px",
+                    marginBottom: "14px",
+                    fontWeight: 600,
+                  }}
+                >
+                  {lang === "en" ? "FROM JANUARY 2027" : "A PARTIR DE ENERO DE 2027"}
+                </span>
+                <h2
+                  style={{
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 400,
+                    fontSize: "clamp(28px, 3.6vw, 36px)",
+                    lineHeight: 1.15,
+                    margin: "0 0 10px",
+                    color: "#39292a",
+                  }}
+                >
+                  {lang === "en"
+                    ? "Partner perks open with membership"
+                    : "Las ventajas de partners abren con la membresía"}
+                </h2>
+                <p
+                  style={{
+                    fontSize: "15px",
+                    lineHeight: "1.65",
+                    color: "rgba(57,41,42,0.78)",
+                    margin: "0 0 26px",
+                    maxWidth: "62ch",
+                  }}
+                >
+                  {lang === "en"
+                    ? "Standing offers from the studios, clinics, cafés and shops we work with, for members only. The sessions themselves are already on the calendar and open to you today."
+                    : "Ofertas continuas en estudios, clínicas, cafeterías y tiendas con las que colaboramos, solo para socias. Las sesiones ya están en el calendario y abiertas para ti hoy."}
+                </p>
+                <div
+                  style={{
+                    border: "1px solid rgba(57,41,42,0.14)",
+                    borderRadius: "8px",
+                    background: "#fffdfa",
+                    padding: "clamp(32px, 5vw, 48px) 24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "14px",
+                    textAlign: "center",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontStyle: "italic",
+                      fontSize: "14.5px",
+                      lineHeight: "1.6",
+                      color: "rgba(57,41,42,0.66)",
+                      margin: 0,
+                    }}
+                  >
                     {lang === "en"
-                      ? "No partner perks are currently active. Curated member offers will appear here when added."
-                      : "No hay ventajas de partners activas actualmente. Las ventajas exclusivas para socias aparecerán aquí cuando se añadan."}
+                      ? "Partner perks appear here once membership opens."
+                      : "Las ventajas de partners aparecerán aquí cuando se abra la membresía."}
                   </p>
                 </div>
-              ) : (
+              </div>
+            ) : (
+              <div>
+                <div
+                  style={{
+                    display: "inline-block",
+                    fontSize: "11px",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#7b1f2c",
+                    border: "1px solid rgba(123,31,44,0.3)",
+                    borderRadius: "10px",
+                    padding: "3px 10px",
+                    background: "rgba(123,31,44,0.06)",
+                    fontWeight: 600,
+                    width: "fit-content",
+                    marginBottom: "10px",
+                  }}
+                >
+                  {lang === "en" ? "MEMBERS ONLY" : "SOLO SOCIAS"}
+                </div>
+                <h2
+                  style={{
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 400,
+                    fontSize: "clamp(28px, 4vw, 36px)",
+                    margin: "0 0 10px",
+                    color: "#39292a",
+                  }}
+                >
+                  {lang === "en" ? "Partner perks" : "Ventajas con nuestros partners"}
+                </h2>
+                <p
+                  style={{
+                    fontSize: "15px",
+                    lineHeight: "1.6",
+                    color: "rgba(57,41,42,0.8)",
+                    margin: "0 0 28px",
+                    maxWidth: "680px",
+                  }}
+                >
+                  {lang === "en"
+                    ? "What the club opens for you outside the calendar. Every offer below is held for members, arranged one partner at a time, and yours for as long as you are with us."
+                    : "Lo que el club te abre fuera del calendario. Cada ventaja está reservada a las socias, acordada partner a partner, y es tuya mientras estés con nosotras."}
+                </p>
+
+                {/* Perks Grid */}
+                {(!accountData?.partners || accountData.partners.length === 0) ? (
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "48px 24px",
+                      backgroundColor: "#fffdfa",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(57, 41, 42, 0.12)",
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: "rgba(57,41,42,0.65)",
+                        fontSize: "14.5px",
+                        fontStyle: "italic",
+                        margin: 0,
+                      }}
+                    >
+                      {lang === "en"
+                        ? "No partner perks are currently active. Curated member offers will appear here when added."
+                        : "No hay ventajas de partners activas actualmente. Las ventajas exclusivas para socias aparecerán aquí cuando se añadan."}
+                    </p>
+                  </div>
+                ) : (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "22px" }}>
                   {accountData.partners.map((p: any) => {
                     const isRevealed = !!revealedPerks[p.id];
@@ -1714,7 +1836,8 @@ function AccountPageContent() {
                   </Link>
                 </div>
               )}
-            </div>
+              </div>
+            )}
           </div>
         )}
 

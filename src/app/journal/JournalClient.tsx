@@ -196,6 +196,8 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
           maxWidth: "1160px",
           margin: "0 auto",
           padding: "clamp(38px, 5vw, 66px) clamp(20px, 5vw, 64px) clamp(18px, 3vw, 26px)",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         <div
@@ -235,8 +237,8 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
           }}
         >
           {lang === "en"
-            ? "Free to read, no account needed. A small library of practical answers from the midwives, doulas, consultants and mothers we actually work with — written for the questions people ask at three in the morning."
-            : "De lectura libre, sin necesidad de cuenta. Una pequeña biblioteca de respuestas prácticas de las matronas, doulas, asesoras y madres con las que trabajamos — escritas para las preguntas que aparecen a las tres de la mañana."}
+            ? "Articles on motherhood and everything around it — from pregnancy and the early weeks to sleep, work, friendship and finding yourself again."
+            : "Artículos sobre la maternidad y todo lo que la rodea — desde el embarazo y las primeras semanas hasta el sueño, el trabajo, las amistades y reencontrarse."}
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "26px" }}>
           {CAT_ORDER.map((k) => {
@@ -271,12 +273,14 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
           maxWidth: "1160px",
           margin: "0 auto",
           padding: "clamp(22px, 3vw, 34px) clamp(20px, 5vw, 64px) clamp(46px, 6vw, 76px)",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
             gap: "26px",
           }}
         >

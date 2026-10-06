@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { AdminFooter } from "@/components/AdminFooter";
 import { CookieBanner } from "@/components/CookieBanner";
 import { FirstVisitProfileModal } from "@/components/FirstVisitProfileModal";
 
@@ -39,7 +40,7 @@ export default function ConditionalShell({
       <Navigation />
       <main style={{ flex: 1 }}>{children}</main>
       {!isAdminPage && <FirstVisitProfileModal />}
-      {!isAdminPage && <Footer />}
+      {isAdminPage ? <AdminFooter /> : <Footer />}
       {!isAdminPage && <CookieBanner />}
     </div>
   );

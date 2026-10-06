@@ -1029,7 +1029,7 @@ export function generateHostRequestStatusEmailHtml(params: {
 
 // ─── 8. CORE QUEUE AND SEND FUNCTION ────────────────────────────────────────
 export interface SendEmailParams {
-  personId: string;
+  personId?: string | null;
   toEmail: string;
   toName: string;
   templateKey: string;
@@ -1272,7 +1272,7 @@ export async function sendMinimumNotReachedEmail(params: {
   }) || `<p>Gathering decision alert: ${params.eventTitle} on ${params.eventDate} has ${params.activeBookings}/${params.minRequired} bookings.</p>`;
 
   return queueAndSendEmail({
-    personId: "admin",
+    personId: null,
     toEmail: params.adminEmail,
     toName: "The Mothers Team",
     templateKey: "minimum_not_reached",
@@ -1396,7 +1396,7 @@ export async function sendAccountDeletionAlertEmail(params: {
   `;
 
   return queueAndSendEmail({
-    personId: "admin",
+    personId: null,
     toEmail: "hello@themothers.cc",
     toName: "The Mothers Team",
     templateKey: "team_alert_account_deletion",
@@ -1406,4 +1406,63 @@ export async function sendAccountDeletionAlertEmail(params: {
     isTransactional: true,
   });
 }
+
+export async function sendVerificationCodeEmail(params: {
+  email: string;
+  firstName: string;
+  code: string;
+}) {
+  const firstName = params.firstName || "there";
+  const htmlContent =
+    renderPublicEmailTemplate("Email - Verify Your Email.html", {
+      first_name: firstName,
+      code: params.code,
+    }) ||
+    `<p>Confirm it’s you, ${firstName}. Enter this code to confirm your email: <strong>${params.code}</strong>. Valid for 15 minutes.</p>`;
+
+  return queueAndSendEmail({
+    personId: null,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "verify_email",
+    dedupeKey: `verify_email_${params.email}_${Date.now()}`,
+    subject: `Confirm it’s you, ${firstName}`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
+export async function sendAccountWelcomeEmail(params: {
+  personId: string;
+  email: string;
+  firstName: string;
+  planName?: string;
+  price?: number;
+  credits?: number;
+}) {
+  const firstName = params.firstName || "Member";
+  const htmlContent =
+    renderPublicEmailTemplate("Email - Welcome To Membership.html", {
+      first_name: firstName,
+      plan: params.planName || "Free Account",
+      price: params.price ? String(params.price) : "0",
+      first_payment: "0",
+      credits: params.credits ? String(params.credits) : "0",
+      next_date: "—",
+      events_url: "https://themothers.cc/events",
+    }) ||
+    `<p>Welcome to The Mothers, ${firstName}! Your account is open.</p>`;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "welcome_confirmation",
+    dedupeKey: `welcome_${params.personId}_${Date.now()}`,
+    subject: `Welcome to the club, ${firstName}`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
 

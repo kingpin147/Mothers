@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import {
   PostItem,
+  ReplyItem,
   createCirclePost,
   createCircleReply,
   toggleCircleHeart,
+  toggleCircleReplyHeart,
   reportCirclePost,
 } from "@/app/actions/gazette";
 import { compressImageClient } from "@/lib/imageCompression";
@@ -23,9 +25,21 @@ const TOPICS = [
   { id: "bcn", labelEn: "Life in Barcelona", labelEs: "Vida en Barcelona" },
   { id: "friends", labelEn: "Meetups & friends", labelEs: "Quedadas y amigas" },
   { id: "recs", labelEn: "Recommendations", labelEs: "Recomendaciones" },
+  { id: "gear", labelEn: "Gear & Swap", labelEs: "Cosas y trueque" },
 ];
 
-const COMPOSER_TOPIC_IDS = ["feeding", "sleep", "postpartum", "bcn", "recs", "friends", "pregnancy"];
+const COMPOSER_TOPIC_IDS = [
+  "pregnancy",
+  "feeding",
+  "sleep",
+  "postpartum",
+  "schools",
+  "work",
+  "bcn",
+  "friends",
+  "recs",
+  "gear",
+];
 
 const REPORT_REASONS = [
   { id: "unkind", label: "Unkind or judgmental" },
@@ -149,37 +163,12 @@ export function GazetteFeedClient({
         photoConsent,
       });
 
-      if (res.success) {
-        // Optimistically add to top
-        const myInitial = currentUser.firstName ? currentUser.firstName[0].toUpperCase() : "M";
-        const newPostItem: PostItem = {
-          id: res.post.id,
-          author: isAnon ? "A mother in Barcelona" : `${currentUser.firstName} ${currentUser.lastName?.[0] || ""}.`,
-          isAnonymous: isAnon,
-          anonymousArea: "Barcelona",
-          initial: isAnon ? "M" : myInitial,
-          topic: composerTopic,
-          topicLabel: TOPICS.find((t) => t.id === composerTopic)?.labelEn || composerTopic,
-          body: draft.trim(),
-          photos: draftPhotos,
-          hasPhotos: draftPhotos.length > 0,
-          photoGrid: draftPhotos.length === 1 ? "1fr" : draftPhotos.length === 2 ? "1fr 1fr" : "1fr 1fr",
-          heartsCount: 0,
-          isHearted: false,
-          repliesCount: 0,
-          createdAt: new Date().toISOString(),
-          meta: "Just now",
-          neighbourhood: "Barcelona",
-          isExpert: false,
-          status: "visible",
-          replies: [],
-        };
-
-        setPosts((prev) => [newPostItem, ...prev]);
+      if (res.success && res.post) {
+        setPosts((prev) => [res.post, ...prev]);
         setDraft("");
         setDraftPhotos([]);
         setIsAnon(false);
-        setNotice({ text: "Posted to La Gazette.", color: "#3b5e04" });
+        setNotice({ text: lang === "en" ? "Posted to La Gazette." : "Publicado en La Gazette.", color: "#3b5e04" });
         setTimeout(() => setNotice(null), 4000);
       }
     } catch (err: any) {
@@ -232,6 +221,64 @@ export function GazetteFeedClient({
     });
   };
 
+  const handleToggleReplyHeart = async (postId: string, replyId: string) => {
+    if (!currentUser) {
+      setNotice({ text: lang === "en" ? "Please log in to heart replies." : "Inicia sesión para dar me gusta.", color: "#7b1f2c" });
+      return;
+    }
+
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            replies: p.replies.map((r) => {
+              if (r.id === replyId) {
+                const nextState = !r.isHearted;
+                return {
+                  ...r,
+                  isHearted: nextState,
+                  heartsCount: nextState ? (r.heartsCount || 0) + 1 : Math.max(0, (r.heartsCount || 0) - 1),
+                };
+              }
+              return r;
+            }),
+          };
+        }
+        return p;
+      })
+    );
+
+    startTransition(async () => {
+      try {
+        await toggleCircleReplyHeart(replyId);
+      } catch {
+        // Rollback on failure
+        setPosts((prev) =>
+          prev.map((p) => {
+            if (p.id === postId) {
+              return {
+                ...p,
+                replies: p.replies.map((r) => {
+                  if (r.id === replyId) {
+                    const nextState = !r.isHearted;
+                    return {
+                      ...r,
+                      isHearted: nextState,
+                      heartsCount: nextState ? (r.heartsCount || 0) + 1 : Math.max(0, (r.heartsCount || 0) - 1),
+                    };
+                  }
+                  return r;
+                }),
+              };
+            }
+            return p;
+          })
+        );
+      }
+    });
+  };
+
   const handleSendReply = async (postId: string) => {
     const text = replyDrafts[postId]?.trim();
     if (!text) return;
@@ -251,15 +298,23 @@ export function GazetteFeedClient({
     }
 
     // Optimistic reply append
-    const myInitial = currentUser.firstName ? currentUser.firstName[0].toUpperCase() : "M";
-    const optimisticReply = {
+    const userFullName = currentUser?.name || currentUser?.firstName || "Mother";
+    const nameParts = userFullName.trim().split(/\s+/);
+    const userFirstName = currentUser?.firstName || nameParts[0] || "Mother";
+    const userLastNameInitial = currentUser?.lastName?.[0] || (nameParts.length > 1 ? nameParts[1][0] : "");
+    const replyAuthor = `${userFirstName}${userLastNameInitial ? " " + userLastNameInitial.toUpperCase() + "." : ""}`;
+    const rInitial = (userFirstName[0] || "M").toUpperCase();
+
+    const optimisticReply: ReplyItem = {
       id: "temp-" + Date.now(),
-      author: `${currentUser.firstName} ${currentUser.lastName?.[0] || ""}.`,
-      initial: myInitial,
+      author: replyAuthor,
+      initial: rInitial,
       body: text,
       meta: "Just now",
       isExpert: false,
       isAnonymous: false,
+      heartsCount: 0,
+      isHearted: false,
     };
 
     setPosts((prev) =>
@@ -278,7 +333,20 @@ export function GazetteFeedClient({
     setReplyDrafts((prev) => ({ ...prev, [postId]: "" }));
 
     try {
-      await createCircleReply(postId, text);
+      const res = await createCircleReply(postId, text);
+      if (res.success && res.reply) {
+        setPosts((prev) =>
+          prev.map((p) => {
+            if (p.id === postId) {
+              return {
+                ...p,
+                replies: p.replies.map((r) => (r.id === optimisticReply.id ? res.reply : r)),
+              };
+            }
+            return p;
+          })
+        );
+      }
     } catch (err: any) {
       alert(err.message || "Failed to submit reply.");
     }
@@ -295,9 +363,12 @@ export function GazetteFeedClient({
     }
   };
 
+  const userFullName = currentUser?.name || currentUser?.firstName || "";
+  const nameParts = userFullName.trim().split(/\s+/);
+  const userFirstName = currentUser?.firstName || nameParts[0] || "";
   const isUserSignedIn = Boolean(currentUser);
   const myInitial = isUserSignedIn
-    ? (isAnon ? "·" : (currentUser.firstName ? currentUser.firstName[0].toUpperCase() : "M"))
+    ? (isAnon ? "·" : (userFirstName ? userFirstName[0].toUpperCase() : "M"))
     : "+";
 
   const avatarBg = !isUserSignedIn
@@ -417,8 +488,8 @@ export function GazetteFeedClient({
                           ? "What would you ask the room tonight?"
                           : "¿Qué preguntarías a la comunidad esta noche?")
                       : (lang === "en"
-                          ? "Open a free account to post — reading needs nothing"
-                          : "Abre una cuenta gratuita para publicar — para leer no necesitas nada")
+                          ? "Open a free account to post."
+                          : "Abre una cuenta gratuita para publicar.")
                   }
                   style={{
                     width: "100%",
@@ -438,16 +509,16 @@ export function GazetteFeedClient({
 
                 {/* Draft Photo Thumbnails */}
                 {draftPhotos.length > 0 && (
-                  <div style={{ marginTop: "12px" }}>
+                  <div style={{ marginTop: "11px" }}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {draftPhotos.map((dataUrl, idx) => (
                         <div
                           key={idx}
                           style={{
                             position: "relative",
-                            width: "80px",
-                            height: "80px",
-                            borderRadius: "4px",
+                            width: "84px",
+                            height: "84px",
+                            borderRadius: "5px",
                             overflow: "hidden",
                             border: "1px solid rgba(57,41,42,0.2)",
                           }}
@@ -458,15 +529,17 @@ export function GazetteFeedClient({
                             onClick={() => handleRemovePhoto(idx)}
                             style={{
                               position: "absolute",
-                              top: "3px",
-                              right: "3px",
-                              width: "18px",
-                              height: "18px",
+                              top: "4px",
+                              right: "4px",
+                              width: "20px",
+                              height: "20px",
                               borderRadius: "50%",
                               border: "none",
-                              backgroundColor: "rgba(57,41,42,0.75)",
-                              color: "#fff",
-                              fontSize: "12px",
+                              backgroundColor: "rgba(57,41,42,0.72)",
+                              color: "#f8efe2",
+                              fontFamily: "'Lora', Georgia, serif",
+                              fontSize: "13px",
+                              lineHeight: 1,
                               cursor: "pointer",
                               display: "flex",
                               alignItems: "center",
@@ -480,14 +553,14 @@ export function GazetteFeedClient({
                       ))}
                     </div>
 
-                    <label style={{ display: "flex", gap: "8px", alignItems: "flex-start", cursor: "pointer", marginTop: "10px" }}>
+                    <label style={{ display: "flex", gap: "9px", alignItems: "flex-start", cursor: "pointer", marginTop: "10px" }}>
                       <input
                         type="checkbox"
                         checked={photoConsent}
                         onChange={(e) => setPhotoConsent(e.target.checked)}
-                        style={{ marginTop: "3px", accentColor: "#7b1f2c" }}
+                        style={{ marginTop: "3px", width: "15px", height: "15px", accentColor: "#7b1f2c", flex: "none" }}
                       />
-                      <span style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57,41,42,0.78)" }}>
+                      <span style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.78)" }}>
                         {lang === "en"
                           ? "These photos show no children other than my own — or I have their parent's permission."
                           : "Estas fotos no muestran a otros niños además de los míos — o tengo el permiso de sus padres."}
@@ -496,120 +569,98 @@ export function GazetteFeedClient({
                   </div>
                 )}
 
-                {/* Topic Pills & Photo Button Row */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginTop: "14px" }}>
-                  <label
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      border: "1px solid rgba(57, 41, 42, 0.25)",
-                      borderRadius: "14px",
-                      padding: "5px 12px",
-                      fontSize: "12.5px",
-                      color: "rgba(57, 41, 42, 0.74)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="14" height="14">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <path d="m21 15-5-5L5 21" />
-                    </svg>
-                    <span>Photo</span>
-                    <input type="file" accept="image/*" multiple onChange={handlePickPhotos} style={{ display: "none" }} />
-                  </label>
+                {/* Unified Composer Action Bar */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", justifyContent: "space-between", marginTop: "12px" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "7px", alignItems: "center", flex: "1 1 300px" }}>
+                    <label
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "7px",
+                        border: "1px solid rgba(57, 41, 42, 0.25)",
+                        borderRadius: "14px",
+                        padding: "5px 13px",
+                        fontSize: "12.5px",
+                        color: "rgba(57, 41, 42, 0.74)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <path d="m21 15-5-5L5 21" />
+                      </svg>
+                      <span>{lang === "en" ? "Photo" : "Foto"}</span>
+                      <input type="file" accept="image/*" multiple onChange={handlePickPhotos} style={{ display: "none" }} />
+                    </label>
 
-                  {COMPOSER_TOPIC_IDS.map((tId) => {
-                    const topicObj = TOPICS.find((t) => t.id === tId);
-                    const isSelected = composerTopic === tId;
-                    return (
-                      <button
-                        key={tId}
-                        type="button"
-                        onClick={() => setComposerTopic(tId)}
-                        style={{
-                          border: isSelected ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.18)",
-                          backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
-                          color: isSelected ? "#7b1f2c" : "#39292a",
-                          borderRadius: "14px",
-                          padding: "5px 12px",
-                          fontFamily: "'Lora', Georgia, serif",
-                          fontSize: "12.5px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {lang === "en" ? topicObj?.labelEn : topicObj?.labelEs}
-                      </button>
-                    );
-                  })}
-                </div>
+                    {COMPOSER_TOPIC_IDS.map((tId) => {
+                      const topicObj = TOPICS.find((t) => t.id === tId);
+                      const isSelected = composerTopic === tId;
+                      return (
+                        <button
+                          key={tId}
+                          type="button"
+                          onClick={() => setComposerTopic(tId)}
+                          style={{
+                            border: isSelected ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.25)",
+                            backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                            color: isSelected ? "#7b1f2c" : "#39292a",
+                            borderRadius: "14px",
+                            padding: "5px 12px",
+                            fontFamily: "'Lora', Georgia, serif",
+                            fontSize: "12.5px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {lang === "en" ? topicObj?.labelEn : topicObj?.labelEs}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                {/* Bottom Action Bar: Checkbox & Submit */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: "12px",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginTop: "14px",
-                    paddingTop: "12px",
-                    borderTop: "1px solid rgba(57, 41, 42, 0.08)",
-                  }}
-                >
-                  <label
-                    style={{
-                      display: "inline-flex",
-                      gap: "8px",
-                      alignItems: "center",
-                      cursor: "pointer",
-                      fontSize: "13.5px",
-                      color: "rgba(57, 41, 42, 0.8)",
-                      userSelect: "none",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isAnon}
-                      onChange={(e) => setIsAnon(e.target.checked)}
-                      style={{ accentColor: "#7b1f2c", width: "16px", height: "16px" }}
-                    />
-                    <span>{lang === "en" ? "Post anonymously" : "Publicar anónimo"}</span>
-                  </label>
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center", marginLeft: "auto" }}>
+                    <label style={{ display: "flex", gap: "7px", alignItems: "center", cursor: "pointer", fontSize: "13px", color: "rgba(57,41,42,0.72)" }}>
+                      <input
+                        type="checkbox"
+                        checked={isAnon}
+                        onChange={(e) => setIsAnon(e.target.checked)}
+                        style={{ width: "15px", height: "15px", accentColor: "#7b1f2c" }}
+                      />
+                      <span>{lang === "en" ? "Post anonymously" : "Publicar anónimo"}</span>
+                    </label>
 
-                  <button
-                    type="button"
-                    disabled={posting}
-                    onClick={handleCreatePost}
-                    style={{
-                      border: "1px solid #7b1f2c",
-                      backgroundColor: isUserSignedIn ? "#7b1f2c" : "transparent",
-                      color: isUserSignedIn ? "#fdf8f2" : "#7b1f2c",
-                      borderRadius: "4px",
-                      padding: "8px 18px",
-                      fontFamily: "'Cormorant Garamond', Georgia, serif",
-                      fontWeight: 600,
-                      fontSize: "15px",
-                      cursor: posting ? "wait" : "pointer",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isUserSignedIn) {
+                    <button
+                      type="button"
+                      disabled={posting}
+                      onClick={handleCreatePost}
+                      style={{
+                        border: "1px solid #7b1f2c",
+                        backgroundColor: "transparent",
+                        color: "#7b1f2c",
+                        borderRadius: "4px",
+                        padding: "9px 20px",
+                        fontFamily: "'Cormorant Garamond', Georgia, serif",
+                        fontWeight: 600,
+                        fontSize: "14.5px",
+                        cursor: posting ? "wait" : "pointer",
+                        whiteSpace: "nowrap",
+                        transition: "all 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = "rgba(123, 31, 44, 0.08)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isUserSignedIn) {
+                      }}
+                      onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = "transparent";
-                      }
-                    }}
-                  >
-                    {isUserSignedIn
-                      ? (posting ? "..." : (lang === "en" ? "Post" : "Publicar"))
-                      : (lang === "en" ? "Open an account to post" : "Crear cuenta para publicar")}
-                  </button>
+                      }}
+                    >
+                      {posting
+                        ? (lang === "en" ? "Posting..." : "Publicando...")
+                        : !isUserSignedIn
+                        ? (lang === "en" ? "Open an account to post" : "Abre una cuenta para publicar")
+                        : (lang === "en" ? "Post" : "Publicar")}
+                    </button>
+                  </div>
                 </div>
 
                 <div
@@ -1015,6 +1066,39 @@ export function GazetteFeedClient({
                               <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.85)", margin: "4px 0 0" }}>
                                 {reply.body}
                               </p>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleReplyHeart(post.id, reply.id)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    padding: "2px 4px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    fontSize: "12px",
+                                    color: reply.isHearted ? "#7b1f2c" : "rgba(57, 41, 42, 0.6)",
+                                    cursor: "pointer",
+                                    fontFamily: "'Lora', Georgia, serif",
+                                  }}
+                                  aria-label="Like reply"
+                                >
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    fill={reply.isHearted ? "#7b1f2c" : "none"}
+                                    stroke={reply.isHearted ? "#7b1f2c" : "currentColor"}
+                                    strokeWidth="1.7"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    width="13"
+                                    height="13"
+                                  >
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                  </svg>
+                                  <span>{reply.heartsCount || 0}</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -1152,8 +1236,8 @@ export function GazetteFeedClient({
                     ? "The best threads start at an event and carry on here. There are events every week, from 0 credits."
                     : "Los mejores hilos comienzan en un evento y continúan aquí. Hay eventos cada semana, desde 0 créditos.")
                 : (lang === "en"
-                    ? "Open a free account to post and reply — reading needs nothing. Or book an event and meet the mothers you are talking to."
-                    : "Abre una cuenta gratuita para publicar y responder — para leer no necesitas nada. O reserva un evento y conoce a las madres con las que hablas.")}
+                    ? "Open a free account to post and reply, or book an event and meet the mothers you are talking to."
+                    : "Abre una cuenta gratuita para publicar y responder, o reserva un evento y conoce a las madres con las que hablas.")}
             </p>
             <Link
               href={isUserSignedIn ? "/events" : "/account/login"}

@@ -1388,15 +1388,18 @@ function EventCard({
             ev.partnerName || "The Mothers",
           ].filter(Boolean).join(" · ")}
         </div>
-        {ev.languages && ev.languages.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12.5px", color: "rgba(57,41,42,0.72)" }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13" style={{ flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10" />
-              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" />
-            </svg>
-            <span>{ev.languages.map(l => getLanguageLabel(l, lang)).join(" · ")}</span>
-          </div>
-        )}
+        {(() => {
+          const langs = ev.languages && ev.languages.length > 0 ? ev.languages : ["es", "en"];
+          return (
+            <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "12.5px", color: "rgba(57,41,42,0.72)" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" />
+              </svg>
+              <span>{langs.map((l) => getLanguageLabel(l, lang)).join(", ")}</span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Status & More Details Section */}
@@ -1444,8 +1447,7 @@ function EventCard({
             color: "#7b1f2c",
             fontSize: "12.5px",
             fontWeight: 600,
-            textDecoration: "underline",
-            textUnderlineOffset: "2px",
+            textDecoration: "none",
             display: "inline-flex",
             alignItems: "center",
             gap: "4px",
@@ -1453,8 +1455,10 @@ function EventCard({
             marginTop: "2px",
           }}
         >
-          <span>{lang === "en" ? "More details" : "Más detalles"}</span>
-          <span style={{ fontSize: "11px", textDecoration: "none" }}>→</span>
+          <span style={{ textDecoration: "underline", textUnderlineOffset: "2px" }}>
+            {lang === "en" ? "More details" : "Más detalles"}
+          </span>
+          <span style={{ fontSize: "11px", textDecoration: "none", display: "inline-block" }}>→</span>
         </Link>
       </div>
 
@@ -1485,6 +1489,13 @@ function EventCard({
             lang === "en" ? "Past event" : "Evento pasado"
           ) : isCancelled ? (
             lang === "en" ? "Cancelled" : "Cancelado"
+          ) : ev.userStatus?.isBooked ? (
+            /* No need for precision about "place booked" here as the CTA is already "booked" */
+            isOpenList
+              ? (lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas")
+              : (lang === "en"
+                  ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}`
+                  : `Plazas libres: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`)
           ) : isOpenList ? (
             lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"
           ) : isFull ? (

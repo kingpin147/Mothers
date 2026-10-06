@@ -46,6 +46,8 @@ export async function getAdminDashboardMetrics() {
     const t10Date = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
     const thirtyDaysAhead = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
     // 1. Fetch consolidated aggregates & entity datasets in 3 fast batches
     const [
       aggregatesResult,
@@ -63,7 +65,15 @@ export async function getAdminDashboardMetrics() {
           creditIssued: sql<number>`(SELECT COALESCE(SUM(amount), 0)::int FROM ${creditBatch})`,
           creditSpent: sql<number>`(SELECT COALESCE(SUM(amount - remaining), 0)::int FROM ${creditBatch})`,
           creditOutstanding: sql<number>`(SELECT COALESCE(SUM(remaining), 0)::int FROM ${creditBatch} WHERE remaining > 0 AND expires_at > NOW())`,
-          placesOffered: sql<number>`(SELECT COALESCE(places_offered, 50)::int FROM "window" WHERE status = 'open' LIMIT 1)`
+          placesOffered: sql<number>`(SELECT COALESCE(places_offered, 50)::int FROM "window" WHERE status = 'open' LIMIT 1)`,
+          accountsBeforeLaunch: sql<number>`(SELECT count(*)::int FROM member INNER JOIN person ON member.person_id = person.id WHERE person.first_name != 'Subscriber' AND person.deleted_at IS NULL)`,
+          totalBookings: sql<number>`(SELECT count(*)::int FROM booking WHERE status != 'cancelled')`,
+          monthBookings: sql<number>`(SELECT count(*)::int FROM booking WHERE status != 'cancelled' AND created_at >= ${startOfMonth})`,
+          creditsSoldMonth: sql<number>`(SELECT COALESCE(SUM(amount), 0)::int FROM credit_batch WHERE source = 'topup' AND created_at >= ${startOfMonth})`,
+          topupRevenueMonth: sql<number>`(SELECT COALESCE(SUM(amount_cents), 0)::int FROM payment WHERE purpose IN ('topup', 'credit_topup', 'extra_credits') AND status = 'succeeded' AND created_at >= ${startOfMonth})`,
+          hostsConfirmed: sql<number>`(SELECT count(*)::int FROM host_request WHERE status IN ('confirmed', 'approved'))`,
+          hostsPending: sql<number>`(SELECT count(*)::int FROM host_request WHERE status = 'pending')`,
+          gazetteReportsOpen: sql<number>`(SELECT count(*)::int FROM circle_report WHERE status IN ('pending', 'open'))`,
         }).from(sql`(SELECT 1) as t`),
         [{
           activeMembers: 0,
@@ -72,7 +82,15 @@ export async function getAdminDashboardMetrics() {
           creditIssued: 0,
           creditSpent: 0,
           creditOutstanding: 0,
-          placesOffered: 50
+          placesOffered: 50,
+          accountsBeforeLaunch: 0,
+          totalBookings: 0,
+          monthBookings: 0,
+          creditsSoldMonth: 0,
+          topupRevenueMonth: 0,
+          hostsConfirmed: 0,
+          hostsPending: 0,
+          gazetteReportsOpen: 0,
         }]
       ),
 
@@ -345,12 +363,30 @@ export async function getAdminDashboardMetrics() {
 
     const currentMonthName = now.toLocaleString("en-US", { month: "long" });
     const stats = [
-      { value: `${Math.min(agg.activeMembers, agg.placesOffered)} of ${agg.placesOffered}`, label: "Joining-fee-free places taken" },
-      { value: `${agg.activeMembers}`, label: "Active members" },
-      { value: `${agg.subscribersCount}`, label: "The Letter & subscribers" },
-      { value: `${agg.creditIssued.toLocaleString("en-GB")}`, label: `Credits issued in ${currentMonthName}` },
-      { value: `${agg.creditSpent.toLocaleString("en-GB")}`, label: `Credits spent in ${currentMonthName}` },
-      { value: `€${(agg.totalRevenue / 100).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, label: `Revenue in ${currentMonthName}` },
+      {
+        value: String(agg.accountsBeforeLaunch ?? 0),
+        label: "Accounts before launch · fee waived",
+      },
+      {
+        value: String(agg.monthBookings ?? 0),
+        label: `Bookings in ${currentMonthName} · ${agg.totalBookings ?? 0} in total`,
+      },
+      {
+        value: String(agg.creditsSoldMonth ?? 0),
+        label: `Credits sold in ${currentMonthName}`,
+      },
+      {
+        value: `€${Math.round((agg.topupRevenueMonth ?? 0) / 100).toLocaleString("en-GB")}`,
+        label: `Top-up revenue in ${currentMonthName}`,
+      },
+      {
+        value: `${agg.hostsConfirmed ?? 0}${(agg.hostsPending ?? 0) > 0 ? ` · ${agg.hostsPending} to review` : ""}`,
+        label: "Hosts confirmed",
+      },
+      {
+        value: String(agg.gazetteReportsOpen ?? 0),
+        label: "Gazette reports open",
+      },
     ];
 
     function formatAuditAction(log: any): string {

@@ -5,7 +5,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
-import { registerFreeAccount } from "@/app/actions/register";
+import { sendSignupVerificationOtp, verifyOtpAndCreateAccount } from "@/app/actions/register";
 
 const baseInputStyle: React.CSSProperties = {
   width: "100%",
@@ -27,8 +27,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [lang, setLang] = useState<"en" | "es">("en");
   
-  // Modes: "signin" | "create"
-  const [mode, setMode] = useState<"signin" | "create">("signin");
+  // Modes: "signin" | "create" | "verify"
+  const [mode, setMode] = useState<"signin" | "create" | "verify">("signin");
 
   // Sign in state
   const [email, setEmail] = useState("");
@@ -40,11 +40,16 @@ function LoginForm() {
   const [lastName, setLastName] = useState("");
   const [newsletter, setNewsletter] = useState(true);
 
-  // Focus states for clean warm border (matching Claude design)
+  // 2FA / OTP Verification state
+  const [otpCode, setOtpCode] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Focus states for clean warm border
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("tm_lang");
@@ -56,6 +61,14 @@ function LoginForm() {
       setMode("create");
     }
   }, [searchParams]);
+
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown((prev) => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   // Handle authenticated redirects
   useEffect(() => {
@@ -93,6 +106,7 @@ function LoginForm() {
 
     setLoading(true);
     setErrorMsg(null);
+    setInfoMsg(null);
 
     const callbackUrl = searchParams?.get("callbackUrl") || searchParams?.get("next");
 
@@ -149,11 +163,11 @@ function LoginForm() {
       );
       return;
     }
-    if (!email.trim()) {
+    if (!email.trim() || !email.includes("@")) {
       setErrorMsg(
         lang === "en"
-          ? "Please enter your email address."
-          : "Por favor escribe tu correo electrónico."
+          ? "Please enter a valid email address."
+          : "Por favor escribe un correo electrónico válido."
       );
       return;
     }
@@ -168,19 +182,21 @@ function LoginForm() {
 
     setLoading(true);
     setErrorMsg(null);
+    setInfoMsg(null);
 
-    const res = await registerFreeAccount({
+    // Send 6-digit OTP verification code
+    const res = await sendSignupVerificationOtp({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       name: `${firstName.trim()} ${lastName.trim()}`.trim(),
       email: email.trim(),
       password,
-      letter: newsletter,
       locale: lang,
     });
 
+    setLoading(false);
+
     if (!res.success) {
-      setLoading(false);
       if (res.error === "ACCOUNT_EXISTS") {
         setErrorMsg(
           lang === "en"
@@ -189,12 +205,55 @@ function LoginForm() {
         );
         setMode("signin");
       } else {
-        setErrorMsg(res.error || "Failed to create account. Please try again.");
+        setErrorMsg(res.error || "Failed to send verification code. Please try again.");
       }
       return;
     }
 
-    // Auto sign-in after successful registration
+    // Move to 2FA / OTP Verification Screen
+    setMode("verify");
+    setResendCooldown(30);
+    setInfoMsg(
+      lang === "en"
+        ? `We sent a 6-digit verification code to ${email.trim()}.`
+        : `Hemos enviado un código de 6 dígitos a ${email.trim()}.`
+    );
+  };
+
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanCode = otpCode.trim();
+    if (!cleanCode || cleanCode.length !== 6) {
+      setErrorMsg(
+        lang === "en"
+          ? "Please enter the 6-digit code sent to your email."
+          : "Por favor introduce el código de 6 dígitos enviado a tu correo."
+      );
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg(null);
+    setInfoMsg(null);
+
+    const res = await verifyOtpAndCreateAccount({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+      email: email.trim(),
+      password,
+      code: cleanCode,
+      letter: newsletter,
+      locale: lang,
+    });
+
+    if (!res.success) {
+      setLoading(false);
+      setErrorMsg(res.error || "Invalid or expired verification code.");
+      return;
+    }
+
+    // Auto sign-in after verification & account creation
     const callbackUrl = searchParams?.get("callbackUrl") || searchParams?.get("next");
     const targetRoute =
       callbackUrl && !callbackUrl.startsWith("/admin")
@@ -213,11 +272,39 @@ function LoginForm() {
       setMode("signin");
       setErrorMsg(
         lang === "en"
-          ? "Account created! Please sign in with your credentials."
-          : "¡Cuenta creada! Por favor inicia sesión con tus datos."
+          ? "Account created & verified! Please sign in with your credentials."
+          : "¡Cuenta verificada y creada! Por favor inicia sesión con tus datos."
       );
     } else {
       window.location.href = targetRoute;
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || loading) return;
+    setLoading(true);
+    setErrorMsg(null);
+    setInfoMsg(null);
+
+    const res = await sendSignupVerificationOtp({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      password,
+      locale: lang,
+    });
+
+    setLoading(false);
+
+    if (res.success) {
+      setResendCooldown(30);
+      setInfoMsg(
+        lang === "en"
+          ? "A new 6-digit verification code has been sent to your email."
+          : "Se ha enviado un nuevo código de 6 dígitos a tu correo."
+      );
+    } else {
+      setErrorMsg(res.error || "Failed to resend code. Please try again.");
     }
   };
 
@@ -604,7 +691,7 @@ function LoginForm() {
                 </button>
               </form>
             </>
-          ) : (
+          ) : mode === "create" ? (
             <>
               <h2
                 style={{
@@ -893,11 +980,11 @@ function LoginForm() {
                 >
                   {loading
                     ? lang === "en"
-                      ? "Creating account..."
-                      : "Creando cuenta..."
+                      ? "Sending verification code..."
+                      : "Enviando código..."
                     : lang === "en"
-                    ? "Open my account"
-                    : "Crear mi cuenta"}
+                    ? "Continue & verify email →"
+                    : "Continuar y verificar correo →"}
                 </button>
 
                 {/* Back to sign in */}
@@ -915,6 +1002,7 @@ function LoginForm() {
                     onClick={() => {
                       setMode("signin");
                       setErrorMsg(null);
+                      setInfoMsg(null);
                     }}
                     style={{
                       border: "none",
@@ -928,6 +1016,220 @@ function LoginForm() {
                     }}
                   >
                     {lang === "en" ? "Sign in" : "Iniciar sesión"}
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <>
+              <div
+                style={{
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "12px",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: "#7b1f2c",
+                  marginBottom: "8px",
+                }}
+              >
+                {lang === "en" ? "Email Verification" : "Verificación de correo"}
+              </div>
+              <h2
+                style={{
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 500,
+                  fontSize: "26px",
+                  color: "#39292a",
+                  margin: "0 0 10px",
+                }}
+              >
+                {lang === "en" ? `Confirm it’s you, ${firstName || "Friend"}` : `Confirma que eres tú, ${firstName || "Amiga"}`}
+              </h2>
+
+              <p
+                style={{
+                  fontSize: "14.5px",
+                  lineHeight: "1.6",
+                  color: "rgba(57,41,42,0.76)",
+                  margin: "0 0 20px",
+                }}
+              >
+                {lang === "en"
+                  ? `Enter the 6-digit code sent to ${email} to confirm your email — then your booking confirmation and meeting point reach the right inbox.`
+                  : `Introduce el código de 6 dígitos enviado a ${email} para confirmar tu correo y que tus reservas y puntos de encuentro lleguen correctamente.`}
+              </p>
+
+              {infoMsg && (
+                <div
+                  style={{
+                    backgroundColor: "rgba(86,139,5,0.08)",
+                    border: "1px solid rgba(86,139,5,0.3)",
+                    color: "#3b5e04",
+                    padding: "11px 14px",
+                    borderRadius: "5px",
+                    fontSize: "13.5px",
+                    marginBottom: "20px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {infoMsg}
+                </div>
+              )}
+
+              {errorMsg && (
+                <div
+                  style={{
+                    backgroundColor: "rgba(153,56,66,0.07)",
+                    border: "1px solid rgba(153,56,66,0.25)",
+                    color: "#993842",
+                    padding: "11px 14px",
+                    borderRadius: "5px",
+                    fontSize: "13.5px",
+                    marginBottom: "20px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {errorMsg}
+                </div>
+              )}
+
+              <form
+                onSubmit={handleVerifyOtpSubmit}
+                style={{ display: "flex", flexDirection: "column", gap: "18px" }}
+              >
+                <div>
+                  <label
+                    htmlFor="otp-code"
+                    style={{
+                      display: "block",
+                      fontSize: "12.5px",
+                      fontWeight: 600,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                      color: "#39292a",
+                      marginBottom: "7px",
+                      fontFamily: "var(--font-body)",
+                    }}
+                  >
+                    {lang === "en" ? "6-DIGIT VERIFICATION CODE" : "CÓDIGO DE VERIFICACIÓN DE 6 DÍGITOS"}
+                  </label>
+                  <input
+                    id="otp-code"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                    onFocus={() => setFocusedField("otp-code")}
+                    onBlur={() => setFocusedField(null)}
+                    placeholder="123456"
+                    required
+                    autoFocus
+                    style={{
+                      ...getInputStyle("otp-code"),
+                      letterSpacing: "8px",
+                      textAlign: "center",
+                      fontSize: "22px",
+                      fontWeight: 600,
+                      fontFamily: "monospace",
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || otpCode.trim().length !== 6}
+                  style={{
+                    width: "100%",
+                    padding: "13px 24px",
+                    marginTop: "6px",
+                    border: "1px solid #7b1f2c",
+                    backgroundColor: "#7b1f2c",
+                    color: "#f8efe2",
+                    fontFamily: "var(--font-heading)",
+                    fontWeight: 600,
+                    fontSize: "15.5px",
+                    borderRadius: "4px",
+                    cursor: loading || otpCode.trim().length !== 6 ? "not-allowed" : "pointer",
+                    opacity: otpCode.trim().length !== 6 ? 0.6 : 1,
+                    letterSpacing: "0.02em",
+                    transition: "opacity 0.15s ease, background-color 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!loading && otpCode.trim().length === 6) {
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#5e1621";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "#5e1621";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#7b1f2c";
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = "#7b1f2c";
+                  }}
+                >
+                  {loading
+                    ? lang === "en"
+                      ? "Verifying code & opening account..."
+                      : "Verificando código y abriendo cuenta..."
+                    : lang === "en"
+                    ? "Verify & Open account"
+                    : "Verificar y abrir cuenta"}
+                </button>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: "13.5px",
+                    color: "rgba(57,41,42,0.76)",
+                    marginTop: "4px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("create");
+                      setErrorMsg(null);
+                      setInfoMsg(null);
+                    }}
+                    style={{
+                      border: "none",
+                      background: "transparent",
+                      padding: 0,
+                      fontFamily: "var(--font-body)",
+                      fontSize: "13.5px",
+                      color: "#7b1f2c",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {lang === "en" ? "← Change email" : "← Cambiar correo"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resendCooldown > 0 || loading}
+                    style={{
+                      border: "none",
+                      background: "transparent",
+                      padding: 0,
+                      fontFamily: "var(--font-body)",
+                      fontSize: "13.5px",
+                      color: resendCooldown > 0 ? "rgba(57,41,42,0.5)" : "#7b1f2c",
+                      textDecoration: resendCooldown > 0 ? "none" : "underline",
+                      cursor: resendCooldown > 0 ? "default" : "pointer",
+                    }}
+                  >
+                    {resendCooldown > 0
+                      ? lang === "en"
+                        ? `Resend in ${resendCooldown}s`
+                        : `Reenviar en ${resendCooldown}s`
+                      : lang === "en"
+                      ? "Resend code"
+                      : "Reenviar código"}
                   </button>
                 </div>
               </form>

@@ -39,6 +39,8 @@ export interface ReplyItem {
   meta: string;
   isExpert: boolean;
   isAnonymous: boolean;
+  heartsCount: number;
+  isHearted: boolean;
 }
 
 const TOPIC_LABELS: Record<string, string> = {
@@ -52,6 +54,7 @@ const TOPIC_LABELS: Record<string, string> = {
   bcn: "Life in Barcelona",
   friends: "Meetups & friends",
   recs: "Recommendations",
+  gear: "Gear & Swap",
 };
 
 function formatTimeAgo(date: Date): string {
@@ -196,12 +199,14 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
   if (!posts.length) return [];
 
   let userHeartedPostIds = new Set<string>();
+  let userHeartedReplyIds = new Set<string>();
   if (currentUserId) {
     const userHearts = await db.query.circleHeart.findMany({
       where: eq(circleHeart.personId, currentUserId),
     });
     userHearts.forEach((h) => {
       if (h.postId) userHeartedPostIds.add(h.postId);
+      if (h.replyId) userHeartedReplyIds.add(h.replyId);
     });
   }
 
@@ -253,6 +258,8 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
         meta: formatTimeAgo(new Date(r.createdAt)),
         isExpert: r.isPartnerExpert,
         isAnonymous: r.isAnonymous,
+        heartsCount: r.heartsCount || 0,
+        isHearted: userHeartedReplyIds.has(r.id),
       });
     }
 
@@ -408,8 +415,41 @@ export async function createCirclePost(data: {
     })
     .returning();
 
+  const authorPerson = await db.query.person.findFirst({
+    where: eq(person.id, personId),
+  });
+
+  const isAnon = data.isAnonymous ?? false;
+  const authorName = isAnon
+    ? (data.anonymousArea ? `A mother in ${data.anonymousArea}` : "A mother in Barcelona")
+    : `${authorPerson?.firstName || "Mother"} ${authorPerson?.lastName ? authorPerson.lastName[0] + "." : ""}`.trim();
+  const initial = isAnon ? "·" : (authorPerson?.firstName ? authorPerson.firstName[0].toUpperCase() : "M");
+
+  const formattedPost: PostItem = {
+    id: newPost.id,
+    author: authorName,
+    isAnonymous: isAnon,
+    anonymousArea: data.anonymousArea || "Barcelona",
+    initial,
+    topic: newPost.topic,
+    topicLabel: TOPIC_LABELS[newPost.topic] || newPost.topic,
+    body: newPost.body,
+    photos: (newPost.photos as string[]) || [],
+    hasPhotos: ((newPost.photos as string[]) || []).length > 0,
+    photoGrid: ((newPost.photos as string[]) || []).length === 1 ? "1fr" : "1fr 1fr",
+    heartsCount: 0,
+    isHearted: false,
+    repliesCount: 0,
+    createdAt: newPost.createdAt.toISOString(),
+    meta: "Just now",
+    neighbourhood: data.anonymousArea || "Barcelona",
+    isExpert: newPost.isPartnerExpert,
+    status: newPost.status,
+    replies: [],
+  };
+
   revalidatePath("/gazette");
-  return { success: true, post: newPost };
+  return { success: true, post: formattedPost };
 }
 
 export async function createCircleReply(postId: string, body: string, isAnonymous = false) {
@@ -461,13 +501,16 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     }
   }
 
-  await db.insert(circleReply).values({
-    postId,
-    personId,
-    body: body.trim(),
-    isAnonymous,
-    status: "visible",
-  });
+  const [newReply] = await db
+    .insert(circleReply)
+    .values({
+      postId,
+      personId,
+      body: body.trim(),
+      isAnonymous,
+      status: "visible",
+    })
+    .returning();
 
   await db
     .update(circlePost)
@@ -477,8 +520,29 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     })
     .where(eq(circlePost.id, postId));
 
+  const replyPerson = await db.query.person.findFirst({
+    where: eq(person.id, personId),
+  });
+
+  const rAuthor = isAnonymous
+    ? "A mother"
+    : `${replyPerson?.firstName || "Mother"} ${replyPerson?.lastName ? replyPerson.lastName[0] + "." : ""}`.trim();
+  const rInitial = isAnonymous ? "·" : (replyPerson?.firstName ? replyPerson.firstName[0].toUpperCase() : "M");
+
+  const formattedReply: ReplyItem = {
+    id: newReply.id,
+    author: rAuthor,
+    initial: rInitial,
+    body: newReply.body,
+    meta: "Just now",
+    isExpert: newReply.isPartnerExpert,
+    isAnonymous: newReply.isAnonymous,
+    heartsCount: 0,
+    isHearted: false,
+  };
+
   revalidatePath("/gazette");
-  return { success: true };
+  return { success: true, reply: formattedReply };
 }
 
 export async function toggleCircleHeart(postId: string) {
@@ -512,6 +576,41 @@ export async function toggleCircleHeart(postId: string) {
         heartsCount: sql`${circlePost.heartsCount} + 1`,
       })
       .where(eq(circlePost.id, postId));
+    return { hearted: true };
+  }
+}
+
+export async function toggleCircleReplyHeart(replyId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("You must be logged in to heart a reply.");
+  }
+
+  const personId = (session.user as any).personId || session.user.id;
+  const existing = await db.query.circleHeart.findFirst({
+    where: and(eq(circleHeart.personId, personId), eq(circleHeart.replyId, replyId)),
+  });
+
+  if (existing) {
+    await db.delete(circleHeart).where(eq(circleHeart.id, existing.id));
+    await db
+      .update(circleReply)
+      .set({
+        heartsCount: sql`GREATEST(0, ${circleReply.heartsCount} - 1)`,
+      })
+      .where(eq(circleReply.id, replyId));
+    return { hearted: false };
+  } else {
+    await db.insert(circleHeart).values({
+      personId,
+      replyId,
+    });
+    await db
+      .update(circleReply)
+      .set({
+        heartsCount: sql`${circleReply.heartsCount} + 1`,
+      })
+      .where(eq(circleReply.id, replyId));
     return { hearted: true };
   }
 }
