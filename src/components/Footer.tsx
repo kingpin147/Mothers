@@ -26,7 +26,13 @@ export function Footer() {
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes("@")) {
-      setErrorMsg(lang === "en" ? "Please enter a valid email address." : "Por favor introduce un correo válido.");
+      setErrorMsg(
+        lang === "fr"
+          ? "Veuillez entrer une adresse e-mail valide."
+          : lang === "es"
+          ? "Por favor introduce un correo válido."
+          : "Please enter a valid email address."
+      );
       return;
     }
     setLoading(true);
@@ -46,7 +52,13 @@ export function Footer() {
       }
       setEmail("");
     } catch {
-      setErrorMsg(lang === "en" ? "Something went wrong. Please try again." : "Algo ha fallado. Inténtalo de nuevo.");
+      setErrorMsg(
+        lang === "fr"
+          ? "Une erreur s'est produite. Veuillez réessayer."
+          : lang === "es"
+          ? "Algo ha fallado. Inténtalo de nuevo."
+          : "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -85,7 +97,7 @@ export function Footer() {
                 marginBottom: "8px",
               }}
             >
-              {lang === "en" ? "The letter" : "La carta"}
+              {lang === "fr" ? "La lettre" : lang === "es" ? "La carta" : "The letter"}
             </div>
             <h2
               style={{
@@ -97,14 +109,18 @@ export function Footer() {
                 color: "#39292a",
               }}
             >
-              {lang === "en"
-                ? "One letter a month, and first word when membership opens."
-                : "Una carta al mes, y las primeras novedades cuando abra la membresía."}
+              {lang === "fr"
+                ? "Une lettre par mois, et les premières nouvelles à l'ouverture des adhésions."
+                : lang === "es"
+                ? "Una carta al mes, y las primeras novedades cuando abra la membresía."
+                : "One letter a month, and first word when membership opens."}
             </h2>
             <p style={{ fontSize: "14.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "54ch" }}>
-              {lang === "en"
-                ? "What is coming up on the calendar, new writing in the Journal, and club updates before they are announced anywhere else. Nothing else in your inbox."
-                : "Novedades del calendario, nuevos artículos del Journal y las novedades del club antes de su anuncio oficial. Nada más en tu bandeja de entrada."}
+              {lang === "fr"
+                ? "Le programme à venir, les nouveaux articles du Journal et les nouvelles du club en avant-première. Rien d'autre dans votre boîte."
+                : lang === "es"
+                ? "Novedades del calendario, nuevos artículos del Journal y las novedades del club antes de su anuncio oficial. Nada más en tu bandeja de entrada."
+                : "What is coming up on the calendar, new writing in the Journal, and club updates before they are announced anywhere else. Nothing else in your inbox."}
             </p>
           </div>
 
@@ -129,7 +145,7 @@ export function Footer() {
                       e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.28)";
                       e.currentTarget.style.boxShadow = "none";
                     }}
-                    placeholder={lang === "en" ? "you@email.com" : "tu@correo.com"}
+                    placeholder={lang === "fr" ? "vous@email.com" : lang === "es" ? "tu@correo.com" : "you@email.com"}
                     style={{
                       flex: "1 1 auto",
                       minWidth: 0,
@@ -169,7 +185,7 @@ export function Footer() {
                       e.currentTarget.style.backgroundColor = "transparent";
                     }}
                   >
-                    {loading ? "..." : (lang === "en" ? "Sign up" : "Suscribirme")}
+                    {loading ? "..." : (lang === "fr" ? "S'inscrire" : lang === "es" ? "Suscribirme" : "Sign up")}
                   </button>
                 </div>
 
@@ -183,9 +199,11 @@ export function Footer() {
                   }}
                 >
                   {errorMsg ||
-                    (lang === "en"
-                      ? "We only use it for the letter. Unsubscribe in one click."
-                      : "Solo la usamos para la carta. Puedes darte de baja en un clic.")}
+                    (lang === "fr"
+                      ? "Nous l'utilisons uniquement pour la lettre. Désinscription en un clic."
+                      : lang === "es"
+                      ? "Solo la usamos para la carta. Puedes darte de baja en un clic."
+                      : "We only use it for the letter. Unsubscribe in one click.")}
                 </div>
               </form>
             ) : (
@@ -207,7 +225,7 @@ export function Footer() {
                       localStorage.removeItem("tm_pre_newsletter_sub");
                     }
                   }}
-                  title={lang === "en" ? "Close" : "Cerrar"}
+                  title={lang === "fr" ? "Fermer" : lang === "es" ? "Cerrar" : "Close"}
                   style={{
                     position: "absolute",
                     top: "10px",
@@ -224,12 +242,14 @@ export function Footer() {
                   ✕
                 </button>
                 <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "16.5px", marginBottom: "4px", color: "#3b5e04", paddingRight: "20px" }}>
-                  {lang === "en" ? "You are on the list." : "Ya estás en la lista."}
+                  {lang === "fr" ? "Vous êtes sur la liste." : lang === "es" ? "Ya estás en la lista." : "You are on the list."}
                 </div>
                 <p style={{ fontSize: "13px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
-                  {lang === "en"
-                    ? "The next letter goes out at the start of the month, and you will hear about membership before it opens."
-                    : "La próxima carta sale a primeros de mes y sabrás sobre la apertura de membresía antes de su lanzamiento."}
+                  {lang === "fr"
+                    ? "La prochaine lettre partira en début de mois, et vous serez informée de l'ouverture des adhésions en avant-première."
+                    : lang === "es"
+                    ? "La próxima carta sale a primeros de mes y sabrás sobre la apertura de membresía antes de su lanzamiento."
+                    : "The next letter goes out at the start of the month, and you will hear about membership before it opens."}
                 </p>
               </div>
             )}
@@ -279,7 +299,11 @@ export function Footer() {
               />
             </Link>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "34ch" }}>
-              {lang === "en" ? "A way of life for the modern Mother." : "Un estilo de vida para la madre moderna."}
+              {lang === "fr"
+                ? "Un art de vivre pour la Mère moderne."
+                : lang === "es"
+                ? "Un estilo de vida para la madre moderna."
+                : "A way of life for the modern Mother."}
             </p>
           </div>
 
@@ -298,30 +322,30 @@ export function Footer() {
                   marginBottom: "2px",
                 }}
               >
-                {lang === "en" ? "Explore" : "Explorar"}
+                {lang === "fr" ? "Explorer" : lang === "es" ? "Explorar" : "Explore"}
               </div>
               <Link href="/membership" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Membership" : "Membresía"}
+                {lang === "fr" ? "Adhésion" : lang === "es" ? "Membresía" : "Membership"}
               </Link>
               <Link href="/events" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Events" : "Eventos"}
+                {lang === "fr" ? "Événements" : lang === "es" ? "Eventos" : "Events"}
               </Link>
               <Link href="/gazette" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 La Gazette
               </Link>
               {isMembershipLive && (
                 <Link href="/partners" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                  {lang === "en" ? "Partners" : "Partners"}
+                  {lang === "fr" ? "Partenaires" : lang === "es" ? "Partners" : "Partners"}
                 </Link>
               )}
               <Link href="/journal" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Journal" : "Diario"}
+                {lang === "fr" ? "Journal" : lang === "es" ? "Diario" : "Journal"}
               </Link>
               <Link href="/host" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Become a host" : "Sé anfitriona"}
+                {lang === "fr" ? "Devenir hôtesse" : lang === "es" ? "Sé anfitriona" : "Become a host"}
               </Link>
               <Link href="/faq" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "FAQ" : "Preguntas"}
+                {lang === "fr" ? "FAQ" : lang === "es" ? "Preguntas" : "FAQ"}
               </Link>
             </div>
 
@@ -338,13 +362,13 @@ export function Footer() {
                   marginBottom: "2px",
                 }}
               >
-                {lang === "en" ? "Legal" : "Legal"}
+                {lang === "fr" ? "Mentions légales" : lang === "es" ? "Legal" : "Legal"}
               </div>
               <Link href="/terms" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Terms & Conditions" : "Términos y Condiciones"}
+                {lang === "fr" ? "Conditions Générales" : lang === "es" ? "Términos y Condiciones" : "Terms & Conditions"}
               </Link>
               <Link href="/privacy" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                {lang === "en" ? "Privacy Policy" : "Política de Privacidad"}
+                {lang === "fr" ? "Politique de Confidentialité" : lang === "es" ? "Política de Privacidad" : "Privacy Policy"}
               </Link>
               <button
                 type="button"
@@ -365,7 +389,7 @@ export function Footer() {
                   textDecoration: "none",
                 }}
               >
-                {lang === "en" ? "Cookie settings" : "Preferencias de cookies"}
+                {lang === "fr" ? "Préférences des cookies" : lang === "es" ? "Preferencias de cookies" : "Cookie settings"}
               </button>
             </div>
 
@@ -382,7 +406,7 @@ export function Footer() {
                   marginBottom: "2px",
                 }}
               >
-                {lang === "en" ? "Get in touch" : "Contacto"}
+                {lang === "fr" ? "Contact" : lang === "es" ? "Contacto" : "Get in touch"}
               </div>
               <a href="mailto:hello@themothers.cc" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 hello@themothers.cc

@@ -11,7 +11,7 @@ export interface CountryPhoneInputProps {
   required?: boolean;
   id?: string;
   name?: string;
-  lang?: "en" | "es";
+  lang?: "en" | "es" | "fr";
   style?: React.CSSProperties;
 }
 
@@ -181,7 +181,7 @@ export default function CountryPhoneInput({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={lang === "en" ? "Search country or prefix…" : "Buscar país o prefijo…"}
+                placeholder={lang === "fr" ? "Rechercher pays ou indicatif…" : lang === "es" ? "Buscar país o prefijo…" : "Search country or prefix…"}
                 style={{
                   width: "100%",
                   boxSizing: "border-box",

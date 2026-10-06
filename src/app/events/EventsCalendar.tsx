@@ -8,14 +8,14 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { ForwardArrow } from "@/components/Icons";
 import CountryPhoneInput from "@/components/CountryPhoneInput";
 
-export type Lang = "en" | "es";
+export type Lang = "en" | "es" | "fr";
 
-export const getLanguageLabel = (code: string, currentLang: "en" | "es") => {
-  const mapping: Record<string, { en: string; es: string }> = {
-    en: { en: "English", es: "Inglés" },
-    es: { en: "Spanish", es: "Español" },
-    fr: { en: "French", es: "Francés" },
-    ca: { en: "Catalan", es: "Catalán" },
+export const getLanguageLabel = (code: string, currentLang: Lang) => {
+  const mapping: Record<string, { en: string; es: string; fr: string }> = {
+    en: { en: "English", es: "Inglés", fr: "Anglais" },
+    es: { en: "Spanish", es: "Español", fr: "Espagnol" },
+    fr: { en: "French", es: "Francés", fr: "Français" },
+    ca: { en: "Catalan", es: "Catalán", fr: "Catalan" },
   };
   return mapping[code.toLowerCase()] ? mapping[code.toLowerCase()][currentLang] : code;
 };
@@ -92,13 +92,25 @@ interface Props {
 function getStageLabel(raw: string | null | undefined, lang: Lang): string {
   if (!raw) return "";
   const s = raw.toLowerCase().trim();
-  if (s.includes("pregnant") || s.includes("embaraz") || s.includes("expecting")) return lang === "en" ? "Pregnant" : "Embarazo";
-  if (s.includes("postpartum") || s.includes("posparto") || s.includes("babies") || s.includes("baby") || s.includes("0–12") || s.includes("0-12") || s === "0") return lang === "en" ? "Babies" : "Bebés";
-  if (s.includes("toddler") || s.includes("peque") || s.includes("1–3") || s.includes("1-3") || s.includes("primera infancia")) return lang === "en" ? "Toddlers" : "Peques";
-  if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10") || s.includes("6+") || s.includes("children610")) return lang === "en" ? "Big kids" : "Niños mayores";
-  if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-") || s.includes("niño") || s.includes("children36")) return lang === "en" ? "Children" : "Niños";
-  if (s.includes("all") || s.includes("todo") || s.includes("toda") || s.includes("open") || s.includes("abierto")) return lang === "en" ? "Open to every stage" : "Abierto a todas las etapas";
-  if (s.includes("mom") || s.includes("madre") || s.includes("adult") || s.includes("welcome") || s.includes("bienvenido")) return "";
+  if (s.includes("pregnant") || s.includes("embaraz") || s.includes("expecting") || s.includes("enceinte")) {
+    return lang === "en" ? "Pregnant" : lang === "fr" ? "Enceinte" : "Embarazo";
+  }
+  if (s.includes("postpartum") || s.includes("posparto") || s.includes("babies") || s.includes("baby") || s.includes("0–12") || s.includes("0-12") || s === "0" || s.includes("bébé")) {
+    return lang === "en" ? "Babies" : lang === "fr" ? "Bébés" : "Bebés";
+  }
+  if (s.includes("toddler") || s.includes("peque") || s.includes("1–3") || s.includes("1-3") || s.includes("primera infancia") || s.includes("petit")) {
+    return lang === "en" ? "Toddlers" : lang === "fr" ? "Tout-petits" : "Peques";
+  }
+  if (s.includes("big") || s.includes("grande") || s.includes("10+") || s.includes("6–10") || s.includes("6-10") || s.includes("6+") || s.includes("children610") || s.includes("grand")) {
+    return lang === "en" ? "Big kids" : lang === "fr" ? "Grands enfants" : "Niños mayores";
+  }
+  if (s.includes("children") || s.includes("child") || s.includes("primary") || s.includes("escolar") || s.includes("3–") || s.includes("3-") || s.includes("4–") || s.includes("4-") || s.includes("niño") || s.includes("children36") || s.includes("enfant")) {
+    return lang === "en" ? "Children" : lang === "fr" ? "Enfants" : "Niños";
+  }
+  if (s.includes("all") || s.includes("todo") || s.includes("toda") || s.includes("open") || s.includes("abierto") || s.includes("toutes")) {
+    return lang === "en" ? "Open to every stage" : lang === "fr" ? "Ouvert à toutes les étapes" : "Abierto a todas las etapas";
+  }
+  if (s.includes("mom") || s.includes("madre") || s.includes("mère") || s.includes("adult") || s.includes("welcome") || s.includes("bienvenido")) return "";
   return raw; // fallback: show as-is
 }
 
@@ -110,7 +122,7 @@ function getEventStageDisplay(ev: PublicEvent, lang: Lang): { isAllStages: boole
       return {
         isAllStages: true,
         stages: [],
-        displayLabel: lang === "en" ? "Open to every stage" : "Abierto a todas las etapas",
+        displayLabel: lang === "en" ? "Open to every stage" : lang === "fr" ? "Ouvert à toutes les étapes" : "Abierto a todas las etapas",
       };
     }
     const mapped = ev.targetStages.map((s) => getStageLabel(s, lang)).filter(Boolean);
@@ -125,7 +137,8 @@ function getEventStageDisplay(ev: PublicEvent, lang: Lang): { isAllStages: boole
 
   if (ev.stage && ev.stage !== "All Stages") {
     const label = getStageLabel(ev.stage, lang);
-    if (label && label !== (lang === "en" ? "Open to every stage" : "Abierto a todas las etapas")) {
+    const openLabel = lang === "en" ? "Open to every stage" : lang === "fr" ? "Ouvert à toutes les étapes" : "Abierto a todas las etapas";
+    if (label && label !== openLabel) {
       return {
         isAllStages: false,
         stages: [label],
@@ -137,87 +150,122 @@ function getEventStageDisplay(ev: PublicEvent, lang: Lang): { isAllStages: boole
   return {
     isAllStages: true,
     stages: [],
-    displayLabel: lang === "en" ? "Open to every stage" : "Abierto a todas las etapas",
+    displayLabel: lang === "en" ? "Open to every stage" : lang === "fr" ? "Ouvert à toutes les étapes" : "Abierto a todas las etapas",
   };
 }
 
-const EVENT_I18N: Record<string, { esTitle: string; esDesc: string }> = {
+const EVENT_I18N: Record<string, { esTitle: string; esDesc: string; frTitle?: string; frDesc?: string }> = {
   "summer supper in the courtyard": {
     esTitle: "Momento especial — Cena de verano en el patio",
     esDesc: "Una mesa larga bajo la higuera, un solo menú, sin móviles. Nuestra primera cena del verano.",
+    frTitle: "Moment signature — Dîner d'été dans la cour",
+    frDesc: "Une grande table sous le figuier, un menu unique, sans téléphone. Notre premier dîner d'été.",
   },
   "morning walk — ciutadella park": {
     esTitle: "Paseo matutino — Parque de la Ciutadella",
     esDesc: "Un paseo tranquilo con carrito por el parque, seguido de un café cerca.",
+    frTitle: "Balade du matin — Parc de la Ciutadella",
+    frDesc: "Une promenade tranquille en poussette dans le parc, suivie d'un café à proximité.",
   },
   "park social — turó park lawn": {
     esTitle: "Encuentro en el parque — Césped del Turó Park",
     esDesc: "Mantas en la hierba, algo para compartir y ningún horario — ven diez minutos o quédate hasta que se vaya la luz.",
+    frTitle: "Rencontre au parc — Pelouse du Turó Park",
+    frDesc: "Des couvertures dans l'herbe, de quoi partager et aucun horaire — venez dix minutes ou restez jusqu'au coucher du soleil.",
   },
   "play date — postnatal yoga": {
     esTitle: "Play date — Yoga posparto",
     esDesc: "Yoga posparto suave con tu bebé a tu lado, guiado por una instructora certificada.",
+    frTitle: "Play date — Yoga postnatal",
+    frDesc: "Yoga postnatal doux avec votre bébé à vos côtés, guidé par une professeure certifiée.",
   },
   "dinner at can culleretes": {
     esTitle: "MoM's date — Cena en Can Culleretes",
     esDesc: "Una cena relajada solo para madres — sin obligación de hablar de peques.",
+    frTitle: "MoM's date — Dîner à Can Culleretes",
+    frDesc: "Un dîner détendu entre mères — sans obligation de parler des enfants.",
   },
   "vermut on bonavista": {
     esTitle: "MoM's date — Vermut en Bonavista",
     esDesc: "Una tarde temprana con vermut y aceitunas. Mesa pequeña, sin agenda, en casa a las diez.",
+    frTitle: "MoM's date — Vermouth à Bonavista",
+    frDesc: "Une fin d'après-midi avec vermouth et olives. Petite table, sans programme, à la maison à 22h.",
   },
   "sleep q&a with an expert": {
     esTitle: "Aprender y crecer — Preguntas sobre el sueño con una experta",
     esDesc: "Una consultora de sueño infantil responde tus preguntas más difíciles sobre las noches.",
+    frTitle: "Apprendre et grandir — Q&A Sommeil avec une experte",
+    frDesc: "Une consultante en sommeil répond à toutes vos questions sur les nuits.",
   },
   "autumn rooftop brunch": {
     esTitle: "Momento único — Brunch de otoño en la azotea",
     esDesc: "Un brunch de temporada en una azotea con música en vivo, para socias y sus peques.",
+    frTitle: "Moment unique — Brunch d'automne sur le toit",
+    frDesc: "Un brunch de saison sur un toit avec musique live, pour les membres et leurs enfants.",
   },
   "park güell area": {
     esTitle: "Paseo con carrito — Zona del Park Güell",
     esDesc: "Un paseo tranquilo cerca del parque, con parada para merendar a mitad de camino.",
+    frTitle: "Balade en poussette — Quartier du Park Güell",
+    frDesc: "Une promenade agréable près du parc, avec une pause goûter à mi-chemin.",
   },
   "baby massage class": {
     esTitle: "Play date — Clase de masaje infantil",
     esDesc: "Aprende técnicas sencillas de masaje para calmar a tu bebé y fortalecer el vínculo.",
+    frTitle: "Play date — Cours de massage pour bébé",
+    frDesc: "Apprenez des techniques simples de massage pour apaiser votre bébé et renforcer le lien.",
   },
   "returning to work panel": {
     esTitle: "Aprender y crecer — Panel sobre la vuelta al trabajo",
     esDesc: "Un panel de madres trabajadoras comparte consejos honestos sobre la vuelta al trabajo.",
+    frTitle: "Apprendre et grandir — Panel retour au travail",
+    frDesc: "Un groupe de mères actives partage ses conseils sincères sur la reprise du travail.",
   },
   "hosted coffee — gràcia": {
     esTitle: "Café con anfitriona — Gràcia",
     esDesc: "Una mesa reservada, una anfitriona que presenta a todas y un café esperándote. Ocho madres, sin tener que romper el hielo tú sola.",
+    frTitle: "Café avec hôtesse — Gràcia",
+    frDesc: "Une table réservée, une hôtesse qui fait les présentations et un café qui vous attend. Huit mères, sans avoir à briser la glace seule.",
   },
   "hosted brunch — eixample": {
     esTitle: "Brunch con anfitriona — Eixample",
     esDesc: "El mismo formato fácil en versión brunch: mesa reservada para nosotras, una anfitriona en el centro y una bebida incluida.",
+    frTitle: "Brunch avec hôtesse — Eixample",
+    frDesc: "Le même format convivial en version brunch : table réservée, une hôtesse au centre et une boisson incluse.",
   },
   "asking for what you need at home": {
     esTitle: "Aprender y crecer — Pedir lo que necesitas en casa",
     esDesc: "Dos horas sobre la conversación que nadie ensaya: nombrar lo que necesitas de tu pareja o de tu familia, y pedirlo con claridad.",
+    frTitle: "Apprendre et grandir — Exprimer ses besoins à la maison",
+    frDesc: "Deux heures sur la conversation que personne ne prépare : nommer ses besoins avec son partenaire ou sa famille, et demander avec clarté.",
   },
   "tasting menu, private room": {
     esTitle: "MoM's date — Menú degustación en sala privada",
     esDesc: "Seis pases en una sola mesa larga, una sala para nosotras y una noche que acaba cuando lo decidimos.",
+    frTitle: "MoM's date — Menu dégustation en salon privé",
+    frDesc: "Six services sur une grande table, un salon rien que pour nous et une soirée qui se termine quand nous le décidons.",
   },
   "one-to-one with a perinatal osteopath": {
     esTitle: "Signature moment — Sesión 1:1 con osteópata perinatal",
     esDesc: "Una hora privada completa con una osteópata perinatal, en una sala tranquila, para el cuerpo que sostuvo y sigue sosteniendo.",
+    frTitle: "Moment signature — Séance 1:1 avec une ostéopathe périnatale",
+    frDesc: "Une heure complète et privée avec une ostéopathe périnatale, dans un cadre paisible, pour le corps qui a porté et porte encore.",
   },
   "newborn feeding circle": {
     esTitle: "Play date — Círculo de lactancia",
     esDesc: "Un pequeño círculo de apoyo para dudas de lactancia en los primeros meses, con una consultora certificada.",
+    frTitle: "Play date — Cercle d'allaitement et alimentation",
+    frDesc: "Un petit cercle d'entraide pour toutes les questions d'alimentation des premiers mois, avec une consultante certifiée.",
   },
 };
 
 export function getEventDisplayTitle(ev: PublicEvent, lang: Lang): string {
-  if (lang === "es") {
+  if (lang === "es" || lang === "fr") {
     const raw = (ev.title || "").toLowerCase();
     for (const [key, val] of Object.entries(EVENT_I18N)) {
       if (raw.includes(key) || (ev.slug && ev.slug.toLowerCase().includes(key.replace(/[^a-z0-9]+/g, "-")))) {
-        return val.esTitle;
+        if (lang === "fr" && val.frTitle) return val.frTitle;
+        if (lang === "es" && val.esTitle) return val.esTitle;
       }
     }
   }
@@ -225,11 +273,12 @@ export function getEventDisplayTitle(ev: PublicEvent, lang: Lang): string {
 }
 
 export function getEventDisplayDesc(ev: PublicEvent, lang: Lang): string | null | undefined {
-  if (lang === "es") {
+  if (lang === "es" || lang === "fr") {
     const raw = (ev.title || "").toLowerCase();
     for (const [key, val] of Object.entries(EVENT_I18N)) {
       if (raw.includes(key) || (ev.slug && ev.slug.toLowerCase().includes(key.replace(/[^a-z0-9]+/g, "-")))) {
-        return val.esDesc;
+        if (lang === "fr" && val.frDesc) return val.frDesc;
+        if (lang === "es" && val.esDesc) return val.esDesc;
       }
     }
   }

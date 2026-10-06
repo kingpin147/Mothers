@@ -72,14 +72,14 @@ export function Navigation() {
     }
   }, [session?.user?.id, (session?.user as any)?.role]);
 
-  const switchLang = (newLang: "en" | "es") => {
+  const switchLang = (newLang: "en" | "es" | "fr") => {
     setLanguage(newLang);
   };
 
   const handleMobileJoinList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!leadEmail || !leadEmail.includes("@")) {
-      setLeadMsg(lang === "en" ? "Enter a valid email" : "Introduce un correo válido");
+      setLeadMsg(lang === "en" ? "Enter a valid email" : lang === "es" ? "Introduce un correo válido" : "Entrez un e-mail valide");
       return;
     }
     setLeadLoading(true);
@@ -97,7 +97,7 @@ export function Navigation() {
         setJoinModalOpen(false);
       }
     } catch {
-      setLeadMsg(lang === "en" ? "Error, try again" : "Error, inténtalo de nuevo");
+      setLeadMsg(lang === "en" ? "Error, try again" : lang === "es" ? "Error, inténtalo de nuevo" : "Erreur, réessayez");
     } finally {
       setLeadLoading(false);
     }
@@ -135,9 +135,9 @@ export function Navigation() {
 
   // Nav links per pre-membership page map
   const navLinks = [
-    { href: "/membership", labelEn: "Membership", labelEs: "Membresía" },
-    { href: "/events", labelEn: "Events", labelEs: "Eventos" },
-    { href: "/gazette", labelEn: "La Gazette", labelEs: "La Gazette" },
+    { href: "/membership", labelEn: "Membership", labelEs: "Membresía", labelFr: "Adhésion" },
+    { href: "/events", labelEn: "Events", labelEs: "Eventos", labelFr: "Événements" },
+    { href: "/gazette", labelEn: "La Gazette", labelEs: "La Gazette", labelFr: "La Gazette" },
   ];
 
   const isEventsPage = pathname?.startsWith("/events");
@@ -207,6 +207,7 @@ export function Navigation() {
           >
             {navLinks.map((link) => {
               const isActive = pathname === link.href || (link.href !== "/" && pathname?.startsWith(link.href));
+              const linkLabel = lang === "fr" ? link.labelFr : lang === "es" ? link.labelEs : link.labelEn;
               return (
                 <Link
                   key={link.href}
@@ -219,28 +220,81 @@ export function Navigation() {
                     fontFamily: "'Lora', Georgia, serif",
                   }}
                 >
-                  {lang === "en" ? link.labelEn : link.labelEs}
+                  {linkLabel}
                 </Link>
               );
             })}
 
-            {/* Language Toggle */}
-            <button
-              onClick={() => switchLang(lang === "en" ? "es" : "en")}
+            {/* 3-Language Toggle EN · ES · FR */}
+            <div
+              role="group"
+              aria-label="Language"
               style={{
-                border: "1px solid rgba(57, 41, 42, 0.2)",
-                background: "transparent",
-                color: "var(--color-text, #39292a)",
-                padding: "5px 9px",
-                borderRadius: "4px",
-                fontSize: "14px",
-                fontWeight: 500,
-                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
                 fontFamily: "'Lora', Georgia, serif",
+                fontSize: "13.5px",
+                letterSpacing: "0.04em",
               }}
             >
-              {lang === "en" ? "ES" : "EN"}
-            </button>
+              <button
+                type="button"
+                onClick={() => switchLang("en")}
+                aria-pressed={lang === "en"}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  padding: "3px 4px",
+                  cursor: "pointer",
+                  color: lang === "en" ? "#7b1f2c" : "rgba(57, 41, 42, 0.65)",
+                  fontWeight: lang === "en" ? 600 : 400,
+                  textDecoration: lang === "en" ? "underline" : "none",
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "13.5px",
+                }}
+              >
+                EN
+              </button>
+              <span style={{ color: "rgba(57, 41, 42, 0.35)" }}>·</span>
+              <button
+                type="button"
+                onClick={() => switchLang("es")}
+                aria-pressed={lang === "es"}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  padding: "3px 4px",
+                  cursor: "pointer",
+                  color: lang === "es" ? "#7b1f2c" : "rgba(57, 41, 42, 0.65)",
+                  fontWeight: lang === "es" ? 600 : 400,
+                  textDecoration: lang === "es" ? "underline" : "none",
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "13.5px",
+                }}
+              >
+                ES
+              </button>
+              <span style={{ color: "rgba(57, 41, 42, 0.35)" }}>·</span>
+              <button
+                type="button"
+                onClick={() => switchLang("fr")}
+                aria-pressed={lang === "fr"}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  padding: "3px 4px",
+                  cursor: "pointer",
+                  color: lang === "fr" ? "#7b1f2c" : "rgba(57, 41, 42, 0.65)",
+                  fontWeight: lang === "fr" ? 600 : 400,
+                  textDecoration: lang === "fr" ? "underline" : "none",
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "13.5px",
+                }}
+              >
+                FR
+              </button>
+            </div>
 
             {/* Login / Members Area CTA */}
             {session?.user ? (
@@ -249,11 +303,13 @@ export function Navigation() {
                   const role = (session.user as any)?.role;
                   const isAdminUser = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
                   const accountHref = isAdminUser ? "/admin" : "/account";
+                  const creditsWord = lang === "fr" ? "crédits" : lang === "es" ? "créditos" : "credits";
+                  const myAccountWord = lang === "fr" ? "Mon compte" : lang === "es" ? "Mi cuenta" : "My account";
                   const accountLabel = isAdminUser
-                    ? (lang === "en" ? "Admin" : "Admin")
+                    ? "Admin"
                     : memberCredits !== null
-                      ? `${lang === "en" ? "My account" : "Mi cuenta"} · ${Math.max(0, memberCredits)} ${lang === "en" ? "credits" : "créditos"}`
-                      : (lang === "en" ? "My Account" : "Mi Cuenta");
+                      ? `${myAccountWord} · ${Math.max(0, memberCredits)} ${creditsWord}`
+                      : (lang === "fr" ? "Mon Compte" : lang === "es" ? "Mi Cuenta" : "My Account");
 
                   return (
                     <Link
@@ -289,7 +345,7 @@ export function Navigation() {
                     fontFamily: "'Lora', Georgia, serif",
                   }}
                 >
-                  {lang === "en" ? "Log Out" : "Salir"}
+                  {lang === "fr" ? "Déconnexion" : lang === "es" ? "Salir" : "Log Out"}
                 </button>
               </div>
             ) : (
@@ -306,7 +362,7 @@ export function Navigation() {
                   fontFamily: "'Lora', Georgia, serif",
                 }}
               >
-                {lang === "en" ? "Login" : "Acceder"}
+                {lang === "fr" ? "Connexion" : lang === "es" ? "Acceder" : "Login"}
               </Link>
             )}
           </nav>
@@ -373,12 +429,12 @@ export function Navigation() {
           {/* Main Links: Membership, Events, La Gazette, Login / My Account */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             {[
-              { href: "/membership", label: lang === "en" ? "Membership" : "Membresía" },
-              { href: "/events", label: lang === "en" ? "Events" : "Eventos" },
+              { href: "/membership", label: lang === "fr" ? "Adhésion" : lang === "es" ? "Membresía" : "Membership" },
+              { href: "/events", label: lang === "fr" ? "Événements" : lang === "es" ? "Eventos" : "Events" },
               { href: "/gazette", label: "La Gazette" },
               session?.user
-                ? { href: "/account", label: lang === "en" ? "My Account" : "Mi Cuenta" }
-                : { href: "/account/login", label: lang === "en" ? "Login" : "Acceder" },
+                ? { href: "/account", label: lang === "fr" ? "Mon Compte" : lang === "es" ? "Mi Cuenta" : "My Account" }
+                : { href: "/account/login", label: lang === "fr" ? "Connexion" : lang === "es" ? "Acceder" : "Login" },
             ].map((item) => {
               const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
               return (
@@ -441,7 +497,7 @@ export function Navigation() {
                     textDecoration: "none",
                   }}
                 >
-                  {lang === "en" ? "Book your first event" : "Reserva tu primer evento"}
+                  {lang === "fr" ? "Réservez votre premier événement" : lang === "es" ? "Reserva tu primer evento" : "Book your first event"}
                 </Link>
 
                 {/* Secondary CTA: Join the list */}
@@ -464,8 +520,8 @@ export function Navigation() {
                   }}
                 >
                   {joinedList
-                    ? (lang === "en" ? "✓ You're on the list" : "✓ Estás en la lista")
-                    : (lang === "en" ? "Join the list" : "Unirme a la lista")}
+                    ? (lang === "fr" ? "✓ Vous êtes sur la liste" : lang === "es" ? "✓ Estás en la lista" : "✓ You're on the list")
+                    : (lang === "fr" ? "Rejoindre la liste" : lang === "es" ? "Unirme a la lista" : "Join the list")}
                 </button>
               </>
             ) : (
@@ -493,8 +549,8 @@ export function Navigation() {
                   }}
                 >
                   {joinedList
-                    ? (lang === "en" ? "You're on the list" : "Estás en la lista")
-                    : (lang === "en" ? "Join the list" : "Unirme a la lista")}
+                    ? (lang === "fr" ? "Vous êtes sur la liste" : lang === "es" ? "Estás en la lista" : "You're on the list")
+                    : (lang === "fr" ? "Rejoindre la liste" : lang === "es" ? "Unirme a la lista" : "Join the list")}
                 </button>
 
                 {/* Secondary CTA: Log out */}
@@ -520,7 +576,7 @@ export function Navigation() {
                     cursor: "pointer",
                   }}
                 >
-                  {lang === "en" ? "Log out" : "Cerrar sesión"}
+                  {lang === "fr" ? "Se déconnecter" : lang === "es" ? "Cerrar sesión" : "Log out"}
                 </button>
               </>
             )}
@@ -573,11 +629,31 @@ export function Navigation() {
                 >
                   ES
                 </button>
+                <span>·</span>
+                <button
+                  type="button"
+                  onClick={() => switchLang("fr")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    color: lang === "fr" ? "#7b1f2c" : "rgba(57, 41, 42, 0.65)",
+                    textDecoration: lang === "fr" ? "underline" : "none",
+                    fontWeight: lang === "fr" ? 600 : 400,
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px",
+                  }}
+                >
+                  FR
+                </button>
               </div>
 
               <span>
                 {session?.user ? (
-                  memberCredits !== null ? `${Math.max(0, memberCredits)} ${lang === "en" ? "credits" : "créditos"}` : ""
+                  memberCredits !== null
+                    ? `${Math.max(0, memberCredits)} ${lang === "fr" ? "crédits" : lang === "es" ? "créditos" : "credits"}`
+                    : ""
                 ) : (
                   <a
                     href="https://www.instagram.com/themothers.club"
@@ -627,18 +703,20 @@ export function Navigation() {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "24px", margin: "0 0 8px" }}>
-              {lang === "en" ? "Join the list" : "Unirme a la lista"}
+              {lang === "fr" ? "Rejoindre la liste" : lang === "es" ? "Unirme a la lista" : "Join the list"}
             </h3>
             <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.8)", marginBottom: "16px" }}>
-              {lang === "en"
-                ? "Get pre-launch invites and priority access when membership opens."
-                : "Recibe invitaciones de pre-lanzamiento y acceso prioritario cuando abra la membresía."}
+              {lang === "fr"
+                ? "Recevez des invitations avant le lancement et un accès prioritaire à l'ouverture des adhésions."
+                : lang === "es"
+                ? "Recibe invitaciones de pre-lanzamiento y acceso prioritario cuando abra la membresía."
+                : "Get pre-launch invites and priority access when membership opens."}
             </p>
             <form onSubmit={handleMobileJoinList} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <input
                 type="email"
                 required
-                placeholder={lang === "en" ? "Your email address" : "Tu correo electrónico"}
+                placeholder={lang === "fr" ? "Votre adresse e-mail" : lang === "es" ? "Tu correo electrónico" : "Your email address"}
                 value={leadEmail}
                 onChange={(e) => setLeadEmail(e.target.value)}
                 onFocus={(e) => {
@@ -675,7 +753,7 @@ export function Navigation() {
                   cursor: "pointer",
                 }}
               >
-                {leadLoading ? "..." : (lang === "en" ? "Confirm" : "Confirmar")}
+                {leadLoading ? "..." : (lang === "fr" ? "Confirmer" : lang === "es" ? "Confirmar" : "Confirm")}
               </button>
             </form>
           </div>

@@ -1,4 +1,4 @@
-export type Locale = "en" | "es";
+export type Locale = "en" | "es" | "fr";
 
 export const DICTIONARIES = {
   en: {
@@ -271,6 +271,142 @@ export const DICTIONARIES = {
       partners: "Para Partners",
       social: "Síguenos en Instagram y TikTok.",
       tagline: "Barcelona · Español & English",
+    },
+  },
+  fr: {
+    nav: {
+      home: "Accueil",
+      membership: "Adhésion",
+      events: "Événements",
+      journal: "Journal",
+      partners: "Partenaires",
+      ambassadors: "Marraines",
+      faq: "FAQ",
+      applyBtn: "Rejoindre",
+      loginBtn: "Connexion",
+      account: "Mon Compte",
+      logout: "Se déconnecter",
+    },
+    hero: {
+      kicker: "Club privé de membres · Barcelone",
+      title: "Trouvez vos semblables. Construisez votre cercle.",
+      subtitle:
+        "Un club privé pour les mères à Barcelone — de la grossesse jusqu'aux années d'école. Rencontrez des femmes à la même étape de vie, lors d'événements conçus exactement pour cela.",
+      ctaPrimary: "Rejoindre",
+      ctaWaitlist: "Rejoindre la liste d'attente",
+      ctaSecondary: "Voir plus de détails",
+      windowNoteOpen:
+        "Les inscriptions ouvrent une semaine par mois. Cette fenêtre est ouverte — et nos 50 premières membres nous rejoignent sans frais d'adhésion.",
+      windowNoteClosed:
+        "Les inscriptions ouvrent une semaine par mois, et cette fenêtre est fermée. Rejoignez la liste d'attente et nous vous écrirons dès l'ouverture de la prochaine.",
+    },
+    why: {
+      kicker: "Pourquoi The Mothers",
+      heading: "Être mère en fait partie, mais ce n'est pas tout ce que vous êtes.",
+      body: "La maternité moderne peut être isolante — surtout si vous venez d'arriver en ville, si vous avez votre premier bébé ou si vous n'avez pas de famille à proximité. The Mothers offre un espace pour se connecter et nouer des amitiés durables. C'est l'équilibre parfait : soigné, sûr et convivial.",
+      pillars: [
+        {
+          title: "Par votre étape",
+          body: "Des événements groupés par étape — de la grossesse jusqu'à dix ans.",
+        },
+        {
+          title: "Chaleureux et bienveillant",
+          body: "Un espace de confiance où les mères échangent avec honnêteté. Sans vente, sans jugement.",
+        },
+        {
+          title: "Conçu pour durer",
+          body: "Restez avec nous du ventre rond jusqu'aux dix ans de votre enfant — pas juste pour une saison.",
+        },
+      ],
+    },
+    how: {
+      kicker: "Comment ça marche",
+      heading: "Trois étapes vers votre cercle.",
+      steps: [
+        {
+          n: "01",
+          title: "Rejoignez",
+          body: "Créez votre compte en quelques instants — simple et accueillant.",
+        },
+        {
+          n: "02",
+          title: "Venez",
+          body: "Réservez une balade, une rencontre entre enfants ou une soirée entre mères près de chez vous — en petits groupes, pour échanger facilement.",
+        },
+        {
+          n: "03",
+          title: "Appartenez",
+          body: "Continuez à venir et les amitiés se nouent d'elles-mêmes — personne n'est imposé.",
+        },
+      ],
+    },
+    membershipTeaser: {
+      kicker: "Adhésion",
+      heading: "Une seule adhésion",
+      price: "39 €/mois",
+      priceSub: "ou 99 € tous les 3 mois · pas de frais d'adhésion pour nos 50 premières membres",
+      spotsLabel: (remaining: number) => `Plus que ${remaining} places dans cette session`,
+      bullets: [
+        "Communauté et groupes par étape",
+        "Balades et rencontres au parc incluses",
+        "20 crédits mensuels pour les expériences",
+        "Avantages partenaires et réservations prioritaires",
+      ],
+      cta: "Découvrir l'adhésion complète",
+    },
+    partners: {
+      kicker: "Avantages partenaires",
+      heading: "Économisez sur le meilleur de Barcelone, au même endroit.",
+      body: "Un réseau sélectionné de spécialistes et de lieux pour chaque étape — un partenaire de confiance par catégorie pour des recommandations sincères.",
+      umbrellas: [
+        {
+          title: "Bien-être et mouvement",
+          body: "Yoga prénatal et postnatal, kinésithérapie du périnée",
+        },
+        {
+          title: "Soins et accompagnement experts",
+          body: "Conseillères en allaitement, doulas post-partum",
+        },
+        {
+          title: "Activités bébé et enfant",
+          body: "Bébés nageurs, éveil sensoriel, massage pour bébé",
+        },
+        {
+          title: "Lieux et accueil",
+          body: "Cafés et espaces adaptés aux familles",
+        },
+        {
+          title: "Marques et boutiques",
+          body: "Réductions sur la maternité et les articles pour bébé",
+        },
+      ],
+      note: "Les partenaires de lancement sont annoncés au fur et à mesure de leur arrivée.",
+    },
+    closing: { heading: "Votre cercle vous attend.", cta: "Rejoindre" },
+    godmother: {
+      kicker: "Programme Marraine",
+      heading: "Invitez une amie, gagnez un mois de crédits.",
+      body: "Chaque membre est marraine dès le premier jour : votre code de parrainage personnel est déjà dans votre compte, pour les mères qui vous demandent où vous avez trouvé votre cercle. Pas de vente, pas de quotas — juste une recommandation honnête, et des crédits lorsqu'elle devient membre.",
+      cta: "Voir dans mon compte",
+      ctaNote: "Pas de candidature, pas d'approbation — votre code vous attend déjà.",
+      steps: [
+        { n: "01", title: "Trouvez votre code", body: "Il est déjà dans votre compte dès votre inscription — rien à demander." },
+        { n: "02", title: "Partagez-le", body: "Donnez-le à l'amie qui vous pose des questions, ou parlez de la balade que vous avez adorée." },
+        { n: "03", title: "Gagnez 20 crédits", body: "5 crédits dès son inscription, 15 de plus à son troisième mois — les crédits n'expirent jamais, rien n'est perdu." },
+      ],
+    },
+    footer: {
+      blurb:
+        "Un art de vivre pour la mère d'aujourd'hui.",
+      explore: "Explorer",
+      contact: "Contact",
+      legal: "Mentions légales",
+      terms: "Conditions Générales",
+      privacy: "Politique de Confidentialité",
+      ambassadors: "Pour les Marraines",
+      partners: "Pour les Partenaires",
+      social: "Suivez-nous sur Instagram et TikTok.",
+      tagline: "Barcelone · Français, English & Español",
     },
   },
 };

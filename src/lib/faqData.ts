@@ -5,6 +5,8 @@ export interface FaqItemData {
   aEn: string;
   qEs: string;
   aEs: string;
+  qFr?: string;
+  aFr?: string;
 }
 
 export const FAQ_GROUPS = [
@@ -16,22 +18,26 @@ export const FAQ_GROUPS = [
 
 export type FaqGroupName = (typeof FAQ_GROUPS)[number];
 
-export const FAQ_GROUP_NOTES: Record<string, { en: string; es: string }> = {
+export const FAQ_GROUP_NOTES: Record<string, { en: string; es: string; fr: string }> = {
   "Coming to an event now": {
     en: "Everything on the calendar is open to everyone until membership opens.",
     es: "Todo el calendario está abierto a todas hasta la apertura de la membresía.",
+    fr: "Tout le calendrier est ouvert à toutes jusqu’à l’ouverture de l’adhésion.",
   },
   "Credits and your wallet": {
     en: "One wallet, no subscription, nothing that renews.",
     es: "Un único monedero, sin suscripción ni cobros recurrentes.",
+    fr: "Un seul portefeuille, sans abonnement, rien qui ne se renouvelle.",
   },
   "Membership after launch": {
     en: "What is coming, and what it means for anyone who came early.",
     es: "Lo que viene y las ventajas para quienes nos acompañen desde el inicio.",
+    fr: "Ce qui arrive, et ce que cela signifie pour celles venues tôt.",
   },
   "The club itself": {
     en: "How it is run, and by whom.",
     es: "Cómo funciona el club y quién lo gestiona.",
+    fr: "Comment il fonctionne, et qui le fait vivre.",
   },
 };
 

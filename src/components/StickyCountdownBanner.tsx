@@ -45,7 +45,7 @@ export function StickyCountdownBanner() {
         const d = new Date(s.expectedLaunch);
         if (!isNaN(d.getTime())) {
           setTargetDate(d.getTime());
-          setLaunchDateStr(d.toLocaleDateString(lang === "es" ? "es-ES" : "en-GB", { month: "long", year: "numeric" }));
+          setLaunchDateStr(d.toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", { month: "long", year: "numeric" }));
         }
       }
     }).catch(() => {});
@@ -96,7 +96,13 @@ export function StickyCountdownBanner() {
   const handleJoinList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes("@")) {
-      setErrorMsg(lang === "en" ? "Please enter a valid email." : "Introduce un correo válido.");
+      setErrorMsg(
+        lang === "fr"
+          ? "Veuillez entrer un e-mail valide."
+          : lang === "es"
+          ? "Introduce un correo válido."
+          : "Please enter a valid email."
+      );
       return;
     }
     setLoading(true);
@@ -115,7 +121,13 @@ export function StickyCountdownBanner() {
       localStorage.setItem("tm_pre_joined_list", "true");
       setModalOpen(false);
     } catch {
-      setErrorMsg(lang === "en" ? "Something went wrong. Please try again." : "Algo ha fallado. Inténtalo de nuevo.");
+      setErrorMsg(
+        lang === "fr"
+          ? "Une erreur s'est produite. Veuillez réessayer."
+          : lang === "es"
+          ? "Algo ha fallado. Inténtalo de nuevo."
+          : "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -124,22 +136,25 @@ export function StickyCountdownBanner() {
   const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
 
   const countdownUnits = [
-    { value: `${timeLeft.days}`, label: lang === "en" ? "DAYS" : "DÍAS" },
-    { value: pad(timeLeft.hours), label: lang === "en" ? "HOURS" : "HORAS" },
-    { value: pad(timeLeft.minutes), label: lang === "en" ? "MINS" : "MINS" },
-    { value: pad(timeLeft.seconds), label: lang === "en" ? "SECS" : "SEGS" },
+    { value: `${timeLeft.days}`, label: lang === "fr" ? "JOURS" : lang === "es" ? "DÍAS" : "DAYS" },
+    { value: pad(timeLeft.hours), label: lang === "fr" ? "HEURES" : lang === "es" ? "HORAS" : "HOURS" },
+    { value: pad(timeLeft.minutes), label: "MINS" },
+    { value: pad(timeLeft.seconds), label: lang === "fr" ? "SECS" : lang === "es" ? "SEGS" : "SECS" },
   ];
 
   const shortMonthStr = (() => {
     if (!targetDate) return "JAN 2027";
     const d = new Date(targetDate);
     if (isNaN(d.getTime())) return "JAN 2027";
-    return d.toLocaleDateString(lang === "es" ? "es-ES" : "en-GB", { month: "short", year: "numeric" });
+    return d.toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", { month: "short", year: "numeric" });
   })();
 
-  const mobileLaunchText = lang === "en"
-    ? `MEMBERSHIP OPENS IN ${shortMonthStr.toUpperCase()}`
-    : `MEMBRESÍA A PARTIR DE ${shortMonthStr.toUpperCase()}`;
+  const mobileLaunchText =
+    lang === "fr"
+      ? `ADHÉSIONS DÈS ${shortMonthStr.toUpperCase()}`
+      : lang === "es"
+      ? `MEMBRESÍA A PARTIR DE ${shortMonthStr.toUpperCase()}`
+      : `MEMBERSHIP OPENS IN ${shortMonthStr.toUpperCase()}`;
 
   const mobileTimeText = `${timeLeft.days}d · ${pad(timeLeft.hours)}h · ${pad(timeLeft.minutes)}m`;
 
@@ -235,9 +250,11 @@ export function StickyCountdownBanner() {
                 marginBottom: "4px",
               }}
             >
-              {lang === "en"
-                ? `MEMBERSHIP OPENS ${launchDateStr ? launchDateStr.toUpperCase() : "SOON"}`
-                : `MEMBRESÍA ABRE ${launchDateStr ? launchDateStr.toUpperCase() : "PRÓXIMAMENTE"}`}
+              {lang === "fr"
+                ? `OUVERTURE DES ADHÉSIONS ${launchDateStr ? launchDateStr.toUpperCase() : "PROCHAINEMENT"}`
+                : lang === "es"
+                ? `MEMBRESÍA ABRE ${launchDateStr ? launchDateStr.toUpperCase() : "PRÓXIMAMENTE"}`
+                : `MEMBERSHIP OPENS ${launchDateStr ? launchDateStr.toUpperCase() : "SOON"}`}
             </div>
             <p
               style={{
@@ -248,9 +265,11 @@ export function StickyCountdownBanner() {
                 maxWidth: "52ch",
               }}
             >
-              {lang === "en"
-                ? "Meet mothers now — and join without a joining fee when membership opens."
-                : "Conoce a otras madres ahora — y únete sin cuota de alta cuando se abra la membresía."}
+              {lang === "fr"
+                ? "Rencontrez d'autres mères dès aujourd'hui — et devenez membre sans frais d'adhésion à l'ouverture."
+                : lang === "es"
+                ? "Conoce a otras madres ahora — y únete sin cuota de alta cuando se abra la membresía."
+                : "Meet mothers now — and join without a joining fee when membership opens."}
             </p>
           </div>
 
@@ -313,7 +332,7 @@ export function StickyCountdownBanner() {
                   flexShrink: 0,
                 }}
               >
-                {lang === "en" ? "✓ On the list" : "✓ En la lista"}
+                {lang === "fr" ? "✓ Sur la liste" : lang === "es" ? "✓ En la lista" : "✓ On the list"}
               </span>
             ) : (
               <button
@@ -347,7 +366,7 @@ export function StickyCountdownBanner() {
                   e.currentTarget.style.color = "#c9a227";
                 }}
               >
-                {lang === "en" ? "Join the list" : "Unirme a la lista"}
+                {lang === "fr" ? "Rejoindre la liste" : lang === "es" ? "Unirme a la lista" : "Join the list"}
               </button>
             )}
           </div>
@@ -356,7 +375,7 @@ export function StickyCountdownBanner() {
           <button
             type="button"
             onClick={handleDismiss}
-            aria-label={lang === "en" ? "Close announcement" : "Cerrar anuncio"}
+            aria-label={lang === "fr" ? "Fermer l'annonce" : lang === "es" ? "Cerrar anuncio" : "Close announcement"}
             style={{
               position: "absolute",
               top: "50%",
@@ -461,9 +480,11 @@ export function StickyCountdownBanner() {
                 fontWeight: 600,
               }}
             >
-              {lang === "en"
-                ? `Opening ${launchDateStr || "Soon"}`
-                : `Apertura ${launchDateStr ? `en ${launchDateStr}` : "próximamente"}`}
+              {lang === "fr"
+                ? `Ouverture ${launchDateStr ? `en ${launchDateStr}` : "prochainement"}`
+                : lang === "es"
+                ? `Apertura ${launchDateStr ? `en ${launchDateStr}` : "próximamente"}`
+                : `Opening ${launchDateStr || "Soon"}`}
             </div>
 
             <h3
@@ -476,7 +497,11 @@ export function StickyCountdownBanner() {
                 lineHeight: 1.15,
               }}
             >
-              {lang === "en" ? "Be first to know when memberships open." : "Sé la primera en saber cuándo abrimos membresías."}
+              {lang === "fr"
+                ? "Soyez la première informée de l'ouverture des adhésions."
+                : lang === "es"
+                ? "Sé la primera en saber cuándo abrimos membresías."
+                : "Be first to know when memberships open."}
             </h3>
 
             <p
@@ -487,9 +512,11 @@ export function StickyCountdownBanner() {
                 margin: "0 0 20px",
               }}
             >
-              {lang === "en"
-                ? "Mothers on this list receive pre-launch invitations. No joining fee if you join before launch."
-                : "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento. Sin cuota de alta si te unes antes del lanzamiento."}
+              {lang === "fr"
+                ? "Les mères inscrites reçoivent des invitations avant le lancement. Pas de frais d'inscription si vous rejoignez avant l'ouverture."
+                : lang === "es"
+                ? "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento. Sin cuota de alta si te unes antes del lanzamiento."
+                : "Mothers on this list receive pre-launch invitations. No joining fee if you join before launch."}
             </p>
 
             {joined ? (
@@ -504,7 +531,7 @@ export function StickyCountdownBanner() {
                     lineHeight: 1.15,
                   }}
                 >
-                  {lang === "en" ? "You're on the list." : "Ya estás en la lista."}
+                  {lang === "fr" ? "Vous êtes sur la liste." : lang === "es" ? "Ya estás en la lista." : "You're on the list."}
                 </h3>
                 <p
                   style={{
@@ -514,9 +541,11 @@ export function StickyCountdownBanner() {
                     margin: "0 0 18px",
                   }}
                 >
-                  {lang === "en"
-                    ? "We'll write before membership opens, and there is no joining fee if you join before launch."
-                    : "Te escribiremos antes de la apertura de la membresía y no pagarás cuota de alta si te unes antes del lanzamiento."}
+                  {lang === "fr"
+                    ? "Nous vous écrirons avant l'ouverture des adhésions, et il n'y aura aucun frais d'inscription si vous rejoignez avant le lancement."
+                    : lang === "es"
+                    ? "Te escribiremos antes de la apertura de la membresía y no pagarás cuota de alta si te unes antes del lanzamiento."
+                    : "We'll write before membership opens, and there is no joining fee if you join before launch."}
                 </p>
                 <div
                   style={{
@@ -532,7 +561,13 @@ export function StickyCountdownBanner() {
                     fontSize: "14px",
                   }}
                 >
-                  <span>{lang === "en" ? "You're in! We'll let you know when it's open." : "¡Ya estás dentro! Te avisaremos cuando abra."}</span>
+                  <span>
+                    {lang === "fr"
+                      ? "C'est tout bon ! Nous vous tiendrons au courant dès l'ouverture."
+                      : lang === "es"
+                      ? "¡Ya estás dentro! Te avisaremos cuando abra."
+                      : "You're in! We'll let you know when it's open."}
+                  </span>
                   <button
                     type="button"
                     onClick={() => setModalOpen(false)}
@@ -548,7 +583,7 @@ export function StickyCountdownBanner() {
                       fontFamily: "inherit",
                     }}
                   >
-                    {lang === "en" ? "Close" : "Cerrar"}
+                    {lang === "fr" ? "Fermer" : lang === "es" ? "Cerrar" : "Close"}
                   </button>
                 </div>
               </div>
@@ -557,7 +592,7 @@ export function StickyCountdownBanner() {
                 <input
                   type="email"
                   required
-                  placeholder={lang === "en" ? "Your email address" : "Tu correo electrónico"}
+                  placeholder={lang === "fr" ? "Votre adresse e-mail" : lang === "es" ? "Tu correo electrónico" : "Your email address"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={(e) => {
@@ -605,8 +640,8 @@ export function StickyCountdownBanner() {
                   }}
                 >
                   {loading
-                    ? (lang === "en" ? "Saving..." : "Guardando...")
-                    : (lang === "en" ? "Join the list" : "Unirme a la lista")}
+                    ? (lang === "fr" ? "Enregistrement..." : lang === "es" ? "Guardando..." : "Saving...")
+                    : (lang === "fr" ? "Rejoindre la liste" : lang === "es" ? "Unirme a la lista" : "Join the list")}
                 </button>
               </form>
             )}

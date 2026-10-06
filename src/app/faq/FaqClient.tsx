@@ -77,12 +77,32 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
     })
     .filter((g) => g.items.length > 0);
 
-  const groupDisplayTitles: Record<string, { en: string; es: string }> = {
-    "Coming to an event now": { en: "Coming to an event now", es: "Asistir a un encuentro ahora" },
-    "Credits and your wallet": { en: "Credits and your wallet", es: "Créditos y tu monedero" },
-    "Membership after launch": { en: "Membership after launch", es: "Membresía tras el lanzamiento" },
-    "Membership, from January 2027": { en: "Membership, from January 2027", es: "Membresía, a partir de enero 2027" },
-    "The club itself": { en: "The club itself", es: "El club y funcionamiento" },
+  const groupDisplayTitles: Record<string, { en: string; es: string; fr: string }> = {
+    "Coming to an event now": {
+      en: "Coming to an event now",
+      es: "Asistir a un encuentro ahora",
+      fr: "Venir à un événement maintenant",
+    },
+    "Credits and your wallet": {
+      en: "Credits and your wallet",
+      es: "Créditos y tu monedero",
+      fr: "Les crédits et votre portefeuille",
+    },
+    "Membership after launch": {
+      en: "Membership after launch",
+      es: "Membresía tras el lanzamiento",
+      fr: "L'adhésion, à partir du lancement",
+    },
+    "Membership, from January 2027": {
+      en: "Membership, from January 2027",
+      es: "Membresía, a partir de enero 2027",
+      fr: "L'adhésion, à partir de janvier 2027",
+    },
+    "The club itself": {
+      en: "The club itself",
+      es: "El club y funcionamiento",
+      fr: "Le club",
+    },
   };
 
   return (
@@ -100,7 +120,7 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
             marginBottom: "12px",
           }}
         >
-          {isEn ? "Questions" : "Preguntas"}
+          {lang === "fr" ? "Questions" : lang === "es" ? "Preguntas" : "Questions"}
         </div>
         <h1
           style={{
@@ -112,7 +132,11 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
             color: "#39292a",
           }}
         >
-          {isEn ? "You wonder, we answer." : "Todas tus preguntas, respondidas."}
+          {lang === "fr"
+            ? "Vous vous demandez, nous répondons."
+            : lang === "es"
+            ? "Todas tus preguntas, respondidas."
+            : "You wonder, we answer."}
         </h1>
       </section>
 
@@ -142,8 +166,8 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
               {g.items.map((item, iIndex) => {
                 const key = `${g.gIndex}-${iIndex}`;
                 const isOpen = !!openItems[key];
-                const questionText = isEn ? item.qEn : item.qEs;
-                const answerText = isEn ? item.aEn : item.aEs;
+                const questionText = lang === "fr" ? item.qFr || item.qEn : lang === "es" ? item.qEs : item.qEn;
+                const answerText = lang === "fr" ? item.aFr || item.aEn : lang === "es" ? item.aEs : item.aEn;
 
                 return (
                   <div key={key} style={{ borderTop: "1px solid rgba(57, 41, 42, 0.14)" }}>
@@ -220,12 +244,14 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
                 color: "#39292a",
               }}
             >
-              {isEn ? "Still hesitating?" : "¿Aún tienes dudas?"}
+              {lang === "fr" ? "Vous hésitez encore ?" : lang === "es" ? "¿Aún tienes dudas?" : "Still hesitating?"}
             </h2>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
-              {isEn
-                ? "Come to an event. Pick any gathering on the calendar, and nobody will ask you to join anything."
-                : "Ven a un evento. Elige cualquier encuentro del calendario y nadie te pedirá comprometerte a nada."}
+              {lang === "fr"
+                ? "Venez à un événement. Choisissez une rencontre au calendrier, personne ne vous demandera de vous engager."
+                : lang === "es"
+                ? "Ven a un evento. Elige cualquier encuentro del calendario y nadie te pedirá comprometerte a nada."
+                : "Come to an event. Pick any gathering on the calendar, and nobody will ask you to join anything."}
             </p>
           </div>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
@@ -245,7 +271,7 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
                 transition: "all 0.15s ease",
               }}
             >
-              {isEn ? "See the calendar" : "Ver calendario"}
+              {lang === "fr" ? "Voir le calendrier" : lang === "es" ? "Ver calendario" : "See the calendar"}
             </Link>
             <a
               href="mailto:hello@themothers.cc"
@@ -263,19 +289,23 @@ export default function FaqClient({ dynamicFaqs = [] }: FaqClientProps) {
                 transition: "all 0.15s ease",
               }}
             >
-              {isEn ? "Write to us" : "Escríbenos"}
+              {lang === "fr" ? "Écrivez-nous" : lang === "es" ? "Escríbenos" : "Write to us"}
             </a>
           </div>
         </div>
 
         <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)", margin: "22px 0 0" }}>
-          {isEn ? "Looking for the legal details? " : "¿Buscas los detalles legales? "}
+          {lang === "fr"
+            ? "Vous cherchez les mentions légales ? "
+            : lang === "es"
+            ? "¿Buscas los detalles legales? "
+            : "Looking for the legal details? "}
           <Link href="/terms" style={{ color: "#7b1f2c", textDecoration: "none" }}>
-            {isEn ? "Terms & Conditions" : "Términos y Condiciones"}
+            {lang === "fr" ? "Conditions Générales" : lang === "es" ? "Términos y Condiciones" : "Terms & Conditions"}
           </Link>{" "}
-          {isEn ? "and " : "y "}
+          {lang === "fr" ? "et " : lang === "es" ? "y " : "and "}
           <Link href="/privacy" style={{ color: "#7b1f2c", textDecoration: "none" }}>
-            {isEn ? "Privacy Policy" : "Política de Privacidad"}
+            {lang === "fr" ? "Politique de Confidentialité" : lang === "es" ? "Política de Privacidad" : "Privacy Policy"}
           </Link>
           .
         </p>

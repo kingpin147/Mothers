@@ -18,7 +18,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const saved =
       (localStorage.getItem("site_language") as Locale) ||
       (localStorage.getItem("tm_lang") as Locale);
-    if (saved === "en" || saved === "es") {
+    if (saved === "en" || saved === "es" || saved === "fr") {
       setLanguageState(saved);
     }
   }, []);
@@ -32,11 +32,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const t = (keyPath: string) => {
     const keys = keyPath.split(".");
-    let current: any = DICTIONARIES[language];
+    let current: any = DICTIONARIES[language] || DICTIONARIES.en;
     for (const key of keys) {
       if (current[key] === undefined) {
-        console.warn(`Missing translation key: ${keyPath} for lang: ${language}`);
-        return keyPath;
+        let fallback: any = DICTIONARIES.en;
+        for (const fbKey of keys) {
+          if (fallback && fallback[fbKey] !== undefined) {
+            fallback = fallback[fbKey];
+          } else {
+            console.warn(`Missing translation key: ${keyPath} for lang: ${language}`);
+            return keyPath;
+          }
+        }
+        return fallback;
       }
       current = current[key];
     }
