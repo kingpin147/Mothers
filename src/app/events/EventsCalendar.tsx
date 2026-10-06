@@ -1146,8 +1146,6 @@ function EventCard({
   isMember,
   creditBalance = 0,
 }: EventCardProps) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
-
   const isCancelled = ev.status === "cancelled";
   const isPast = ev.status === "past" || ev.status === "completed" ||
     (ev.endsAt ? new Date(ev.endsAt) < new Date() : new Date(ev.startsAt) < new Date());
@@ -1442,10 +1440,9 @@ function EventCard({
         </div>
       </div>
 
-      {/* ─── Details ▼ / Details ▲ In-place Toggle ─── */}
-      <button
-        type="button"
-        onClick={() => setDetailsOpen((prev) => !prev)}
+      {/* ─── Details Link (Opens event page directly) ─── */}
+      <Link
+        href={`/events/${ev.slug || ev.id}`}
         style={{
           alignSelf: "flex-start",
           background: "none",
@@ -1454,68 +1451,21 @@ function EventCard({
           fontFamily: "inherit",
           fontSize: "13px",
           color: "#7b1f2c",
-          cursor: "pointer",
+          textDecoration: "none",
           display: "inline-flex",
           alignItems: "center",
           gap: "4px",
-          marginBottom: detailsOpen ? "10px" : "12px",
+          marginBottom: "12px",
+          cursor: "pointer",
         }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#5d1721")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#7b1f2c")}
       >
         <span style={{ textDecoration: "underline", textUnderlineOffset: "3px" }}>
           {lang === "en" ? "Details" : "Detalles"}
         </span>
-        <span style={{ fontSize: "9px" }}>{detailsOpen ? "▲" : "▼"}</span>
-      </button>
-
-      {/* ─── Expandable Details Content ─── */}
-      {detailsOpen && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            padding: "12px 14px",
-            backgroundColor: "rgba(57, 41, 42, 0.04)",
-            borderRadius: "6px",
-            marginBottom: "12px",
-            fontSize: "13px",
-            lineHeight: "1.55",
-            color: "rgba(57, 41, 42, 0.8)",
-          }}
-        >
-          {ev.partnerName && (
-            <div style={{ fontSize: "12.5px" }}>
-              <span style={{ color: "rgba(57, 41, 42, 0.65)" }}>{lang === "en" ? "Hosted with " : "Organizado con "}</span>
-              <strong style={{ fontWeight: 600 }}>{ev.partnerName}</strong>
-            </div>
-          )}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "6px", fontSize: "12.5px", color: "rgba(57,41,42,0.72)", fontStyle: "italic" }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flexShrink: 0, marginTop: "2px" }}>
-              <rect x="4" y="11" width="16" height="10" rx="2" />
-              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-            </svg>
-            <span>{ev.userStatus?.isBooked && ev.venueAddress ? ev.venueAddress : (ev.meetingPointNote || (lang === "en" ? "Exact address sent when you book" : "Dirección exacta enviada tras reservar"))}</span>
-          </div>
-          {getEventDisplayDesc(ev, lang) && (
-            <p style={{ margin: 0, fontSize: "13px", color: "rgba(57,41,42,0.76)" }}>
-              {getEventDisplayDesc(ev, lang)}
-            </p>
-          )}
-          <Link
-            href={`/events/${ev.slug || ev.id}`}
-            style={{
-              color: "#7b1f2c",
-              textDecoration: "underline",
-              fontSize: "12.5px",
-              fontWeight: 600,
-              marginTop: "2px",
-              display: "inline-block",
-            }}
-          >
-            {lang === "en" ? "Open event page →" : "Ver página del evento →"}
-          </Link>
-        </div>
-      )}
+        <span style={{ fontSize: "9px", textDecoration: "none" }}>▼</span>
+      </Link>
 
       {/* ─── Status & Confirmation Line ─── */}
       <div
