@@ -18,7 +18,7 @@ const registerSchema = z
     email: z.string().trim().email("Please enter a valid email address.").toLowerCase(),
     password: z.string().min(8, "Passwords must be at least 8 characters."),
     letter: z.boolean().default(true),
-    locale: z.enum(["en", "es"]).default("en"),
+    locale: z.enum(["en", "es", "fr"]).default("en"),
   })
   .refine(
     (data) => (data.firstName && data.firstName.length > 0) || (data.name && data.name.length > 0),
@@ -34,7 +34,7 @@ export async function sendSignupVerificationOtp(rawData: {
   name?: string;
   email: string;
   password?: string;
-  locale?: "en" | "es";
+  locale?: "en" | "es" | "fr";
 }) {
   const ip = await getClientIp();
   const rateCheck = checkSignUpRateLimit(ip);
@@ -121,7 +121,7 @@ export async function verifyOtpAndCreateAccount(rawData: {
   password: string;
   code: string;
   letter?: boolean;
-  locale?: "en" | "es";
+  locale?: "en" | "es" | "fr";
 }) {
   const ip = await getClientIp();
   const rateCheck = checkSignUpRateLimit(ip);

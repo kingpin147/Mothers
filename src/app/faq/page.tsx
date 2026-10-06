@@ -10,8 +10,9 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: "FAQ — The Mothers Barcelona",
-  description: "Membership, credits, event booking, cancellations and Godmother referrals — answered.",
+  title: "Frequently Asked Questions About Membership | The Mothers",
+  description:
+    "Get answers about joining The Mothers in Barcelona, how credits work, event cancellations, stage groups, host opportunities, and our curated partner network.",
 };
 
 export default async function FaqPage() {

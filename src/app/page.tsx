@@ -3,13 +3,13 @@ import ComingSoonClient from "./coming-soon/ComingSoonClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "The Mothers — Coming Soon",
+  title: "The Mothers Barcelona — Private Membership Club for Moms",
   description:
-    "A private membership club for mothers in Barcelona. Something beautiful is on its way.",
+    "A private membership club for mothers in Barcelona is opening soon. Join the early access list to receive priority invitations and connect with local mothers.",
   openGraph: {
-    title: "The Mothers — Coming Soon",
+    title: "The Mothers Barcelona — Private Membership Club for Moms",
     description:
-      "A private membership club for mothers in Barcelona. Something beautiful is on its way.",
+      "A private membership club for mothers in Barcelona is opening soon. Join the early access list to receive priority invitations and connect with local mothers.",
     url: "https://themothers.cc",
     siteName: "The Mothers",
     images: [

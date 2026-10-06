@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Partners — The Mothers Barcelona",
+  title: "Curated Partner Network & Motherhood Perks in Barcelona",
   description:
-    "Discover trusted partner services recommended by The Mothers Barcelona: baby care, wellness, nutrition, and family-friendly businesses.",
+    "Explore our vetted directory of Barcelona specialists, prenatal yoga studios, lactation experts, postpartum doulas, and family-friendly hospitality venues.",
   openGraph: {
-    title: "Partners — The Mothers Barcelona",
+    title: "Curated Partner Network & Motherhood Perks in Barcelona",
     description:
-      "Trusted services and businesses recommended by The Mothers Barcelona community.",
+      "Explore our vetted directory of Barcelona specialists, prenatal yoga studios, lactation experts, postpartum doulas, and family-friendly hospitality venues.",
     url: "https://themothers.cc/partners",
     siteName: "The Mothers",
     locale: "en_GB",

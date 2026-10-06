@@ -5,8 +5,9 @@ import { GazetteFeedClient } from "./GazetteFeedClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "La Gazette — A place for mothers in Barcelona",
-  description: "Share what you are living, ask for advice, and cheer each other on in La Gazette.",
+  title: "La Gazette — Private Community Forum for Barcelona Moms",
+  description:
+    "Connect honestly with mothers in Barcelona. Share advice, ask questions, discuss parenting stages, and find local friendships inside our supportive forum space.",
 };
 
 export default async function GazettePage() {

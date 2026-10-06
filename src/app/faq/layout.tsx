@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FAQ — The Mothers Barcelona",
+  title: "Frequently Asked Questions About Membership | The Mothers",
   description:
-    "Frequently asked questions about The Mothers Barcelona: membership, credits, event booking, cancellations, Godmother referrals, and more.",
+    "Get answers about joining The Mothers in Barcelona, how credits work, event cancellations, stage groups, host opportunities, and our curated partner network.",
   openGraph: {
-    title: "FAQ — The Mothers Barcelona",
+    title: "Frequently Asked Questions About Membership | The Mothers",
     description:
-      "Your questions about The Mothers Barcelona answered: membership, credits, events, and community.",
+      "Get answers about joining The Mothers in Barcelona, how credits work, event cancellations, stage groups, host opportunities, and our curated partner network.",
     url: "https://themothers.cc/faq",
     siteName: "The Mothers",
     locale: "en_GB",

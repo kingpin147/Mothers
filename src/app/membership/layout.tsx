@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Membership — The Mothers Barcelona",
+  title: "Private Membership for Mothers in Barcelona | The Mothers",
   description:
-    "Join The Mothers Barcelona private members club. Credit-based access to curated events, a genuine community of mothers, and trusted partner care.",
+    "Join The Mothers Barcelona private members club. Enjoy credit-based booking for curated gatherings, supportive stage groups, and exclusive partner privileges.",
   openGraph: {
-    title: "Membership — The Mothers Barcelona",
+    title: "Private Membership for Mothers in Barcelona | The Mothers",
     description:
-      "Join The Mothers Barcelona private members club. Credit-based events, trusted community.",
+      "Join The Mothers Barcelona private members club. Enjoy credit-based booking for curated gatherings, supportive stage groups, and exclusive partner privileges.",
     url: "https://themothers.cc/membership",
     siteName: "The Mothers",
     locale: "en_GB",

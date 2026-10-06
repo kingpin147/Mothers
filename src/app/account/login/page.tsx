@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { sendSignupVerificationOtp, verifyOtpAndCreateAccount } from "@/app/actions/register";
+import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 
 const baseInputStyle: React.CSSProperties = {
   width: "100%",
@@ -25,7 +27,7 @@ const baseInputStyle: React.CSSProperties = {
 function LoginForm() {
   const { data: session, status } = useSession();
   const searchParams = useSearchParams();
-  const [lang, setLang] = useState<"en" | "es">("en");
+  const { language: lang } = useLanguage();
   
   // Modes: "signin" | "create" | "verify"
   const [mode, setMode] = useState<"signin" | "create" | "verify">("signin");
@@ -50,11 +52,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("tm_lang");
-    if (saved === "es" || saved === "en") setLang(saved);
-  }, []);
 
   useEffect(() => {
     if (searchParams?.get("create") === "1") {
@@ -329,6 +326,20 @@ function LoginForm() {
         padding: "clamp(36px, 5vw, 64px) 24px",
       }}
     >
+      <style>{`
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active,
+        input:-internal-autofill-selected {
+          -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+          box-shadow: 0 0 0 1000px #ffffff inset !important;
+          -webkit-text-fill-color: #39292a !important;
+          caret-color: #39292a !important;
+          background-color: #ffffff !important;
+          transition: background-color 5000000s ease-in-out 0s !important;
+        }
+      `}</style>
       <div
         style={{
           maxWidth: "960px",

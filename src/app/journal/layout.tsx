@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Journal — The Mothers Barcelona",
+  title: "The Journal — Motherhood Insights & Guides | The Mothers",
   description:
-    "Stories, insights, and practical wisdom from The Mothers Barcelona community. Articles on motherhood, wellness, parenting, and life in Barcelona.",
+    "Thoughtful articles on pregnancy, postpartum doulas, infant sleep, feeding, and returning to work, written by trusted specialists for modern mothers in Barcelona.",
   openGraph: {
-    title: "Journal — The Mothers Barcelona",
+    title: "The Journal — Motherhood Insights & Guides | The Mothers",
     description:
-      "Stories and insights from The Mothers Barcelona community on motherhood, wellness, and parenting.",
+      "Thoughtful articles on pregnancy, postpartum doulas, infant sleep, feeding, and returning to work, written by trusted specialists for modern mothers in Barcelona.",
     url: "https://themothers.cc/journal",
     siteName: "The Mothers",
     locale: "en_GB",

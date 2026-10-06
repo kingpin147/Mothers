@@ -26,11 +26,11 @@ const lora = Lora({
 export const metadata: Metadata = {
   metadataBase: new URL("https://themothers.cc"),
   title: {
-    default: "The Mothers — A way of life for the modern Mother · Barcelona",
-    template: "%s — The Mothers",
+    default: "The Mothers — Private Moms Club & Community in Barcelona",
+    template: "%s",
   },
   description:
-    "Curated gatherings, genuine community, credit-based booking, and trusted partner care for mothers in Barcelona.",
+    "The Mothers is a private moms club in Barcelona offering curated gatherings, genuine community, and trusted experiences designed for modern mothers and bumps.",
   keywords: [
     "The Mothers",
     "mothers club Barcelona",
@@ -65,9 +65,9 @@ export const metadata: Metadata = {
     alternateLocale: ["es_ES"],
     url: "https://themothers.cc",
     siteName: "The Mothers",
-    title: "The Mothers — A way of life for the modern Mother · Barcelona",
+    title: "The Mothers — Private Moms Club & Community in Barcelona",
     description:
-      "Curated gatherings, genuine community, credit-based booking, and trusted partner care for mothers in Barcelona.",
+      "The Mothers is a private moms club in Barcelona offering curated gatherings, genuine community, and trusted experiences designed for modern mothers and bumps.",
     images: [
       {
         url: "/assets/home-hero.webp",
@@ -79,9 +79,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "The Mothers — A way of life for the modern Mother · Barcelona",
+    title: "The Mothers — Private Moms Club & Community in Barcelona",
     description:
-      "Curated gatherings, genuine community, credit-based booking, and trusted partner care for mothers in Barcelona.",
+      "The Mothers is a private moms club in Barcelona offering curated gatherings, genuine community, and trusted experiences designed for modern mothers and bumps.",
     images: ["/assets/home-hero.webp"],
   },
   robots: {
@@ -120,7 +120,7 @@ const jsonLd = {
       },
       "image": "https://themothers.cc/assets/home-hero.webp",
       "description":
-        "A private membership club for mothers in Barcelona: curated events, genuine community, credit-based booking, and trusted partner care.",
+        "The Mothers is a private moms club in Barcelona offering curated gatherings, genuine community, and trusted experiences designed for modern mothers.",
       "sameAs": ["https://www.instagram.com/themothers.cc"],
     },
     {

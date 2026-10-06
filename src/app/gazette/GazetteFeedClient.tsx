@@ -79,6 +79,7 @@ export function GazetteFeedClient({
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [openReportPostId, setOpenReportPostId] = useState<string | null>(null);
   const [reportedPostIds, setReportedPostIds] = useState<Set<string>>(new Set());
+  const [loginPromptTargetId, setLoginPromptTargetId] = useState<string | null>(null);
 
   const [, startTransition] = useTransition();
 
@@ -982,6 +983,64 @@ export function GazetteFeedClient({
                         <span style={{ fontSize: "12px", color: "#3b5e04" }}>✓ Reported</span>
                       )}
                     </div>
+
+                    {/* Login Prompt for liking without session */}
+                    {loginPromptTargetId === post.id && !currentUser && (
+                      <div
+                        style={{
+                          backgroundColor: "rgba(123, 31, 44, 0.08)",
+                          border: "1px solid rgba(123, 31, 44, 0.25)",
+                          borderRadius: "6px",
+                          padding: "10px 14px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          fontSize: "13.5px",
+                          color: "#7b1f2c",
+                        }}
+                      >
+                        <span style={{ fontFamily: "'Lora', Georgia, serif" }}>
+                          {lang === "fr"
+                            ? "Veuillez vous connecter pour aimer."
+                            : lang === "es"
+                              ? "Inicia sesión para dar me gusta."
+                              : "Please log in to like."}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <Link
+                            href="/account/login"
+                            style={{
+                              fontFamily: "'Cormorant Garamond', Georgia, serif",
+                              fontWeight: 600,
+                              fontSize: "15px",
+                              color: "#7b1f2c",
+                              textDecoration: "underline",
+                              textUnderlineOffset: "2px",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {lang === "fr" ? "Connexion →" : lang === "es" ? "Acceder →" : "Sign in →"}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setLoginPromptTargetId(null)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: "#7b1f2c",
+                              fontSize: "18px",
+                              cursor: "pointer",
+                              padding: "0 4px",
+                              lineHeight: 1,
+                            }}
+                            aria-label="Close"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Report Dialog Accordion */}
                     {isReportOpen && (

@@ -182,19 +182,40 @@ textarea:-webkit-autofill:hover,
 textarea:-webkit-autofill:focus,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
-select:-webkit-autofill:focus,
-input:autofill,
-input:autofill:hover,
-input:autofill:focus,
-textarea:autofill,
-textarea:autofill:hover,
-textarea:autofill:focus {
+select:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
   box-shadow: 0 0 0 1000px #ffffff inset !important;
   -webkit-text-fill-color: #39292a !important;
   caret-color: #39292a !important;
   background-color: #ffffff !important;
-  transition: background-color 50000s ease-in-out 0s !important;
+  transition: background-color 5000000s ease-in-out 0s !important;
+}
+
+input:-internal-autofill-selected,
+textarea:-internal-autofill-selected,
+select:-internal-autofill-selected {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #39292a !important;
+  caret-color: #39292a !important;
+  background-color: #ffffff !important;
+  transition: background-color 5000000s ease-in-out 0s !important;
+}
+
+input:autofill,
+input:autofill:hover,
+input:autofill:focus,
+textarea:autofill,
+textarea:autofill:hover,
+textarea:autofill:focus,
+select:autofill,
+select:autofill:hover,
+select:autofill:focus {
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #39292a !important;
+  caret-color: #39292a !important;
+  background-color: #ffffff !important;
+  transition: background-color 5000000s ease-in-out 0s !important;
 }
 
 input:-webkit-autofill:focus,

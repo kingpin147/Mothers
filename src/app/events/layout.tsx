@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Events Calendar — The Mothers Barcelona",
+  title: "Upcoming Events and Gatherings for Mothers | The Mothers",
   description:
-    "Browse and reserve spots at curated events for mothers in Barcelona: yoga, walks, workshops, social circles, and more. Credit-based booking for members.",
+    "Discover curated walks, play dates, mothers dinners, and expert workshops across Barcelona. Book your spot easily with flexible credits and meet local moms.",
   openGraph: {
-    title: "Events Calendar — The Mothers Barcelona",
+    title: "Upcoming Events and Gatherings for Mothers | The Mothers",
     description:
-      "Browse and reserve spots at curated events for mothers in Barcelona.",
+      "Discover curated walks, play dates, mothers dinners, and expert workshops across Barcelona. Book your spot easily with flexible credits and meet local moms.",
     url: "https://themothers.cc/events",
     siteName: "The Mothers",
     locale: "en_GB",

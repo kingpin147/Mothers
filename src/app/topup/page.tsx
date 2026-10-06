@@ -5,8 +5,9 @@ import { TopUpClient } from "./TopUpClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Top Up Credits — The Mothers · Barcelona",
-  description: "Buy credits at €2 each to reserve upcoming gatherings and events in The Mothers.",
+  title: "Top Up Credits for Event Bookings | The Mothers Barcelona",
+  description:
+    "Purchase credits for your wallet to book walks, workshops, suppers, and gatherings across Barcelona. Transparent pricing with no recurring fees or lock-ins.",
 };
 
 export default async function TopUpPage() {

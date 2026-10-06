@@ -6,9 +6,9 @@ import { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "The Mothers — A way of life for the modern Mother · Barcelona",
+  title: "The Mothers — Private Moms Club & Community in Barcelona",
   description:
-    "Curated gatherings, genuine community, credit-based booking, and trusted partner care for mothers in Barcelona.",
+    "The Mothers is a private moms club in Barcelona offering curated gatherings, genuine community, and trusted experiences designed for modern mothers and bumps.",
 };
 
 export default async function HomePage() {

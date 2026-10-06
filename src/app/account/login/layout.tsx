@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Login — The Mothers Barcelona",
-  description: "Sign in to The Mothers Barcelona member and operator account.",
+  title: "Member Sign In & Account Access | The Mothers Barcelona",
+  description:
+    "Sign in to your account at The Mothers Barcelona to manage event bookings, check your credit balance, access La Gazette community forum, and view your perks.",
 };
 
 export default function LoginLayout({
