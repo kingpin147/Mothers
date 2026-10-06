@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 import { submitFirstVisitProfile, validateGodmotherCode } from "@/app/actions/memberAccount";
 
 interface QuestionDef {
@@ -167,6 +168,7 @@ function FirstVisitProfileModalContent() {
   const pathname = usePathname();
   const { language: lang } = useLanguage();
   const isEn = lang === "en";
+  
 
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(0);

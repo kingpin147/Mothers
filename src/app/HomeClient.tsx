@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 import {
   getEventDisplayTitle,
   getCategoryInfo,
@@ -52,7 +53,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
   const handleJoinList = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes("@")) {
-      setErrorMsg(lang === "en" ? "Please enter a valid email." : "Introduce un correo válido.");
+      setErrorMsg(lang === "fr" ? "Veuillez saisir une adresse e-mail valide." : lang === "es" ? "Introduce un correo válido." : "Please enter a valid email.");
       return;
     }
     setLoading(true);
@@ -69,7 +70,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
       localStorage.setItem("tm_pre_joined_list", "true");
       setModalOpen(false);
     } catch {
-      setErrorMsg(lang === "en" ? "Something went wrong. Please try again." : "Algo ha fallado. Inténtalo de nuevo.");
+      setErrorMsg(lang === "fr" ? "Une erreur est survenue. Veuillez réessayer." : lang === "es" ? "Algo ha fallado. Inténtalo de nuevo." : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -140,7 +141,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               marginBottom: "18px",
             }}
           >
-            {lang === "en" ? "Barcelona · a circle of mothers" : "Barcelona · un círculo de madres"}
+            {tStr("Barcelona · a circle of mothers", lang)}
           </div>
 
           <h1
@@ -154,7 +155,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               textWrap: "pretty",
             }}
           >
-            {lang === "en" ? "Find your people. Build your circle." : "Encuentra a tu gente. Crea tu círculo."}
+            {tStr("Find your people. Build your circle.", lang)}
           </h1>
 
           <p
@@ -210,7 +211,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
-              {lang === "en" ? "See what's on" : "Ver qué eventos hay"}
+              {tStr("See what's on", lang)}
             </Link>
           </div>
         </div>
@@ -265,7 +266,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               marginBottom: "10px",
             }}
           >
-            {lang === "en" ? "How friendships start" : "Cómo empiezan las amistades"}
+            {tStr("How friendships start", lang)}
           </div>
           <h2
             style={{
@@ -276,7 +277,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               margin: 0,
             }}
           >
-            {lang === "en" ? "From stranger to friend, in three steps." : "De desconocida a amiga, en tres pasos."}
+            {tStr("From stranger to friend, in three steps.", lang)}
           </h2>
         </div>
 
@@ -297,7 +298,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               01
             </div>
             <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "21px", margin: "0 0 7px" }}>
-              {lang === "en" ? "Come once" : "Ven una vez"}
+              {tStr("Come once", lang)}
             </h3>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
               {lang === "en"
@@ -322,7 +323,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               02
             </div>
             <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "21px", margin: "0 0 7px" }}>
-              {lang === "en" ? "Keep coming back" : "Sigue viniendo"}
+              {tStr("Keep coming back", lang)}
             </h3>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
               {lang === "en"
@@ -347,7 +348,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               03
             </div>
             <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "21px", margin: "0 0 7px" }}>
-              {lang === "en" ? "Find your circle" : "Encuentra tu círculo"}
+              {tStr("Find your circle", lang)}
             </h3>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
               {lang === "en"
@@ -380,10 +381,10 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 marginBottom: "9px",
               }}
             >
-              {lang === "en" ? "Next on the calendar" : "Próximamente en el calendario"}
+              {tStr("Next on the calendar", lang)}
             </div>
             <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(25px, 3.2vw, 34px)", margin: 0 }}>
-              {lang === "en" ? "Where you will meet her." : "Donde la conocerás."}
+              {tStr("Where you will meet her.", lang)}
             </h2>
           </div>
 
@@ -401,7 +402,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               textDecoration: "none",
             }}
           >
-            <span>{lang === "en" ? "The whole calendar" : "Ver todo el calendario"}</span>
+            <span>{tStr("The whole calendar", lang)}</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
@@ -478,7 +479,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
         {displayEvents.length === 0 ? (
           <div style={{ padding: "40px 0", textAlign: "center", color: "rgba(57, 41, 42, 0.7)" }}>
             <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "19px", margin: "0 0 8px" }}>
-              {lang === "en" ? "New gatherings are being scheduled." : "Nuevos encuentros próximamente."}
+              {tStr("New gatherings are being scheduled.", lang)}
             </p>
             <Link
               href="/events"
@@ -490,7 +491,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 textUnderlineOffset: "3px",
               }}
             >
-              {lang === "en" ? "Browse calendar →" : "Ver calendario →"}
+              {tStr("Browse calendar →", lang)}
             </Link>
           </div>
         ) : (
@@ -744,11 +745,11 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" style={{ flex: "none" }}>
                 <path d="m12 2 2.9 6.3 6.6.8-4.9 4.5 1.3 6.6L12 17l-5.9 3.2 1.3-6.6L2.5 9.1l6.6-.8Z" />
               </svg>
-              <span>{lang === "en" ? "The Godmother program" : "El programa Madrinas"}</span>
+              <span>{tStr("The Godmother program", lang)}</span>
             </div>
 
             <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 400, fontSize: "clamp(26px, 3.4vw, 40px)", lineHeight: 1.12, margin: "0 0 14px" }}>
-              {lang === "en" ? "Bring a mother into the circle." : "Invita a una madre al círculo."}
+              {tStr("Bring a mother into the circle.", lang)}
             </h2>
 
             <p style={{ fontSize: "16px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 20px", maxWidth: "52ch" }}>
@@ -773,7 +774,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                   textDecoration: "none",
                 }}
               >
-                {lang === "en" ? "Get your invite code" : "Consigue tu código"}
+                {tStr("Get your invite code", lang)}
               </Link>
 
               <Link
@@ -787,7 +788,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                   textDecoration: "none",
                 }}
               >
-                {lang === "en" ? "How it works" : "Cómo funciona"}
+                {tStr("How it works", lang)}
               </Link>
             </div>
           </div>
@@ -796,7 +797,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "13px 0", borderTop: "1px solid rgba(86, 139, 5, 0.3)" }}>
               <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
               <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
-                {lang === "en" ? "Share your code with a mother you know" : "Comparte tu código con una madre que conozcas"}
+                {tStr("Share your code with a mother you know", lang)}
               </span>
             </div>
 
@@ -804,7 +805,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
               <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
                 <span style={{ display: "inline-block", fontSize: "10.5px", letterSpacing: "0.09em", textTransform: "uppercase", color: "#fdf8f2", backgroundColor: "#7b1f2c", border: "1px solid #7b1f2c", borderRadius: "10px", padding: "2px 9px", whiteSpace: "nowrap", marginBottom: "6px" }}>
-                  {lang === "en" ? "Members only" : "Solo socias"}
+                  {tStr("Members only", lang)}
                 </span>
                 <br />
                 {lang === "en"
@@ -862,7 +863,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               </div>
 
               <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(26px, 3.4vw, 36px)", lineHeight: 1.15, margin: 0 }}>
-                {lang === "en" ? "Keep your circle, all year round." : "Mantén tu círculo todo el año."}
+                {tStr("Keep your circle, all year round.", lang)}
               </h2>
             </div>
 
@@ -890,7 +891,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 e.currentTarget.style.backgroundColor = "transparent";
               }}
             >
-              <span>{lang === "en" ? "What membership will be" : "Cómo será la membresía"}</span>
+              <span>{tStr("What membership will be", lang)}</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
@@ -921,10 +922,10 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               </div>
               <div>
                 <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", margin: "0 0 4px", color: "#39292a" }}>
-                  {lang === "en" ? "4+ events a month" : "4+ eventos al mes"}
+                  {tStr("4+ events a month", lang)}
                 </h3>
                 <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: 0, lineHeight: 1.45 }}>
-                  {lang === "en" ? "With the same mothers" : "Con las mismas madres"}
+                  {tStr("With the same mothers", lang)}
                 </p>
               </div>
             </div>
@@ -951,10 +952,10 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               </div>
               <div>
                 <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", margin: "0 0 4px", color: "#39292a" }}>
-                  {lang === "en" ? "Your stage group" : "Tu grupo por etapa"}
+                  {tStr("Your stage group", lang)}
                 </h3>
                 <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: 0, lineHeight: 1.45 }}>
-                  {lang === "en" ? "Mothers at your stage" : "Madres en tu misma etapa"}
+                  {tStr("Mothers at your stage", lang)}
                 </p>
               </div>
             </div>
@@ -981,7 +982,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                   La Gazette
                 </h3>
                 <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: 0, lineHeight: 1.45 }}>
-                  {lang === "en" ? "Talk in between events" : "Habla entre eventos"}
+                  {tStr("Talk in between events", lang)}
                 </p>
               </div>
             </div>
@@ -1006,10 +1007,10 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               </div>
               <div>
                 <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", margin: "0 0 4px", color: "#39292a" }}>
-                  {lang === "en" ? "Credits carry over" : "Créditos acumulables"}
+                  {tStr("Credits carry over", lang)}
                 </h3>
                 <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", margin: 0, lineHeight: 1.45 }}>
-                  {lang === "en" ? "Nothing you buy is lost" : "Nada de lo que compras se pierde"}
+                  {tStr("Nothing you buy is lost", lang)}
                 </p>
               </div>
             </div>
@@ -1090,7 +1091,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 lineHeight: 1.15,
               }}
             >
-              {lang === "en" ? "Be first to know when memberships open." : "Sé la primera en saber cuándo abrimos membresías."}
+              {tStr("Be first to know when memberships open.", lang)}
             </h3>
 
             <p
@@ -1110,7 +1111,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               <input
                 type="email"
                 required
-                placeholder={lang === "en" ? "Your email address" : "Tu correo electrónico"}
+                placeholder={tStr("Your email address", lang)}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onFocus={(e) => {

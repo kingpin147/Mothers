@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 
 export interface ListButtonProps {
   tone?: "outline" | "filled" | "gold";
@@ -22,6 +23,7 @@ export function ListButton({
   const { data: session } = useSession();
   const { language: lang } = useLanguage();
   const isEn = lang === "en";
+  
 
   const [mode, setMode] = useState<"idle" | "asking" | "done">("idle");
   const [email, setEmail] = useState("");
@@ -122,7 +124,7 @@ export function ListButton({
     ? isMember
       ? (isEn ? "You're a member" : "Ya eres socia")
       : (isEn ? "Become a member" : "Hazte socia")
-    : label || (isEn ? "Join the list" : "Unirme a la lista");
+    : label || (tStr("Join the list", lang));
 
   const doneColor = dark ? "#c9a227" : "#3b5e04";
   const doneBg = dark ? "rgba(201,162,39,0.12)" : "rgba(86,139,5,0.08)";

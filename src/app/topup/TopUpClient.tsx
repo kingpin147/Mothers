@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 import { createTopUpCheckoutSession } from "@/app/actions/topup";
 
 const PACKS = [
@@ -78,12 +79,12 @@ export function TopUpClient({
   const handleProceedToCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
-      setMessage({ text: lang === "en" ? "Please log in before buying credits." : "Inicia sesión antes de comprar créditos.", color: "#7b1f2c" });
+      setMessage({ text: lang === "fr" ? "Veuillez vous connecter avant d’acheter des crédits." : lang === "es" ? "Inicia sesión antes de comprar créditos." : "Please log in before buying credits.", color: "#7b1f2c" });
       return;
     }
 
     if (activeAmount < 5) {
-      setMessage({ text: lang === "en" ? "Minimum top-up is 5 credits (€10.00)." : "La recarga mínima es de 5 créditos (€10.00).", color: "#993842" });
+      setMessage({ text: lang === "fr" ? "Le montant minimum de recharge est de 5 crédits (10,00 €)." : lang === "es" ? "La recarga mínima es de 5 créditos (€10.00)." : "Minimum top-up is 5 credits (€10.00).", color: "#993842" });
       return;
     }
 
@@ -141,7 +142,7 @@ export function TopUpClient({
             margin: "0 0 14px",
           }}
         >
-          {lang === "en" ? "Buy credits." : "Comprar créditos."}
+          {tStr("Buy credits.", lang)}
         </h1>
 
         <p style={{ fontSize: "16.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.72)", maxWidth: "58ch", margin: "0 0 8px" }}>
@@ -168,7 +169,7 @@ export function TopUpClient({
           >
             <div>
               <div style={{ fontWeight: 600, color: "#7b1f2c", fontSize: "15px" }}>
-                {lang === "en" ? "Spot held for your booking" : "Plaza reservada para ti"}
+                {lang === "fr" ? "Place réservée pour votre événement" : lang === "es" ? "Plaza reservada para ti" : "Spot held for your booking"}
               </div>
               <div style={{ fontSize: "14px", color: "#39292a", marginTop: "2px" }}>
                 {lang === "en"
@@ -199,7 +200,7 @@ export function TopUpClient({
             {/* Packs Box */}
             <div style={{ border: "1px solid rgba(57, 41, 42, 0.2)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "24px" }}>
               <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", marginBottom: "16px" }}>
-                {lang === "en" ? "Select credit package" : "Selecciona paquete de créditos"}
+                {tStr("How many credits?", lang)}
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 130px), 1fr))", gap: "10px" }}>
@@ -237,7 +238,7 @@ export function TopUpClient({
 
               <label style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "18px" }}>
                 <span style={{ fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(57,41,42,0.72)" }}>
-                  {lang === "en" ? "Or another amount (min 5)" : "O cantidad personalizada (mín 5)"}
+                  {tStr("Or another amount", lang)}
                 </span>
                 <input
                   type="number"
@@ -262,7 +263,7 @@ export function TopUpClient({
             {/* Secure Stripe Checkout Info Box */}
             <div style={{ border: "1px solid rgba(57, 41, 42, 0.2)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "24px" }}>
               <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", marginBottom: "10px" }}>
-                {lang === "en" ? "Secure Checkout" : "Pago Seguro"}
+                {lang === "fr" ? "Paiement sécurisé" : lang === "es" ? "Pago Seguro" : "Secure Checkout"}
               </div>
               <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.75)", margin: 0 }}>
                 {lang === "en"
@@ -287,7 +288,7 @@ export function TopUpClient({
             }}
           >
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", marginBottom: "16px" }}>
-              {lang === "en" ? "Order summary" : "Resumen del pedido"}
+              {tStr("Your order", lang)}
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14.5px", padding: "10px 0", borderTop: "1px solid rgba(57,41,42,0.12)" }}>

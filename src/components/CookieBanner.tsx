@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 
 export interface CookiePreferences {
   essential: boolean;
@@ -174,7 +175,7 @@ export function CookieBanner() {
                 : "Esenciales — inicio de sesión, saldo, reservas"}
             </span>
             <span style={{ color: "rgba(57, 41, 42, 0.55)", fontSize: "13px" }}>
-              {lang === "en" ? "Always on" : "Siempre activo"}
+              {tStr("Always on", lang)}
             </span>
           </div>
 
@@ -203,7 +204,7 @@ export function CookieBanner() {
                 cursor: "pointer",
                 margin: 0,
               }}
-              aria-label={lang === "en" ? "Allow analytics cookies" : "Permitir cookies analíticas"}
+              aria-label={lang === "fr" ? "Autoriser les cookies analytiques" : lang === "es" ? "Permitir cookies analíticas" : "Allow analytics cookies"}
             />
           </div>
         </div>
@@ -237,7 +238,7 @@ export function CookieBanner() {
           onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.9")}
           onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
         >
-          {lang === "en" ? "Accept all" : "Aceptar todo"}
+          {tStr("Accept all", lang)}
         </button>
 
         <button
@@ -262,7 +263,7 @@ export function CookieBanner() {
             ((e.currentTarget as HTMLElement).style.backgroundColor = "#ffffff")
           }
         >
-          {lang === "en" ? "Essential only" : "Solo esenciales"}
+          {tStr("Essential only", lang)}
         </button>
 
         {!expanded ? (
@@ -281,7 +282,7 @@ export function CookieBanner() {
               cursor: "pointer",
             }}
           >
-            {lang === "en" ? "Choose" : "Elegir"}
+            {lang === "fr" ? "Choisir" : lang === "es" ? "Elegir" : "Choose"}
           </button>
         ) : (
           <button
@@ -299,7 +300,7 @@ export function CookieBanner() {
               cursor: "pointer",
             }}
           >
-            {lang === "en" ? "Save my choice" : "Guardar mi elección"}
+            {lang === "fr" ? "Enregistrer mon choix" : lang === "es" ? "Guardar mi elección" : "Save my choice"}
           </button>
         )}
       </div>

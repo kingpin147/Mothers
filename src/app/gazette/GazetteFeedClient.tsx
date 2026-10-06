@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 import {
   PostItem,
   ReplyItem,
@@ -420,7 +421,7 @@ export function GazetteFeedClient({
             margin: "0 0 12px",
           }}
         >
-          {lang === "en" ? "Talk to mothers who get it." : "Habla con madres que te entienden."}
+          {tStr("Talk to mothers who get it.", lang)}
         </h1>
         <p style={{ fontSize: "16.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", maxWidth: "58ch", margin: 0 }}>
           {lang === "en"
@@ -590,7 +591,7 @@ export function GazetteFeedClient({
                         <circle cx="8.5" cy="8.5" r="1.5" />
                         <path d="m21 15-5-5L5 21" />
                       </svg>
-                      <span>{lang === "en" ? "Photo" : "Foto"}</span>
+                      <span>{tStr("Photo", lang)}</span>
                       <input type="file" accept="image/*" multiple onChange={handlePickPhotos} style={{ display: "none" }} />
                     </label>
 
@@ -627,7 +628,7 @@ export function GazetteFeedClient({
                         onChange={(e) => setIsAnon(e.target.checked)}
                         style={{ width: "15px", height: "15px", accentColor: "#7b1f2c" }}
                       />
-                      <span>{lang === "en" ? "Post anonymously" : "Publicar anónimo"}</span>
+                      <span>{tStr("Post anonymously", lang)}</span>
                     </label>
 
                     <button
@@ -759,7 +760,7 @@ export function GazetteFeedClient({
                   textDecoration: "underline",
                 }}
               >
-                {lang === "en" ? "Clear" : "Borrar"}
+                {tStr("Clear", lang)}
               </button>
             </div>
           )}
@@ -1109,7 +1110,7 @@ export function GazetteFeedClient({
                             type="text"
                             value={replyDrafts[post.id] || ""}
                             onChange={(e) => setReplyDrafts({ ...replyDrafts, [post.id]: e.target.value })}
-                            placeholder={lang === "en" ? "Say something kind or useful…" : "Di algo amable o constructivo…"}
+                            placeholder={tStr("Say something kind or useful…", lang)}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") handleSendReply(post.id);
                             }}
@@ -1157,7 +1158,7 @@ export function GazetteFeedClient({
           {/* Talked About This Week Module (Image 1) */}
           <div style={{ border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px", boxShadow: "0 2px 8px rgba(57, 41, 42, 0.04)" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "20px", marginBottom: "14px", color: "#39292a" }}>
-              {lang === "en" ? "Talked about this week" : "De lo que se habla esta semana"}
+              {tStr("Talked about this week", lang)}
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Locale } from "@/lib/i18n";
+import { tStr } from "@/lib/i18nEngine";
 import { normalizeCategoryId } from "@/lib/journalCategories";
 
 /* ─── Article Data Model ──────────────────────────────────── */
@@ -144,6 +145,16 @@ const CATS_EN: Record<string, string> = {
   work: "Work",
 };
 
+const CATS_FR: Record<string, string> = {
+  all: "Tout",
+  pregnancy: "Grossesse et naissance",
+  postpartum: "Post-partum",
+  sleep: "Sommeil",
+  feeding: "Allaitement",
+  friendship: "Amitié",
+  work: "Travail",
+};
+
 const CATS_ES: Record<string, string> = {
   all: "Todo",
   postpartum: "Posparto",
@@ -211,7 +222,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
             marginBottom: "12px",
           }}
         >
-          {lang === "en" ? "The Journal" : "El Diario"}
+          {tStr("The Journal", lang)}
         </div>
         <h1
           style={{
@@ -223,9 +234,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
             textWrap: "pretty",
           }}
         >
-          {lang === "en"
-            ? "What mothers are talking about."
-            : "De qué están hablando las madres."}
+          {tStr("What mothers are talking about.", lang)}
         </h1>
         <p
           style={{
@@ -236,9 +245,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
             margin: 0,
           }}
         >
-          {lang === "en"
-            ? "Articles on motherhood and everything around it — from pregnancy and the early weeks to sleep, work, friendship and finding yourself again."
-            : "Artículos sobre la maternidad y todo lo que la rodea — desde el embarazo y las primeras semanas hasta el sueño, el trabajo, las amistades y reencontrarse."}
+          {tStr("Articles on motherhood and everything around it — from pregnancy and the early weeks to sleep, work, friendship and finding yourself again.", lang)}
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "26px" }}>
           {CAT_ORDER.map((k) => {
@@ -260,7 +267,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                   transition: "all 0.15s ease",
                 }}
               >
-                {lang === "en" ? CATS_EN[k] : CATS_ES[k]}
+                lang === "fr" ? (CATS_FR[k] || CATS_EN[k]) : lang === "es" ? CATS_ES[k] : CATS_EN[k]
               </button>
             );
           })}

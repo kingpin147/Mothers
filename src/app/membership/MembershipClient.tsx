@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 import { useSession } from "next-auth/react";
 import { ListButton } from "@/components/ListButton";
 
@@ -60,11 +61,11 @@ export default function MembershipClient({
 
   const launchDate = new Date(targetDateMs);
   const launchFormatted = !isNaN(launchDate.getTime())
-    ? launchDate.toLocaleDateString(isEn ? "en-GB" : "es-ES", {
+    ? launchDate.toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", {
         month: "long",
         year: "numeric",
       })
-    : (isEn ? "January 2027" : "enero 2027");
+    : (lang === "fr" ? "janvier 2027" : lang === "es" ? "enero 2027" : "January 2027");
 
   useEffect(() => {
     setMounted(true);
@@ -136,10 +137,10 @@ export default function MembershipClient({
   };
 
   const countdownItems = [
-    { label: isEn ? "DAYS" : "DÍAS", value: String(timeLeft.days).padStart(2, "0") },
-    { label: isEn ? "HOURS" : "HORAS", value: String(timeLeft.hours).padStart(2, "0") },
-    { label: isEn ? "MINS" : "MINS", value: String(timeLeft.minutes).padStart(2, "0") },
-    { label: isEn ? "SECS" : "SEGS", value: String(timeLeft.seconds).padStart(2, "0") },
+    { label: lang === "fr" ? "JOURS" : lang === "es" ? "DÍAS" : "DAYS", value: String(timeLeft.days).padStart(2, "0") },
+    { label: lang === "fr" ? "HEURES" : lang === "es" ? "HORAS" : "HOURS", value: String(timeLeft.hours).padStart(2, "0") },
+    { label: lang === "fr" ? "MINS" : lang === "es" ? "MINS" : "MINS", value: String(timeLeft.minutes).padStart(2, "0") },
+    { label: lang === "fr" ? "SECS" : lang === "es" ? "SEGS" : "SECS", value: String(timeLeft.seconds).padStart(2, "0") },
   ];
 
   const col1Items = isEn
@@ -296,7 +297,7 @@ export default function MembershipClient({
               wordBreak: "break-word",
             }}
           >
-            {isEn ? "Your circle of mothers, all year round." : "Tu círculo de madres, todo el año."}
+            {tStr("Your circle of mothers, all year round.", lang)}
           </h1>
 
           <p
@@ -373,7 +374,7 @@ export default function MembershipClient({
                 textDecoration: "none",
               }}
             >
-              {isEn ? "Or come to an event first" : "O ven a un evento primero"}
+              {tStr("Or come to an event first", lang)}
             </Link>
           </div>
         </div>
@@ -412,7 +413,7 @@ export default function MembershipClient({
               wordBreak: "break-word",
             }}
           >
-            {isEn ? "NO JOINING FEE IF YOU JOIN US BEFORE LAUNCH" : "SIN CUOTA DE ALTA SI TE UNES ANTES DEL LANZAMIENTO"}
+            {tStr("No joining fee if you join us before launch", lang).toUpperCase()}
           </div>
 
           {/* Pricing Row */}
@@ -431,7 +432,7 @@ export default function MembershipClient({
                 €39
               </span>
               <span style={{ fontSize: "14px", color: "rgba(248,239,226,0.85)" }}>
-                {isEn ? "/ month · or €99 every three months" : "/ mes · o 99€ cada tres meses"}
+                {lang === "fr" ? "/ mois · ou 99 € tous les trois mois" : lang === "es" ? "/ mes · o 99€ cada tres meses" : "/ month · or €99 every three months"}
               </span>
             </div>
           </div>
@@ -459,7 +460,7 @@ export default function MembershipClient({
               marginBottom: "12px",
             }}
           >
-            {isEn ? "WHAT YOUR MEMBERSHIP INCLUDES" : "QUÉ INCLUYE TU MEMBRESÍA"}
+            {tStr("What your membership includes", lang).toUpperCase()}
           </div>
 
           <div
@@ -535,10 +536,10 @@ export default function MembershipClient({
           <div style={{ display: "flex", flexWrap: "wrap", gap: "14px 24px", alignItems: "flex-end", justifyContent: "space-between" }}>
             <div>
               <div style={{ fontSize: "11.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "8px" }}>
-                {isEn ? "Before January" : "Antes de enero"}
+                {tStr("Before January", lang)}
               </div>
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px, 3.2vw, 36px)", lineHeight: 1.12, margin: 0 }}>
-                {isEn ? "Start meeting mothers now." : "Empieza a conocer madres ahora."}
+                {tStr("Start meeting mothers now.", lang)}
               </h2>
             </div>
           </div>
@@ -554,10 +555,10 @@ export default function MembershipClient({
               </span>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", lineHeight: 1.25, color: "#39292a" }}>
-                  {isEn ? "Book an event" : "Reserva un evento"}
+                  {tStr("Book an event", lang)}
                 </div>
                 <div style={{ fontSize: "13px", lineHeight: 1.45, color: "rgba(57, 41, 42, 0.72)" }}>
-                  {isEn ? "Your account is created with it" : "Tu cuenta se crea con la reserva"}
+                  {tStr("Your account is created with it", lang)}
                 </div>
               </div>
             </div>
@@ -571,10 +572,10 @@ export default function MembershipClient({
               </span>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", lineHeight: 1.25, color: "#39292a" }}>
-                  {isEn ? "Add the credits you need" : "Añade los créditos necesarios"}
+                  {tStr("Add the credits you need", lang)}
                 </div>
                 <div style={{ fontSize: "13px", lineHeight: 1.45, color: "rgba(57, 41, 42, 0.72)" }}>
-                  {isEn ? "Each event shows its credit price" : "Cada evento indica su precio"}
+                  {tStr("Each event shows its credit price", lang)}
                 </div>
               </div>
             </div>
@@ -589,10 +590,10 @@ export default function MembershipClient({
               </span>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", lineHeight: 1.25, color: "#39292a" }}>
-                  {isEn ? "Keep them into membership" : "Manténlos en tu membresía"}
+                  {tStr("Keep them into membership", lang)}
                 </div>
                 <div style={{ fontSize: "13px", lineHeight: 1.45, color: "rgba(57, 41, 42, 0.72)" }}>
-                  {isEn ? "Credits last six months" : "Validez de seis meses"}
+                  {tStr("Credits last six months", lang)}
                 </div>
               </div>
             </div>
@@ -621,7 +622,7 @@ export default function MembershipClient({
               marginBottom: "10px",
             }}
           >
-            {isEn ? "What's included" : "Qué está incluido"}
+            {tStr("What's included", lang)}
           </div>
           <h2
             style={{
@@ -632,7 +633,7 @@ export default function MembershipClient({
               margin: "0 0 12px",
             }}
           >
-            {isEn ? "Five ways to connect." : "Cinco formas de conectar."}
+            {tStr("Five ways to connect.", lang)}
           </h2>
           <p style={{ fontSize: "16px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.7)", margin: 0 }}>
             {isEn
@@ -792,7 +793,7 @@ export default function MembershipClient({
                 marginBottom: "10px",
               }}
             >
-              {isEn ? "La Gazette - Forum" : "La Gazette — Foro"}
+              {tStr("La Gazette - Forum", lang)}
             </div>
             <h2
               style={{
@@ -803,7 +804,7 @@ export default function MembershipClient({
                 margin: "0 0 14px",
               }}
             >
-              {isEn ? "Between events, the conversation keeps going." : "Entre eventos, la conversación sigue viva."}
+              {tStr("Between events, the conversation keeps going.", lang)}
             </h2>
             <p
               style={{
@@ -838,7 +839,7 @@ export default function MembershipClient({
                   textDecoration: "none",
                 }}
               >
-                {isEn ? "Visit La Gazette" : "Visitar La Gazette"}
+                {tStr("Visit La Gazette", lang)}
               </Link>
             </div>
           </div>
@@ -880,10 +881,10 @@ export default function MembershipClient({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline", marginBottom: "5px" }}>
                   <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15.5px" }}>
-                    {isEn ? "A mother in Gràcia" : "Una madre en Gràcia"}
+                    {tStr("A mother in Gràcia", lang)}
                   </span>
                   <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.66)" }}>
-                    {isEn ? "Postpartum" : "Posparto"}
+                    {tStr("Postpartum", lang)}
                   </span>
                 </div>
                 <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
@@ -905,7 +906,7 @@ export default function MembershipClient({
                   >
                     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
                   </svg>
-                  <span>34 · 2 {isEn ? "replies" : "respuestas"}</span>
+                  <span>34 · 2 {lang === "fr" ? "réponses" : lang === "es" ? "respuestas" : "replies"}</span>
                 </div>
               </div>
             </div>
@@ -948,7 +949,7 @@ export default function MembershipClient({
                     Núria B.
                   </span>
                   <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.66)" }}>
-                    {isEn ? "replied" : "respondió"}
+                    {tStr("replied", lang)}
                   </span>
                 </div>
                 <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
@@ -1043,7 +1044,7 @@ export default function MembershipClient({
                     margin: "0 0 8px",
                   }}
                 >
-                  {isEn ? "You're on the list." : "Estás en la lista."}
+                  {tStr("You are on the list.", lang)}
                 </h3>
                 <p style={{ fontSize: "14.5px", color: "rgba(57, 41, 42, 0.75)", margin: 0 }}>
                   {isEn
@@ -1077,7 +1078,7 @@ export default function MembershipClient({
                     lineHeight: 1.15,
                   }}
                 >
-                  {isEn ? "Join the pre-membership list" : "Únete a la lista preferente"}
+                  {lang === "fr" ? "Rejoindre la liste prioritaire" : lang === "es" ? "Únete a la lista preferente" : "Join the pre-membership list"}
                 </h3>
                 <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 20px" }}>
                   {isEn
@@ -1098,7 +1099,7 @@ export default function MembershipClient({
                       e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
                       e.currentTarget.style.boxShadow = "none";
                     }}
-                    placeholder={isEn ? "Your name (optional)" : "Tu nombre (opcional)"}
+                    placeholder={lang === "fr" ? "Votre nom (facultatif)" : lang === "es" ? "Tu nombre (opcional)" : "Your name (optional)"}
                     style={{
                       border: "1px solid rgba(57, 41, 42, 0.24)",
                       borderRadius: "4px",
@@ -1124,7 +1125,7 @@ export default function MembershipClient({
                       e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
                       e.currentTarget.style.boxShadow = "none";
                     }}
-                    placeholder={isEn ? "Your email address" : "Tu dirección de correo"}
+                    placeholder={tStr("Your email address", lang)}
                     style={{
                       border: "1px solid rgba(57, 41, 42, 0.24)",
                       borderRadius: "4px",
@@ -1161,7 +1162,7 @@ export default function MembershipClient({
                       transition: "background-color 0.2s ease",
                     }}
                   >
-                    {loading ? (isEn ? "Saving..." : "Guardando...") : (isEn ? "Join the list" : "Unirme a la lista")}
+                    {loading ? tStr("Saving...", lang) : tStr("Join the list", lang)}
                   </button>
                 </form>
               </div>

@@ -2,17 +2,16 @@
 
 import React from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 
 export default function TermsPage() {
   const { language: lang } = useLanguage();
   const isEn = lang === "en";
 
   const termsData = {
-    title: isEn ? "Terms & Conditions" : "Términos y Condiciones",
-    meta: isEn ? "Last updated 27 September 2026 · Barcelona, Spain" : "Última actualización: 27 de septiembre de 2026 · Barcelona, España",
-    intro: isEn
-      ? "These Terms govern your use of themothers.cc and of the account, credit wallet and events offered on it. The Mothers is a club for mothers in Barcelona. Membership is not yet on sale; until it opens the calendar is open to every mother on the terms below. By opening an account or booking a place you agree to be bound by these Terms."
-      : "Estos Términos regulan el uso de themothers.cc, así como de la cuenta, monedero de créditos y eventos ofrecidos en la web. The Mothers es un club para madres en Barcelona. La membresía aún no está a la venta; hasta su apertura el calendario está abierto a todas las madres según los términos que figuran a continuación. Al crear una cuenta o reservar una plaza, aceptas quedar vinculada por estos Términos.",
+    title: tStr("Terms & Conditions", lang),
+    meta: lang === "fr" ? "Dernière mise à jour le 27 septembre 2026 · Barcelone, Espagne" : lang === "es" ? "Última actualización: 27 de septiembre de 2026 · Barcelona, España" : "Last updated 27 September 2026 · Barcelona, Spain",
+    intro: tStr("These Terms govern your use of themothers.cc and of the account, credit wallet and events offered on it. The Mothers is a club for mothers in Barcelona. Membership is not yet on sale; until it opens the calendar is open to every mother on the terms below. By opening an account or booking a place you agree to be bound by these Terms.", lang),
     sections: isEn
       ? [
           {
@@ -278,7 +277,7 @@ export default function TermsPage() {
             margin: "20px 0 0",
           }}
         >
-          {isEn ? "Questions? Write to " : "¿Dudas? Escríbenos a "}
+          {lang === "fr" ? "Des questions ? Écrivez à " : lang === "es" ? "¿Dudas? Escríbenos a " : "Questions? Write to "}
           <a href="mailto:hello@themothers.cc" style={{ color: "#7b1f2c", textDecoration: "none" }}>
             hello@themothers.cc
           </a>

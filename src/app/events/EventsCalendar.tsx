@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession, signIn } from "next-auth/react";
 import { buyExtraCredits, bookEvent, joinEventWaitlist, checkBookingEmailStatus, BookingEmailCheckResult } from "@/app/actions/booking";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 import { ForwardArrow } from "@/components/Icons";
 import CountryPhoneInput from "@/components/CountryPhoneInput";
 
@@ -1347,7 +1348,7 @@ function EventCard({
                 fontWeight: 500,
               }}
             >
-              {lang === "en" ? "Members only" : "Solo socias"}
+              {tStr("Members only", lang)}
             </span>
           )}
         </div>
@@ -1511,7 +1512,7 @@ function EventCard({
         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "#7b1f2c")}
       >
         <span style={{ textDecoration: "underline", textUnderlineOffset: "3px" }}>
-          {lang === "en" ? "Details" : "Detalles"}
+          {tStr("Details", lang)}
         </span>
         <span style={{ fontSize: "9px", textDecoration: "none" }}>▼</span>
       </Link>
@@ -1620,7 +1621,7 @@ function EventCard({
                 whiteSpace: "nowrap",
               }}
             >
-              {lang === "en" ? "Passed" : "Pasado"}
+              {tStr("Passed", lang)}
             </button>
           ) : isCancelled ? null : ev.userStatus?.isBooked ? (
             <span
@@ -1883,7 +1884,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
 
   // Category options
   const catOpts = [
-    { key: "all", label: lang === "en" ? "All types" : "Todos los tipos" },
+    { key: "all", label: lang === "fr" ? "Tous les types" : lang === "es" ? "Todos los tipos" : "All types" },
     { key: "easy", label: "Easy connection" },
     { key: "baby", label: "Play date" },
     { key: "evenings", label: "MoM's date" },
@@ -1917,7 +1918,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const nextMonthNameEs = nextMonthDate.toLocaleString("es-ES", { month: "long" });
 
   const monthOpts = [
-    { key: "all", label: lang === "en" ? "All dates" : "Todas las fechas" },
+    { key: "all", label: lang === "fr" ? "Toutes les dates" : lang === "es" ? "Todas las fechas" : "All dates" },
     { key: "this_month", label: lang === "en" ? `This month · ${currentMonthNameEn}` : `Este mes · ${currentMonthNameEs}` },
     { key: "next_month", label: lang === "en" ? `Next month · ${nextMonthNameEn}` : `Próximo mes · ${nextMonthNameEs}` },
   ];
@@ -2067,7 +2068,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
       {/* ─── HERO HEADER ─── */}
       <section style={{ maxWidth: "800px", margin: "0 auto", padding: "clamp(40px, 6vw, 76px) clamp(20px, 5vw, 64px) clamp(20px, 3vw, 30px)", textAlign: "center" }}>
         <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "14px" }}>
-          {lang === "en" ? "CALENDAR" : "CALENDARIO"}
+          {tStr("Calendar", lang).toUpperCase()}
         </div>
         <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(32px, 4.6vw, 54px)", lineHeight: 1.08, margin: "0 0 16px", textWrap: "pretty" }}>
           {lang === "en" ? "Where mothers meet and friendships start." : "Donde las madres se encuentran y empiezan las amistades."}
@@ -2120,7 +2121,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   marginBottom: "2px",
                 }}
               >
-                {lang === "en" ? "What" : "Qué"}
+                {tStr("What", lang)}
               </span>
               <div
                 style={{
@@ -2243,7 +2244,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   marginBottom: "2px",
                 }}
               >
-                {lang === "en" ? "When" : "Cuándo"}
+                {tStr("When", lang)}
               </span>
               <div
                 style={{
@@ -2366,7 +2367,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   marginBottom: "2px",
                 }}
               >
-                {lang === "en" ? "Your stage" : "Tu etapa"}
+                {tStr("Your stage", lang)}
               </span>
               <div
                 style={{
@@ -2489,7 +2490,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   marginBottom: "2px",
                 }}
               >
-                {lang === "en" ? "Who comes" : "Quién viene"}
+                {tStr("Who comes", lang)}
               </span>
               <div
                 style={{
@@ -2614,7 +2615,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   marginBottom: "2px",
                 }}
               >
-                {lang === "en" ? "Status" : "Estado"}
+                {tStr("Status", lang)}
               </span>
               <div
                 style={{
@@ -2757,7 +2758,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   }}
                 />
               </span>
-              {lang === "en" ? "Free events only" : "Solo eventos gratuitos"}
+              {tStr("Free events only", lang)}
             </button>
 
             {hasActiveFilters && (
@@ -2776,7 +2777,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   cursor: "pointer",
                 }}
               >
-                {lang === "en" ? "Clear all" : "Borrar filtros"}
+                {tStr("Clear all", lang)}
               </button>
             )}
           </div>
@@ -2830,7 +2831,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   fontWeight: 600,
                 }}
               >
-                {lang === "en" ? "Show all events" : "Ver todos los eventos"}
+                {lang === "fr" ? "Voir tous les événements" : lang === "es" ? "Ver todos los eventos" : "Show all events"}
               </button>
             )}
           </div>
@@ -2981,7 +2982,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                   cursor: "pointer",
                 }}
               >
-                {lang === "en" ? "Close" : "Cerrar"}
+                {tStr("Close", lang)}
               </button>
             </div>
           </div>

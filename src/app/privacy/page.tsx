@@ -2,14 +2,15 @@
 
 import React from "react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 
 export default function PrivacyPage() {
   const { language: lang } = useLanguage();
   const isEn = lang === "en";
 
   const privacyData = {
-    title: isEn ? "Privacy Policy" : "Política de Privacidad",
-    meta: isEn ? "Last updated 27 September 2026 · Barcelona, Spain" : "Última actualización: 27 de septiembre de 2026 · Barcelona, España",
+    title: tStr("Privacy Policy", lang),
+    meta: lang === "fr" ? "Dernière mise à jour le 27 septembre 2026 · Barcelone, Espagne" : lang === "es" ? "Última actualización: 27 de septiembre de 2026 · Barcelona, España" : "Last updated 27 September 2026 · Barcelona, Spain",
     intro: isEn
       ? "This Privacy Policy explains how The Mothers collects, uses and protects your personal data when you open an account, book an event, buy credits or use themothers.cc. The Mothers is the data controller for the personal data described here, and can be reached at hello@themothers.cc for any privacy question."
       : "Esta Política de Privacidad explica cómo The Mothers recopila, utiliza y protege tus datos personales al crear una cuenta, reservar eventos, comprar créditos o utilizar themothers.cc. The Mothers es el responsable del tratamiento de los datos personales y está disponible en hello@themothers.cc para cualquier duda.",

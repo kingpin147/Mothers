@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import { joinWaitlist } from "@/app/actions/waitlist";
+import { Locale } from "@/lib/i18n";
+import { tStr } from "@/lib/i18nEngine";
 
-export function WaitlistForm({ lang }: { lang: "en" | "es" }) {
+export function WaitlistForm({ lang }: { lang: Locale }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export function WaitlistForm({ lang }: { lang: "en" | "es" }) {
   return (
     <div style={{ backgroundColor: "rgba(255,255,255,0.5)", padding: "24px", borderRadius: "8px", border: "1px solid var(--color-divider)" }}>
       <h4 style={{ margin: "0 0 16px", fontSize: "16px", fontFamily: "var(--font-heading)" }}>
-        {lang === "en" ? "Join the Waitlist" : "Únete a la Lista de Espera"}
+        {lang === "fr" ? "Rejoindre la liste d'attente" : lang === "es" ? "Únete a la Lista de Espera" : "Join the Waitlist"}
       </h4>
       {error && (
         <div style={{ color: "var(--color-accent)", fontSize: "13px", marginBottom: "12px" }}>
@@ -62,14 +64,14 @@ export function WaitlistForm({ lang }: { lang: "en" | "es" }) {
           <input 
             type="text" 
             name="firstName" 
-            placeholder={lang === "en" ? "First Name" : "Nombre"} 
+            placeholder={tStr("First name", lang)} 
             className="input" 
             required 
           />
           <input 
             type="text" 
             name="lastName" 
-            placeholder={lang === "en" ? "Last Name" : "Apellidos"} 
+            placeholder={tStr("Last name", lang)} 
             className="input" 
             required 
           />
@@ -77,7 +79,7 @@ export function WaitlistForm({ lang }: { lang: "en" | "es" }) {
         <input 
           type="email" 
           name="email" 
-          placeholder={lang === "en" ? "Email Address" : "Correo electrónico"} 
+          placeholder={tStr("Your email", lang)} 
           className="input" 
           required 
         />

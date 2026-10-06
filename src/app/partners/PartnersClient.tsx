@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Locale } from "@/lib/i18n";
+import { tStr } from "@/lib/i18nEngine";
 import { submitPartnerApplication } from "@/app/actions/publicWindow";
 
 const UMBRELLAS = [
@@ -78,7 +79,7 @@ export default function PartnersClient({ initialPartners }: { initialPartners: a
     if (res.success) {
       setSubmitted(true);
     } else {
-      setFormError(res.error || (lang === "es" ? "Algo falló. Por favor inténtalo de nuevo." : "Something went wrong. Please try again."));
+      setFormError(res.error || (lang === "fr" ? "Une erreur est survenue. Veuillez réessayer." : lang === "es" ? "Algo falló. Por favor inténtalo de nuevo." : "Something went wrong. Please try again."));
     }
   };
 
@@ -121,7 +122,7 @@ export default function PartnersClient({ initialPartners }: { initialPartners: a
               marginBottom: "14px",
             }}
           >
-            {lang === "en" ? "Our Partners" : "Nuestros Partners"}
+            {tStr("Our partners", lang)}
           </div>
           <h1
             style={{
@@ -163,14 +164,14 @@ export default function PartnersClient({ initialPartners }: { initialPartners: a
                   whiteSpace: "nowrap",
                 }}
               >
-                {lang === "en" ? u.labelEn : u.labelEs}
+                {tStr(u.labelEn, lang)}
               </button>
             );
           })}
         </div>
 
         <p style={{ textAlign: "center", fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.6)", margin: "0 auto clamp(32px, 4vw, 48px) auto", maxWidth: "600px" }}>
-          {lang === "en" ? activeObj.noteEn : activeObj.noteEs}
+          {tStr(activeObj.noteEn, lang)}
         </p>
 
         {/* Partners Grid */}
@@ -220,7 +221,7 @@ export default function PartnersClient({ initialPartners }: { initialPartners: a
 
                 <div style={{ borderTop: "1px solid rgba(86, 139, 5, 0.25)", paddingTop: "10px" }}>
                   <span style={{ fontSize: "10.5px", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent-2)", fontWeight: 600 }}>
-                    {lang === "en" ? "Member benefit" : "Beneficio para socias"}
+                    {lang === "fr" ? "Avantage membre" : lang === "es" ? "Beneficio para socias" : "Member benefit"}
                   </span>
                   <p style={{ fontSize: "13.5px", lineHeight: "1.5", color: "var(--color-text)", margin: "4px 0 0", fontWeight: 600 }}>
                     {partner.offerForMembers}

@@ -2,11 +2,12 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Locale, DICTIONARIES } from "@/lib/i18n";
+import { applyTranslations, initI18nObserver, tStr } from "@/lib/i18nEngine";
 
 type LanguageContextType = {
   language: Locale;
   setLanguage: (lang: Locale) => void;
-  t: (keyPath: string) => any;
+  t: (keyPathOrText: string) => any;
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -18,37 +19,43 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const saved =
       (localStorage.getItem("site_language") as Locale) ||
       (localStorage.getItem("tm_lang") as Locale);
-    if (saved === "en" || saved === "es" || saved === "fr") {
-      setLanguageState(saved);
-    }
+    const initialLang: Locale = saved === "en" || saved === "es" || saved === "fr" ? saved : "en";
+    setLanguageState(initialLang);
+
+    // Initialize the client DOM translation observer for dynamic elements
+    initI18nObserver();
+    applyTranslations(undefined, initialLang);
   }, []);
 
   const setLanguage = (lang: Locale) => {
     setLanguageState(lang);
     localStorage.setItem("site_language", lang);
     localStorage.setItem("tm_lang", lang);
+    applyTranslations(undefined, lang);
     window.dispatchEvent(new CustomEvent("tm_lang_change", { detail: lang }));
   };
 
-  const t = (keyPath: string) => {
-    const keys = keyPath.split(".");
-    let current: any = DICTIONARIES[language] || DICTIONARIES.en;
-    for (const key of keys) {
-      if (current[key] === undefined) {
-        let fallback: any = DICTIONARIES.en;
-        for (const fbKey of keys) {
-          if (fallback && fallback[fbKey] !== undefined) {
-            fallback = fallback[fbKey];
-          } else {
-            console.warn(`Missing translation key: ${keyPath} for lang: ${language}`);
-            return keyPath;
-          }
+  const t = (keyPathOrText: string) => {
+    if (!keyPathOrText) return "";
+    
+    // Check nested key in DICTIONARIES first (e.g. "hero.title" or "nav.home")
+    if (keyPathOrText.includes(".")) {
+      const keys = keyPathOrText.split(".");
+      let current: any = DICTIONARIES[language] || DICTIONARIES.en;
+      let found = true;
+      for (const key of keys) {
+        if (current && current[key] !== undefined) {
+          current = current[key];
+        } else {
+          found = false;
+          break;
         }
-        return fallback;
       }
-      current = current[key];
+      if (found && current !== undefined) return current;
     }
-    return current;
+
+    // Direct dictionary lookup via i18nEngine
+    return tStr(keyPathOrText, language);
   };
 
   return (
@@ -65,3 +72,4 @@ export function useLanguage() {
   }
   return context;
 }
+

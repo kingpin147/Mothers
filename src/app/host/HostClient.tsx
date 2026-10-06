@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
+import { tStr } from "@/lib/i18nEngine";
 import { applyToHostEvent, withdrawHostRequest } from "@/app/actions/host";
 
 interface EventNeedingHost {
@@ -72,7 +73,7 @@ export function HostClient({
   };
 
   const handleWithdrawRequest = async (requestId: string, eventId: string) => {
-    if (!confirm(isEn ? "Withdraw your host request?" : "¿Retirar tu solicitud de anfitriona?")) return;
+    if (!confirm(lang === "fr" ? "Retirer votre demande d’hôtesse ?" : lang === "es" ? "¿Retirar tu solicitud de anfitriona?" : "Withdraw your host request?")) return;
     setLoadingEventId(eventId);
     setErrorMsg("");
     setSuccessMsg("");
@@ -80,7 +81,7 @@ export function HostClient({
     try {
       const res = await withdrawHostRequest(requestId);
       if (res.success) {
-        setSuccessMsg(isEn ? "Host request withdrawn." : "Solicitud de anfitriona retirada.");
+        setSuccessMsg(lang === "fr" ? "Demande d’hôtesse retirée." : lang === "es" ? "Solicitud de anfitriona retirada." : "Host request withdrawn.");
         setLocalHostRequests((prev) => prev.filter((r) => r.id !== requestId && r.eventId !== eventId));
       } else {
         setErrorMsg(res.error || "Failed to withdraw request.");
@@ -169,7 +170,7 @@ export function HostClient({
             <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" style={{ flex: "none" }}>
               <path d="m12 2 2.9 6.3 6.6.8-4.9 4.5 1.3 6.6L12 17l-5.9 3.2 1.3-6.6L2.5 9.1l6.6-.8Z" />
             </svg>
-            {isEn ? "Become a host" : "Sé anfitriona"}
+            {tStr("Become a host", lang)}
           </div>
 
           <h1
@@ -181,7 +182,7 @@ export function HostClient({
               margin: "0 0 18px",
             }}
           >
-            {isEn ? "Be the first friendly face." : "Sé la primera cara amiga."}
+            {tStr("Be the first friendly face.", lang)}
           </h1>
 
           <p style={{ fontSize: "17px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.76)", margin: "0 0 22px", maxWidth: "46ch" }}>
@@ -213,7 +214,7 @@ export function HostClient({
                 transition: "all 0.15s ease",
               }}
             >
-              {isEn ? "Pick an event to host" : "Elige un evento para ser anfitriona"}
+              {tStr("Pick an event to host", lang)}
             </a>
           </div>
         </div>
@@ -251,10 +252,10 @@ export function HostClient({
             marginBottom: "10px",
           }}
         >
-          {isEn ? "How it works" : "Cómo funciona"}
+          {tStr("How it works", lang)}
         </div>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px, 3.4vw, 40px)", lineHeight: 1.12, margin: "0 0 26px" }}>
-          {isEn ? "Three simple steps." : "Tres pasos sencillos."}
+          {tStr("Three simple steps.", lang)}
         </h2>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "18px" }}>
@@ -263,7 +264,7 @@ export function HostClient({
               01
             </div>
             <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", margin: "0 0 6px" }}>
-              {isEn ? "Pick an event" : "Elige un evento"}
+              {tStr("Pick an event", lang)}
             </h3>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
               {isEn
@@ -277,7 +278,7 @@ export function HostClient({
               02
             </div>
             <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", margin: "0 0 6px" }}>
-              {isEn ? "Arrive 10 minutes early" : "Llega 10 minutos antes"}
+              {tStr("Arrive 10 minutes early", lang)}
             </h3>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
               {isEn
@@ -291,7 +292,7 @@ export function HostClient({
               03
             </div>
             <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", margin: "0 0 6px" }}>
-              {isEn ? "Welcome & introduce" : "Presenta y dinamiza"}
+              {tStr("Welcome & introduce", lang)}
             </h3>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
               {isEn
@@ -323,10 +324,10 @@ export function HostClient({
             marginBottom: "10px",
           }}
         >
-          {isEn ? "Conditions" : "Condiciones"}
+          {tStr("Conditions", lang)}
         </div>
         <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px, 3.4vw, 40px)", lineHeight: 1.12, margin: "0 0 26px" }}>
-          {isEn ? "Simple, and fair." : "Sencillas y transparentes."}
+          {tStr("Simple, and fair.", lang)}
         </h2>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "20px", alignItems: "stretch" }}>
@@ -366,7 +367,7 @@ export function HostClient({
       >
         <div style={{ flex: "1 1 300px", minWidth: "260px" }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px, 3.4vw, 40px)", lineHeight: 1.12, margin: "0 0 14px" }}>
-            {isEn ? "Pick an event to host." : "Elige un encuentro para ser anfitriona."}
+            {tStr("Pick an event to host.", lang)}
           </h2>
           <p style={{ fontSize: "15.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 18px", maxWidth: "44ch" }}>
             {isEn
@@ -402,7 +403,7 @@ export function HostClient({
                 marginBottom: "6px",
               }}
             >
-              {isEn ? "Your eligibility" : "Tu estado para ser anfitriona"}
+              {tStr("Your eligibility", lang)}
             </div>
             {!currentUser ? (
               <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
@@ -446,7 +447,7 @@ export function HostClient({
         {/* Right side: Event List */}
         <div style={{ flex: "1 1 400px", minWidth: "280px", border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "clamp(22px, 3vw, 30px)" }}>
           <div style={{ fontSize: "12.5px", letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "14px" }}>
-            {isEn ? "Coming up — needs a host" : "Próximos eventos — necesitan anfitriona"}
+            {tStr("Coming up — needs a host", lang)}
           </div>
 
           {successMsg && (
@@ -463,7 +464,7 @@ export function HostClient({
 
           {eventsNeedingHost.length === 0 ? (
             <p style={{ fontSize: "14.5px", color: "rgba(57, 41, 42, 0.7)", margin: "14px 0" }}>
-              {isEn ? "All upcoming events currently have a host confirmed. Check back soon!" : "Todos los próximos eventos ya cuentan con anfitriona confirmada. ¡Vuelve a consultar pronto!"}
+              {lang === "fr" ? "Tous les prochains événements ont déjà une hôtesse confirmée. Revenez bientôt !" : lang === "es" ? "Todos los próximos eventos ya cuentan con anfitriona confirmada. ¡Vuelve a consultar pronto!" : "All upcoming events currently have a host confirmed. Check back soon!"}
             </p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
@@ -471,7 +472,7 @@ export function HostClient({
                 const isBooked = userBookings.includes(ev.id);
                 const hostReq = localHostRequests.find((r) => r.eventId === ev.id);
                 const starts = new Date(ev.startsAt);
-                const dateFormatted = starts.toLocaleDateString(isEn ? "en-GB" : "es-ES", {
+                const dateFormatted = starts.toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", {
                   weekday: "short",
                   day: "numeric",
                   month: "short",
@@ -529,14 +530,14 @@ export function HostClient({
                             textDecoration: "none",
                           }}
                         >
-                          {isEn ? "View event details" : "Ver detalles"}
+                          {tStr("Details", lang)}
                         </Link>
                       ) : hostReq ? (
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <span style={{ fontSize: "12.5px", color: hostReq.status === "accepted" ? "#3b5e04" : "rgba(57, 41, 42, 0.72)" }}>
                             {hostReq.status === "accepted"
-                              ? (isEn ? "Host confirmed" : "Anfitriona confirmada")
-                              : (isEn ? "Request pending" : "Solicitud en revisión")}
+                              ? (lang === "fr" ? "Hôtesse confirmée" : lang === "es" ? "Anfitriona confirmada" : "Host confirmed")
+                              : (lang === "fr" ? "Demande en attente" : lang === "es" ? "Solicitud en revisión" : "Request pending")}
                           </span>
                           {hostReq.status === "pending" && (
                             <button
@@ -552,7 +553,7 @@ export function HostClient({
                                 cursor: "pointer",
                               }}
                             >
-                              {isEn ? "Withdraw" : "Retirar"}
+                              {lang === "fr" ? "Retirer" : lang === "es" ? "Retirar" : "Withdraw"}
                             </button>
                           )}
                         </div>
@@ -571,7 +572,7 @@ export function HostClient({
                             textDecoration: "none",
                           }}
                         >
-                          {isEn ? "Book place first" : "Reservar plaza primero"}
+                          {tStr("Book first to host", lang)}
                         </Link>
                       ) : (
                         <button
@@ -593,7 +594,7 @@ export function HostClient({
                         >
                           {loadingEventId === ev.id
                             ? "..."
-                            : (isEn ? "Ask to host this event" : "Solicitar ser anfitriona")}
+                            : (tStr("Host this event", lang))}
                         </button>
                       )}
                     </div>
