@@ -584,32 +584,6 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                     title={title}
                     lang={lang as any}
                   />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "10px",
-                      left: "10px",
-                      pointerEvents: "none",
-                      zIndex: 2,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: "11px",
-                        letterSpacing: "0.04em",
-                        color: "#7b1f2c",
-                        border: "1px solid rgba(123, 31, 44, 0.35)",
-                        borderRadius: "10px",
-                        padding: "3px 10px",
-                        whiteSpace: "nowrap",
-                        background: "rgba(255, 255, 255, 0.94)",
-                        backdropFilter: "blur(4px)",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {catInfo.label}
-                    </span>
-                  </div>
                 </div>
 
                 <div
@@ -629,10 +603,20 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                       gap: "8px",
                     }}
                   >
-                    <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.65)" }}>
-                      {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
-                        ? (lang === "en" ? "Mothers only" : "Solo madres")
-                        : (lang === "en" ? "Kids welcome" : "Peques bienvenidos")}
+                    <span
+                      style={{
+                        fontSize: "11.5px",
+                        letterSpacing: "0.03em",
+                        color: "#7b1f2c",
+                        border: "1px solid rgba(123, 31, 44, 0.3)",
+                        borderRadius: "12px",
+                        padding: "3px 11px",
+                        whiteSpace: "nowrap",
+                        fontWeight: 500,
+                        display: "inline-block",
+                      }}
+                    >
+                      {catInfo.label}
                     </span>
                     <span
                       style={{

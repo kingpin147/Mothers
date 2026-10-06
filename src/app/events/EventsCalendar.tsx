@@ -1266,136 +1266,104 @@ function EventCard({
           />
         </Link>
 
-        {/* Floating Category Pill & Status on top-left of image */}
-        <div
-          style={{
-            position: "absolute",
-            top: "10px",
-            left: "10px",
-            pointerEvents: "none",
-            zIndex: 2,
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
-          <span
+        {/* Status badges overlay on top-left of image if booked / cancelled / signature */}
+        {(ev.userStatus?.isBooked || isCancelled || (ev.isSignature && !isCancelled)) && (
+          <div
             style={{
-              fontSize: "11.5px",
-              letterSpacing: "0.03em",
-              color: "#7b1f2c",
-              border: "1px solid rgba(123,31,44,0.3)",
-              borderRadius: "12px",
-              padding: "3px 11px",
-              whiteSpace: "nowrap",
-              background: "rgba(255, 255, 255, 0.94)",
-              backdropFilter: "blur(4px)",
-              boxShadow: "0 2px 5px rgba(0,0,0,0.06)",
-              fontWeight: 500,
+              position: "absolute",
+              top: "10px",
+              left: "10px",
+              pointerEvents: "none",
+              zIndex: 2,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
             }}
           >
-            {catInfo.label}
-          </span>
-          {ev.userStatus?.isBooked && !isCancelled && (
-            <span
-              style={{
-                fontSize: "11px",
-                letterSpacing: "0.04em",
-                color: isPending ? "#7a5612" : "#456f04",
-                background: isPending ? "rgba(164,118,31,0.12)" : "rgba(86,139,5,0.12)",
-                border: isPending ? "1px solid rgba(164,118,31,0.45)" : "1px solid rgba(86,139,5,0.45)",
-                borderRadius: "10px",
-                padding: "3px 9px",
-                whiteSpace: "nowrap",
-                fontWeight: 600,
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              {isPending
-                ? (lang === "en" ? "Place held" : "Plaza retenida")
-                : (lang === "en" ? "Booked" : "Reservada")}
-            </span>
-          )}
-          {isCancelled && (
-            <span
-              style={{
-                fontSize: "11px",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                color: "#993842",
-                border: "1px solid rgba(153,56,66,0.45)",
-                background: "rgba(255,255,255,0.94)",
-                borderRadius: "10px",
-                padding: "3px 9px",
-                whiteSpace: "nowrap",
-                fontWeight: 600,
-              }}
-            >
-              {lang === "en" ? "Cancelled" : "Cancelado"}
-            </span>
-          )}
-          {ev.isSignature && !isCancelled && (
-            <span
-              style={{
-                fontSize: "11px",
-                letterSpacing: "0.04em",
-                color: "#fdfaf5",
-                border: "1px solid #7b1f2c",
-                background: "#7b1f2c",
-                borderRadius: "10px",
-                padding: "3px 9px",
-                whiteSpace: "nowrap",
-                fontWeight: 500,
-              }}
-            >
-              {tStr("Members only", lang)}
-            </span>
-          )}
-        </div>
+            {ev.userStatus?.isBooked && !isCancelled && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.04em",
+                  color: isPending ? "#7a5612" : "#456f04",
+                  background: isPending ? "rgba(164,118,31,0.12)" : "rgba(86,139,5,0.12)",
+                  border: isPending ? "1px solid rgba(164,118,31,0.45)" : "1px solid rgba(86,139,5,0.45)",
+                  borderRadius: "10px",
+                  padding: "3px 9px",
+                  whiteSpace: "nowrap",
+                  fontWeight: 600,
+                  backdropFilter: "blur(4px)",
+                }}
+              >
+                {isPending
+                  ? (lang === "en" ? "Place held" : "Plaza retenida")
+                  : (lang === "en" ? "Booked" : "Reservada")}
+              </span>
+            )}
+            {isCancelled && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  color: "#993842",
+                  border: "1px solid rgba(153,56,66,0.45)",
+                  background: "rgba(255,255,255,0.94)",
+                  borderRadius: "10px",
+                  padding: "3px 9px",
+                  whiteSpace: "nowrap",
+                  fontWeight: 600,
+                }}
+              >
+                {lang === "en" ? "Cancelled" : "Cancelado"}
+              </span>
+            )}
+            {ev.isSignature && !isCancelled && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.04em",
+                  color: "#fdfaf5",
+                  border: "1px solid #7b1f2c",
+                  background: "#7b1f2c",
+                  borderRadius: "10px",
+                  padding: "3px 9px",
+                  whiteSpace: "nowrap",
+                  fontWeight: 500,
+                }}
+              >
+                {tStr("Members only", lang)}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ─── Subheader: Stage & Audience on left, Price/Credits on right ─── */}
+      {/* ─── Subheader: Category Pill on left, Price/Credits on right ─── */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "10px",
-          marginBottom: "4px",
+          marginBottom: "6px",
         }}
       >
-        <div
+        <span
           style={{
-            fontSize: "12.5px",
-            color: "rgba(57, 41, 42, 0.68)",
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
+            fontSize: "11.5px",
+            letterSpacing: "0.03em",
+            color: "#7b1f2c",
+            border: "1px solid rgba(123,31,44,0.3)",
+            borderRadius: "12px",
+            padding: "3px 11px",
             whiteSpace: "nowrap",
+            fontWeight: 500,
+            display: "inline-block",
           }}
         >
-          <span>
-            {(() => {
-              const stageInfo = getEventStageDisplay(ev, lang);
-              const audienceLabel = ev.audienceType
-                ? (ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
-                    ? (lang === "en" ? "Mothers only" : "Solo madres")
-                    : (lang === "en" ? "Kids welcome" : "Peques bienvenidos"))
-                : null;
-              const parts: string[] = [];
-              if (stageInfo.isAllStages) {
-                parts.push(stageInfo.displayLabel);
-              } else if (stageInfo.stages.length > 0) {
-                parts.push(stageInfo.stages.join(" · "));
-              }
-              if (audienceLabel) parts.push(audienceLabel);
-              if (ev.isOnline) parts.push(lang === "en" ? "Online" : "En línea");
-              return parts.join(" · ");
-            })()}
-          </span>
-        </div>
+          {catInfo.label}
+        </span>
 
         {/* Price / Credits ("Free" / "Gratis" when 0 credit) */}
         <div
