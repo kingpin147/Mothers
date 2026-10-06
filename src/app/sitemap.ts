@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/db";
-import { event } from "@/db/schema";
-import { inArray } from "drizzle-orm";
+import { event, journalPost } from "@/db/schema";
+import { inArray, eq } from "drizzle-orm";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://themothers.cc";
@@ -26,16 +26,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/philosophy`,
+      url: `${baseUrl}/journal`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/gazette`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/partners`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/journal`,
+      url: `${baseUrl}/host`,
       lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
+      changeFrequency: "monthly",
+      priority: 0.7,
     },
     {
       url: `${baseUrl}/faq`,
@@ -58,10 +70,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const publishedEvents = await db
-      .select({ id: event.id, updatedAt: event.updatedAt })
-      .from(event)
-      .where(inArray(event.status, ["confirmed", "published_pending"]));
+    const [publishedEvents, publishedArticles] = await Promise.all([
+      db
+        .select({ id: event.id, updatedAt: event.updatedAt })
+        .from(event)
+        .where(inArray(event.status, ["confirmed", "published_pending"])),
+      db
+        .select({ slug: journalPost.slug, publishedAt: journalPost.publishedAt })
+        .from(journalPost)
+        .where(eq(journalPost.status, "published")),
+    ]);
 
     const eventRoutes: MetadataRoute.Sitemap = publishedEvents.map((ev) => ({
       url: `${baseUrl}/events/${ev.id}`,
@@ -70,7 +88,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-    return [...staticRoutes, ...eventRoutes];
+    const articleRoutes: MetadataRoute.Sitemap = publishedArticles.map((art) => ({
+      url: `${baseUrl}/journal/${art.slug}`,
+      lastModified: art.publishedAt || new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    }));
+
+    return [...staticRoutes, ...eventRoutes, ...articleRoutes];
   } catch {
     return staticRoutes;
   }

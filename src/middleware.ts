@@ -9,6 +9,13 @@ const PUBLIC_ACCOUNT_PATHS = [
 ];
 
 export async function middleware(request: NextRequest) {
+  const host = request.headers.get("host") || "";
+  if (host.startsWith("www.")) {
+    const cleanHost = host.replace(/^www\./i, "");
+    const url = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, `https://${cleanHost}`);
+    return NextResponse.redirect(url, 301);
+  }
+
   const { pathname } = request.nextUrl;
   const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
 
