@@ -674,7 +674,7 @@ export default function AdminEventsPage() {
                         <span style={{ border: "1px solid rgba(182,130,53,0.55)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", color: "#8a6220" }}>
                           {r.displayStage}
                         </span>
-                        {(r.isSignature || r.capacityMember === 0) && (
+                        {r.isSignature && (
                           <span style={{ border: "1px solid rgba(123,31,44,0.45)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", color: WINE }}>
                             Signature
                           </span>

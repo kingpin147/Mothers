@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { updateAdminEvent, getEventRoster } from "@/app/actions/adminEvents";
+import { getAdminAllMothers } from "@/app/actions/adminCms";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
 
 export default function AdminEditEventPage() {
@@ -17,11 +18,13 @@ export default function AdminEditEventPage() {
   const [title, setTitle] = useState("");
   const [titleEs, setTitleEs] = useState("");
   const [titleFr, setTitleFr] = useState("");
-  const [category, setCategory] = useState("Easy connection");
+  const [category, setCategory] = useState("cat-easy");
   const [neighbourhood, setNeighbourhood] = useState("Ciutat Vella");
   const [venueName, setVenueName] = useState("");
   const [meetingPoint, setMeetingPoint] = useState("");
   const [host, setHost] = useState("");
+  const [assignedHostPersonId, setAssignedHostPersonId] = useState("");
+  const [allMothers, setAllMothers] = useState<any[]>([]);
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [minToConfirm, setMinToConfirm] = useState("");
@@ -130,6 +133,7 @@ export default function AdminEditEventPage() {
         setTitleFr(ev.titleFr || "");
         if (ev.categoryId) setCategory(ev.categoryId);
         if (ev.partnerId) setHost(ev.partnerId);
+        if (ev.hostPersonId) setAssignedHostPersonId(ev.hostPersonId);
         setNeighbourhood(ev.neighbourhood || "Ciutat Vella");
         setVenueName(ev.venueName || "");
         setMeetingPoint(ev.meetingPoint || "");
@@ -160,6 +164,10 @@ export default function AdminEditEventPage() {
             if (s.membershipLive) setIsMembershipLive(true);
           }).catch(() => {});
         });
+
+        getAdminAllMothers().then((res) => {
+          if (res.success && res.mothers) setAllMothers(res.mothers);
+        }).catch(() => {});
 
         setDescription(ev.description || "");
         setDescriptionEs(ev.descriptionEs || "");
@@ -355,10 +363,11 @@ export default function AdminEditEventPage() {
       title,
       titleEs: titleEs.trim() || null,
       titleFr: titleFr.trim() || null,
-      category,
+      categoryId: category,
       partnerId: host.trim() || undefined,
       host: host.trim() || undefined,
-      isSignature: category === "Signature moments",
+      hostPersonId: assignedHostPersonId || undefined,
+      isSignature: category === "cat-signature",
       neighbourhood,
       venueName,
       meetingPoint,
@@ -456,15 +465,32 @@ export default function AdminEditEventPage() {
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Category</label>
                   <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
-                    <option value="Easy connection">Easy connection</option>
-                    <option value="Play date">Play date</option>
-                    <option value="MoM's date">MoM's date</option>
-                    <option value="Learn & Grow">Learn & Grow</option>
-                    <option value="Signature moments">Signature moments</option>
+                    <option value="cat-easy">Easy connection</option>
+                    <option value="cat-baby">Play date</option>
+                    <option value="cat-evenings">MoM's date</option>
+                    <option value="cat-learn">Learn & grow</option>
+                    <option value="cat-signature">Signature moments</option>
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Host or partner (optional)</label>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Assign a host mother</label>
+                  <select
+                    value={assignedHostPersonId}
+                    onChange={(e) => setAssignedHostPersonId(e.target.value)}
+                    style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}
+                  >
+                    <option value="">— No host assigned —</option>
+                    {allMothers.map((m) => (
+                      <option key={m.personId} value={m.personId}>
+                        {m.firstName} {m.lastName} · {m.neighbourhood}{m.isMember ? '' : ' (non-member)'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "14px", marginTop: "14px" }}>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Partner or venue name (optional)</label>
                   <input type="text" value={host} onChange={(e) => setHost(e.target.value)} placeholder="Partner or member name" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
                 </div>
               </div>

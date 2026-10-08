@@ -183,6 +183,7 @@ export async function createAdminEvent(data: {
   needsHost?: boolean;
   nonMemberOpensAt?: Date | null;
   imageId?: string | null;
+  hostPersonId?: string | null;
 }) {
   const session = await auth();
   const adminId = session?.user?.id;
@@ -254,6 +255,7 @@ export async function createAdminEvent(data: {
         publishedAt: data.status === "draft" ? undefined : new Date(),
         confirmedAt: data.status !== "draft" && data.minToConfirm === 0 ? new Date() : undefined,
         hostAdminId: adminId,
+        hostPersonId: data.hostPersonId || null,
       })
       .returning();
 
@@ -320,6 +322,7 @@ export async function updateAdminEvent(eventId: string, data: {
   needsHost?: boolean;
   nonMemberOpensAt?: Date | null;
   imageId?: string | null;
+  hostPersonId?: string | null;
   status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
 }) {
   const session = await auth();
@@ -395,6 +398,7 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.imageId !== undefined && { imageId: data.imageId }),
       ...(isSig !== undefined && { isSignature: isSig }),
       ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
+      ...(data.hostPersonId !== undefined && { hostPersonId: data.hostPersonId || null }),
       ...(data.languages !== undefined && { languages: data.languages }),
       ...(data.decisionAt !== undefined && { decisionAt: data.decisionAt }),
       ...(data.status !== undefined && {

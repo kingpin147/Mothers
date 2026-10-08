@@ -362,7 +362,7 @@ export default function EventDetailPage() {
                 {lang === "en" ? "When" : "Cuándo"}
               </div>
               <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
-                {ev.dateStr || new Date(ev.startsAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "long", day: "numeric", month: "short" })}
+                {ev.dateStr || new Date(ev.startsAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "long", day: "numeric", month: "short", timeZone: "Europe/Madrid" })}
               </div>
             </div>
 

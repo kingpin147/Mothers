@@ -151,6 +151,39 @@ async function verifyAdminRole() {
 
 // ─── 1. MEMBERS & AT-RISK MANAGEMENT (§19, §20.7) ───────────────────────────
 
+/**
+ * Lightweight list of ALL mothers with an account (members + non-members)
+ * for the admin "Assign host" dropdown on Create / Edit Event.
+ */
+export async function getAdminAllMothers() {
+  try {
+    await verifyAdminRole();
+
+    const mothers = await db
+      .select({
+        personId: person.id,
+        firstName: person.firstName,
+        lastName: person.lastName,
+        neighbourhood: sql<string>`COALESCE(
+          ${person.profileData}->>'neighbourhood',
+          'Not given'
+        )`.as('neighbourhood'),
+        isMember: sql<boolean>`EXISTS (
+          SELECT 1 FROM ${member} WHERE ${member.personId} = ${person.id}
+          AND ${member.status} NOT IN ('cancelled', 'suspended')
+        )`.as('is_member'),
+      })
+      .from(person)
+      .where(sql`${person.deletedAt} IS NULL`)
+      .orderBy(asc(person.firstName), asc(person.lastName));
+
+    return { success: true, mothers };
+  } catch (err: any) {
+    console.error("getAdminAllMothers error:", err?.message || err);
+    return { success: false, error: sanitizeErrorMessage(err, "UNAUTHORIZED_ADMIN"), mothers: [] };
+  }
+}
+
 export async function getAdminMembers() {
   try {
     await verifyAdminRole();

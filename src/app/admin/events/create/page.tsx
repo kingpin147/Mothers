@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createAdminEvent } from "@/app/actions/adminEvents";
+import { getAdminAllMothers } from "@/app/actions/adminCms";
 import { ForwardArrow } from "@/components/Icons";
 
 export default function AdminCreateEventPage() {
@@ -14,11 +15,14 @@ export default function AdminCreateEventPage() {
   const [title, setTitle] = useState("");
   const [titleEs, setTitleEs] = useState("");
   const [titleFr, setTitleFr] = useState("");
-  const [category, setCategory] = useState("Easy connection");
+  const [category, setCategory] = useState("cat-easy");
   const [neighbourhood, setNeighbourhood] = useState("Ciutat Vella");
   const [venueName, setVenueName] = useState("");
   const [meetingPoint, setMeetingPoint] = useState("");
   const [host, setHost] = useState("");
+  const [assignedHostPersonId, setAssignedHostPersonId] = useState("");
+  const [allMothers, setAllMothers] = useState<any[]>([]);
+  const [hostSearch, setHostSearch] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [minToConfirm, setMinToConfirm] = useState("");
@@ -38,6 +42,10 @@ export default function AdminCreateEventPage() {
         if (s.membershipLive) setIsMembershipLive(true);
       }).catch(() => {});
     });
+    // Load all mothers for host assignment dropdown
+    getAdminAllMothers().then((res) => {
+      if (res.success && res.mothers) setAllMothers(res.mothers);
+    }).catch(() => {});
   }, []);
 
   // Cover photo state (AD-16)
@@ -275,10 +283,10 @@ export default function AdminCreateEventPage() {
       title,
       titleEs: titleEs.trim() || undefined,
       titleFr: titleFr.trim() || undefined,
-      category,
+      categoryId: category,
       partnerId: host.trim() || undefined,
       host: host.trim() || undefined,
-      isSignature: category === "Signature moments",
+      isSignature: category === "cat-signature",
       neighbourhood,
       venueName,
       meetingPoint,
@@ -349,11 +357,11 @@ export default function AdminCreateEventPage() {
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Category <span style={{ color: "#7b1f2c" }}>*</span></label>
                   <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
-                    <option value="Easy connection">Easy connection</option>
-                    <option value="Play dates">Play dates</option>
-                    <option value="MoM's dates">MoM's dates</option>
-                    <option value="Learn & grow">Learn & grow</option>
-                    <option value="Signature moments">Signature moments</option>
+                    <option value="cat-easy">Easy connection</option>
+                    <option value="cat-baby">Play date</option>
+                    <option value="cat-evenings">MoM's date</option>
+                    <option value="cat-learn">Learn & grow</option>
+                    <option value="cat-signature">Signature moments</option>
                   </select>
                   <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>A label for members and a filter for you. It carries no price.</div>
                 </div>
@@ -394,9 +402,27 @@ export default function AdminCreateEventPage() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
                 <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Host or partner</label>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Assign a host mother</label>
+                  <select
+                    value={assignedHostPersonId}
+                    onChange={(e) => setAssignedHostPersonId(e.target.value)}
+                    style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}
+                  >
+                    <option value="">— No host assigned —</option>
+                    {allMothers.map((m) => (
+                      <option key={m.personId} value={m.personId}>
+                        {m.firstName} {m.lastName} · {m.neighbourhood}{m.isMember ? '' : ' (non-member)'}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Pick a mother to welcome guests at this event. She earns 2 credits when it runs.</div>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Partner or venue name</label>
                   <input type="text" value={host} onChange={(e) => setHost(e.target.value)} placeholder="e.g. Luz Movement Studio" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
                 </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Languages</label>
                   <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", paddingTop: "3px" }}>

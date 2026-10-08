@@ -389,32 +389,32 @@ export function formatDecideByDate(startsAt: string | Date, lang: Lang, decision
   }
 
   if (lang === "en") {
-    return targetDate.toLocaleDateString("en-GB", { day: "numeric", month: "long" });
+    return targetDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "Europe/Madrid" });
   } else {
-    return targetDate.toLocaleDateString("es-ES", { day: "numeric", month: "long" });
+    return targetDate.toLocaleDateString("es-ES", { day: "numeric", month: "long", timeZone: "Europe/Madrid" });
   }
 }
 
 export function formatEventDate(startsAt: string | Date, lang: Lang): string {
   const d = new Date(startsAt);
-  const weekday = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "short" });
+  const weekday = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "short", timeZone: "Europe/Madrid" });
   const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
-  const day = d.getDate();
-  const month = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { month: "short" });
-  const year = d.getFullYear();
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const day = d.toLocaleDateString("en-GB", { day: "numeric", timeZone: "Europe/Madrid" });
+  const month = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { month: "short", timeZone: "Europe/Madrid" });
+  const year = d.toLocaleDateString("en-GB", { year: "numeric", timeZone: "Europe/Madrid" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
   return `${capWeekday} ${day} ${month} ${year} · ${time}`;
 }
 
 export function formatCardDate(startsAt: string | Date, lang: Lang): string {
   const d = new Date(startsAt);
   if (isNaN(d.getTime())) return "";
-  const weekday = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "long" });
+  const weekday = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "long", timeZone: "Europe/Madrid" });
   const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
-  const day = d.getDate();
-  const month = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { month: "long" });
+  const day = d.toLocaleDateString("en-GB", { day: "numeric", timeZone: "Europe/Madrid" });
+  const month = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { month: "long", timeZone: "Europe/Madrid" });
   const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
   return `${capWeekday} ${day} ${capMonth} · ${time}`;
 }
 
