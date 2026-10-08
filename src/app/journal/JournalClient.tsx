@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Locale } from "@/lib/i18n";
 import { tStr } from "@/lib/i18nEngine";
-import { normalizeCategoryId } from "@/lib/journalCategories";
+import { normalizeCategoryId, JOURNAL_CATEGORIES } from "@/lib/journalCategories";
 
 /* ─── Article Data Model ──────────────────────────────────── */
 
@@ -14,50 +14,32 @@ export interface PublicArticle {
   cat: string;
   dateEn: string;
   dateEs: string;
+  dateFr: string;
   readEn: string;
   readEs: string;
+  readFr: string;
   author: string;
   roleEn: string;
   roleEs: string;
+  roleFr: string;
   titleEn: string;
   titleEs: string;
+  titleFr: string;
   dekEn: string;
   dekEs: string;
+  dekFr: string;
   image?: string;
   imageAlt?: string;
   audience?: string;
 }
 
-const CAT_ORDER = ["all", "postpartum", "feeding", "sleep", "body", "friendship", "work"];
+const CAT_ORDER = ["all", ...JOURNAL_CATEGORIES.map(c => c.id)];
 
-const CATS_EN: Record<string, string> = {
-  all: "Everything",
-  postpartum: "Postpartum",
-  feeding: "Feeding",
-  sleep: "Sleep",
-  body: "Body & pregnancy",
-  friendship: "Friendship",
-  work: "Work",
-};
-
-const CATS_FR: Record<string, string> = {
-  all: "Tout",
-  pregnancy: "Grossesse et naissance",
-  postpartum: "Post-partum",
-  sleep: "Sommeil",
-  feeding: "Allaitement",
-  friendship: "Amitié",
-  work: "Travail",
-};
-
-const CATS_ES: Record<string, string> = {
-  all: "Todo",
-  postpartum: "Posparto",
-  feeding: "Lactancia",
-  sleep: "Sueño",
-  body: "Cuerpo y embarazo",
-  friendship: "Amistad",
-  work: "Trabajo",
+const getCatLabel = (k: string, lang: string) => {
+  if (k === "all") return lang === "fr" ? "Tout" : lang === "es" ? "Todo" : "Everything";
+  const cat = JOURNAL_CATEGORIES.find(c => c.id === k);
+  if (!cat) return k;
+  return lang === "fr" ? (cat.labelFr || cat.labelEn) : lang === "es" ? cat.labelEs : cat.labelEn;
 };
 
 interface JournalClientProps {
@@ -161,7 +143,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                   transition: "all 0.15s ease",
                 }}
               >
-                {lang === "fr" ? (CATS_FR[k] || CATS_EN[k]) : lang === "es" ? CATS_ES[k] : CATS_EN[k]}
+                {getCatLabel(k, lang)}
               </button>
             );
           })}
@@ -223,7 +205,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                     {p.image ? (
                       <img
                         src={p.image}
-                        alt={p.imageAlt || (lang === "en" ? p.titleEn : p.titleEs)}
+                        alt={p.imageAlt || (lang === "fr" ? p.titleFr : lang === "es" ? p.titleEs : p.titleEn)}
                         style={{
                           width: "100%",
                           height: "100%",
@@ -259,7 +241,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                           <circle cx="9" cy="9" r="2" />
                           <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                         </svg>
-                        <span>{lang === "en" ? p.titleEn : p.titleEs}</span>
+                        <span>{lang === "fr" ? p.titleFr : lang === "es" ? p.titleEs : p.titleEn}</span>
                       </div>
                     )}
                   </div>
@@ -276,9 +258,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                     fontWeight: 600,
                   }}
                 >
-                  {lang === "en"
-                    ? CATS_EN[normalizeCategoryId(p.cat)] || p.cat
-                    : CATS_ES[normalizeCategoryId(p.cat)] || p.cat}
+                  {getCatLabel(normalizeCategoryId(p.cat), lang)}
                 </div>
 
                 <h2
@@ -291,7 +271,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                     color: "#39292a",
                   }}
                 >
-                  {lang === "en" ? p.titleEn : p.titleEs}
+                  {lang === "fr" ? p.titleFr : lang === "es" ? p.titleEs : p.titleEn}
                 </h2>
 
                 <p
@@ -303,7 +283,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                     flex: 1,
                   }}
                 >
-                  {lang === "en" ? p.dekEn : p.dekEs}
+                  {lang === "fr" ? p.dekFr : lang === "es" ? p.dekEs : p.dekEn}
                 </p>
 
                 <div
@@ -314,7 +294,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
                     fontFamily: "'Lora', Georgia, serif",
                   }}
                 >
-                  {lang === "en" ? p.dateEn : p.dateEs} · {lang === "en" ? p.readEn : p.readEs}
+                  {lang === "fr" ? p.dateFr : lang === "es" ? p.dateEs : p.dateEn} · {lang === "fr" ? p.readFr : lang === "es" ? p.readEs : p.readEn}
                 </div>
               </Link>
             </div>

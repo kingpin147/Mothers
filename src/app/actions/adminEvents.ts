@@ -436,8 +436,78 @@ export async function updateAdminEvent(eventId: string, data: {
     after: { ...data, changeNote: data.changeNote },
   });
 
+  const locationConfirmedNow = existing.neighbourhood === "To be confirmed" && data.neighbourhood && data.neighbourhood !== "To be confirmed";
+
+  if (locationConfirmedNow) {
+    await db.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "set the location",
+      entity: "event",
+      entityId: eventId,
+      before: { neighbourhood: "To be confirmed" },
+      after: { neighbourhood: data.neighbourhood },
+    });
+  }
+
   // If date/time/venue changed on an active event with bookings, notify all booked attendees (Dev Brief §3.5b)
-  if (timeChanged || venueChanged) {
+  if (locationConfirmedNow) {
+    try {
+      const activeBookings = await db
+        .select({
+          bookingId: booking.id,
+          personId: booking.personId,
+          email: person.email,
+          firstName: person.firstName,
+          lastName: person.lastName,
+        })
+        .from(booking)
+        .leftJoin(person, eq(booking.personId, person.id))
+        .where(
+          and(
+            eq(booking.eventId, eventId),
+            sql`${booking.status} IN ('held', 'confirmed')`
+          )
+        );
+
+      const { queueAndSendEmail } = await import("@/lib/brevo");
+      const eventTitle = data.title || existing.title;
+      const newStartsAt = data.startsAt ? new Date(data.startsAt) : new Date(existing.startsAt);
+      const dateFormatted = newStartsAt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+      const timeFormatted = newStartsAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const templatePath = path.join(process.cwd(), "public", "emails", "Email - Location Confirmed.html");
+      const htmlTemplate = await fs.readFile(templatePath, "utf-8");
+
+      for (const b of activeBookings) {
+        if (!b.email || !b.personId) continue;
+        
+        const personalizedHtml = htmlTemplate
+          .replace(/{{first_name}}/g, b.firstName || "Member")
+          .replace(/{{event_title}}/g, eventTitle)
+          .replace(/{{neighbourhood}}/g, data.neighbourhood || existing.neighbourhood || "")
+          .replace(/{{event_date}}/g, dateFormatted)
+          .replace(/{{event_time}}/g, timeFormatted)
+          .replace(/{{meeting_point}}/g, data.meetingPoint || existing.meetingPoint || "")
+          .replace(/{{account_url}}/g, "https://themothers.cc/account");
+
+        await queueAndSendEmail({
+          personId: b.personId,
+          toEmail: b.email,
+          toName: `${b.firstName || "Member"} ${b.lastName || ""}`.trim(),
+          templateKey: "location_confirmed",
+          dedupeKey: `location_confirmed_${eventId}_${b.bookingId}_${Date.now().toString().slice(0, 8)}`,
+          subject: `${eventTitle} will be in ${data.neighbourhood || existing.neighbourhood}`,
+          htmlContent: personalizedHtml,
+          isTransactional: true,
+        });
+      }
+    } catch (notifyErr) {
+      console.error("Failed to dispatch location confirmed notifications:", notifyErr);
+    }
+  } else if (timeChanged || venueChanged) {
     try {
       const activeBookings = await db
         .select({

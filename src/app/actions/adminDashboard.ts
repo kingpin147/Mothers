@@ -434,6 +434,9 @@ export async function getAdminDashboardMetrics() {
       if (log.action === "update_event") {
         return after.title ? `Updated event: "${after.title}"` : "Updated event details";
       }
+      if (log.action === "set the location") {
+        return after.neighbourhood ? `Set the location to: "${after.neighbourhood}"` : "Set the location";
+      }
       if (log.action === "confirm_event" || log.action === "manual_threshold_confirm") {
         return after.title ? `Confirmed event: "${after.title}" (minimum attendance met)` : "Confirmed event (minimum attendance met)";
       }

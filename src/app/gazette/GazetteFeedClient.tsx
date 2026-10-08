@@ -162,6 +162,7 @@ export function GazetteFeedClient({
         body: draft,
         photos: draftPhotos,
         isAnonymous: isAnon,
+        anonymousArea: currentUser?.neighbourhood || "Barcelona",
         photoConsent,
       });
 
@@ -182,7 +183,7 @@ export function GazetteFeedClient({
 
   const handleToggleHeart = async (postId: string) => {
     if (!currentUser) {
-      setNotice({ text: "Please log in to heart posts.", color: "#7b1f2c" });
+      window.location.href = "/account/login";
       return;
     }
 
@@ -225,7 +226,7 @@ export function GazetteFeedClient({
 
   const handleToggleReplyHeart = async (postId: string, replyId: string) => {
     if (!currentUser) {
-      setNotice({ text: lang === "en" ? "Please log in to heart replies." : "Inicia sesión para dar me gusta.", color: "#7b1f2c" });
+      window.location.href = "/account/login";
       return;
     }
 
@@ -286,7 +287,7 @@ export function GazetteFeedClient({
     if (!text) return;
 
     if (!currentUser) {
-      alert("Please log in to reply.");
+      window.location.href = "/account/login";
       return;
     }
 
@@ -317,6 +318,7 @@ export function GazetteFeedClient({
       isAnonymous: false,
       heartsCount: 0,
       isHearted: false,
+      neighbourhood: currentUser?.neighbourhood || "Barcelona",
     };
 
     setPosts((prev) =>
@@ -960,7 +962,13 @@ export function GazetteFeedClient({
                       {!isReported ? (
                         <button
                           type="button"
-                          onClick={() => setOpenReportPostId(isReportOpen ? null : post.id)}
+                          onClick={() => {
+                            if (!currentUser) {
+                              window.location.href = "/account/login";
+                              return;
+                            }
+                            setOpenReportPostId(isReportOpen ? null : post.id);
+                          }}
                           style={{
                             border: "none",
                             backgroundColor: "transparent",
@@ -1122,6 +1130,11 @@ export function GazetteFeedClient({
                                   </span>
                                 )}
                                 <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.6)" }}>{reply.meta}</span>
+                                {reply.neighbourhood && (
+                                  <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.6)" }}>
+                                    · {reply.neighbourhood}
+                                  </span>
+                                )}
                               </div>
                               <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.85)", margin: "4px 0 0" }}>
                                 {reply.body}

@@ -117,6 +117,8 @@ export default function AdminFaqPage() {
       questionEn: draftQ.trim(),
       answerEn: draftA.trim(),
       questionEs: draftQes.trim(),
+      questionFr: draftQfr.trim(),
+      answerFr: draftAfr.trim(),
       answerEs: draftAes.trim(),
       active: publishImmediately,
       sortOrder: maxSort + 10,
@@ -128,6 +130,8 @@ export default function AdminFaqPage() {
       setDraftGroup(FAQ_GROUPS[0] || "Coming to an event now");
       setDraftA("");
       setDraftQes("");
+      setDraftQfr("");
+      setDraftAfr("");
       setDraftAes("");
       setDraftTried(false);
       fetchFaqs();
@@ -170,6 +174,8 @@ export default function AdminFaqPage() {
       setEditGroup(f.category || "Joining");
       setEditA(f.answerEn || "");
       setEditQes(f.questionEs || "");
+      setEditQfr(f.questionFr || "");
+      setEditAfr(f.answerFr || "");
       setEditAes(f.answerEs || "");
       setEditActive(f.active);
     }
@@ -185,6 +191,8 @@ export default function AdminFaqPage() {
       questionEn: editQ.trim(),
       answerEn: editA.trim(),
       questionEs: editQes.trim(),
+      questionFr: editQfr.trim(),
+      answerFr: editAfr.trim(),
       answerEs: editAes.trim(),
       sortOrder: f.sortOrder,
       active: finalActive,

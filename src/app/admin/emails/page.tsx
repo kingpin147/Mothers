@@ -13,6 +13,7 @@ const READY_EMAILS = [
   { file: "Email - Event Cancelled.html", name: "Event Cancelled", when: "The team cancels an event — credits back" },
   { file: "Email - Credits Expiring.html", name: "Credits Expiring", when: "30 days and 7 days before credits expire" },
   { file: "Email - Membership Is Open.html", name: "Membership Is Open", when: "Once, when you switch membership on" },
+  { file: "Email - Location Confirmed.html", name: "Location Confirmed", when: "When you set the real area for an event" },
   { file: "Email - Booking Confirmation.html", name: "Booking Confirmation", when: "Every booking — with meeting point" },
   { file: "Email - Meeting-Point Reminder.html", name: "Meeting-Point Reminder", when: "24 h before the event" },
   { file: "Email - Verify Your Email.html", name: "Verify Your Email", when: "Before her first payment" },

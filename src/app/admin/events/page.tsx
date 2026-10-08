@@ -665,7 +665,7 @@ export default function AdminEventsPage() {
                         {r.title}
                       </div>
                       <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.68)" }}>
-                        {r.venueName} · {r.neighbourhood}
+                        {r.venueName} · {r.neighbourhood === "To be confirmed" ? ((r.starts.getTime() - Date.now()) / (1000 * 60 * 60) < 48 ? "⚠️ Location still to be confirmed — event in under 48 h" : "Location to be confirmed") : r.neighbourhood}
                       </div>
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "7px" }}>
                         <span style={{ border: "1px solid rgba(57,41,42,0.2)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", color: "rgba(57,41,42,0.7)" }}>

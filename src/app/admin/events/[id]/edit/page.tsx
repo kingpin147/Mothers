@@ -86,8 +86,19 @@ export default function AdminEditEventPage() {
         body: formData,
       });
 
+      if (!res.ok) {
+        if (res.status === 413) throw new Error("Image is too large. Please use an image under 10MB.");
+        let errText = "Failed to upload image.";
+        try {
+          const errData = await res.json();
+          if (errData.error) errText = errData.error;
+        } catch {
+          errText = `Server error: ${res.statusText || res.status}`;
+        }
+        throw new Error(errText);
+      }
       const data = await res.json();
-      if (!res.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || "Failed to upload image");
       }
 
@@ -470,8 +481,13 @@ export default function AdminEditEventPage() {
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Neighbourhood</label>
                   <select value={neighbourhood} onChange={(e) => setNeighbourhood(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
-                    {["Ciutat Vella", "Eixample", "Gràcia", "Les Corts", "Sarrià-Sant Gervasi", "Poblenou / Sant Martí", "Sants-Montjuïc", "Horta-Guinardó", "Outside Barcelona"].map(n => <option key={n} value={n}>{n}</option>)}
+                    {["To be confirmed", "Ciutat Vella", "Eixample", "Sants-Montjuïc", "Les Corts", "Sarrià-Sant Gervasi", "Gràcia", "Horta-Guinardó", "Nou Barris", "Sant Andreu", "Sant Martí", "Online", "Outside Barcelona"].map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
+                  {neighbourhood === "To be confirmed" && (
+                    <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>
+                      Mothers see "Location to be confirmed". When you pick the real area, everyone booked gets an email with it.
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Venue name <span style={{ color: "#7b1f2c" }}>*</span></label>

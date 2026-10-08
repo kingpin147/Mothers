@@ -52,7 +52,7 @@ const QUESTIONS: QuestionDef[] = [
       "Sant Andreu",
       "Sant Martí",
       "Outside Barcelona",
-      "Not sure yet",
+      "Other",
     ],
     optionsEs: [
       "Ciutat Vella",
@@ -66,7 +66,7 @@ const QUESTIONS: QuestionDef[] = [
       "Sant Andreu",
       "Sant Martí",
       "Fuera de Barcelona",
-      "Aún no lo sé",
+      "Otro",
     ],
   },
   {
@@ -292,10 +292,14 @@ function FirstVisitProfileModalContent() {
 
   const handleNext = async (skip = false) => {
     if (!skip && currentQ.req) {
-      const empty =
+      let empty =
         val == null ||
         (Array.isArray(val) && val.length === 0) ||
         (typeof val === "string" && val.trim() === "");
+
+      if (currentQ.key === "neighbourhood" && val === "Other") {
+        empty = !answers.customNeighbourhood || answers.customNeighbourhood.trim() === "";
+      }
 
       if (empty) {
         setErrorMsg(
@@ -322,7 +326,9 @@ function FirstVisitProfileModalContent() {
         const finalStages = Array.isArray(answers.stages) ? answers.stages : [];
         const finalHoping = Array.isArray(answers.hoping) ? answers.hoping : [];
         const finalAvailability = Array.isArray(answers.free) ? answers.free : [];
-        const finalNeighbourhood = answers.neighbourhood || "Barcelona";
+        const finalNeighbourhood = answers.neighbourhood === "Other" && answers.customNeighbourhood?.trim() 
+          ? answers.customNeighbourhood.trim() 
+          : (answers.neighbourhood || "Barcelona");
         const finalHeard = answers.heard || "Other";
         const finalGodmotherCode =
           answers.godmotherCode && answers.godmotherCode.trim()
@@ -517,6 +523,30 @@ function FirstVisitProfileModalContent() {
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* Custom Neighbourhood input if "Other" is selected */}
+        {currentQ.key === "neighbourhood" && val === "Other" && (
+          <div style={{ marginTop: "16px" }}>
+            <input
+              type="text"
+              value={answers.customNeighbourhood || ""}
+              onChange={(e) => setAnswers((prev) => ({ ...prev, customNeighbourhood: e.target.value }))}
+              placeholder={isEn ? "Enter your neighbourhood" : "Ingresa tu barrio"}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                border: "1px solid rgba(57, 41, 42, 0.24)",
+                borderRadius: "4px",
+                backgroundColor: "#ffffff",
+                padding: "13px 15px",
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: "15px",
+                color: "#39292a",
+                outline: "none",
+              }}
+            />
           </div>
         )}
 

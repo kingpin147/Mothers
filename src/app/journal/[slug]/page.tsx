@@ -14,27 +14,37 @@ interface ArticleData {
   cat: string;
   dateEn: string;
   dateEs: string;
+  dateFr: string;
   readEn: string;
   readEs: string;
+  readFr: string;
   author: string;
   roleEn: string;
   roleEs: string;
+  roleFr: string;
   heroImageUrl?: string;
   heroImageAlt?: string;
   titleEn: string;
   titleEs: string;
+  titleFr: string;
   dekEn: string;
   dekEs: string;
+  dekFr: string;
   quoteEn?: string;
   quoteEs?: string;
+  quoteFr?: string;
   bodyEn: string[];
   bodyEs: string[];
+  bodyFr: string[];
   bodyAfterEn: string[];
   bodyAfterEs: string[];
+  bodyAfterFr: string[];
   bylineEn: string;
   bylineEs: string;
+  bylineFr: string;
   reviewedNoteEn: string;
   reviewedNoteEs: string;
+  reviewedNoteFr: string;
   audience: string;
 }
 
@@ -73,10 +83,12 @@ export default function JournalSlugPage() {
         const p = res.post;
         const paragraphsEn = (p.body || "").split("\n\n").map((s: string) => s.trim()).filter(Boolean);
         const paragraphsEs = (p.bodyEs || p.body || "").split("\n\n").map((s: string) => s.trim()).filter(Boolean);
+        const paragraphsFr = (p.bodyFr || p.body || "").split("\n\n").map((s: string) => s.trim()).filter(Boolean);
 
         // Split body before/after quote if quote exists
         const halfEn = Math.ceil(paragraphsEn.length / 2);
         const halfEs = Math.ceil(paragraphsEs.length / 2);
+        const halfFr = Math.ceil(paragraphsFr.length / 2);
 
         const wordCountEn = (p.body || "").split(/\s+/).filter(Boolean).length;
         const readTime = Math.max(1, Math.round(wordCountEn / 200));
@@ -89,27 +101,37 @@ export default function JournalSlugPage() {
           cat: p.category,
           dateEn: pubDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
           dateEs: pubDate.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }),
+          dateFr: pubDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
           readEn: `${readTime} min read`,
           readEs: `${readTime} min de lectura`,
+          readFr: `${readTime} min de lecture`,
           author: p.author || "The Mothers",
           roleEn: p.authorRoleEn || "",
           roleEs: p.authorRoleEs || "",
+          roleFr: p.authorRoleFr || "",
           heroImageUrl: p.heroImageUrl || undefined,
           heroImageAlt: p.heroImageAlt || p.title,
           titleEn: p.title,
           titleEs: p.titleEs || p.title,
+          titleFr: p.titleFr || p.title,
           dekEn: p.excerpt,
           dekEs: p.excerptEs || p.excerpt,
+          dekFr: p.excerptFr || p.excerpt,
           quoteEn: p.quoteEn || "",
           quoteEs: p.quoteEs || "",
+          quoteFr: p.quoteFr || "",
           bodyEn: p.quoteEn ? paragraphsEn.slice(0, halfEn) : paragraphsEn,
           bodyAfterEn: p.quoteEn ? paragraphsEn.slice(halfEn) : [],
           bodyEs: p.quoteEs ? paragraphsEs.slice(0, halfEs) : paragraphsEs,
           bodyAfterEs: p.quoteEs ? paragraphsEs.slice(halfEs) : [],
+          bodyFr: p.quoteFr ? paragraphsFr.slice(0, halfFr) : paragraphsFr,
+          bodyAfterFr: p.quoteFr ? paragraphsFr.slice(halfFr) : [],
           bylineEn: p.bylineEn || `Written by ${p.author}`,
           bylineEs: p.bylineEs || `Escrito por ${p.author}`,
+          bylineFr: p.bylineFr || `Écrit par ${p.author}`,
           reviewedNoteEn: p.reviewedNoteEn || "General information, not medical or legal advice.",
           reviewedNoteEs: p.reviewedNoteEs || "Información general, no consejo médico ni legal.",
+          reviewedNoteFr: p.reviewedNoteFr || "Informations générales, pas un avis médical ou juridique.",
           audience: p.audience || "public",
         });
 
@@ -140,7 +162,7 @@ export default function JournalSlugPage() {
           color: "#39292a",
         }}
       >
-        {lang === "en" ? "Loading article..." : "Cargando artículo..."}
+        {lang === "fr" ? "Chargement de l'article..." : lang === "es" ? "Cargando artículo..." : "Loading article..."}
       </div>
     );
   }
@@ -163,12 +185,14 @@ export default function JournalSlugPage() {
       >
         <div style={{ maxWidth: "760px", margin: "0 auto" }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "36px", marginBottom: "16px" }}>
-            {lang === "en" ? "Article not found" : "Artículo no encontrado"}
+            {lang === "fr" ? "Article non trouvé" : lang === "es" ? "Artículo no encontrado" : "Article not found"}
           </h1>
           <p style={{ color: "rgba(57,41,42,0.7)", marginBottom: "28px" }}>
-            {lang === "en"
-              ? "The article you are looking for does not exist or has been removed."
-              : "El artículo que buscas no existe o ha sido retirado."}
+            {lang === "fr"
+              ? "L'article que vous recherchez n'existe pas ou a été retiré."
+              : lang === "es"
+              ? "El artículo que buscas no existe o ha sido retirado."
+              : "The article you are looking for does not exist or has been removed."}
           </p>
           <Link
             href="/journal"
@@ -185,22 +209,22 @@ export default function JournalSlugPage() {
               alignItems: "center",
             }}
           >
-            <BackArrow /> {lang === "en" ? "Return to Journal" : "Volver al Diario"}
+            <BackArrow /> {lang === "fr" ? "Retour au Journal" : lang === "es" ? "Volver al Diario" : "Return to Journal"}
           </Link>
         </div>
       </div>
     );
   }
 
-  const title = lang === "en" ? article.titleEn : article.titleEs;
-  const dek = lang === "en" ? article.dekEn : article.dekEs;
-  const quote = lang === "en" ? article.quoteEn : article.quoteEs;
-  const bodyParas = lang === "en" ? article.bodyEn : article.bodyEs;
-  const bodyAfterParas = lang === "en" ? article.bodyAfterEn : article.bodyAfterEs;
-  const byline = lang === "en" ? article.bylineEn : article.bylineEs;
-  const reviewedNote = lang === "en" ? article.reviewedNoteEn : article.reviewedNoteEs;
-  const readTime = lang === "en" ? article.readEn : article.readEs;
-  const dateStr = lang === "en" ? article.dateEn : article.dateEs;
+  const title = lang === "fr" ? article.titleFr : lang === "es" ? article.titleEs : article.titleEn;
+  const dek = lang === "fr" ? article.dekFr : lang === "es" ? article.dekEs : article.dekEn;
+  const quote = lang === "fr" ? article.quoteFr : lang === "es" ? article.quoteEs : article.quoteEn;
+  const bodyParas = lang === "fr" ? article.bodyFr : lang === "es" ? article.bodyEs : article.bodyEn;
+  const bodyAfterParas = lang === "fr" ? article.bodyAfterFr : lang === "es" ? article.bodyAfterEs : article.bodyAfterEn;
+  const byline = lang === "fr" ? article.bylineFr : lang === "es" ? article.bylineEs : article.bylineEn;
+  const reviewedNote = lang === "fr" ? article.reviewedNoteFr : lang === "es" ? article.reviewedNoteEs : article.reviewedNoteEn;
+  const readTime = lang === "fr" ? article.readFr : lang === "es" ? article.readEs : article.readEn;
+  const dateStr = lang === "fr" ? article.dateFr : lang === "es" ? article.dateEs : article.dateEn;
 
   return (
     <div
@@ -243,7 +267,7 @@ export default function JournalSlugPage() {
           >
             <path d="M19 12H5M11 18l-6-6 6-6" />
           </svg>
-          {lang === "en" ? "Back to the Journal" : "Volver al Diario"}
+          {lang === "fr" ? "Retour au Journal" : lang === "es" ? "Volver al Diario" : "Back to the Journal"}
         </Link>
 
         {/* Category & Meta */}

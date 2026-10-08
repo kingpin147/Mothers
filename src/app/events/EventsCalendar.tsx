@@ -1439,7 +1439,11 @@ function EventCard({
             <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
-          <span>{ev.neighbourhood || ev.venueName || (ev.isOnline ? (lang === "en" ? "Online" : "En línea") : "Barcelona")}</span>
+          <span>
+            {ev.neighbourhood === "To be confirmed"
+              ? (lang === "es" ? "Lugar por confirmar" : lang === "fr" ? "Lieu à confirmer" : "Location to be confirmed")
+              : (ev.neighbourhood || ev.venueName || (ev.isOnline ? (lang === "en" ? "Online" : lang === "fr" ? "En ligne" : "En línea") : "Barcelona"))}
+          </span>
         </div>
 
         {/* 3. Languages */}

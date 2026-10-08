@@ -114,7 +114,7 @@ function AccountPageContent() {
   const [reactivateLoading, setReactivateLoading] = useState(false);
 
   // Details form state
-  const [detailsForm, setDetailsForm] = useState({ firstName: "", lastName: "", phone: "", stage: "", neighbourhood: "" });
+  const [detailsForm, setDetailsForm] = useState({ firstName: "", lastName: "", phone: "", stage: "", neighbourhood: "", customNeighbourhood: "" });
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsResult, setDetailsResult] = useState<{ success: boolean; error?: string } | null>(null);
@@ -324,12 +324,16 @@ function AccountPageContent() {
             setAccountData(res);
             setAccountError(null);
             // Pre-populate details form
+            const existingNeighbourhood = res.member?.neighbourhood || "";
+            const isPredefined = ["Ciutat Vella", "Eixample", "Sants-Montjuïc", "Les Corts", "Sarrià-Sant Gervasi", "Gràcia", "Horta-Guinardó", "Nou Barris", "Sant Andreu", "Sant Martí", "Outside Barcelona", "Other", ""].includes(existingNeighbourhood);
+            
             setDetailsForm({
               firstName: res.member?.firstName || "",
               lastName: res.member?.lastName || "",
               phone: res.member?.phone || "",
               stage: res.member?.stage || "",
-              neighbourhood: res.member?.neighbourhood || "",
+              neighbourhood: isPredefined ? existingNeighbourhood : "Other",
+              customNeighbourhood: isPredefined ? "" : existingNeighbourhood,
             });
             // Parse stages
             const currentStages = typeof res.member?.stage === "string"
@@ -2073,7 +2077,14 @@ function AccountPageContent() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ plan: "monthly" }),
                       });
-                      const data = await res.json();
+                      let data;
+                      try {
+                        if (!res.ok) throw new Error(`Server error: ${res.statusText}`);
+                        data = await res.json();
+                      } catch (err: any) {
+                        alert(err.message || "Subscription failed");
+                        return;
+                      }
                       if (data.url) window.location.href = data.url;
                       else alert(data.error || "Subscription failed");
                     }}
@@ -2089,7 +2100,14 @@ function AccountPageContent() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ plan: "quarterly" }),
                       });
-                      const data = await res.json();
+                      let data;
+                      try {
+                        if (!res.ok) throw new Error(`Server error: ${res.statusText}`);
+                        data = await res.json();
+                      } catch (err: any) {
+                        alert(err.message || "Subscription failed");
+                        return;
+                      }
                       if (data.url) window.location.href = data.url;
                       else alert(data.error || "Subscription failed");
                     }}
@@ -2301,6 +2319,7 @@ function AccountPageContent() {
                   try {
                     const res = await updatePersonDetails({
                       ...detailsForm,
+                      neighbourhood: detailsForm.neighbourhood === "Other" && detailsForm.customNeighbourhood.trim() ? detailsForm.customNeighbourhood.trim() : detailsForm.neighbourhood,
                       stage: selectedStages.join(","),
                     });
                     setDetailsResult(res);
@@ -2382,8 +2401,18 @@ function AccountPageContent() {
                         <option key={n} value={n}>{n}</option>
                       ))}
                       <option value="Outside Barcelona">{lang === "en" ? "Outside Barcelona" : "Fuera de Barcelona"}</option>
-                      <option value="Not sure yet">{lang === "en" ? "Not sure yet" : "Aún no lo sé"}</option>
+                      <option value="Other">{lang === "en" ? "Other" : "Otro"}</option>
                     </select>
+                    {detailsForm.neighbourhood === "Other" && (
+                      <input
+                        type="text"
+                        placeholder={lang === "en" ? "Enter your neighbourhood" : "Ingresa tu barrio"}
+                        value={detailsForm.customNeighbourhood}
+                        onChange={(e) => setDetailsForm({ ...detailsForm, customNeighbourhood: e.target.value })}
+                        required
+                        style={{ width: "100%", boxSizing: "border-box", minHeight: "46px", padding: "11px 14px", fontSize: "15px", fontFamily: "'Lora', Georgia, serif", color: "#39292a", background: "#fff", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", outline: "none", marginTop: "10px" }}
+                      />
+                    )}
                   </div>
 
                   {/* Multi-Select Stage Buttons (Image 3) */}

@@ -39,6 +39,15 @@ export interface JournalPostData {
   seoTitleEs?: string | null;
   seoDescription?: string | null;
   seoDescriptionEs?: string | null;
+  titleFr?: string | null;
+  excerptFr?: string | null;
+  bodyFr?: string | null;
+  quoteFr?: string | null;
+  authorRoleFr?: string | null;
+  bylineFr?: string | null;
+  reviewedNoteFr?: string | null;
+  seoTitleFr?: string | null;
+  seoDescriptionFr?: string | null;
 }
 
 interface JournalEditorModalProps {
@@ -140,6 +149,15 @@ export default function JournalEditorModal({
       setSeoTitleEs(post.seoTitleEs || "");
       setSeoDescription(post.seoDescription || "");
       setSeoDescriptionEs(post.seoDescriptionEs || "");
+      setTitleFr(post.titleFr || "");
+      setExcerptFr(post.excerptFr || "");
+      setBodyFr(post.bodyFr || "");
+      setQuoteFr(post.quoteFr || "");
+      setAuthorRoleFr(post.authorRoleFr || "");
+      setBylineFr(post.bylineFr || "");
+      setReviewedNoteFr(post.reviewedNoteFr || "Informations générales, pas de conseils médicaux ou légaux.");
+      setSeoTitleFr(post.seoTitleFr || "");
+      setSeoDescriptionFr(post.seoDescriptionFr || "");
 
       if (post.publishedAt) {
         const d = new Date(post.publishedAt);
@@ -180,6 +198,15 @@ export default function JournalEditorModal({
       setSeoTitleEs("");
       setSeoDescription("");
       setSeoDescriptionEs("");
+      setTitleFr("");
+      setExcerptFr("");
+      setBodyFr("");
+      setQuoteFr("");
+      setAuthorRoleFr("");
+      setBylineFr("");
+      setReviewedNoteFr("Informations générales, pas de conseils médicaux ou légaux.");
+      setSeoTitleFr("");
+      setSeoDescriptionFr("");
     }
     setFormError("");
     setImageError("");
@@ -214,8 +241,19 @@ export default function JournalEditorModal({
         body: formData,
       });
 
+      if (!res.ok) {
+        if (res.status === 413) throw new Error("Image is too large. Please use an image under 10MB.");
+        let errText = "Failed to upload image.";
+        try {
+          const errData = await res.json();
+          if (errData.error) errText = errData.error;
+        } catch {
+          errText = `Server error: ${res.statusText || res.status}`;
+        }
+        throw new Error(errText);
+      }
       const data = await res.json();
-      if (!res.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || "Failed to upload image");
       }
 
@@ -299,6 +337,7 @@ export default function JournalEditorModal({
       bylineEs: bylineEs.trim() || undefined,
       reviewedNoteEn: reviewedNoteEn.trim() || undefined,
       reviewedNoteEs: reviewedNoteEs.trim() || undefined,
+
       heroImageId,
       heroImageUrl,
       audience,
@@ -308,6 +347,15 @@ export default function JournalEditorModal({
       seoTitleEs: seoTitleEs.trim() || undefined,
       seoDescription: seoDescription.trim() || undefined,
       seoDescriptionEs: seoDescriptionEs.trim() || undefined,
+      titleFr: titleFr.trim() || undefined,
+      excerptFr: excerptFr.trim() || undefined,
+      bodyFr: bodyFr.trim() || undefined,
+      quoteFr: quoteFr.trim() || undefined,
+      authorRoleFr: authorRoleFr.trim() || undefined,
+      bylineFr: bylineFr.trim() || undefined,
+      reviewedNoteFr: reviewedNoteFr.trim() || undefined,
+      seoTitleFr: seoTitleFr.trim() || undefined,
+      seoDescriptionFr: seoDescriptionFr.trim() || undefined,
       notifySubscribers: targetPublishMode === "publish" ? notifySubscribers : false,
     });
 
@@ -492,8 +540,8 @@ export default function JournalEditorModal({
                   gap: "6px",
                 }}
               >
-                <span>🇪🇸 Spanish</span>
-                {titleEs && <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: GREEN }} />}
+                <span>🇫🇷 French</span>
+                {titleFr && <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: GREEN }} />}
               </button>
             </div>
 
@@ -571,7 +619,7 @@ export default function JournalEditorModal({
               >
                 {JOURNAL_CATEGORIES.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.labelEn} / {c.labelEs}
+                    {c.labelEn} / {c.labelEs}{c.labelFr ? ` / ${c.labelFr}` : ""}
                   </option>
                 ))}
               </select>

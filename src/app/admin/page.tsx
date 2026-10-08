@@ -211,10 +211,14 @@ export default function AdminDashboardPage() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "28px" }}>
           <div style={{ flex: "1 1 420px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>The Mothers · Admin</div>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(32px,4.4vw,44px)", lineHeight: 1.1, margin: "0 0 9px" }}>What needs you today</h1>
+            <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(32px,4.4vw,44px)", lineHeight: 1.1, margin: "0 0 9px" }}>
+              {lang === "fr" ? "Ce qui vous attend aujourd'hui" : lang === "es" ? "Lo que te espera hoy" : "What needs you today"}
+            </h1>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: 0, maxWidth: "64ch", textWrap: "pretty" }} suppressHydrationWarning>
               {mounted && <span>{new Date().toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", { weekday: "long", day: "numeric", month: "long" })}. </span>}
-              <span>Everything below has a deadline, a payment or a mother waiting behind it. The counts sit at the bottom.</span>
+              <span>
+                {lang === "fr" ? "Tout ce qui suit a une échéance, un paiement ou une mère qui attend. Les totaux sont en bas." : lang === "es" ? "Todo lo de abajo tiene un plazo, un pago o una madre esperando. Los totales están abajo." : "Everything below has a deadline, a payment or a mother waiting behind it. The counts sit at the bottom."}
+              </span>
             </p>
           </div>
           <div style={{ display: "flex", gap: "9px", alignItems: "center" }}>
@@ -240,13 +244,19 @@ export default function AdminDashboardPage() {
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", marginBottom: "5px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "11px" }}>
               <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>01</span>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0, color: "#7b1f2c" }}>Decisions due — {decisions.length} events at T-7</h2>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0, color: "#7b1f2c" }}>
+                {lang === "fr" ? `Décisions attendues — ${decisions.length} événements à J-7` : lang === "es" ? `Decisiones pendientes — ${decisions.length} eventos a D-7` : `Decisions due — ${decisions.length} events at T-7`}
+              </h2>
             </div>
-            <Link href="/admin/events" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Manage all events <ForwardArrow /></Link>
+            <Link href="/admin/events" style={{ fontSize: "13.5px", color: "#7b1f2c", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+              {lang === "fr" ? "Gérer tous les événements" : lang === "es" ? "Gestionar todos los eventos" : "Manage all events"} <ForwardArrow />
+            </Link>
           </div>
-          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "72ch", textWrap: "pretty" }}>Starting within seven days and still unconfirmed. Confirming charges nothing new; cancelling returns every credit held, automatically.</p>
+          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "72ch", textWrap: "pretty" }}>
+            {lang === "fr" ? "Commence dans les sept jours et toujours non confirmé. Confirmer ne facture rien de nouveau ; annuler rembourse chaque crédit détenu, automatiquement." : lang === "es" ? "Comienza en los próximos siete días y aún sin confirmar. Confirmar no cobra nada nuevo; cancelar devuelve cada crédito retenido automáticamente." : "Starting within seven days and still unconfirmed. Confirming charges nothing new; cancelling returns every credit held, automatically."}
+          </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "11px" }}>
-            {decisions.length === 0 && <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>Nothing waiting.</div>}
+            {decisions.length === 0 && <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>{lang === "fr" ? "Rien en attente." : lang === "es" ? "Nada pendiente." : "Nothing waiting."}</div>}
             {decisions.map((d: any, idx: number) => (
               <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "6px", background: "#fffdfa", padding: "15px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "18px", flexWrap: "wrap" }}>
                 <div style={{ flex: "1 1 300px" }}>
@@ -256,11 +266,11 @@ export default function AdminDashboardPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", fontVariantNumeric: "tabular-nums", color: d.countColor }}>{d.count}</div>
-                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)" }}>Booked / minimum</div>
+                    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "10px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.55)" }}>{lang === "fr" ? "Réservé / minimum" : lang === "es" ? "Reservado / mínimo" : "Booked / minimum"}</div>
                   </div>
                   <div style={{ display: "flex", gap: "9px" }}>
-                    <button type="button" onClick={() => handleQuickConfirm(d.id)} disabled={actionRunning === d.id} style={{ border: "1px solid #568b05", background: "transparent", color: "#3f6604", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>Confirm</button>
-                    <button type="button" onClick={() => handleQuickCancel(d.id)} disabled={actionRunning === d.id} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>Cancel &amp; refund</button>
+                    <button type="button" onClick={() => handleQuickConfirm(d.id)} disabled={actionRunning === d.id} style={{ border: "1px solid #568b05", background: "transparent", color: "#3f6604", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>{lang === "fr" ? "Confirmer" : lang === "es" ? "Confirmar" : "Confirm"}</button>
+                    <button type="button" onClick={() => handleQuickCancel(d.id)} disabled={actionRunning === d.id} style={{ border: "1px solid rgba(57,41,42,0.3)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", cursor: "pointer" }}>{lang === "fr" ? "Annuler et rembourser" : lang === "es" ? "Cancelar y reembolsar" : "Cancel & refund"}</button>
                   </div>
                 </div>
               </div>
@@ -272,11 +282,15 @@ export default function AdminDashboardPage() {
         <div style={{ border: "1px solid rgba(182,130,53,0.5)", borderRadius: "8px", background: "#fffdf6", padding: "clamp(18px,2.4vw,24px)", marginBottom: "18px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "11px", marginBottom: "5px" }}>
             <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", color: "rgba(57,41,42,0.4)", fontVariantNumeric: "tabular-nums" }}>02</span>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0 }}>Early warnings — {warnings.length} events at T-10</h2>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "23px", lineHeight: 1.2, margin: 0 }}>
+              {lang === "fr" ? `Avertissements — ${warnings.length} événements à J-10` : lang === "es" ? `Avisos previos — ${warnings.length} eventos a D-10` : `Early warnings — ${warnings.length} events at T-10`}
+            </h2>
           </div>
-          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "72ch", textWrap: "pretty" }}>Under half their minimum with ten days to go. Each one names the group most likely to want it, with a message ready for that thread.</p>
+          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "72ch", textWrap: "pretty" }}>
+            {lang === "fr" ? "Moins de la moitié du minimum à dix jours. Chacun nomme le groupe le plus susceptible de le vouloir, avec un message prêt pour ce fil." : lang === "es" ? "Menos de la mitad de su mínimo a diez días. Cada uno nombra el grupo con más probabilidades de quererlo, con un mensaje listo para ese hilo." : "Under half their minimum with ten days to go. Each one names the group most likely to want it, with a message ready for that thread."}
+          </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "11px" }}>
-            {warnings.length === 0 && <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>Nothing waiting.</div>}
+            {warnings.length === 0 && <div style={{ fontSize: "13px", color: "rgba(57,41,42,0.6)" }}>{lang === "fr" ? "Rien en attente." : lang === "es" ? "Nada pendiente." : "Nothing waiting."}</div>}
             {warnings.map((w: any, idx: number) => (
               <div key={idx} style={{ border: "1px solid rgba(57,41,42,0.14)", borderRadius: "6px", background: "#fffdfa", padding: "15px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "18px", flexWrap: "wrap" }}>
                 <div style={{ flex: "1 1 300px" }}>
@@ -290,7 +304,7 @@ export default function AdminDashboardPage() {
                     onClick={() => { setActiveDraftWarning(w); setCopiedDraft(false); }}
                     style={{ border: "1px solid #7b1f2c", background: "transparent", color: "#7b1f2c", borderRadius: "4px", padding: "8px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}
                   >
-                    Draft the message <ForwardArrow />
+                    {lang === "fr" ? "Brouillon du message" : lang === "es" ? "Borrador del mensaje" : "Draft the message"} <ForwardArrow />
                   </button>
                 </div>
               </div>

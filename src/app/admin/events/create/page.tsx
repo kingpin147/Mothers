@@ -90,8 +90,19 @@ export default function AdminCreateEventPage() {
         body: formData,
       });
 
+      if (!res.ok) {
+        if (res.status === 413) throw new Error("Image is too large. Please use an image under 10MB.");
+        let errText = "Failed to upload image.";
+        try {
+          const errData = await res.json();
+          if (errData.error) errText = errData.error;
+        } catch {
+          errText = `Server error: ${res.statusText || res.status}`;
+        }
+        throw new Error(errText);
+      }
       const data = await res.json();
-      if (!res.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.error || "Failed to upload image");
       }
 
@@ -349,6 +360,7 @@ export default function AdminCreateEventPage() {
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Neighbourhood <span style={{ color: "#7b1f2c" }}>*</span></label>
                   <select value={neighbourhood} onChange={(e) => setNeighbourhood(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}>
+                    <option>To be confirmed</option>
                     <option>Ciutat Vella</option>
                     <option>Eixample</option>
                     <option>Sants-Montjuïc</option>
@@ -362,6 +374,11 @@ export default function AdminCreateEventPage() {
                     <option>Online</option>
                     <option>Outside Barcelona</option>
                   </select>
+                  {neighbourhood === "To be confirmed" && (
+                    <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>
+                      Mothers see "Location to be confirmed". When you pick the real area, everyone booked gets an email with it.
+                    </div>
+                  )}
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>

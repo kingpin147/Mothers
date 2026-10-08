@@ -41,6 +41,7 @@ export interface ReplyItem {
   isAnonymous: boolean;
   heartsCount: number;
   isHearted: boolean;
+  neighbourhood: string;
 }
 
 const TOPIC_LABELS: Record<string, string> = {
@@ -228,6 +229,12 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
     } else if (authorPerson) {
       authorName = `${authorPerson.firstName || "Mother"} ${authorPerson.lastName ? authorPerson.lastName[0] + "." : ""}`.trim();
       initial = authorPerson.firstName ? authorPerson.firstName[0].toUpperCase() : "M";
+      const authorMember = await db.query.member.findFirst({
+        where: eq(member.personId, p.personId),
+      });
+      if (authorMember?.neighbourhood) {
+        neighbourhood = authorMember.neighbourhood;
+      }
     }
 
     const rawReplies = await db.query.circleReply.findMany({
@@ -243,11 +250,18 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
 
       let rAuthor = "A mother";
       let rInitial = "M";
+      let rNeighbourhood = r.anonymousArea || "Barcelona";
       if (r.isAnonymous) {
         rAuthor = r.anonymousArea ? `A mother in ${r.anonymousArea}` : "A mother";
       } else if (replyPerson) {
         rAuthor = `${replyPerson.firstName || "Mother"} ${replyPerson.lastName ? replyPerson.lastName[0] + "." : ""}`.trim();
         rInitial = replyPerson.firstName ? replyPerson.firstName[0].toUpperCase() : "M";
+        const replyMember = await db.query.member.findFirst({
+          where: eq(member.personId, r.personId),
+        });
+        if (replyMember?.neighbourhood) {
+          rNeighbourhood = replyMember.neighbourhood;
+        }
       }
 
       replies.push({
@@ -260,6 +274,7 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
         isAnonymous: r.isAnonymous,
         heartsCount: r.heartsCount || 0,
         isHearted: userHeartedReplyIds.has(r.id),
+        neighbourhood: rNeighbourhood,
       });
     }
 
@@ -401,6 +416,11 @@ export async function createCirclePost(data: {
     throw new Error("Parental photo consent is required when posting images.");
   }
 
+  const authorMember = await db.query.member.findFirst({
+    where: eq(member.personId, personId),
+  });
+  const realArea = authorMember?.neighbourhood || data.anonymousArea || "Barcelona";
+
   const [newPost] = await db
     .insert(circlePost)
     .values({
@@ -410,7 +430,7 @@ export async function createCirclePost(data: {
       photos,
       photoConsent: photos.length > 0 ? (data.photoConsent ?? false) : true,
       isAnonymous: data.isAnonymous ?? false,
-      anonymousArea: data.anonymousArea || "Barcelona",
+      anonymousArea: realArea,
       status: "visible",
     })
     .returning();
@@ -421,7 +441,7 @@ export async function createCirclePost(data: {
 
   const isAnon = data.isAnonymous ?? false;
   const authorName = isAnon
-    ? (data.anonymousArea ? `A mother in ${data.anonymousArea}` : "A mother in Barcelona")
+    ? (realArea ? `A mother in ${realArea}` : "A mother in Barcelona")
     : `${authorPerson?.firstName || "Mother"} ${authorPerson?.lastName ? authorPerson.lastName[0] + "." : ""}`.trim();
   const initial = isAnon ? "·" : (authorPerson?.firstName ? authorPerson.firstName[0].toUpperCase() : "M");
 
@@ -429,7 +449,7 @@ export async function createCirclePost(data: {
     id: newPost.id,
     author: authorName,
     isAnonymous: isAnon,
-    anonymousArea: data.anonymousArea || "Barcelona",
+    anonymousArea: realArea,
     initial,
     topic: newPost.topic,
     topicLabel: TOPIC_LABELS[newPost.topic] || newPost.topic,
@@ -442,7 +462,7 @@ export async function createCirclePost(data: {
     repliesCount: 0,
     createdAt: newPost.createdAt.toISOString(),
     meta: "Just now",
-    neighbourhood: data.anonymousArea || "Barcelona",
+    neighbourhood: realArea,
     isExpert: newPost.isPartnerExpert,
     status: newPost.status,
     replies: [],
@@ -501,6 +521,11 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     }
   }
 
+  const replyMember = await db.query.member.findFirst({
+    where: eq(member.personId, personId),
+  });
+  const realArea = replyMember?.neighbourhood || (session.user as any).neighbourhood || "Barcelona";
+
   const [newReply] = await db
     .insert(circleReply)
     .values({
@@ -508,6 +533,7 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
       personId,
       body: body.trim(),
       isAnonymous,
+      anonymousArea: realArea,
       status: "visible",
     })
     .returning();
@@ -539,6 +565,7 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     isAnonymous: newReply.isAnonymous,
     heartsCount: 0,
     isHearted: false,
+    neighbourhood: realArea,
   };
 
   revalidatePath("/gazette");
