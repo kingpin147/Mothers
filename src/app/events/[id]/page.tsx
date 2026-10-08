@@ -126,7 +126,7 @@ export default function EventDetailPage() {
       : targetEv.creditCost;
     const isFree = viewerCost === 0 || (targetEv.isFreeWalk && (isMember || !isLive));
 
-    // Check credits if not free event
+    // Check credits if not free event - BLOCKER: must check BEFORE booking attempt
     if (!isFree && currentCreditBalance < viewerCost) {
       setTopUpEvent(targetEv);
       return;
@@ -409,8 +409,8 @@ export default function EventDetailPage() {
                 : isAlreadyBooked
                 ? (ev.meetingPointNote || ev.venueAddress || ev.venueName || (lang === "en" ? "Meeting point details will be sent via email." : "Los detalles del punto de encuentro se enviarán por email."))
                 : (lang === "en"
-                    ? `The exact address is sent when you book. ${ev.neighbourhood || "Barcelona"}, a short walk from public transport.`
-                    : `La dirección exacta se envía al reservar. ${ev.neighbourhood || "Barcelona"}, cerca del transporte público.`)}
+                    ? `The exact address is sent when you book.${ev.neighbourhood ? ` ${ev.neighbourhood}, near public transport.` : ""}`
+                    : `La dirección exacta se envía al reservar.${ev.neighbourhood ? ` ${ev.neighbourhood}, cerca del transporte público.` : ""}`)}
             </p>
           </div>
 
@@ -574,7 +574,14 @@ export default function EventDetailPage() {
                 <button
                   type="button"
                   disabled={actionLoading}
-                  onClick={() => handleMemberBook(ev)}
+                  onClick={() => {
+                    // BLOCKER FIX: If insufficient credits, go directly to top-up instead of attempting book
+                    if (!isFree && currentCreditBalance < viewerCost) {
+                      setTopUpEvent(ev);
+                    } else {
+                      handleMemberBook(ev);
+                    }
+                  }}
                   style={{
                     width: "100%",
                     border: "1px solid #7b1f2c",
@@ -590,6 +597,8 @@ export default function EventDetailPage() {
                 >
                   {actionLoading
                     ? (lang === "en" ? "Booking…" : "Reservando…")
+                    : (!isFree && currentCreditBalance < viewerCost)
+                    ? (lang === "en" ? "Top up to book" : "Recargar para reservar")
                     : (lang === "en" ? "Book" : "Reservar")}
                 </button>
               )

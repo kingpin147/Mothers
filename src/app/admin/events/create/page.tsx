@@ -57,6 +57,7 @@ export default function AdminCreateEventPage() {
   // Toggles & Arrays
   const [langs, setLangs] = useState<string[]>(["English"]);
   const [stages, setStages] = useState<string[]>(["Babies"]);
+  const [childcare, setChildcare] = useState<string>("child_inclusive");
   const [nonMemberOpensAt, setNonMemberOpensAt] = useState("");
   const [freeEvent, setFreeEvent] = useState(false);
   const [noCeiling, setNoCeiling] = useState(false);
@@ -296,6 +297,7 @@ export default function AdminCreateEventPage() {
       memberCredits: parsedMemberCredits,
       nonMemberCredits: parsedNonMemberCredits,
       cancellationWindowHours: parseInt(cancellationWindowHours) || 0,
+      childcare,
       needsHost,
       // 0 = uncapped (no ceiling). When noCeiling is checked, store 0 explicitly.
       capacityMember: noCeiling ? 0 : (memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces)),
@@ -466,6 +468,39 @@ export default function AdminCreateEventPage() {
                 return <button key={s} type="button" onClick={() => toggleStage(s)} style={{ border: `1px solid ${c.border}`, background: c.bg, color: c.color, borderRadius: "16px", padding: "8px 15px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>{s}</button>
               })}
             </div>
+            
+            {/* Children Welcome / Mothers Only Selection */}
+            <div style={{ marginBottom: "18px" }}>
+              <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "8px" }}>Children</label>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px" }}>
+                  <input 
+                    type="radio" 
+                    name="childcare" 
+                    value="child_inclusive" 
+                    checked={childcare === "child_inclusive"} 
+                    onChange={(e) => setChildcare(e.target.value)} 
+                    style={{ width: "16px", height: "16px", accentColor: "#7b1f2c" }} 
+                  />
+                  <span>Children welcome</span>
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px" }}>
+                  <input 
+                    type="radio" 
+                    name="childcare" 
+                    value="adults_only" 
+                    checked={childcare === "adults_only"} 
+                    onChange={(e) => setChildcare(e.target.value)} 
+                    style={{ width: "16px", height: "16px", accentColor: "#7b1f2c" }} 
+                  />
+                  <span>Mothers only</span>
+                </label>
+              </div>
+              <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>
+                Shown on the card and the event page, and used by the "Kids welcome / Mothers only" filter.
+              </div>
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Members-first date (optional)</label>

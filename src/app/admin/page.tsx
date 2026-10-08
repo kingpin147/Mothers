@@ -158,7 +158,7 @@ export default function AdminDashboardPage() {
       title: 'Members & subscriptions',
       body: 'No applications — mothers subscribe from My Account once membership is on. See plans, credits and renewals.',
       cta: 'Open members →',
-      href: '/admin/subscribers'
+      href: '/admin/members'
     },
     {
       kicker: 'QUEUE 02 · EVENTS',
