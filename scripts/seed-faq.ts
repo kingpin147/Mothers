@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { db } from "../src/db";
 import { faqItem } from "../src/db/schema";
 import { CANONICAL_FAQS } from "../src/lib/faqData";

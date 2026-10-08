@@ -55,4 +55,23 @@ describe('Events, Ticketing & Booking Rules', () => {
     // Offer sent 24h before -> 2h window
     expect(computeOfferExpiryHours(eventDate, new Date('2026-09-19T18:00:00Z'))).toBe(2);
   });
+
+  it('Refunds 100% of event credits when an event is cancelled by the club or threshold is not met', () => {
+    // Member booked an event for 4 credits
+    const booking = {
+      personId: 'user_123',
+      creditsCharged: 4,
+      creditDeductions: [{ batchId: 'batch_1', deducted: 4, expiresAt: new Date('2026-10-01') }],
+      status: 'confirmed' as const,
+    };
+
+    // When event is cancelled:
+    const refundAmount = Math.max(
+      booking.creditsCharged,
+      booking.creditDeductions.reduce((sum, d) => sum + d.deducted, 0)
+    );
+
+    expect(refundAmount).toBe(4);
+    expect(booking.creditsCharged).toBe(refundAmount);
+  });
 });

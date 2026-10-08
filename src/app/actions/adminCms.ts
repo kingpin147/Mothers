@@ -1124,6 +1124,9 @@ export async function getAdminFaqs() {
       answerEn: faq.aEn,
       questionEs: faq.qEs,
       answerEs: faq.aEs,
+      questionFr: faq.qFr || "",
+      answerFr: faq.aFr || "",
+      policyQuote: faq.policyQuote || null,
       sortOrder: index,
       active: true,
       isPublished: true,
@@ -1133,6 +1136,35 @@ export async function getAdminFaqs() {
   }
 
   return { success: true, faqs };
+}
+
+export async function reseedCanonicalFaqs() {
+  try {
+    await verifyAdminRole();
+    const { CANONICAL_FAQS } = await import("@/lib/faqData");
+    await db.delete(faqItem);
+    const seedValues = CANONICAL_FAQS.map((faq, index) => ({
+      groupName: faq.group,
+      category: faq.group,
+      questionEn: faq.qEn,
+      answerEn: faq.aEn,
+      questionEs: faq.qEs,
+      answerEs: faq.aEs,
+      questionFr: faq.qFr || "",
+      answerFr: faq.aFr || "",
+      policyQuote: faq.policyQuote || null,
+      sortOrder: index,
+      active: true,
+      isPublished: true,
+    }));
+    await db.insert(faqItem).values(seedValues);
+    const faqs = await db.select().from(faqItem).orderBy(faqItem.sortOrder);
+    revalidatePath("/faq");
+    revalidatePath("/admin/faq");
+    return { success: true, faqs, count: seedValues.length };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "RESEED_FAQS_FAILED" };
+  }
 }
 
 export async function saveFaq(rawData: {

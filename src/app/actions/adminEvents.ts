@@ -668,12 +668,14 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
         .update(booking)
         .set({
           status: "cancelled_event",
+          cancelledAt: new Date(),
+          releaseReason: "event_cancelled",
           updatedAt: new Date(),
         })
         .where(eq(booking.id, b.id));
 
-      if (b.creditsCharged > 0 && b.personId) {
-        await refundBookingCredits(b, b.creditsCharged, tx);
+      if (b.personId) {
+        await refundBookingCredits(b, undefined, tx);
       }
 
       if (p && p.email) {

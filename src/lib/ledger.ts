@@ -215,7 +215,12 @@ export async function refundBookingCredits(
   tx: any = db
 ): Promise<Array<{ batchId: string; amount: number; expiresAt: Date }>> {
   if (!bookingRow.personId) return [];
-  const amountToRefund = refundAmount !== undefined ? refundAmount : (bookingRow.creditsCharged || 0);
+  const deductionsSum = Array.isArray(bookingRow.creditDeductions)
+    ? bookingRow.creditDeductions.reduce((acc, d) => acc + (d.deducted || 0), 0)
+    : 0;
+  const charged = bookingRow.creditsCharged || 0;
+  const defaultAmount = Math.max(charged, deductionsSum);
+  const amountToRefund = refundAmount !== undefined ? refundAmount : defaultAmount;
   if (amountToRefund <= 0) return [];
 
   const results: Array<{ batchId: string; amount: number; expiresAt: Date }> = [];

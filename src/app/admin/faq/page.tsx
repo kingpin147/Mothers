@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getAdminFaqs, saveFaq, toggleFaqActive, deleteFaq } from "@/app/actions/adminCms";
+import { getAdminFaqs, saveFaq, toggleFaqActive, deleteFaq, reseedCanonicalFaqs } from "@/app/actions/adminCms";
 import { FAQ_GROUPS } from "@/lib/faqData";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
 
@@ -17,6 +17,7 @@ const POLICY_RE = /€\s?\d|\b\d+\s?(credits?|months?|hours?|days?)\b/i;
 export default function AdminFaqPage() {
   const [faqs, setFaqs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reseeding, setReseeding] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -206,6 +207,19 @@ export default function AdminFaqPage() {
     }
   };
 
+  const handleReseed = async () => {
+    if (!confirm("Reset and reseed all FAQ items with the 23 canonical pre-membership questions & complete translations (EN, ES, FR)? Any custom modifications will be reset.")) return;
+    setReseeding(true);
+    const res = await reseedCanonicalFaqs();
+    setReseeding(false);
+    if (res.success) {
+      fetchFaqs();
+      alert("Successfully reset & reseeded the 23 canonical FAQs across English, Spanish, and French!");
+    } else {
+      alert(res.error || "Failed to reseed FAQs.");
+    }
+  };
+
   const handleReorder = async (item: any, direction: number) => {
     const groupName = item.category || "Joining";
     const sameGroup = faqs.filter((f) => (f.category || "Joining") === groupName);
@@ -321,7 +335,7 @@ export default function AdminFaqPage() {
               missing, the page shows the English — so a gap is visible here, never on the page.
             </p>
           </div>
-          <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", alignItems: "center" }}>
             <Link
               href="/faq"
               style={{
@@ -338,6 +352,25 @@ export default function AdminFaqPage() {
             >
               View the public page
             </Link>
+            <button
+              type="button"
+              onClick={handleReseed}
+              disabled={reseeding}
+              style={{
+                border: "1px solid rgba(86,139,5,0.4)",
+                background: "rgba(86,139,5,0.08)",
+                color: "#3b5e04",
+                borderRadius: "4px",
+                padding: "9px 15px",
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 600,
+                fontSize: "13.5px",
+                cursor: reseeding ? "wait" : "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {reseeding ? "Reseeding..." : "Reset / Reseed Canonical FAQs"}
+            </button>
             <button
               type="button"
               onClick={() => setComposing(!composing)}
@@ -1437,7 +1470,9 @@ export default function AdminFaqPage() {
                                     resize: "vertical",
                                   }}
                                 />
-                              </div>\n<div>
+                              </div>
+
+                              <div>
                                 <div
                                   style={{
                                     fontFamily: "'Cormorant Garamond', serif",

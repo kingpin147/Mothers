@@ -15,6 +15,7 @@ import {
 import { eq, desc, and, or, isNotNull, sql, gte, lte, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { sanitizeErrorMessage } from "@/lib/errors";
+import { refundBookingCredits } from "@/lib/ledger";
 
 async function safeQuery<T>(fn: () => Promise<T>, fallback: T, timeoutMs = 4000): Promise<T> {
   let timer: NodeJS.Timeout | null = null;
@@ -752,7 +753,7 @@ export async function runManualCron(jobKey: "threshold-decisions" | "expire-cred
         });
         processedCount++;
       } else if (ev.decisionAt && new Date(ev.decisionAt) <= now) {
-        // Threshold not met at decision date: cancel and release held credits
+        // Threshold not met at decision date: cancel and refund all held/charged credits
         await db.transaction(async (tx) => {
           await tx
             .update(event)
@@ -764,14 +765,96 @@ export async function runManualCron(jobKey: "threshold-decisions" | "expire-cred
             })
             .where(eq(event.id, ev.id));
 
-          await tx
-            .update(booking)
-            .set({
-              status: "cancelled_event",
-              cancelledAt: new Date(),
-              updatedAt: new Date(),
+          // 1. Fetch all active bookings to refund credits
+          const activeBookingsWithPerson = await tx
+            .select({
+              booking: booking,
+              person: person,
             })
-            .where(and(eq(booking.eventId, ev.id), eq(booking.status, "held")));
+            .from(booking)
+            .leftJoin(person, eq(booking.personId, person.id))
+            .where(
+              and(
+                eq(booking.eventId, ev.id),
+                sql`${booking.status} IN ('held', 'confirmed')`
+              )
+            );
+
+          for (const row of activeBookingsWithPerson) {
+            const b = row.booking;
+            const p = row.person;
+
+            await tx
+              .update(booking)
+              .set({
+                status: "cancelled_event",
+                cancelledAt: new Date(),
+                releaseReason: "threshold_not_met",
+                updatedAt: new Date(),
+              })
+              .where(eq(booking.id, b.id));
+
+            if (b.personId) {
+              await refundBookingCredits(b, undefined, tx);
+            }
+
+            if (p && p.email) {
+              const { queueAndSendEmail } = await import("@/lib/brevo");
+              await queueAndSendEmail({
+                personId: p.id,
+                toEmail: p.email,
+                toName: p.firstName || "Member",
+                templateKey: "event_cancelled",
+                dedupeKey: `event_cancel_${ev.id}_${b.id}_${Date.now().toString().slice(0, 8)}`,
+                subject: `Update regarding ${ev.title}`,
+                htmlContent: `
+<!DOCTYPE html>
+<html lang="en">
+<body style="margin:0;padding:0;background-color:#efeae1;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
+<tr>
+<td align="center" style="padding:32px 12px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#faf7f1;border:1px solid #ddd4c6;">
+<tr>
+<td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
+<p style="margin:0 0 16px;">Hello <span style="color:#7b1f2c;">${p.firstName || 'Member'}</span>,</p>
+<p style="margin:0 0 16px;">We're sorry — <strong style="font-weight:normal;color:#7b1f2c;">${ev.title}</strong> will not run as it did not reach the minimum number of participants required. We would rather cancel than seat you at a table of three that was meant to hold ten.</p>
+<p style="margin:0;">You do not need to do anything. Your credits have been returned in full to your account wallet.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>
+                `,
+                isTransactional: true,
+              });
+            }
+          }
+
+          // 2. Resolve any bookings awaiting replacement
+          const pendingReturns = await tx.query.booking.findMany({
+            where: and(
+              eq(booking.eventId, ev.id),
+              eq(booking.pendingReturnState, "awaiting_replacement")
+            ),
+          });
+
+          for (const pb of pendingReturns) {
+            await tx
+              .update(booking)
+              .set({
+                pendingReturnState: "settled_returned",
+                updatedAt: new Date(),
+              })
+              .where(eq(booking.id, pb.id));
+
+            if (pb.pendingReturnCredits > 0 && pb.personId) {
+              await refundBookingCredits(pb, pb.pendingReturnCredits, tx);
+            }
+          }
 
           await tx.insert(auditLog).values({
             actorType: "admin",
@@ -779,7 +862,7 @@ export async function runManualCron(jobKey: "threshold-decisions" | "expire-cred
             action: "manual_threshold_cancel",
             entity: "event",
             entityId: ev.id,
-            after: { activeBookings, minRequired: ev.minToConfirm },
+            after: { activeBookings, minRequired: ev.minToConfirm, refundedBookingsCount: activeBookingsWithPerson.length },
           });
         });
         processedCount++;
