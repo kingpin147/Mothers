@@ -136,3 +136,9 @@ export async function togglePauseAuthorAccount(personId: string, pause: boolean,
   revalidatePath("/admin/reports");
   return { success: true };
 }
+
+export {
+  deleteGazettePostAdmin,
+  deleteGazetteCommentAdmin,
+  getAllGazettePublicationsAdmin,
+} from "@/app/actions/gazette";

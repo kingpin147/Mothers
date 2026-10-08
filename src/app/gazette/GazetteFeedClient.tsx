@@ -8,6 +8,7 @@ import { tStr } from "@/lib/i18nEngine";
 import {
   PostItem,
   ReplyItem,
+  getCirclePosts,
   createCirclePost,
   createCircleReply,
   toggleCircleHeart,
@@ -18,17 +19,17 @@ import {
 import { compressImageClient } from "@/lib/imageCompression";
 
 const TOPICS = [
-  { id: "all", labelEn: "Everything", labelEs: "Todo" },
-  { id: "pregnancy", labelEn: "Pregnancy & birth", labelEs: "Embarazo y parto" },
-  { id: "feeding", labelEn: "Feeding", labelEs: "Lactancia y comida" },
-  { id: "sleep", labelEn: "Sleep", labelEs: "Sueño" },
-  { id: "postpartum", labelEn: "Postpartum", labelEs: "Puerperio" },
-  { id: "schools", labelEn: "Nurseries & schools", labelEs: "Escuelas y guarderías" },
-  { id: "work", labelEn: "Work & money", labelEs: "Trabajo y dinero" },
-  { id: "bcn", labelEn: "Life in Barcelona", labelEs: "Vida en Barcelona" },
-  { id: "friends", labelEn: "Meetups & friends", labelEs: "Quedadas y amigas" },
-  { id: "recs", labelEn: "Recommendations", labelEs: "Recomendaciones" },
-  { id: "gear", labelEn: "Gear & Swap", labelEs: "Cosas y trueque" },
+  { id: "all", labelEn: "Everything", labelEs: "Todo", labelFr: "Tout" },
+  { id: "pregnancy", labelEn: "Pregnancy & birth", labelEs: "Embarazo y parto", labelFr: "Grossesse & accouchement" },
+  { id: "feeding", labelEn: "Feeding", labelEs: "Lactancia y comida", labelFr: "Alimentation" },
+  { id: "sleep", labelEn: "Sleep", labelEs: "Sueño", labelFr: "Sommeil" },
+  { id: "postpartum", labelEn: "Postpartum", labelEs: "Puerperio", labelFr: "Post-partum" },
+  { id: "schools", labelEn: "Nurseries & schools", labelEs: "Escuelas y guarderías", labelFr: "Crèches & écoles" },
+  { id: "work", labelEn: "Work & money", labelEs: "Trabajo y dinero", labelFr: "Travail & argent" },
+  { id: "bcn", labelEn: "Life in Barcelona", labelEs: "Vida en Barcelona", labelFr: "Vie à Barcelone" },
+  { id: "friends", labelEn: "Meetups & friends", labelEs: "Quedadas y amigas", labelFr: "Rencontres & amies" },
+  { id: "recs", labelEn: "Recommendations", labelEs: "Recomendaciones", labelFr: "Recommandations" },
+  { id: "gear", labelEn: "Gear & Swap", labelEs: "Cosas y trueque", labelFr: "Affaires & troc" },
 ];
 
 const COMPOSER_TOPIC_IDS = [
@@ -45,10 +46,10 @@ const COMPOSER_TOPIC_IDS = [
 ];
 
 const REPORT_REASONS = [
-  { id: "unkind", label: "Unkind or judgmental" },
-  { id: "selling_spam", label: "Selling or self-promotion" },
-  { id: "unsafe_private", label: "Unsafe or private information" },
-  { id: "child_photo_no_consent", label: "Child photo without consent" },
+  { id: "unkind", labelEn: "Unkind or judgmental", labelEs: "Desagradable o crítico", labelFr: "Désobligeant ou jugeant" },
+  { id: "selling_spam", labelEn: "Selling or self-promotion", labelEs: "Venta o autopromoción", labelFr: "Vente ou auto-promotion" },
+  { id: "unsafe_private", labelEn: "Unsafe or private information", labelEs: "Información privada o insegura", labelFr: "Informations privées ou dangereuses" },
+  { id: "child_photo_no_consent", labelEn: "Child photo without consent", labelEs: "Foto de menor sin consentimiento", labelFr: "Photo d'enfant sans consentement" },
 ];
 
 export function GazetteFeedClient({
@@ -70,13 +71,33 @@ export function GazetteFeedClient({
     return p === "saved" ? "saved" : "all";
   });
   const [customTagFilter, setCustomTagFilter] = useState<string | null>(null);
+  const [loadingFilter, setLoadingFilter] = useState(false);
 
   useEffect(() => {
     const f = searchParams?.get("filter") || searchParams?.get("topic");
     if (f === "saved") {
       setSelectedFilter("saved");
+      loadFeedForTopic("saved");
     }
   }, [searchParams]);
+
+  const loadFeedForTopic = async (topicId: string) => {
+    setLoadingFilter(true);
+    try {
+      const freshPosts = await getCirclePosts(topicId);
+      setPosts(freshPosts);
+    } catch {
+      // Keep existing posts
+    } finally {
+      setLoadingFilter(false);
+    }
+  };
+
+  const handleFilterClick = async (topicId: string) => {
+    setSelectedFilter(topicId);
+    setCustomTagFilter(null);
+    await loadFeedForTopic(topicId);
+  };
 
   // Composer State
   const [draft, setDraft] = useState("");
@@ -92,7 +113,7 @@ export function GazetteFeedClient({
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [openReportPostId, setOpenReportPostId] = useState<string | null>(null);
   const [reportedPostIds, setReportedPostIds] = useState<Set<string>>(new Set());
-  const [loginPromptTargetId, setLoginPromptTargetId] = useState<string | null>(null);
+  const [loginPrompt, setLoginPrompt] = useState<{ postId: string; action: "like" | "save" } | null>(null);
 
   const [, startTransition] = useTransition();
 
@@ -101,11 +122,17 @@ export function GazetteFeedClient({
     if (!files || files.length === 0) return;
 
     if (draftPhotos.length + files.length > 4) {
-      setNotice({ text: "Maximum 4 photos per post.", color: "#993842" });
+      setNotice({
+        text: lang === "fr" ? "Maximum 4 photos par publication." : lang === "es" ? "Máximo 4 fotos por publicación." : "Maximum 4 photos per post.",
+        color: "#993842",
+      });
       return;
     }
 
-    setNotice({ text: "Compressing photos...", color: "rgba(57,41,42,0.7)" });
+    setNotice({
+      text: lang === "fr" ? "Compression des photos..." : lang === "es" ? "Comprimiendo fotos..." : "Compressing photos...",
+      color: "rgba(57,41,42,0.7)",
+    });
 
     try {
       const compressedList: string[] = [];
@@ -128,28 +155,36 @@ export function GazetteFeedClient({
 
   const handleCreatePost = async () => {
     if (!currentUser) {
-      window.location.href = "/account/login";
+      window.location.href = "/account/login?redirect=/gazette&mode=register";
       return;
     }
 
     if (!eligibility.canPost) {
       if (eligibility.reason === "membership_required") {
         setNotice({
-          text: lang === "en"
-            ? "You have reached the 3-post limit for non-members. Become a member for unlimited conversations in La Gazette."
-            : "Has alcanzado el límite de 3 aportaciones para no socias. Hazte socia para acceso ilimitado a La Gazette.",
+          text: lang === "fr"
+            ? "Vous avez atteint la limite de 3 publications pour les non-membres. Devenez membre pour un accès illimité à La Gazette."
+            : lang === "es"
+            ? "Has alcanzado el límite de 3 aportaciones para no socias. Hazte socia para acceso ilimitado a La Gazette."
+            : "You have reached the 3-post limit for non-members. Become a member for unlimited conversations in La Gazette.",
           color: "#7b1f2c",
         });
       } else if (eligibility.reason === "booking_required") {
         setNotice({
-          text: lang === "en"
-            ? "Anyone can read. Open a free account to post."
-            : "Cualquiera puede leer. Abre una cuenta gratuita para publicar.",
+          text: lang === "fr"
+            ? "Tout le monde peut lire. Ouvrez un compte gratuit pour publier."
+            : lang === "es"
+            ? "Cualquiera puede leer. Abre una cuenta gratuita para publicar."
+            : "Anyone can read. Open a free account to post.",
           color: "#7b1f2c",
         });
       } else {
         setNotice({
-          text: lang === "en" ? "Your account is paused from posting." : "Tu cuenta no tiene permisos para publicar actualmente.",
+          text: lang === "fr"
+            ? "Votre compte n'a pas l'autorisation de publier pour le moment."
+            : lang === "es"
+            ? "Tu cuenta no tiene permisos para publicar actualmente."
+            : "Your account is paused from posting.",
           color: "#993842",
         });
       }
@@ -157,12 +192,22 @@ export function GazetteFeedClient({
     }
 
     if (draft.trim().length < 10) {
-      setNotice({ text: "Please write at least 10 characters.", color: "#993842" });
+      setNotice({
+        text: lang === "fr" ? "Veuillez écrire au moins 10 caractères." : lang === "es" ? "Por favor escribe al menos 10 caracteres." : "Please write at least 10 characters.",
+        color: "#993842",
+      });
       return;
     }
 
     if (draftPhotos.length > 0 && !photoConsent) {
-      setNotice({ text: "Please confirm parental permission for photos.", color: "#993842" });
+      setNotice({
+        text: lang === "fr"
+          ? "Veuillez confirmer l'autorisation parentale pour les photos."
+          : lang === "es"
+          ? "Por favor confirma el permiso de los padres para las fotos."
+          : "Please confirm parental permission for photos.",
+        color: "#993842",
+      });
       return;
     }
 
@@ -184,7 +229,10 @@ export function GazetteFeedClient({
         setDraft("");
         setDraftPhotos([]);
         setIsAnon(false);
-        setNotice({ text: lang === "en" ? "Posted to La Gazette." : "Publicado en La Gazette.", color: "#3b5e04" });
+        setNotice({
+          text: lang === "fr" ? "Publié dans La Gazette." : lang === "es" ? "Publicado en La Gazette." : "Posted to La Gazette.",
+          color: "#3b5e04",
+        });
         setTimeout(() => setNotice(null), 4000);
       }
     } catch (err: any) {
@@ -196,7 +244,7 @@ export function GazetteFeedClient({
 
   const handleToggleHeart = async (postId: string) => {
     if (!currentUser) {
-      window.location.href = "/account/login";
+      setLoginPrompt({ postId, action: "like" });
       return;
     }
 
@@ -239,7 +287,7 @@ export function GazetteFeedClient({
 
   const handleToggleReplyHeart = async (postId: string, replyId: string) => {
     if (!currentUser) {
-      window.location.href = "/account/login";
+      setLoginPrompt({ postId, action: "like" });
       return;
     }
 
@@ -297,7 +345,7 @@ export function GazetteFeedClient({
 
   const handleToggleSave = async (postId: string) => {
     if (!currentUser) {
-      setLoginPromptTargetId(postId);
+      setLoginPrompt({ postId, action: "save" });
       return;
     }
 
@@ -338,15 +386,27 @@ export function GazetteFeedClient({
     if (!text) return;
 
     if (!currentUser) {
-      window.location.href = "/account/login";
+      window.location.href = "/account/login?redirect=/gazette&mode=register";
       return;
     }
 
     if (!eligibility.canPost) {
       if (eligibility.reason === "membership_required") {
-        alert(lang === "en" ? "You have reached the 3-post limit for non-members. Become a member for unlimited replies." : "Has alcanzado el límite de 3 aportaciones para no socias. Hazte socia para acceso ilimitado.");
+        alert(
+          lang === "fr"
+            ? "Vous avez atteint la limite de 3 publications pour les non-membres. Devenez membre pour des réponses illimitées."
+            : lang === "es"
+            ? "Has alcanzado el límite de 3 aportaciones para no socias. Hazte socia para acceso ilimitado."
+            : "You have reached the 3-post limit for non-members. Become a member for unlimited replies."
+        );
       } else {
-        alert(lang === "en" ? "Replying requires an active account." : "Responder requiere una cuenta activa.");
+        alert(
+          lang === "fr"
+            ? "Répondre nécessite un compte actif."
+            : lang === "es"
+            ? "Responder requiere una cuenta activa."
+            : "Replying requires an active account."
+        );
       }
       return;
     }
@@ -364,7 +424,7 @@ export function GazetteFeedClient({
       author: replyAuthor,
       initial: rInitial,
       body: text,
-      meta: "Just now",
+      meta: lang === "fr" ? "À l'instant" : lang === "es" ? "Ahora mismo" : "Just now",
       isExpert: false,
       isAnonymous: false,
       heartsCount: 0,
@@ -452,6 +512,14 @@ export function GazetteFeedClient({
     return p.topic === selectedFilter;
   });
 
+  const getTopicLabel = (topicId: string) => {
+    const topicObj = TOPICS.find((t) => t.id === topicId);
+    if (!topicObj) return topicId;
+    if (lang === "fr") return topicObj.labelFr;
+    if (lang === "es") return topicObj.labelEs;
+    return topicObj.labelEn;
+  };
+
   return (
     <div style={{ backgroundColor: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
       {/* Page Header */}
@@ -481,9 +549,11 @@ export function GazetteFeedClient({
           {tStr("Talk to mothers who get it.", lang)}
         </h1>
         <p style={{ fontSize: "16.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", maxWidth: "58ch", margin: 0 }}>
-          {lang === "en"
-            ? "Share what you are living, ask for advice, cheer each other on. Open to everyone to read and post — anonymously if you need to."
-            : "Comparte lo que estás viviendo, pide consejo y apóyate en las demás. Abierto para que todas lean y publiquen — de forma anónima si lo necesitas."}
+          {lang === "fr"
+            ? "Partagez ce que vous vivez, demandez conseil et soutenez-vous les unes les autres. Ouvert à toutes pour lire et publier — de façon anonyme si vous en ressentez le besoin."
+            : lang === "es"
+            ? "Comparte lo que estás viviendo, pide consejo y apóyate en las demás. Abierto para que todas lean y publiquen — de forma anónima si lo necesitas."
+            : "Share what you are living, ask for advice, cheer each other on. Open to everyone to read and post — anonymously if you need to."}
         </p>
       </section>
 
@@ -546,12 +616,16 @@ export function GazetteFeedClient({
                   }}
                   placeholder={
                     isUserSignedIn
-                      ? (lang === "en"
-                          ? "What would you ask the room tonight?"
-                          : "¿Qué preguntarías a la comunidad esta noche?")
-                      : (lang === "en"
-                          ? "Open a free account to post."
-                          : "Abre una cuenta gratuita para publicar.")
+                      ? (lang === "fr"
+                          ? "Que demanderiez-vous à la communauté ce soir ?"
+                          : lang === "es"
+                          ? "¿Qué preguntarías a la comunidad esta noche?"
+                          : "What would you ask the room tonight?")
+                      : (lang === "fr"
+                          ? "Ouvrez un compte gratuit pour publier."
+                          : lang === "es"
+                          ? "Abre una cuenta gratuita para publicar."
+                          : "Open a free account to post.")
                   }
                   style={{
                     width: "100%",
@@ -623,9 +697,11 @@ export function GazetteFeedClient({
                         style={{ marginTop: "3px", width: "15px", height: "15px", accentColor: "#7b1f2c", flex: "none" }}
                       />
                       <span style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57,41,42,0.78)" }}>
-                        {lang === "en"
-                          ? "These photos show no children other than my own — or I have their parent's permission."
-                          : "Estas fotos no muestran a otros niños además de los míos — o tengo el permiso de sus padres."}
+                        {lang === "fr"
+                          ? "Ces photos ne montrent aucun enfant autre que les miens — ou j'ai l'accord de leurs parents."
+                          : lang === "es"
+                          ? "Estas fotos no muestran a otros niños además de los míos — o tengo el permiso de sus padres."
+                          : "These photos show no children other than my own — or I have their parent's permission."}
                       </span>
                     </label>
                   </div>
@@ -660,6 +736,7 @@ export function GazetteFeedClient({
                     {COMPOSER_TOPIC_IDS.map((tId) => {
                       const topicObj = TOPICS.find((t) => t.id === tId);
                       const isSelected = composerTopic === tId;
+                      const topicLabel = lang === "fr" ? topicObj?.labelFr : lang === "es" ? topicObj?.labelEs : topicObj?.labelEn;
                       return (
                         <button
                           key={tId}
@@ -677,7 +754,7 @@ export function GazetteFeedClient({
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {lang === "en" ? topicObj?.labelEn : topicObj?.labelEs}
+                          {topicLabel}
                         </button>
                       );
                     })}
@@ -721,10 +798,10 @@ export function GazetteFeedClient({
                       }}
                     >
                       {posting
-                        ? (lang === "en" ? "Posting..." : "Publicando...")
+                        ? (lang === "fr" ? "Publication..." : lang === "es" ? "Publicando..." : "Posting...")
                         : !isUserSignedIn
-                        ? (lang === "en" ? "Open an account to post" : "Abre una cuenta para publicar")
-                        : (lang === "en" ? "Post" : "Publicar")}
+                        ? (lang === "fr" ? "Ouvrir un compte pour publier" : lang === "es" ? "Abre una cuenta para publicar" : "Open an account to post")
+                        : (lang === "fr" ? "Publier" : lang === "es" ? "Publicar" : "Post")}
                     </button>
                   </div>
                 </div>
@@ -741,13 +818,17 @@ export function GazetteFeedClient({
                   {notice ? (
                     notice.text
                   ) : isUserSignedIn ? (
-                    lang === "en"
-                      ? "Up to 4 photos (JPG, PNG, WebP, under 10 MB). 5 posts a day. Anonymous posts still belong to your account — the hosts can always see who wrote what."
-                      : "Hasta 4 fotos (JPG, PNG, WebP, menos de 10 MB). 5 publicaciones al día. Las publicaciones anónimas siguen vinculadas a tu cuenta — los anfitriones siempre pueden ver quién escribió qué."
+                    lang === "fr"
+                      ? "Jusqu'à 4 photos (JPG, PNG, WebP, moins de 10 Mo). 5 publications par jour. Les publications anonymes restent associées à votre compte — les hôtesses peuvent toujours voir qui a écrit quoi."
+                      : lang === "es"
+                      ? "Hasta 4 fotos (JPG, PNG, WebP, menos de 10 MB). 5 publicaciones al día. Las publicaciones anónimas siguen vinculadas a tu cuenta — los anfitriones siempre pueden ver quién escribió qué."
+                      : "Up to 4 photos (JPG, PNG, WebP, under 10 MB). 5 posts a day. Anonymous posts still belong to your account — the hosts can always see who wrote what."
                   ) : (
-                    lang === "en"
-                      ? "Anyone can read. Open a free account to post, and sign sensitive posts anonymously if you need to."
-                      : "Cualquiera puede leer. Abre una cuenta gratuita para publicar, y firma de forma anónima si lo necesitas."
+                    lang === "fr"
+                      ? "Tout le monde peut lire. Ouvrez un compte gratuit pour publier, et publiez de manière anonyme si nécessaire."
+                      : lang === "es"
+                      ? "Cualquiera puede leer. Abre una cuenta gratuita para publicar, y firma de forma anónima si lo necesitas."
+                      : "Anyone can read. Open a free account to post, and sign sensitive posts anonymously if you need to."
                   )}
                 </div>
               </div>
@@ -758,11 +839,12 @@ export function GazetteFeedClient({
           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
             {TOPICS.map((topic) => {
               const active = selectedFilter === topic.id;
+              const label = lang === "fr" ? topic.labelFr : lang === "es" ? topic.labelEs : topic.labelEn;
               return (
                 <button
                   key={topic.id}
                   type="button"
-                  onClick={() => setSelectedFilter(topic.id)}
+                  onClick={() => handleFilterClick(topic.id)}
                   style={{
                     border: active ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.2)",
                     backgroundColor: active ? "#7b1f2c" : "#ffffff",
@@ -776,7 +858,7 @@ export function GazetteFeedClient({
                     transition: "all 0.15s ease",
                   }}
                 >
-                  {lang === "en" ? topic.labelEn : topic.labelEs}
+                  {label}
                 </button>
               );
             })}
@@ -786,8 +868,8 @@ export function GazetteFeedClient({
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedFilter(selectedFilter === "saved" ? "all" : "saved");
-                  setCustomTagFilter(null);
+                  const nextFilter = selectedFilter === "saved" ? "all" : "saved";
+                  handleFilterClick(nextFilter);
                 }}
                 style={{
                   border: selectedFilter === "saved" ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.2)",
@@ -846,24 +928,26 @@ export function GazetteFeedClient({
                       Showing <strong>{filteredPosts.length}</strong> saved {filteredPosts.length === 1 ? "post" : "posts"}
                     </>
                   )
-                ) : lang === "en" ? (
+                ) : lang === "fr" ? (
                   <>
-                    Showing <strong>{filteredPosts.length}</strong> posts on{" "}
-                    <strong>{customTagFilter || TOPICS.find((t) => t.id === selectedFilter)?.labelEn || selectedFilter}</strong>
+                    Affichage de <strong>{filteredPosts.length}</strong> publications sur{" "}
+                    <strong>{customTagFilter || getTopicLabel(selectedFilter)}</strong>
+                  </>
+                ) : lang === "es" ? (
+                  <>
+                    Mostrando <strong>{filteredPosts.length}</strong> publicaciones en{" "}
+                    <strong>{customTagFilter || getTopicLabel(selectedFilter)}</strong>
                   </>
                 ) : (
                   <>
-                    Mostrando <strong>{filteredPosts.length}</strong> publicaciones en{" "}
-                    <strong>{customTagFilter || TOPICS.find((t) => t.id === selectedFilter)?.labelEs || selectedFilter}</strong>
+                    Showing <strong>{filteredPosts.length}</strong> posts on{" "}
+                    <strong>{customTagFilter || getTopicLabel(selectedFilter)}</strong>
                   </>
                 )}
               </span>
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedFilter("all");
-                  setCustomTagFilter(null);
-                }}
+                onClick={() => handleFilterClick("all")}
                 style={{
                   background: "none",
                   border: "none",
@@ -881,7 +965,11 @@ export function GazetteFeedClient({
 
           {/* Posts Feed */}
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {filteredPosts.length === 0 ? (
+            {loadingFilter ? (
+              <div style={{ padding: "32px", textAlign: "center", color: "rgba(57, 41, 42, 0.6)" }}>
+                {lang === "fr" ? "Chargement des publications..." : lang === "es" ? "Cargando publicaciones..." : "Loading publications..."}
+              </div>
+            ) : filteredPosts.length === 0 ? (
               selectedFilter === "saved" ? (
                 <div
                   style={{
@@ -932,7 +1020,11 @@ export function GazetteFeedClient({
                     color: "rgba(57, 41, 42, 0.65)",
                   }}
                 >
-                  {lang === "en" ? "No posts in this category yet. Be the first to share!" : "Todavía no hay publicaciones aquí. ¡Sé la primera!"}
+                  {lang === "fr"
+                    ? "Aucune publication dans cette catégorie pour le moment. Soyez la première !"
+                    : lang === "es"
+                    ? "Todavía no hay publicaciones aquí. ¡Sé la primera!"
+                    : "No posts in this category yet. Be the first to share!"}
                 </div>
               )
             ) : (
@@ -1000,7 +1092,7 @@ export function GazetteFeedClient({
                         </div>
 
                         <div style={{ fontSize: "12px", letterSpacing: "0.06em", textTransform: "uppercase", color: "#7b1f2c", marginTop: "4px" }}>
-                          {post.topicLabel}
+                          {getTopicLabel(post.topic)}
                         </div>
                       </div>
                     </div>
@@ -1101,8 +1193,8 @@ export function GazetteFeedClient({
                         </svg>
                         <span>
                           {post.repliesCount === 0
-                            ? (lang === "en" ? "Reply" : "Responder")
-                            : `${post.repliesCount} ${post.repliesCount === 1 ? (lang === "en" ? "reply" : "respuesta") : (lang === "en" ? "replies" : "respuestas")}`}
+                            ? (lang === "fr" ? "Répondre" : lang === "es" ? "Responder" : "Reply")
+                            : `${post.repliesCount} ${post.repliesCount === 1 ? (lang === "fr" ? "réponse" : lang === "es" ? "respuesta" : "reply") : (lang === "fr" ? "réponses" : lang === "es" ? "respuestas" : "replies")}`}
                         </span>
                       </button>
 
@@ -1145,17 +1237,11 @@ export function GazetteFeedClient({
                         {post.neighbourhood}
                       </span>
 
-                      {/* Report Toggle */}
-                      {!isReported ? (
+                      {/* Report Toggle (Only shown when signed in) */}
+                      {!isReported && currentUser && (
                         <button
                           type="button"
-                          onClick={() => {
-                            if (!currentUser) {
-                              window.location.href = "/account/login";
-                              return;
-                            }
-                            setOpenReportPostId(isReportOpen ? null : post.id);
-                          }}
+                          onClick={() => setOpenReportPostId(isReportOpen ? null : post.id)}
                           style={{
                             border: "none",
                             backgroundColor: "transparent",
@@ -1172,15 +1258,18 @@ export function GazetteFeedClient({
                             <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                             <path d="M4 22v-7" />
                           </svg>
-                          <span>Report</span>
+                          <span>{lang === "fr" ? "Signaler" : lang === "es" ? "Denunciar" : "Report"}</span>
                         </button>
-                      ) : (
-                        <span style={{ fontSize: "12px", color: "#3b5e04" }}>✓ Reported</span>
+                      )}
+                      {isReported && (
+                        <span style={{ fontSize: "12px", color: "#3b5e04" }}>
+                          ✓ {lang === "fr" ? "Signalé" : lang === "es" ? "Denunciado" : "Reported"}
+                        </span>
                       )}
                     </div>
 
-                    {/* Login Prompt for liking without session */}
-                    {loginPromptTargetId === post.id && !currentUser && (
+                    {/* Login / Register Prompt for liking or saving without session */}
+                    {loginPrompt?.postId === post.id && !currentUser && (
                       <div
                         style={{
                           backgroundColor: "rgba(123, 31, 44, 0.08)",
@@ -1196,15 +1285,25 @@ export function GazetteFeedClient({
                         }}
                       >
                         <span style={{ fontFamily: "'Lora', Georgia, serif" }}>
-                          {lang === "fr"
+                          {loginPrompt.action === "save"
+                            ? lang === "fr"
+                              ? "Ouvrez un compte gratuit pour enregistrer des publications."
+                              : lang === "es"
+                              ? "Abre una cuenta gratuita para guardar publicaciones."
+                              : "Open a free account to save posts."
+                            : lang === "fr"
                             ? "Veuillez vous connecter pour aimer."
                             : lang === "es"
-                              ? "Inicia sesión para dar me gusta."
-                              : "Please log in to like."}
+                            ? "Inicia sesión para dar me gusta."
+                            : "Please log in to like."}
                         </span>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                           <Link
-                            href="/account/login"
+                            href={
+                              loginPrompt.action === "save"
+                                ? "/account/login?redirect=/gazette&mode=register"
+                                : "/account/login?redirect=/gazette"
+                            }
                             style={{
                               fontFamily: "'Cormorant Garamond', Georgia, serif",
                               fontWeight: 600,
@@ -1215,11 +1314,21 @@ export function GazetteFeedClient({
                               whiteSpace: "nowrap",
                             }}
                           >
-                            {lang === "fr" ? "Connexion →" : lang === "es" ? "Acceder →" : "Sign in →"}
+                            {loginPrompt.action === "save"
+                              ? lang === "fr"
+                                ? "Ouvrir un compte gratuit →"
+                                : lang === "es"
+                                ? "Abrir cuenta gratuita →"
+                                : "Open a free account →"
+                              : lang === "fr"
+                              ? "Connexion →"
+                              : lang === "es"
+                              ? "Acceder →"
+                              : "Sign in →"}
                           </Link>
                           <button
                             type="button"
-                            onClick={() => setLoginPromptTargetId(null)}
+                            onClick={() => setLoginPrompt(null)}
                             style={{
                               background: "none",
                               border: "none",
@@ -1248,28 +1357,35 @@ export function GazetteFeedClient({
                         }}
                       >
                         <div style={{ fontSize: "13px", color: "#39292a", marginBottom: "8px" }}>
-                          What is wrong with this post? A host reads every report the same day.
+                          {lang === "fr"
+                            ? "Quel est le problème avec cette publication ? Une hôtesse lit chaque signalement le jour même."
+                            : lang === "es"
+                            ? "¿Qué ocurre con esta publicación? Una anfitriona revisa cada reporte el mismo día."
+                            : "What is wrong with this post? A host reads every report the same day."}
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
-                          {REPORT_REASONS.map((r) => (
-                            <button
-                              key={r.id}
-                              type="button"
-                              onClick={() => handleReport(post.id, r.id)}
-                              style={{
-                                border: "1px solid rgba(153, 56, 66, 0.4)",
-                                backgroundColor: "#ffffff",
-                                color: "#993842",
-                                borderRadius: "14px",
-                                padding: "6px 12px",
-                                fontFamily: "'Lora', Georgia, serif",
-                                fontSize: "12.5px",
-                                cursor: "pointer",
-                              }}
-                            >
-                              {r.label}
-                            </button>
-                          ))}
+                          {REPORT_REASONS.map((r) => {
+                            const rLabel = lang === "fr" ? r.labelFr : lang === "es" ? r.labelEs : r.labelEn;
+                            return (
+                              <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => handleReport(post.id, r.id)}
+                                style={{
+                                  border: "1px solid rgba(153, 56, 66, 0.4)",
+                                  backgroundColor: "#ffffff",
+                                  color: "#993842",
+                                  borderRadius: "14px",
+                                  padding: "6px 12px",
+                                  fontFamily: "'Lora', Georgia, serif",
+                                  fontSize: "12.5px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {rLabel}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -1313,7 +1429,7 @@ export function GazetteFeedClient({
                                 </span>
                                 {reply.isExpert && (
                                   <span style={{ fontSize: "10px", color: "#5c4708", border: "1px solid rgba(201,162,39,0.5)", borderRadius: "8px", padding: "1px 6px" }}>
-                                    Expert
+                                    Partner expert
                                   </span>
                                 )}
                                 <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.6)" }}>{reply.meta}</span>
@@ -1369,7 +1485,13 @@ export function GazetteFeedClient({
                             type="text"
                             value={replyDrafts[post.id] || ""}
                             onChange={(e) => setReplyDrafts({ ...replyDrafts, [post.id]: e.target.value })}
-                            placeholder={tStr("Say something kind or useful…", lang)}
+                            placeholder={
+                              lang === "fr"
+                                ? "Dites quelque chose de bienveillant ou d'utile…"
+                                : lang === "es"
+                                ? "Di algo amable o útil…"
+                                : "Say something kind or useful…"
+                            }
                             onKeyDown={(e) => {
                               if (e.key === "Enter") handleSendReply(post.id);
                             }}
@@ -1400,7 +1522,7 @@ export function GazetteFeedClient({
                               cursor: "pointer",
                             }}
                           >
-                            {lang === "en" ? "Reply" : "Responder"}
+                            {lang === "fr" ? "Répondre" : lang === "es" ? "Responder" : "Reply"}
                           </button>
                         </div>
                       </div>
@@ -1414,10 +1536,10 @@ export function GazetteFeedClient({
 
         {/* Right Sidebar Column */}
         <aside style={{ flex: "1 1 280px", minWidth: 0, width: "100%", maxWidth: "100%", display: "flex", flexDirection: "column", gap: "18px" }}>
-          {/* Talked About This Week Module (Image 1) */}
+          {/* Talked About This Week Module */}
           <div style={{ border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px", boxShadow: "0 2px 8px rgba(57, 41, 42, 0.04)" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "20px", marginBottom: "14px", color: "#39292a" }}>
-              {tStr("Talked about this week", lang)}
+              {lang === "fr" ? "Discuté cette semaine" : lang === "es" ? "Hablado esta semana" : "Talked about this week"}
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -1425,18 +1547,20 @@ export function GazetteFeedClient({
                 ? trendingTopics.map((t) => ({
                     tagEn: t.label,
                     tagEs: TOPICS.find((x) => x.id === t.topic)?.labelEs || t.label,
+                    tagFr: TOPICS.find((x) => x.id === t.topic)?.labelFr || t.label,
                     topicId: t.topic,
                   }))
                 : [
-                    { tagEn: "Sleep regression at 4 months", tagEs: "Regresión de sueño a los 4 meses", topicId: "sleep" },
-                    { tagEn: "Nursery lists for 2027", tagEs: "Lista de guarderías 2027", topicId: "schools" },
-                    { tagEn: "Pelvic floor physios", tagEs: "Fisio de suelo pélvico", topicId: "postpartum" },
-                    { tagEn: "Winter walks", tagEs: "Paseos de invierno", topicId: "friends" },
-                    { tagEn: "Going back at 80%", tagEs: "Volver al 80%", topicId: "work" },
-                    { tagEn: "Feeding in public", tagEs: "Lactancia en público", topicId: "feeding" },
+                    { tagEn: "Sleep regression at 4 months", tagEs: "Regresión de sueño a los 4 meses", tagFr: "Régression du sommeil à 4 mois", topicId: "sleep" },
+                    { tagEn: "Nursery lists for 2027", tagEs: "Lista de guarderías 2027", tagFr: "Inscriptions crèches 2027", topicId: "schools" },
+                    { tagEn: "Pelvic floor physios", tagEs: "Fisio de suelo pélvico", tagFr: "Kinés rééducation périnéale", topicId: "postpartum" },
+                    { tagEn: "Winter walks", tagEs: "Paseos de invierno", tagFr: "Balades d'hiver", topicId: "friends" },
+                    { tagEn: "Going back at 80%", tagEs: "Volver al 80%", tagFr: "Reprise à 80%", topicId: "work" },
+                    { tagEn: "Feeding in public", tagEs: "Lactancia en público", tagFr: "Allaitement en public", topicId: "feeding" },
                   ]
               ).map((item, idx) => {
                 const isActive = selectedFilter === item.topicId || customTagFilter === item.tagEn;
+                const tagLabel = lang === "fr" ? item.tagFr : lang === "es" ? item.tagEs : item.tagEn;
                 return (
                   <button
                     key={idx}
@@ -1444,10 +1568,10 @@ export function GazetteFeedClient({
                     onClick={() => {
                       if (selectedFilter === item.topicId) {
                         setCustomTagFilter(null);
-                        setSelectedFilter("all");
+                        handleFilterClick("all");
                       } else {
                         setCustomTagFilter(item.tagEn);
-                        setSelectedFilter(item.topicId);
+                        handleFilterClick(item.topicId);
                       }
                     }}
                     style={{
@@ -1476,7 +1600,7 @@ export function GazetteFeedClient({
                       }
                     }}
                   >
-                    {lang === "en" ? item.tagEn : item.tagEs}
+                    {tagLabel}
                   </button>
                 );
               })}
@@ -1487,20 +1611,24 @@ export function GazetteFeedClient({
           <div style={{ border: "1px solid rgba(57, 41, 42, 0.2)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", marginBottom: "10px" }}>
               {isUserSignedIn
-                ? (lang === "en" ? "Bring it to the room" : "Tráelo al encuentro")
-                : (lang === "en" ? "Reading is open. Posting is free." : "Lectura abierta. Publicar es gratis.")}
+                ? (lang === "fr" ? "Venez en parler en vrai" : lang === "es" ? "Tráelo al encuentro" : "Bring it to the room")
+                : (lang === "fr" ? "Lecture libre. Publication gratuite." : lang === "es" ? "Lectura abierta. Publicar es gratis." : "Reading is open. Posting is free.")}
             </div>
             <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 16px" }}>
               {isUserSignedIn
-                ? (lang === "en"
-                    ? "The best threads start at an event and carry on here. There are events every week, from 0 credits."
-                    : "Los mejores hilos comienzan en un evento y continúan aquí. Hay eventos cada semana, desde 0 créditos.")
-                : (lang === "en"
-                    ? "Open a free account to post and reply, or book an event and meet the mothers you are talking to."
-                    : "Abre una cuenta gratuita para publicar y responder, o reserva un evento y conoce a las madres con las que hablas.")}
+                ? (lang === "fr"
+                    ? "Les meilleures discussions commencent lors d'un événement et se poursuivent ici. Il y a des événements chaque semaine, à partir de 0 crédit."
+                    : lang === "es"
+                    ? "Los mejores hilos comienzan en un evento y continúan aquí. Hay eventos cada semana, desde 0 créditos."
+                    : "The best threads start at an event and carry on here. There are events every week, from 0 credits.")
+                : (lang === "fr"
+                    ? "Ouvrez un compte gratuit pour publier et répondre, ou réservez un événement et rencontrez les mamans avec qui vous échangez."
+                    : lang === "es"
+                    ? "Abre una cuenta gratuita para publicar y responder, o reserva un evento y conoce a las madres con las que hablas."
+                    : "Open a free account to post and reply, or book an event and meet the mothers you are talking to.")}
             </p>
             <Link
-              href={isUserSignedIn ? "/events" : "/account/login"}
+              href={isUserSignedIn ? "/events" : "/account/login?redirect=/gazette&mode=register"}
               style={{
                 border: "1px solid #7b1f2c",
                 color: "#7b1f2c",
@@ -1521,45 +1649,53 @@ export function GazetteFeedClient({
               }}
             >
               {isUserSignedIn
-                ? (lang === "en" ? "See what is on" : "Ver eventos")
-                : (lang === "en" ? "Open a free account" : "Abrir cuenta gratuita")}
+                ? (lang === "fr" ? "Voir le programme" : lang === "es" ? "Ver eventos" : "See what is on")
+                : (lang === "fr" ? "Ouvrir un compte gratuit" : lang === "es" ? "Abrir cuenta gratuita" : "Open a free account")}
             </Link>
           </div>
 
           {/* House Rules */}
           <div style={{ border: "1px solid rgba(57, 41, 42, 0.2)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", marginBottom: "12px" }}>
-              House rules
+              {lang === "fr" ? "Règles de la maison" : lang === "es" ? "Normas de la casa" : "House rules"}
             </div>
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.75)", padding: "8px 0", borderTop: "1px solid rgba(57, 41, 42, 0.1)" }}>
-                Kindness first. Nobody is here to be corrected.
+                {lang === "fr" ? "La bienveillance avant tout. Personne n'est ici pour être jugée." : lang === "es" ? "La amabilidad primero. Nadie está aquí para ser corregida." : "Kindness first. Nobody is here to be corrected."}
               </div>
               <div style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.75)", padding: "8px 0", borderTop: "1px solid rgba(57, 41, 42, 0.1)" }}>
-                No selling to other mothers.
+                {lang === "fr" ? "Pas de vente aux autres mamans." : lang === "es" ? "Prohibido vender a otras madres." : "No selling to other mothers."}
               </div>
               <div style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.75)", padding: "8px 0", borderTop: "1px solid rgba(57, 41, 42, 0.1)" }}>
-                What is shared here stays here.
+                {lang === "fr" ? "Ce qui est partagé ici reste ici." : lang === "es" ? "Lo que se comparte aquí, se queda aquí." : "What is shared here stays here."}
               </div>
               <div style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.75)", padding: "8px 0", borderTop: "1px solid rgba(57, 41, 42, 0.1)" }}>
-                Advice from mothers is not medical advice.
+                {lang === "fr" ? "Les conseils de mamans ne sont pas des avis médicaux." : lang === "es" ? "El consejo de otras madres no es asesoramiento médico." : "Advice from mothers is not medical advice."}
               </div>
             </div>
             <p style={{ fontSize: "12.5px", lineHeight: 1.5, color: "rgba(57, 41, 42, 0.65)", margin: "12px 0 0" }}>
-              Every post is tied to a real account, even anonymous ones. Report anything that breaks the rules and a host reads it the same day.
+              {lang === "fr"
+                ? "Chaque message est lié à un vrai compte, même les anonymes. Signalez tout manquement aux règles et une hôtesse le lira le jour même."
+                : lang === "es"
+                ? "Cada publicación está vinculada a una cuenta real, incluso las anónimas. Denuncia lo que incumpla las normas y una anfitriona lo revisará el mismo día."
+                : "Every post is tied to a real account, even anonymous ones. Report anything that breaks the rules and a host reads it the same day."}
             </p>
           </div>
 
           {/* After Launch Preview */}
           <div style={{ backgroundColor: "#fdf8ec", border: "1px solid rgba(197, 142, 45, 0.35)", borderRadius: "8px", padding: "20px", marginBottom: "20px" }}>
             <div style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "#5c4708", marginBottom: "6px" }}>
-              After Launch
+              {lang === "fr" ? "Après le lancement" : lang === "es" ? "Tras el lanzamiento" : "After Launch"}
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "18px", color: "#39292a", marginBottom: "8px" }}>
-              Behind closed doors
+              {lang === "fr" ? "À huis clos" : lang === "es" ? "A puerta cerrada" : "Behind closed doors"}
             </div>
             <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "#5c4708", margin: "0 0 12px" }}>
-              A private room for members only — the threads nobody wants found in a search. Everything you see here stays open.
+              {lang === "fr"
+                ? "Un espace privé réservé aux membres — les discussions intimes hors des moteurs de recherche. Tout ce que vous voyez ici reste accessible."
+                : lang === "es"
+                ? "Un espacio privado solo para socias — los hilos que nadie quiere que aparezcan en búsquedas. Todo lo que ves aquí sigue siendo abierto."
+                : "A private room for members only — the threads nobody wants found in a search. Everything you see here stays open."}
             </p>
             <Link
               href="/membership"
@@ -1571,7 +1707,7 @@ export function GazetteFeedClient({
                 textDecoration: "none",
               }}
             >
-              What membership will be →
+              {lang === "fr" ? "Ce que sera l'adhésion →" : lang === "es" ? "Cómo será la membresía →" : "What membership will be →"}
             </Link>
           </div>
         </aside>

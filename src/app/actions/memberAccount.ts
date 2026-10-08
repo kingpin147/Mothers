@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { member, person, creditBatch, circlePost, circleReply, booking, event, eventCategory, partner, partnerPerk, perkCodePool, perkReveal, eventWaitlist, auditLog, emailLog } from "@/db/schema";
+import { member, person, creditBatch, circlePost, circleReply, circleSavedPost, booking, event, eventCategory, partner, partnerPerk, perkCodePool, perkReveal, eventWaitlist, auditLog, emailLog } from "@/db/schema";
 import { eq, desc, and, sql, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { getAppUrl } from "@/lib/urls";
@@ -886,6 +886,9 @@ export async function deleteMyAccountGDPR() {
 
     // 3. Remove waitlist entries
     await db.delete(eventWaitlist).where(eq(eventWaitlist.personId, personId));
+
+    // 3b. Remove saved posts entries (§C-23, GDPR)
+    await db.delete(circleSavedPost).where(eq(circleSavedPost.personId, personId));
 
     // 4. Anonymize circle posts and delete attached photos
     await db

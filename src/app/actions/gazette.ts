@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { circlePost, circleReply, circleHeart, circleReport, circleSavedPost, person, member, setting } from "@/db/schema";
-import { eq, desc, and, sql, gte } from "drizzle-orm";
+import { circlePost, circleReply, circleHeart, circleReport, circleSavedPost, person, member, setting, auditLog } from "@/db/schema";
+import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { checkGazettePostRateLimit, checkGazetteReplyRateLimit } from "@/lib/rate-limit";
@@ -184,12 +184,30 @@ export async function checkPostingEligibility() {
   };
 }
 
+export function resolveNeighbourhood(personRecord?: any, memberRecord?: any): string {
+  const raw = personRecord?.profileData?.neighbourhood || memberRecord?.neighbourhood;
+  if (!raw) return "Barcelona";
+  const str = raw.trim();
+  const lower = str.toLowerCase();
+  if (
+    lower === "outside barcelona" ||
+    lower === "fuera de barcelona" ||
+    lower === "hors de barcelone" ||
+    lower === "not sure yet" ||
+    lower === "aún no lo sé" ||
+    lower === "pas encore sûre" ||
+    str === ""
+  ) {
+    return "Barcelona";
+  }
+  return str;
+}
+
 export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | "trending" = "recent"): Promise<PostItem[]> {
   const session = await auth();
   const currentUserId = session?.user?.id ? ((session.user as any).personId || session.user.id) : null;
 
   let userSavedPostIds = new Set<string>();
-  let userSavedAtMap = new Map<string, Date>();
 
   if (currentUserId) {
     try {
@@ -199,31 +217,74 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
       });
       userSaved.forEach((s) => {
         userSavedPostIds.add(s.postId);
-        userSavedAtMap.set(s.postId, s.createdAt);
       });
     } catch {
-      // Table may not exist yet in dev
+      // Ignore if table not yet queried
     }
   }
+
+  let posts: any[] = [];
 
   if (selectedTopic === "saved") {
-    if (!currentUserId || userSavedPostIds.size === 0) {
+    if (!currentUserId) {
       return [];
     }
+    // Direct join query for ALL saved posts, ordered by save date descending (Gap 1 & Gap 2)
+    const savedRows = await db
+      .select({
+        post: circlePost,
+        savedAt: circleSavedPost.createdAt,
+      })
+      .from(circleSavedPost)
+      .innerJoin(circlePost, eq(circleSavedPost.postId, circlePost.id))
+      .where(and(eq(circleSavedPost.personId, currentUserId), eq(circlePost.status, "visible")))
+      .orderBy(desc(circleSavedPost.createdAt));
+
+    posts = savedRows.map((r) => r.post);
+  } else {
+    const whereClause = selectedTopic && selectedTopic !== "all"
+      ? and(eq(circlePost.topic, selectedTopic), sql`${circlePost.status} IN ('visible', 'hidden')`)
+      : sql`${circlePost.status} IN ('visible', 'hidden')`;
+
+    posts = await db.query.circlePost.findMany({
+      where: whereClause,
+      orderBy: [desc(circlePost.createdAt)],
+      limit: 60,
+    });
   }
-
-  const whereClause = selectedTopic && selectedTopic !== "all" && selectedTopic !== "saved"
-    ? and(eq(circlePost.topic, selectedTopic), sql`${circlePost.status} IN ('visible', 'hidden')`)
-    : sql`${circlePost.status} IN ('visible', 'hidden')`;
-
-  const posts = await db.query.circlePost.findMany({
-    where: whereClause,
-    orderBy: [desc(circlePost.createdAt)],
-    limit: selectedTopic === "saved" ? 200 : 60,
-  });
 
   if (!posts.length) return [];
 
+  const postIds = posts.map((p) => p.id);
+
+  // 1. Batch query all visible replies for these posts
+  const rawReplies = await db.query.circleReply.findMany({
+    where: and(inArray(circleReply.postId, postIds), eq(circleReply.status, "visible")),
+    orderBy: [circleReply.createdAt],
+  });
+
+  // 2. Batch collect all unique person IDs from posts and replies
+  const allPersonIds = Array.from(
+    new Set([
+      ...posts.map((p) => p.personId),
+      ...rawReplies.map((r) => r.personId),
+    ].filter(Boolean))
+  );
+
+  // 3. Batch query persons & members in 2 queries instead of 300+
+  const [persons, members] = await Promise.all([
+    allPersonIds.length > 0
+      ? db.query.person.findMany({ where: inArray(person.id, allPersonIds) })
+      : Promise.resolve([]),
+    allPersonIds.length > 0
+      ? db.query.member.findMany({ where: inArray(member.personId, allPersonIds) })
+      : Promise.resolve([]),
+  ]);
+
+  const personMap = new Map(persons.map((p) => [p.id, p]));
+  const memberMap = new Map(members.map((m) => [m.personId, m]));
+
+  // 4. Batch hearts for current user
   let userHeartedPostIds = new Set<string>();
   let userHeartedReplyIds = new Set<string>();
   if (currentUserId) {
@@ -236,65 +297,51 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
     });
   }
 
+  // Group replies by postId
+  const repliesByPostId = new Map<string, typeof rawReplies>();
+  for (const r of rawReplies) {
+    if (!repliesByPostId.has(r.postId)) repliesByPostId.set(r.postId, []);
+    repliesByPostId.get(r.postId)!.push(r);
+  }
+
   const result: PostItem[] = [];
 
   for (const p of posts) {
-    if (selectedTopic === "saved" && !userSavedPostIds.has(p.id)) {
-      continue;
-    }
-    // If post is removed/deleted/hidden, drop from saved feed
-    if (selectedTopic === "saved" && p.status !== "visible") {
-      continue;
-    }
-
     const isPostHidden = p.status === "hidden";
-    const authorPerson = await db.query.person.findFirst({
-      where: eq(person.id, p.personId),
-    });
+    const authorPerson = personMap.get(p.personId);
+    const authorMember = memberMap.get(p.personId);
 
-    let authorName = "A mother";
+    const resolvedArea = resolveNeighbourhood(authorPerson, authorMember);
+    const neighbourhood = p.isAnonymous ? (p.anonymousArea || resolvedArea) : resolvedArea;
+
+    let authorName = "A mother in " + neighbourhood;
     let initial = "M";
-    let neighbourhood = p.anonymousArea || "Barcelona";
 
     if (p.isAnonymous) {
-      authorName = p.anonymousArea ? `A mother in ${p.anonymousArea}` : "A mother in Barcelona";
+      authorName = p.anonymousArea ? `A mother in ${p.anonymousArea}` : `A mother in ${neighbourhood}`;
       initial = "M";
     } else if (authorPerson) {
       authorName = `${authorPerson.firstName || "Mother"} ${authorPerson.lastName ? authorPerson.lastName[0] + "." : ""}`.trim();
       initial = authorPerson.firstName ? authorPerson.firstName[0].toUpperCase() : "M";
-      const authorMember = await db.query.member.findFirst({
-        where: eq(member.personId, p.personId),
-      });
-      if (authorMember?.neighbourhood) {
-        neighbourhood = authorMember.neighbourhood;
-      }
     }
 
-    const rawReplies = await db.query.circleReply.findMany({
-      where: and(eq(circleReply.postId, p.id), eq(circleReply.status, "visible")),
-      orderBy: [circleReply.createdAt],
-    });
-
+    const postRepliesRaw = repliesByPostId.get(p.id) || [];
     const replies: ReplyItem[] = [];
-    for (const r of rawReplies) {
-      const replyPerson = await db.query.person.findFirst({
-        where: eq(person.id, r.personId),
-      });
 
-      let rAuthor = "A mother";
+    for (const r of postRepliesRaw) {
+      const replyPerson = personMap.get(r.personId);
+      const replyMember = memberMap.get(r.personId);
+      const replyResolvedArea = resolveNeighbourhood(replyPerson, replyMember);
+      const rNeighbourhood = r.anonymousArea || replyResolvedArea;
+
+      let rAuthor = `A mother in ${rNeighbourhood}`;
       let rInitial = "M";
-      let rNeighbourhood = r.anonymousArea || "Barcelona";
+
       if (r.isAnonymous) {
-        rAuthor = r.anonymousArea ? `A mother in ${r.anonymousArea}` : "A mother";
+        rAuthor = r.anonymousArea ? `A mother in ${r.anonymousArea}` : `A mother in ${rNeighbourhood}`;
       } else if (replyPerson) {
         rAuthor = `${replyPerson.firstName || "Mother"} ${replyPerson.lastName ? replyPerson.lastName[0] + "." : ""}`.trim();
         rInitial = replyPerson.firstName ? replyPerson.firstName[0].toUpperCase() : "M";
-        const replyMember = await db.query.member.findFirst({
-          where: eq(member.personId, r.personId),
-        });
-        if (replyMember?.neighbourhood) {
-          rNeighbourhood = replyMember.neighbourhood;
-        }
       }
 
       replies.push({
@@ -346,16 +393,7 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
     });
   }
 
-  if (selectedTopic === "saved") {
-    result.sort((a, b) => {
-      const timeA = userSavedAtMap.get(a.id)?.getTime() || new Date(a.createdAt).getTime();
-      const timeB = userSavedAtMap.get(b.id)?.getTime() || new Date(b.createdAt).getTime();
-      return timeB - timeA;
-    });
-    return result;
-  }
-
-  if (sortBy === "trending") {
+  if (sortBy === "trending" && selectedTopic !== "saved") {
     result.sort((a, b) => {
       const ageHoursA = (Date.now() - new Date(a.createdAt).getTime()) / (1000 * 60 * 60);
       const ageHoursB = (Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60);
@@ -830,54 +868,29 @@ export async function toggleCircleSavedPost(postId: string) {
 
   const personId = (session.user as any).personId || session.user.id;
 
-  try {
-    const existing = await db.query.circleSavedPost.findFirst({
-      where: and(eq(circleSavedPost.personId, personId), eq(circleSavedPost.postId, postId)),
-    });
+  const existing = await db.query.circleSavedPost.findFirst({
+    where: and(eq(circleSavedPost.personId, personId), eq(circleSavedPost.postId, postId)),
+  });
 
-    if (existing) {
-      await db.delete(circleSavedPost).where(eq(circleSavedPost.id, existing.id));
-      const [countRes] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(circleSavedPost)
-        .where(eq(circleSavedPost.personId, personId));
-      return { saved: false, savedCount: countRes?.count || 0 };
-    } else {
-      await db.insert(circleSavedPost).values({
-        personId,
-        postId,
-      });
-      const [countRes] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(circleSavedPost)
-        .where(eq(circleSavedPost.personId, personId));
-      return { saved: true, savedCount: countRes?.count || 0 };
-    }
-  } catch (err: any) {
-    // If table doesn't exist yet, auto-create and retry
-    if (err?.message?.includes("relation") || err?.message?.includes("does not exist")) {
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS circle_saved_post (
-          id text PRIMARY KEY,
-          person_id text NOT NULL REFERENCES person(id) ON DELETE CASCADE,
-          post_id text NOT NULL REFERENCES circle_post(id) ON DELETE CASCADE,
-          created_at timestamptz DEFAULT now() NOT NULL
-        );
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_person_saved_post ON circle_saved_post(person_id, post_id);
-        CREATE INDEX IF NOT EXISTS idx_circle_saved_post_person ON circle_saved_post(person_id, created_at);
-      `);
-      const existing = await db.query.circleSavedPost.findFirst({
-        where: and(eq(circleSavedPost.personId, personId), eq(circleSavedPost.postId, postId)),
-      });
-      if (existing) {
-        await db.delete(circleSavedPost).where(eq(circleSavedPost.id, existing.id));
-        return { saved: false, savedCount: 0 };
-      } else {
-        await db.insert(circleSavedPost).values({ personId, postId });
-        return { saved: true, savedCount: 1 };
-      }
-    }
-    throw err;
+  if (existing) {
+    await db.delete(circleSavedPost).where(eq(circleSavedPost.id, existing.id));
+    const [countRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(circleSavedPost)
+      .innerJoin(circlePost, eq(circleSavedPost.postId, circlePost.id))
+      .where(and(eq(circleSavedPost.personId, personId), eq(circlePost.status, "visible")));
+    return { saved: false, savedCount: countRes?.count || 0 };
+  } else {
+    await db.insert(circleSavedPost).values({
+      personId,
+      postId,
+    });
+    const [countRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(circleSavedPost)
+      .innerJoin(circlePost, eq(circleSavedPost.postId, circlePost.id))
+      .where(and(eq(circleSavedPost.personId, personId), eq(circlePost.status, "visible")));
+    return { saved: true, savedCount: countRes?.count || 0 };
   }
 }
 
@@ -895,6 +908,147 @@ export async function getUserSavedPostsCount(): Promise<number> {
   } catch {
     return 0;
   }
+}
+
+// ─── ADMIN DELETION & MODERATION ACTIONS (Tests C-19 to C-21) ───────────────
+
+export async function deleteGazettePostAdmin(postId: string) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin", "host"];
+  if (!role || !allowed.includes(role)) {
+    throw new Error("UNAUTHORIZED_ADMIN");
+  }
+
+  const adminId = (session?.user as any)?.personId || session?.user?.id || "admin";
+
+  await db.transaction(async (tx) => {
+    // 1. Delete associated bookmarks, reports, hearts, replies
+    await tx.delete(circleSavedPost).where(eq(circleSavedPost.postId, postId));
+    await tx.delete(circleReport).where(eq(circleReport.postId, postId));
+    await tx.delete(circleHeart).where(eq(circleHeart.postId, postId));
+    await tx.delete(circleReply).where(eq(circleReply.postId, postId));
+    
+    // 2. Delete the post record itself
+    await tx.delete(circlePost).where(eq(circlePost.id, postId));
+
+    // 3. Write deletion audit log
+    await tx.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "delete_gazette_post",
+      entity: "circle_post",
+      entityId: postId,
+      after: { deletedAt: new Date() },
+    });
+  });
+
+  revalidatePath("/gazette");
+  revalidatePath("/admin/reports");
+  revalidatePath("/admin/pre-launch");
+
+  return { success: true };
+}
+
+export async function deleteGazetteCommentAdmin(replyId: string) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin", "host"];
+  if (!role || !allowed.includes(role)) {
+    throw new Error("UNAUTHORIZED_ADMIN");
+  }
+
+  const adminId = (session?.user as any)?.personId || session?.user?.id || "admin";
+
+  await db.transaction(async (tx) => {
+    const rep = await tx.query.circleReply.findFirst({
+      where: eq(circleReply.id, replyId),
+    });
+    if (!rep) return;
+
+    // Delete hearts for reply
+    await tx.delete(circleHeart).where(eq(circleHeart.replyId, replyId));
+    // Delete reply
+    await tx.delete(circleReply).where(eq(circleReply.id, replyId));
+
+    // Decrement replies count
+    if (rep.postId) {
+      await tx
+        .update(circlePost)
+        .set({
+          repliesCount: sql`GREATEST(0, ${circlePost.repliesCount} - 1)`,
+        })
+        .where(eq(circlePost.id, rep.postId));
+    }
+
+    // Write audit log
+    await tx.insert(auditLog).values({
+      actorId: adminId,
+      actorType: "admin",
+      action: "delete_gazette_reply",
+      entity: "circle_reply",
+      entityId: replyId,
+      after: { postId: rep.postId, deletedAt: new Date() },
+    });
+  });
+
+  revalidatePath("/gazette");
+  revalidatePath("/admin/reports");
+  return { success: true };
+}
+
+export async function getAllGazettePublicationsAdmin() {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin", "host"];
+  if (!role || !allowed.includes(role)) {
+    throw new Error("UNAUTHORIZED_ADMIN");
+  }
+
+  const allPosts = await db.query.circlePost.findMany({
+    orderBy: [desc(circlePost.createdAt)],
+    limit: 200,
+  });
+
+  const allReplies = await db.query.circleReply.findMany({
+    orderBy: [desc(circleReply.createdAt)],
+    limit: 300,
+  });
+
+  const personIds = Array.from(new Set([...allPosts.map((p) => p.personId), ...allReplies.map((r) => r.personId)]));
+  const persons = personIds.length > 0 ? await db.query.person.findMany({ where: inArray(person.id, personIds) }) : [];
+  const personMap = new Map(persons.map((p) => [p.id, p]));
+
+  return {
+    posts: allPosts.map((p) => {
+      const per = personMap.get(p.personId);
+      return {
+        id: p.id,
+        topic: p.topic,
+        body: p.body,
+        status: p.status,
+        createdAt: p.createdAt.toISOString(),
+        heartsCount: p.heartsCount,
+        repliesCount: p.repliesCount,
+        reportsCount: p.reportsCount,
+        author: per ? `${per.firstName || ""} ${per.lastName || ""}`.trim() || "Member" : "Unknown",
+        authorEmail: per?.email || "",
+      };
+    }),
+    replies: allReplies.map((r) => {
+      const per = personMap.get(r.personId);
+      return {
+        id: r.id,
+        postId: r.postId,
+        body: r.body,
+        status: r.status,
+        createdAt: r.createdAt.toISOString(),
+        heartsCount: r.heartsCount,
+        author: per ? `${per.firstName || ""} ${per.lastName || ""}`.trim() || "Member" : "Unknown",
+        authorEmail: per?.email || "",
+      };
+    }),
+  };
 }
 
 // Named Aliases
