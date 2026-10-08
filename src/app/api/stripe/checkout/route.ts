@@ -171,10 +171,11 @@ export async function POST(req: Request) {
 
       const unitAmount = isQuarterly ? defaultQuarterlyPrice : (memberRecord.priceCents > 0 ? memberRecord.priceCents : defaultMonthlyPrice);
 
-      // Check wallet credit discount on first payment (§M-07 / §5)
+      // Check wallet credit discount on first payment (§M-07 / §5) using Settings credit rate (F-06 / F-19)
+      const creditRate = clubSettings.topUpPriceCents ?? 200;
       const walletBalance = await getPersonWalletBalance(personId);
-      const creditDiscountCents = Math.min(walletBalance * 200, unitAmount);
-      const creditsToConsume = Math.floor(creditDiscountCents / 200);
+      const creditDiscountCents = Math.min(walletBalance * creditRate, unitAmount);
+      const creditsToConsume = Math.floor(creditDiscountCents / creditRate);
 
       // Create one-off Stripe coupon if wallet discount applies (M-07)
       let discounts: any[] | undefined = undefined;
@@ -184,6 +185,7 @@ export async function POST(req: Request) {
           currency: "eur",
           duration: "once",
           name: `Credits Discount (${creditsToConsume} credits)`,
+          max_redemptions: 1,
         });
         discounts = [{ coupon: coupon.id }];
       }

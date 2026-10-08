@@ -358,7 +358,7 @@ export async function adjustCreditsAction(data: {
       reason: validData.reason,
       actorAdminId: adminId,
     });
-    return { success: true, ...result };
+    return { ...result };
   } catch (error: any) {
     console.error("adminAdjustMemberCredits error:", error);
     return { success: false, error: sanitizeErrorMessage(error, "ADJUSTMENT_FAILED") };

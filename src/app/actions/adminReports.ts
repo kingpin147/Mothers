@@ -137,8 +137,23 @@ export async function togglePauseAuthorAccount(personId: string, pause: boolean,
   return { success: true };
 }
 
-export {
-  deleteGazettePostAdmin,
-  deleteGazetteCommentAdmin,
-  getAllGazettePublicationsAdmin,
+import {
+  deleteGazettePostAdmin as delPost,
+  deleteGazetteCommentAdmin as delComment,
+  getAllGazettePublicationsAdmin as getPubs,
 } from "@/app/actions/gazette";
+
+export async function deleteGazettePostAdmin(data: string | { postId: string; reason?: string }) {
+  const id = typeof data === "string" ? data : data?.postId;
+  return delPost(id);
+}
+
+export async function deleteGazetteCommentAdmin(data: string | { commentId: string; reason?: string }) {
+  const id = typeof data === "string" ? data : data?.commentId;
+  return delComment(id);
+}
+
+export async function getAllGazettePublicationsAdmin() {
+  return getPubs();
+}
+

@@ -275,18 +275,7 @@ export async function verifyOtpAndCreateAccount(rawData: {
       ]);
     }
 
-    if (letter) {
-      const existingLead = await db.query.leadEntry.findFirst({
-        where: eq(leadEntry.email, email),
-      });
-      if (!existingLead) {
-        await db.insert(leadEntry).values({
-          email,
-          source: "signup",
-          type: "newsletter",
-        });
-      }
-    }
+    // Note: marketingOptIn is saved on person record (no duplicate leadEntry required)
 
     // Clean up verification record
     try {

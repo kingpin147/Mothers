@@ -13,8 +13,9 @@ import {
   leadEntry,
   setting,
   auditLog,
+  creditBatch,
 } from "@/db/schema";
-import { eq, desc, asc, and, sql, or, lt, inArray, gte } from "drizzle-orm";
+import { eq, desc, asc, and, sql, or, lt, inArray, gte, gt } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
@@ -43,7 +44,13 @@ export async function getPreLaunchDeskData() {
         .select({ count: sql<number>`count(*)::int` })
         .from(member)
         .innerJoin(person, eq(member.personId, person.id))
-        .where(and(sql`${person.firstName} != 'Subscriber'`, sql`${person.deletedAt} IS NULL`)),
+        .where(
+          and(
+            sql`${person.firstName} != 'Subscriber'`,
+            sql`COALESCE(${person.source}, 'signup') != 'subscriber'`,
+            sql`${person.deletedAt} IS NULL`
+          )
+        ),
       db
         .select({ count: sql<number>`count(*)::int` })
         .from(hostRequest)
@@ -236,7 +243,8 @@ export async function getPreLaunchDeskData() {
     // 5. Tab 4: Pre-launch Accounts & Waitlist
     const preLaunchAccountsRaw = await db
       .select({
-        id: member.id,
+        id: person.id,
+        memberId: member.id,
         personId: person.id,
         firstName: person.firstName,
         lastName: person.lastName,
@@ -247,11 +255,59 @@ export async function getPreLaunchDeskData() {
         isSuspended: person.isSuspended,
         createdBeforeLaunch: person.createdBeforeLaunch,
       })
-      .from(member)
-      .innerJoin(person, eq(member.personId, person.id))
-      .where(sql`${person.firstName} != 'Subscriber'`)
+      .from(person)
+      .leftJoin(member, eq(member.personId, person.id))
+      .where(
+        and(
+          sql`${person.firstName} != 'Subscriber'`,
+          sql`COALESCE(${person.source}, 'signup') != 'subscriber'`,
+          sql`${person.deletedAt} IS NULL`
+        )
+      )
       .orderBy(desc(person.createdAt))
       .limit(100);
+
+    const personIds = preLaunchAccountsRaw.map((a) => a.personId);
+    
+    const activeBatches = personIds.length > 0 ? await db
+      .select({
+        personId: creditBatch.personId,
+        remaining: sql<number>`SUM(${creditBatch.remaining})::int`,
+      })
+      .from(creditBatch)
+      .where(and(inArray(creditBatch.personId, personIds), gt(creditBatch.expiresAt, new Date()), gt(creditBatch.remaining, 0)))
+      .groupBy(creditBatch.personId) : [];
+    
+    const balanceMap = new Map(activeBatches.map((b) => [b.personId, b.remaining || 0]));
+
+    const adjustmentLogs = personIds.length > 0 ? await db
+      .select({
+        id: auditLog.id,
+        entityId: auditLog.entityId,
+        actorId: auditLog.actorId,
+        at: auditLog.at,
+        after: auditLog.after,
+      })
+      .from(auditLog)
+      .where(and(inArray(auditLog.entityId, personIds), eq(auditLog.action, "adjust_credits")))
+      .orderBy(desc(auditLog.at))
+      .limit(200) : [];
+
+    const adjustmentsMap = new Map<string, any[]>();
+    for (const log of adjustmentLogs) {
+      if (!adjustmentsMap.has(log.entityId)) adjustmentsMap.set(log.entityId, []);
+      const pLogs = adjustmentsMap.get(log.entityId)!;
+      if (pLogs.length < 4) {
+        const after = log.after as any;
+        pLogs.push({
+          id: log.id,
+          delta: after?.delta || after?.amount || 0,
+          reason: after?.reason || "Adjustment",
+          who: log.actorId || "Admin",
+          when: new Date(log.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+        });
+      }
+    }
 
     const [subscribersRaw, leadsRaw] = await Promise.all([
       db
@@ -276,12 +332,31 @@ export async function getPreLaunchDeskData() {
         .limit(100),
     ]);
 
-    // Merge and deduplicate waitlist leads
+    // Registered account emails to exclude from "The list"
+    const accountEmails = new Set(
+      preLaunchAccountsRaw
+        .map((a) => (a.email || "").toLowerCase().trim())
+        .filter(Boolean)
+    );
+
+    // Merge and deduplicate waitlist leads (strictly for subscribers who do not have an account)
     const seenEmails = new Set<string>();
     const allLeads: Array<{ id: string; email: string; source: string; createdAt: Date }> = [];
 
     for (const s of [...subscribersRaw, ...leadsRaw]) {
       const lower = (s.email || "").toLowerCase().trim();
+      const rawSource = (s.source || "").toLowerCase().trim();
+
+      // Exclude registered accounts and signup entries from "The list"
+      if (
+        rawSource === "signup" ||
+        rawSource === "account" ||
+        rawSource === "account_membership_waitlist" ||
+        accountEmails.has(lower)
+      ) {
+        continue;
+      }
+
       if (lower && !seenEmails.has(lower)) {
         seenEmails.add(lower);
         allLeads.push({
@@ -354,16 +429,26 @@ export async function getPreLaunchDeskData() {
       attendanceEvents,
       circleReports,
       topics,
-      preLaunchAccounts: preLaunchAccountsRaw.map((a) => ({
-        id: a.id,
-        name: `${a.firstName} ${a.lastName}`.trim() || "Mother",
-        email: a.email,
-        phone: a.phone || "—",
-        joinedAt: new Date(a.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-        profileDone: !!a.profileDone,
-        isSuspended: !!a.isSuspended,
-        createdBeforeLaunch: a.createdBeforeLaunch !== false,
-      })),
+      preLaunchAccounts: preLaunchAccountsRaw.map((a) => {
+        const balance = balanceMap.get(a.personId) || 0;
+        const adjustments = adjustmentsMap.get(a.personId) || [];
+        const dateObj = new Date(a.createdAt);
+        const joinedDateFormatted = dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+        return {
+          id: a.personId,
+          personId: a.personId,
+          memberId: a.memberId || null,
+          name: `${a.firstName} ${a.lastName}`.trim() || "Mother",
+          email: a.email,
+          phone: a.phone || "—",
+          joinedAt: joinedDateFormatted,
+          credits: balance,
+          adjustments,
+          profileDone: !!a.profileDone,
+          isSuspended: !!a.isSuspended,
+          createdBeforeLaunch: a.createdBeforeLaunch !== false,
+        };
+      }),
       deletedAccounts,
       subscribers: allLeads.map((s) => ({
         id: s.id,
@@ -375,6 +460,35 @@ export async function getPreLaunchDeskData() {
   } catch (error: any) {
     console.error("getPreLaunchDeskData error:", error);
     return { success: false as const, error: error?.message || "Failed to fetch pre-launch data" };
+  }
+}
+
+export async function adjustAccountCreditsAdmin(data: {
+  personId: string;
+  amount: number;
+  reason: string;
+}) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  try {
+    const { adjustCredits } = await import("@/lib/ledger");
+    const result = await adjustCredits({
+      personId: data.personId,
+      amount: data.amount,
+      reason: data.reason,
+      actorAdminId: session?.user?.name || session?.user?.email || session?.user?.id || "Admin",
+    });
+
+    revalidatePath("/admin/pre-launch");
+    revalidatePath("/admin/members");
+    return { success: true, newBalance: result.newBalance };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to adjust credits" };
   }
 }
 

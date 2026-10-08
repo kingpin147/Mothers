@@ -39,7 +39,8 @@ import {
 } from "@/lib/ledger";
 
 const adjustCreditsSchema = z.object({
-  memberId: z.string().trim().min(1, "MEMBER_ID_REQUIRED"),
+  personId: z.string().optional(),
+  memberId: z.string().optional(),
   amount: z.number().int(),
   reason: z.string().trim().min(1, "REASON_REQUIRED"),
 });
@@ -235,7 +236,8 @@ export async function getAdminMembers() {
 }
 
 export async function adjustMemberCredits(rawData: {
-  memberId: string;
+  personId?: string;
+  memberId?: string;
   amount: number; // positive or negative
   reason: string; // mandatory reason code (§5)
 }) {
@@ -250,27 +252,21 @@ export async function adjustMemberCredits(rawData: {
     return { success: false, error: "REASON_REQUIRED" };
   }
 
-  const mem = await db.query.member.findFirst({ where: eq(member.id, data.memberId) });
-  if (!mem) return { success: false, error: "MEMBER_NOT_FOUND" };
-
-  await db.transaction(async (tx) => {
-    if (data.amount > 0) {
-      await grantCreditsToPerson(mem.personId, data.amount, "admin_adjustment", 6, tx);
-    } else if (data.amount < 0) {
-      await spendPersonCreditsFIFO(mem.personId, Math.abs(data.amount), tx);
-    }
-
-    await tx.insert(auditLog).values({
-      actorId: adminId,
-      actorType: "admin",
-      action: "adjust_credits",
-      entity: "credit_batch",
-      entityId: data.memberId,
-      after: { memberId: data.memberId, amount: data.amount, reason: data.reason },
+  try {
+    const { adjustCredits } = await import("@/lib/ledger");
+    const result = await adjustCredits({
+      personId: data.personId,
+      memberId: data.memberId,
+      amount: data.amount,
+      reason: data.reason,
+      actorAdminId: adminId,
     });
-  });
-
-  return { success: true };
+    revalidatePath("/admin/members");
+    revalidatePath("/admin/pre-launch");
+    return { success: true, newBalance: result.newBalance };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to adjust credits" };
+  }
 }
 
 export async function getAdminMemberDetail(memberId: string) {

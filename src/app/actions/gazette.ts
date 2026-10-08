@@ -184,7 +184,7 @@ export async function checkPostingEligibility() {
   };
 }
 
-export function resolveNeighbourhood(personRecord?: any, memberRecord?: any): string {
+function resolveNeighbourhood(personRecord?: any, memberRecord?: any): string {
   const raw = personRecord?.profileData?.neighbourhood || memberRecord?.neighbourhood;
   if (!raw) return "Barcelona";
   const str = raw.trim();

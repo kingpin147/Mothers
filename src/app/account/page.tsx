@@ -476,7 +476,7 @@ function AccountPageContent() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "28px" }}>
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "4px" }}>
-              {lang === "en" ? "Member Account" : "Cuenta de Socia"}
+              {lang === "fr" ? "Mon compte" : lang === "es" ? "Mi cuenta" : "My account"}
             </div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(34px, 5vw, 54px)", margin: "0 0 4px 0", lineHeight: 1.1 }}>
               {detailsForm.firstName
@@ -484,9 +484,11 @@ function AccountPageContent() {
                 : (lang === "en" ? "Welcome." : "Bienvenida.")}
             </h1>
             <p style={{ fontSize: "16px", color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
-              {lang === "en"
-                ? "Your credits, your bookings and your membership, all in one place."
-                : "Tus créditos, tus reservas y tu membresía, todo en un mismo lugar."}
+              {lang === "fr"
+                ? "Vos crédits et vos réservations, tout au même endroit."
+                : lang === "es"
+                ? "Tus créditos y tus reservas, todo en un mismo lugar."
+                : "Your credits and your bookings, all in one place."}
             </p>
           </div>
         </div>
@@ -517,7 +519,7 @@ function AccountPageContent() {
 
           <div style={{ flex: "1 1 300px", minWidth: "220px", padding: "20px 24px", boxSizing: "border-box" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.7)", marginBottom: "7px" }}>
-              {lang === "fr" ? "Votre code marraine" : lang === "es" ? "Tu Código de Madrina" : "Your Godmother Code"}
+              {lang === "fr" ? "Votre code d'invitation" : lang === "es" ? "Tu Código de Invitación" : "Your Invite Code"}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", letterSpacing: "0.03em", color: "#456f04", wordBreak: "break-all" }}>
@@ -854,18 +856,20 @@ function AccountPageContent() {
               </div>
             )}
 
-            {/* WhatsApp Circles: Always show General Circle for all members */}
+            {/* WhatsApp Circles: Always show General Circle for all mothers */}
             <div style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#f4f7ee" }}>
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "9px" }}>
-                {lang === "en" ? "Community WhatsApp Group" : "Grupo de la Comunidad en WhatsApp"}
+                {lang === "fr" ? "Cercle WhatsApp Communautaire" : lang === "es" ? "Círculo de la Comunidad en WhatsApp" : "Community WhatsApp circle"}
               </div>
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px" }}>
-                General — La Gazette WhatsApp Group
+                General — The Circle WA Group
               </h2>
               <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 18px" }}>
-                {lang === "en"
-                  ? "The main community WhatsApp group for all members across Barcelona. Announcements, conversations, and club updates are shared here."
-                  : "El grupo principal de WhatsApp para todas las socias en Barcelona. Anuncios, conversaciones y novedades del club se comparten aquí."}
+                {lang === "fr"
+                  ? "Le cercle principal pour chaque mère à Barcelone, membre ou non. Les annonces, conversations et rappels de la veille vivent ici."
+                  : lang === "es"
+                  ? "El círculo principal para todas las madres en Barcelona, socias o no. Anuncios, conversaciones y los recordatorios del día antes viven aquí."
+                  : "The main circle for every mother in Barcelona, member or not. Announcements, conversations and the day-before reminders live here."}
               </p>
               <a
                 href={GENERAL_WHATSAPP_LINK}
@@ -884,7 +888,7 @@ function AccountPageContent() {
                   alignItems: "center",
                 }}
               >
-                {lang === "en" ? <>Join General Circle <ForwardArrow /></> : <>Unirse al Círculo General <ForwardArrow /></>}
+                {lang === "fr" ? <>Rejoindre le Cercle Général <ForwardArrow /></> : lang === "es" ? <>Unirse al Círculo General <ForwardArrow /></> : <>Join General Circle <ForwardArrow /></>}
               </a>
             </div>
 
@@ -895,15 +899,17 @@ function AccountPageContent() {
               return (
                 <div key={stageKey} style={{ border: "1px solid rgba(86,139,5,0.4)", borderRadius: "8px", padding: "clamp(22px, 3vw, 28px)", backgroundColor: "#f4f7ee" }}>
                   <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05", marginBottom: "9px" }}>
-                    {lang === "en" ? "Stage WhatsApp Circle" : "Círculo por Etapa en WhatsApp"}
+                    {lang === "fr" ? "Cercle WhatsApp par Étape" : lang === "es" ? "Círculo por Etapa en WhatsApp" : "Stage WhatsApp Circle"}
                   </div>
                   <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px" }}>
-                    {lang === "en" ? `Your stage: ${matched.labelEn}` : `Tu etapa: ${matched.labelEs}`}
+                    {lang === "fr" ? `Votre étape : ${matched.labelEn}` : lang === "es" ? `Tu etapa: ${matched.labelEs}` : `Your stage: ${matched.labelEn}`}
                   </h2>
                   <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 18px" }}>
-                    {lang === "en"
-                      ? "Every thread is moderated by the Community Manager. Meeting-point changes and last-minute places are posted here first."
-                      : "Cada hilo está moderado por la Community Manager. Los cambios de punto de encuentro y las plazas de última hora se publican aquí primero."}
+                    {lang === "fr"
+                      ? "Chaque fil est modéré par la Community Manager. Les modifications de point de rendez-vous et les places de dernière minute sont publiées ici en premier."
+                      : lang === "es"
+                      ? "Cada hilo está moderado por la Community Manager. Los cambios de punto de encuentro y las plazas de última hora se publican aquí primero."
+                      : "Every thread is moderated by the Community Manager. Meeting-point changes and last-minute places are posted here first."}
                   </p>
                   <a
                     href={matched.whatsapp}
@@ -922,7 +928,7 @@ function AccountPageContent() {
                       alignItems: "center",
                     }}
                   >
-                    {lang === "en" ? <>Open WhatsApp thread <ForwardArrow /></> : <>Abrir el hilo de WhatsApp <ForwardArrow /></>}
+                    {lang === "fr" ? <>Ouvrir le fil WhatsApp <ForwardArrow /></> : lang === "es" ? <>Abrir el hilo de WhatsApp <ForwardArrow /></> : <>Open WhatsApp thread <ForwardArrow /></>}
                   </a>
                 </div>
               );
@@ -933,16 +939,18 @@ function AccountPageContent() {
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "9px" }}>
                 <span style={{ color: "#568b05" }}>★</span>
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#568b05" }}>
-                  {lang === "en" ? "Godmother Programme" : "Programa de Madrinas"}
+                  {lang === "fr" ? "Programme Marraine" : lang === "es" ? "El programa de Madrinas" : "The Godmother program"}
                 </span>
               </div>
               <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: "1.2", margin: "0 0 10px" }}>
-                {lang === "en" ? "Share the club you are part of" : "Comparte el club del que formas parte"}
+                {lang === "fr" ? "Partagez le club dont vous faites partie" : lang === "es" ? "Comparte el club del que formas parte" : "Share the club you are part of"}
               </h2>
               <p style={{ fontSize: "14.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.75)", margin: "0 0 18px" }}>
-                {lang === "en"
-                  ? `Every Godmother earns +5 credits when a friend joins with her code, plus +15 credits once she has been a member for three months (+20 credits total). Credits never cap, and expire six months after they land.`
-                  : `Cada Madrina gana +5 créditos cuando una amiga se une con su código, y +15 más cuando ella cumple tres meses (+20 en total). Los créditos no tienen límite y caducan seis meses después de llegar.`}
+                {lang === "fr"
+                  ? "Envoyez-lui le calendrier — elle réserve exactement comme vous l'avez fait, sans adhésion obligatoire. Vous gagnez 5 crédits pour chaque mère qui devient membre avec votre code."
+                  : lang === "es"
+                  ? "Envíale el calendario: reserva exactamente igual que tú, sin membresía de por medio. Ganas 5 créditos por cada madre que se haga socia con tu código."
+                  : "Send her the calendar — she books exactly the way you did, with no membership in the way. You earn 5 credits for every mother who becomes a member with your code."}
               </p>
               
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px", marginBottom: "16px" }}>

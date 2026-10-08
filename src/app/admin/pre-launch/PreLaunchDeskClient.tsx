@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { decideHostRequest, markEventAsRun } from "@/app/actions/host";
 import { updateReportStatus, moderatePost } from "@/app/actions/adminReports";
-import { saveGazetteTopics } from "@/app/actions/adminPreLaunch";
+import { saveGazetteTopics, adjustAccountCreditsAdmin } from "@/app/actions/adminPreLaunch";
 
 interface PreLaunchDeskProps {
   initialData: any;
@@ -39,6 +39,13 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
     Array.isArray(initialData.topics?.blocked) ? initialData.topics.blocked.join(", ") : (initialData.topics?.blocked || "")
   );
   const [tagSaved, setTagSaved] = useState<string>("");
+
+  const [accountsList, setAccountsList] = useState<any[]>(initialData.preLaunchAccounts || []);
+  const [adjustingPersonId, setAdjustingPersonId] = useState<string | null>(null);
+  const [adjustAmount, setAdjustAmount] = useState<string>("");
+  const [adjustReason, setAdjustReason] = useState<string>("");
+  const [adjustError, setAdjustError] = useState<string | null>(null);
+  const [adjustSubmitting, setAdjustSubmitting] = useState<boolean>(false);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -154,6 +161,79 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
       alert(res.error || "Failed to save topics.");
     }
   };
+
+  // 6. Credit Adjustments (Accounts & list)
+  const handleOpenAdjust = (acc: any) => {
+    if (adjustingPersonId === acc.id) {
+      setAdjustingPersonId(null);
+    } else {
+      setAdjustingPersonId(acc.id);
+      setAdjustAmount("");
+      setAdjustReason("");
+      setAdjustError(null);
+    }
+  };
+
+  const handleApplyAdjustment = async (personId: string) => {
+    const rawVal = adjustAmount.replace("+", "").trim();
+    const parsedAmount = parseInt(rawVal, 10);
+    if (isNaN(parsedAmount) || parsedAmount === 0) {
+      setAdjustError("Enter a valid amount e.g. +5 or -3");
+      return;
+    }
+    if (!adjustReason.trim()) {
+      setAdjustError("Reason (required)");
+      return;
+    }
+
+    setAdjustSubmitting(true);
+    setAdjustError(null);
+    try {
+      const res = await adjustAccountCreditsAdmin({
+        personId,
+        amount: parsedAmount,
+        reason: adjustReason.trim(),
+      });
+
+      if (res.success) {
+        setAccountsList((prev) =>
+          prev.map((a) => {
+            if (a.id !== personId) return a;
+            const updatedAdjustments = [
+              {
+                id: Date.now().toString(),
+                delta: parsedAmount,
+                reason: adjustReason.trim(),
+                who: "You",
+                when: "Just now",
+              },
+              ...(a.adjustments || []),
+            ].slice(0, 4);
+            return {
+              ...a,
+              credits: res.newBalance ?? ((a.credits || 0) + parsedAmount),
+              adjustments: updatedAdjustments,
+            };
+          })
+        );
+        showToast(
+          parsedAmount > 0
+            ? `+${parsedAmount} credits added (valid 6 months)`
+            : `${parsedAmount} credits removed from oldest batches`
+        );
+        setAdjustingPersonId(null);
+        setAdjustAmount("");
+        setAdjustReason("");
+      } else {
+        setAdjustError(res.error || "Failed to adjust credits");
+      }
+    } catch (err: any) {
+      setAdjustError(err.message || "Failed to adjust credits");
+    } finally {
+      setAdjustSubmitting(false);
+    }
+  };
+
 
   // Derived metrics matching Claude exactly
   const pendingHostsCount = hostRequests.filter((r) => (r.status || "pending") === "pending").length;
@@ -735,28 +815,173 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", marginBottom: "8px" }}>
                   Accounts · fee waived
                 </div>
-                {initialData.preLaunchAccounts?.length === 0 ? (
+                {accountsList.length === 0 ? (
                   <p style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.7)", margin: 0 }}>No accounts yet.</p>
                 ) : (
-                  initialData.preLaunchAccounts?.map((a: any) => (
+                  accountsList.map((a: any) => (
                     <div
                       key={a.id}
                       style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "4px 14px",
-                        justifyContent: "space-between",
-                        padding: "9px 0",
+                        padding: "10px 0",
                         borderTop: "1px solid rgba(57, 41, 42, 0.1)",
                         fontSize: "13.5px",
                       }}
                     >
-                      <span>
-                        <strong style={{ fontWeight: 600 }}>{a.name}</strong> · {a.email}
-                      </span>
-                      <span style={{ color: "rgba(57, 41, 42, 0.7)" }}>
-                        since {a.joinedAt}
-                      </span>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "8px 14px",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <strong style={{ fontWeight: 600 }}>{a.name}</strong> ·{" "}
+                          <span style={{ color: "rgba(57, 41, 42, 0.75)" }}>{a.email}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                          <span style={{ color: "rgba(57, 41, 42, 0.7)" }}>
+                            since {a.joinedAt} · {a.credits ?? 0} credit{(a.credits ?? 0) === 1 ? "" : "s"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenAdjust(a)}
+                            style={{
+                              border: "1px solid rgba(57, 41, 42, 0.28)",
+                              background: adjustingPersonId === a.id ? "rgba(123, 31, 44, 0.08)" : "transparent",
+                              color: adjustingPersonId === a.id ? "#7b1f2c" : "#39292a",
+                              borderRadius: "4px",
+                              padding: "4px 10px",
+                              fontFamily: "'Lora', Georgia, serif",
+                              fontSize: "12.5px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            Adjust credits
+                          </button>
+                        </div>
+                      </div>
+
+                      {adjustingPersonId === a.id && (
+                        <div
+                          style={{
+                            marginTop: "12px",
+                            padding: "14px",
+                            border: "1px solid rgba(123, 31, 44, 0.2)",
+                            borderRadius: "6px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                              marginBottom: "10px",
+                            }}
+                          >
+                            <input
+                              type="text"
+                              value={adjustAmount}
+                              onChange={(e) => {
+                                setAdjustAmount(e.target.value);
+                                setAdjustError(null);
+                              }}
+                              placeholder="+5 or −3"
+                              style={{
+                                width: "95px",
+                                padding: "8px 10px",
+                                border: "1px solid rgba(57, 41, 42, 0.24)",
+                                borderRadius: "4px",
+                                background: "#ffffff",
+                                fontSize: "13.5px",
+                                fontFamily: "'Lora', Georgia, serif",
+                              }}
+                            />
+                            <input
+                              type="text"
+                              value={adjustReason}
+                              onChange={(e) => {
+                                setAdjustReason(e.target.value);
+                                setAdjustError(null);
+                              }}
+                              placeholder="Reason (required) — e.g. goodwill after a ca..."
+                              style={{
+                                flex: "1 1 220px",
+                                padding: "8px 10px",
+                                border: "1px solid rgba(57, 41, 42, 0.24)",
+                                borderRadius: "4px",
+                                background: "#ffffff",
+                                fontSize: "13.5px",
+                                fontFamily: "'Lora', Georgia, serif",
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setAdjustingPersonId(null)}
+                              style={{
+                                border: "1px solid rgba(57, 41, 42, 0.28)",
+                                background: "transparent",
+                                color: "#39292a",
+                                borderRadius: "4px",
+                                padding: "8px 14px",
+                                fontSize: "13px",
+                                fontFamily: "'Lora', Georgia, serif",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+
+                          <div style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
+                            <button
+                              type="button"
+                              disabled={adjustSubmitting}
+                              onClick={() => handleApplyAdjustment(a.id)}
+                              style={{
+                                border: "1px solid #7b1f2c",
+                                background: "#7b1f2c",
+                                color: "#ffffff",
+                                borderRadius: "4px",
+                                padding: "7px 18px",
+                                fontFamily: "'Lora', Georgia, serif",
+                                fontWeight: 600,
+                                fontSize: "13px",
+                                cursor: adjustSubmitting ? "not-allowed" : "pointer",
+                              }}
+                            >
+                              {adjustSubmitting ? "Applying..." : "Apply"}
+                            </button>
+                            {adjustError && (
+                              <span style={{ fontSize: "12.5px", color: "#993842", fontWeight: 500 }}>
+                                {adjustError}
+                              </span>
+                            )}
+                          </div>
+
+                          <p style={{ margin: "4px 0 0", fontSize: "12px", color: "rgba(57, 41, 42, 0.65)", lineHeight: 1.45 }}>
+                            +N adds a new batch valid 6 months. −N takes from her oldest credits first, never below 0. Logged with your name.
+                          </p>
+
+                          {a.adjustments && a.adjustments.length > 0 && (
+                            <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(57, 41, 42, 0.1)" }}>
+                              <div style={{ fontSize: "11.5px", fontWeight: 600, color: "rgba(57, 41, 42, 0.7)", marginBottom: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                Recent adjustments:
+                              </div>
+                              {a.adjustments.map((adj: any) => (
+                                <div key={adj.id} style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.8)", margin: "3px 0" }}>
+                                  <span style={{ fontWeight: 600, color: adj.delta > 0 ? "#3b5e04" : "#993842" }}>
+                                    {adj.delta > 0 ? `+${adj.delta}` : adj.delta}
+                                  </span>{" "}
+                                  · {adj.reason} · <span style={{ color: "rgba(57, 41, 42, 0.55)" }}>{adj.who} ({adj.when})</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

@@ -388,40 +388,100 @@ export async function extendGrantsOnPauseEnd(memberId: string, pauseMonths: numb
 }
 
 export async function adjustCredits(
-  arg1: string | { memberId: string; amount?: number; delta?: number; reason: string; actorAdminId?: string },
+  arg1: string | { personId?: string; memberId?: string; amount?: number; delta?: number; reason: string; actorAdminId?: string },
   arg2?: number | any,
   arg3?: string,
   arg4?: any
 ) {
-  let memberId: string;
+  let personId: string | undefined;
+  let memberId: string | undefined;
   let delta: number;
   let reason: string;
+  let actorAdminId: string | undefined;
   let tx: any = db;
 
   if (typeof arg1 === "object") {
+    personId = arg1.personId;
     memberId = arg1.memberId;
     delta = arg1.amount !== undefined ? arg1.amount : (arg1.delta ?? 0);
-    reason = arg1.reason || "Admin adjustment";
+    reason = arg1.reason;
+    actorAdminId = arg1.actorAdminId;
     if (arg2 && typeof arg2 === "object") tx = arg2;
   } else {
-    memberId = arg1;
+    // Legacy positional arguments: could be personId or memberId
+    const rawId = arg1;
     delta = typeof arg2 === "number" ? arg2 : 0;
-    reason = arg3 || "Admin adjustment";
-    if (arg4) tx = arg4;
+    reason = arg3 || "";
+    if (arg4 && typeof arg4 === "object") tx = arg4;
+    personId = rawId;
   }
 
-  const mem = await tx.query.member.findFirst({ where: eq(member.id, memberId) });
-  if (!mem) throw new Error("MEMBER_NOT_FOUND");
+  if (!reason || !reason.trim()) {
+    throw new Error("REASON_REQUIRED: A valid reason is required for credit adjustments.");
+  }
+
+  let targetPersonId: string | undefined = personId;
+
+  if (!targetPersonId && memberId) {
+    const mem = await tx.query.member.findFirst({ where: eq(member.id, memberId) });
+    if (mem) targetPersonId = mem.personId;
+  } else if (targetPersonId) {
+    // Check if targetPersonId is actually a member.id
+    const pCheck = await tx.query.person.findFirst({ where: eq(person.id, targetPersonId) });
+    if (!pCheck) {
+      const mCheck = await tx.query.member.findFirst({ where: eq(member.id, targetPersonId) });
+      if (mCheck) targetPersonId = mCheck.personId;
+    }
+  }
+
+  if (!targetPersonId) {
+    throw new Error("ACCOUNT_NOT_FOUND: Account could not be resolved for credit adjustment.");
+  }
+
+  const pRecord = await tx.query.person.findFirst({ where: eq(person.id, targetPersonId) });
+  if (!pRecord) {
+    throw new Error("ACCOUNT_NOT_FOUND: Person account not found.");
+  }
+
+  const currentBalance = await getPersonWalletBalance(targetPersonId, tx);
 
   if (delta > 0) {
-    const grantRes = await grantCreditsToPerson(mem.personId, delta, "admin_adjustment", 6, tx);
-    return { newBalance: await getPersonWalletBalance(mem.personId, tx), batchId: grantRes.batchId };
+    // Adding credits: a new batch valid for 6 months
+    const grantRes = await grantCreditsToPerson(targetPersonId, delta, "admin_adjustment", 6, tx);
+    const newBalance = await getPersonWalletBalance(targetPersonId, tx);
+
+    await tx.insert(auditLog).values({
+      actorId: actorAdminId || "admin",
+      actorType: "admin",
+      action: "adjust_credits",
+      entity: "person",
+      entityId: targetPersonId,
+      after: { delta, reason: reason.trim(), newBalance, batchId: grantRes.batchId },
+    });
+
+    return { success: true, newBalance, batchId: grantRes.batchId, delta };
   } else if (delta < 0) {
-    const spendRes = await spendPersonCreditsFIFO(mem.personId, Math.abs(delta), tx);
-    return { newBalance: await getPersonWalletBalance(mem.personId, tx), spent: spendRes.spent };
+    const needed = Math.abs(delta);
+    if (currentBalance < needed) {
+      throw new Error(`She only has ${currentBalance} credit${currentBalance === 1 ? "" : "s"}.`);
+    }
+
+    const spendRes = await spendPersonCreditsFIFO(targetPersonId, needed, tx);
+    const newBalance = await getPersonWalletBalance(targetPersonId, tx);
+
+    await tx.insert(auditLog).values({
+      actorId: actorAdminId || "admin",
+      actorType: "admin",
+      action: "adjust_credits",
+      entity: "person",
+      entityId: targetPersonId,
+      after: { delta, reason: reason.trim(), newBalance, spent: spendRes.spent },
+    });
+
+    return { success: true, newBalance, spent: spendRes.spent, delta };
   }
 
-  return { newBalance: await getPersonWalletBalance(mem.personId, tx) };
+  return { success: true, newBalance: currentBalance, delta: 0 };
 }
 
 // ─── 6. LEGACY COMPATIBILITY STUBS ───────────────────────────────────────────

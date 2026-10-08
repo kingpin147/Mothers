@@ -183,6 +183,96 @@ const GROUPS: UATGroup[] = [
         expected: "Transitions seamlessly without error; broadcast email does not re-send; settings persist cleanly."
       }
     ]
+  },
+  {
+    title: "Finance & Stripe Safety",
+    page: "Stripe · Webhooks · Pre-launch desk · Ledger",
+    items: [
+      {
+        id: "F-01",
+        prio: "P1",
+        title: "Atomic Webhook Processing & Credit Granting",
+        steps: "Simulate checkout.session.completed webhook for top-up.",
+        expected: "Stripe event is marked done only in the same transaction after credits are granted. Retried webhooks do not duplicate credits or fail prematurely."
+      },
+      {
+        id: "F-02",
+        prio: "P1",
+        title: "Event Duplication Pricing & Draft Status",
+        steps: "In Admin Events, duplicate an existing paid event.",
+        expected: "Member and non-member credit prices are preserved (not 0 credits), and the copy is saved as a draft (not auto-published)."
+      },
+      {
+        id: "F-03",
+        prio: "P1",
+        title: "Membership Discount Credit Hold & Single Spending",
+        steps: "Open membership checkout with wallet credits; attempt to book an event concurrently in another tab.",
+        expected: "Wallet credits used for the discount cannot be double-spent on bookings. Discount consumes credits on payment or releases them if abandoned."
+      },
+      {
+        id: "F-04",
+        prio: "P1",
+        title: "Refund & Dispute Clawback",
+        steps: "Trigger a refund or dispute in Stripe for a top-up.",
+        expected: "Unused credits are removed from active batches. Any unrecovered spent credits trigger team alert in audit log."
+      },
+      {
+        id: "F-05",
+        prio: "P1",
+        title: "Pre-Launch Credit Adjustments (+5 / -3 / -100)",
+        steps: "On Pre-launch desk → Accounts & list, adjust credits for an account with no membership record.",
+        expected: "+N adds a 6-month batch. -N takes from oldest credits first and rejects if balance is insufficient ('She only has N credits'). Logged with admin name and reason."
+      },
+      {
+        id: "F-06",
+        prio: "P1",
+        title: "Membership Discount Uses Settings Price",
+        steps: "Update top-up credit price in Admin Settings, then start membership checkout.",
+        expected: "Discount calculation and finance ledger records use the configured top-up price (topUpPriceCents) rather than hardcoded €2."
+      },
+      {
+        id: "F-07",
+        prio: "P1",
+        title: "Failed Renewal Status as 'past_due'",
+        steps: "Simulate failed subscription renewal invoice.payment_failed.",
+        expected: "Member status is set to 'past_due' (not 'paused'), avoiding pause credit extension triggers."
+      },
+      {
+        id: "F-08",
+        prio: "P1",
+        title: "Top-Up Auto-Booking Validation",
+        steps: "Top-up with an attached eventId for a past or cancelled event.",
+        expected: "Auto-booking validates event is active, in the future, and open to buyer; keeps credits safely in wallet without booking error."
+      },
+      {
+        id: "F-09",
+        prio: "P1",
+        title: "Host Role Permissions Restriced to Owner & Manager",
+        steps: "Attempt event create, publish, cancel, confirm or attendance marking with a host account.",
+        expected: "Action blocked with UNAUTHORIZED; restricted exclusively to owner, manager, and super_admin."
+      },
+      {
+        id: "F-10",
+        prio: "P1",
+        title: "Finance Ledger Records Invoiced Amounts",
+        steps: "Process subscription renewal or activation with custom invoice line items.",
+        expected: "Payment entries record actual Stripe invoice line item amounts rather than fallback settings."
+      },
+      {
+        id: "F-11",
+        prio: "P2",
+        title: "FIFO Credit Expiry Worker",
+        steps: "Run credit expiry worker with past-due batches.",
+        expected: "Expired credits are set to 0, logged with exact count, and warning emails sent at 30 and 7 days."
+      },
+      {
+        id: "F-12",
+        prio: "P2",
+        title: "Single-Use Stripe Discount Coupons",
+        steps: "Create checkout session with credit discount.",
+        expected: "Stripe coupon is generated with max_redemptions: 1 and duration: once."
+      }
+    ]
   }
 ];
 

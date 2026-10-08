@@ -11,7 +11,7 @@ import {
   event as eventTable,
   booking,
 } from "@/db/schema";
-import { eq, and, or, sql, inArray } from "drizzle-orm";
+import { eq, and, or, sql, inArray, gt, desc } from "drizzle-orm";
 import {
   grantCreditsToPerson,
   spendPersonCreditsFIFO,
@@ -26,7 +26,6 @@ import {
 } from "@/lib/brevo";
 import { generateIcsString } from "@/lib/ics";
 import { getAppUrl } from "@/lib/urls";
-import crypto from "crypto";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -61,13 +60,6 @@ export async function handleStripeWebhook(req: Request) {
       return NextResponse.json({ received: true, status: "already_processed" });
     }
 
-    // Record incoming event in database
-    await db.insert(stripeEvent).values({
-      id: event.id,
-      type: event.type,
-      payload: event as any,
-    });
-
     const eventData = event.data.object as any;
 
     switch (event.type) {
@@ -89,6 +81,7 @@ export async function handleStripeWebhook(req: Request) {
               creditAmount,
               eventId,
               session,
+              webhookEventId: event.id,
             });
           }
         }
@@ -105,6 +98,7 @@ export async function handleStripeWebhook(req: Request) {
               customerId,
               subscriptionId,
               session,
+              webhookEventId: event.id,
             });
           }
         }
@@ -124,6 +118,7 @@ export async function handleStripeWebhook(req: Request) {
             customerId,
             subscriptionId,
             invoice,
+            webhookEventId: event.id,
           });
         }
         break;
@@ -135,7 +130,7 @@ export async function handleStripeWebhook(req: Request) {
         const customerId = invoice.customer as string;
 
         if (customerId) {
-          await handleInvoicePaymentFailed({ customerId, invoice });
+          await handleInvoicePaymentFailed({ customerId, invoice, webhookEventId: event.id });
         }
         break;
       }
@@ -146,7 +141,7 @@ export async function handleStripeWebhook(req: Request) {
         const customerId = subscription.customer as string;
 
         if (customerId) {
-          await handleSubscriptionCancelled({ customerId, subscription });
+          await handleSubscriptionCancelled({ customerId, subscription, webhookEventId: event.id });
         }
         break;
       }
@@ -157,13 +152,34 @@ export async function handleStripeWebhook(req: Request) {
         const customerId = subscription.customer as string;
 
         if (customerId) {
-          await handleSubscriptionUpdated({ customerId, subscription });
+          await handleSubscriptionUpdated({ customerId, subscription, webhookEventId: event.id });
         }
         break;
       }
 
-      default:
+      // ─── F. CHARGE REFUNDED ────────────────────────────────────────────────
+      case "charge.refunded": {
+        const charge = eventData;
+        await handleChargeRefunded({ charge, webhookEventId: event.id });
         break;
+      }
+
+      // ─── G. CHARGE DISPUTE CREATED ─────────────────────────────────────────
+      case "charge.dispute.created": {
+        const dispute = eventData;
+        await handleChargeDisputed({ dispute, webhookEventId: event.id });
+        break;
+      }
+
+      default: {
+        // Record unhandled event
+        await db.insert(stripeEvent).values({
+          id: event.id,
+          type: event.type,
+          payload: event as any,
+        }).onConflictDoNothing();
+        break;
+      }
     }
 
     return NextResponse.json({ received: true });
@@ -182,28 +198,31 @@ async function handleTopUpCheckout({
   creditAmount,
   eventId,
   session,
+  webhookEventId,
 }: {
   personId: string;
   creditAmount: number;
   eventId?: string;
   session: any;
+  webhookEventId: string;
 }) {
   const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
   const clubSettings = await getPublicClubSettings();
 
   // 1. Grant credits and record payment in its own transaction (N-02: Never rollback paid credits)
+  // Mark stripeEvent done atomically inside the transaction
   const txResult = await db.transaction(async (tx) => {
     const pRecord = await tx.query.person.findFirst({
       where: eq(person.id, personId),
     });
     if (!pRecord) return null;
 
-    const gResult = await grantCreditsToPerson(personId, creditAmount, "topup", null, tx);
+    const gResult = await grantCreditsToPerson(personId, creditAmount, "topup", 6, tx);
 
     await tx.insert(payment).values({
       personId,
       purpose: "topup",
-      amountCents: session.amount_total || creditAmount * 200,
+      amountCents: session.amount_total || creditAmount * (clubSettings.topUpPriceCents ?? 200),
       currency: (session.currency || "eur").toUpperCase(),
       status: "succeeded",
       stripeInvoiceId: session.invoice as string | null,
@@ -220,6 +239,12 @@ async function handleTopUpCheckout({
       after: { creditAmount, eventId: eventId || null, sessionId: session.id },
     });
 
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "checkout.session.completed",
+      payload: session as any,
+    }).onConflictDoNothing();
+
     return { grantResult: gResult, personRecord: pRecord };
   });
 
@@ -227,7 +252,7 @@ async function handleTopUpCheckout({
   const { grantResult, personRecord } = txResult;
 
   // 2. Send Payment Receipt Email (§11)
-  const amountEur = (session.amount_total || creditAmount * 200) / 100;
+  const amountEur = (session.amount_total || creditAmount * (clubSettings.topUpPriceCents ?? 200)) / 100;
   const isEs = personRecord.locale === "es";
   const origin = getAppUrl();
   const orderId = `TM-${grantResult.batchId.substring(0, 8).toUpperCase()}`;
@@ -271,12 +296,22 @@ async function handleTopUpCheckout({
         const ev = await tx.query.event.findFirst({
           where: eq(eventTable.id, eventId),
         });
-        if (!ev) return;
+        // Check event exists, is active (not cancelled), and is in the future
+        if (!ev || ev.status === "cancelled" || new Date(ev.startsAt).getTime() <= Date.now()) {
+          console.warn(`[Auto-Booking] Event ${eventId} is cancelled or in the past. Keeping credits in wallet.`);
+          return;
+        }
 
         const mem = await tx.query.member.findFirst({
           where: and(eq(member.personId, personId), eq(member.status, "active")),
         });
         const isMember = !!mem;
+
+        // Check if non-members are allowed if user is not a member
+        if (!isMember && ev.nonMemberCredits === null && ev.isSignature) {
+          console.warn(`[Auto-Booking] Event ${eventId} is signature member-only. Keeping credits in wallet.`);
+          return;
+        }
 
         let requiredCredits = 0;
         if (!clubSettings.membershipLive) {
@@ -314,26 +349,6 @@ async function handleTopUpCheckout({
             const currentActive = activeCountRes[0]?.count || 0;
             if (ev.capacityMember > 0 && currentActive >= ev.capacityMember) {
               console.warn(`[Auto-Booking] Hold expired and event ${eventId} is at capacity. Keeping credits in wallet.`);
-              const personRecord = await tx.query.person.findFirst({ where: eq(person.id, personId) });
-              if (personRecord?.email) {
-                await queueAndSendEmail({
-                  personId,
-                  toEmail: personRecord.email,
-                  toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Friend",
-                  templateKey: "event_full_credits_kept",
-                  dedupeKey: `event_full_${eventId}_${personId}_${Date.now().toString().slice(0, 8)}`,
-                  subject: `Event full — your credits are in your wallet — The Mothers`,
-                  htmlContent: `
-                    <div style="font-family: Georgia, serif; max-width: 580px; margin: 0 auto; padding: 24px; color: #39292a; background-color: #fdfaf5;">
-                      <h2 style="font-weight: normal; font-size: 24px; margin-bottom: 16px;">Your credits are in your wallet</h2>
-                      <p style="font-size: 15px; line-height: 1.6;">The last place for <strong>${ev.title}</strong> was taken just before your top-up completed. Your payment succeeded and your credits have been placed directly in your wallet.</p>
-                      <p style="font-size: 15px; line-height: 1.6;">You can spend these credits on any upcoming event or join the waitlist for ${ev.title}.</p>
-                      <p style="margin-top: 24px;"><a href="${getAppUrl()}/events" style="background-color: #7b1f2c; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Browse upcoming events</a></p>
-                    </div>
-                  `,
-                  isTransactional: true,
-                });
-              }
               return;
             }
           }
@@ -351,20 +366,21 @@ async function handleTopUpCheckout({
             .update(booking)
             .set({
               status: ev.status === "confirmed" ? "confirmed" : "held",
-              heldUntil: null, // Clear heldUntil once paid/confirmed (F-04)
+              heldUntil: null,
               creditsCharged: requiredCredits,
               creditDeductions,
               updatedAt: new Date(),
             })
             .where(eq(booking.id, heldBooking.id));
 
-          // Settle oldest pending return awaiting replacement if any (F-06)
           await settleOldestPendingReturn(ev.id, tx);
 
           bookingConfirmedResult = {
             bookingId: heldBooking.id,
+            eventId: ev.id,
             eventTitle: ev.title,
             startsAt: ev.startsAt,
+            endsAt: ev.endsAt,
             venueName: ev.venueName,
             meetingPoint: ev.meetingPoint,
             creditsCharged: requiredCredits,
@@ -388,26 +404,6 @@ async function handleTopUpCheckout({
             const currentActive = activeCountRes[0]?.count || 0;
             if (ev.capacityMember > 0 && currentActive >= ev.capacityMember) {
               console.warn(`[Auto-Booking] Event ${eventId} is at capacity. Keeping credits in wallet.`);
-              const personRecord = await tx.query.person.findFirst({ where: eq(person.id, personId) });
-              if (personRecord?.email) {
-                await queueAndSendEmail({
-                  personId,
-                  toEmail: personRecord.email,
-                  toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Friend",
-                  templateKey: "event_full_credits_kept",
-                  dedupeKey: `event_full_${eventId}_${personId}_${Date.now().toString().slice(0, 8)}`,
-                  subject: `Event full — your credits are in your wallet — The Mothers`,
-                  htmlContent: `
-                    <div style="font-family: Georgia, serif; max-width: 580px; margin: 0 auto; padding: 24px; color: #39292a; background-color: #fdfaf5;">
-                      <h2 style="font-weight: normal; font-size: 24px; margin-bottom: 16px;">Your credits are in your wallet</h2>
-                      <p style="font-size: 15px; line-height: 1.6;">The last place for <strong>${ev.title}</strong> was taken just before your top-up completed. Your payment succeeded and your credits have been placed directly in your wallet.</p>
-                      <p style="font-size: 15px; line-height: 1.6;">You can spend these credits on any upcoming event or join the waitlist for ${ev.title}.</p>
-                      <p style="margin-top: 24px;"><a href="${getAppUrl()}/events" style="background-color: #7b1f2c; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Browse upcoming events</a></p>
-                    </div>
-                  `,
-                  isTransactional: true,
-                });
-              }
               return;
             }
 
@@ -432,7 +428,6 @@ async function handleTopUpCheckout({
               bookedAt: new Date(),
             }).returning();
 
-            // Settle oldest pending return awaiting replacement if any (F-06)
             await settleOldestPendingReturn(ev.id, tx);
 
             bookingConfirmedResult = {
@@ -516,11 +511,13 @@ async function handleMembershipCheckout({
   customerId,
   subscriptionId,
   session,
+  webhookEventId,
 }: {
   memberId: string;
   customerId: string;
   subscriptionId: string;
   session: any;
+  webhookEventId: string;
 }) {
   await db.transaction(async (tx) => {
     const mem = await tx.query.member.findFirst({ where: eq(member.id, memberId) });
@@ -552,7 +549,7 @@ async function handleMembershipCheckout({
       updatedAt: new Date(),
     }).where(eq(member.id, memberId));
 
-    // 3. Deduct consumed wallet credits from subscription discount if any (M-07)
+    // 2. Deduct consumed wallet credits from subscription discount if any (M-07)
     if (creditsToConsume > 0) {
       const balance = await getPersonWalletBalance(mem.personId, tx);
       const toSpend = Math.min(balance, creditsToConsume);
@@ -561,7 +558,7 @@ async function handleMembershipCheckout({
       }
     }
 
-    // 4. Record Payment in finance ledger matching accurate breakdown (F-09)
+    // 3. Record Payment in finance ledger matching actual breakdown from Stripe (F-09)
     await tx.insert(payment).values({
       personId: mem.personId,
       purpose: isQuarterly ? "subscription_quarterly" : "subscription_monthly",
@@ -598,13 +595,13 @@ async function handleMembershipCheckout({
       }).onConflictDoNothing();
     }
 
-    // 5. Grant credits for initial cycle from settings (F-09)
+    // 4. Grant credits for initial cycle from settings (F-09)
     const initialCredits = isQuarterly
       ? (clubSettings.quarterlyCreditsGranted ?? 60)
       : (clubSettings.monthlyCreditsGranted ?? 20);
     await grantCreditsToPerson(mem.personId, initialCredits, "subscription", 6, tx);
 
-    // 6. Godmother referral bonus (§10 / §A-03 / F-10): Grant only ONCE per person
+    // 5. Godmother referral bonus (§10 / §A-03 / F-10): Grant only ONCE per person
     const godmotherPersonId =
       personRecord.referredByPersonId ||
       (mem.referredByMemberId
@@ -616,7 +613,6 @@ async function handleMembershipCheckout({
 
       await grantCreditsToPerson(godmotherPersonId, bonusCredits, "godmother", null, tx);
 
-      // Mark person as rewarded so re-subscribing won't double pay (F-10)
       await tx
         .update(person)
         .set({ godmotherRewardedAt: new Date(), updatedAt: new Date() })
@@ -627,24 +623,7 @@ async function handleMembershipCheckout({
       });
 
       if (godmother) {
-        const newBalance = await getPersonWalletBalance(godmother.id, tx);
-        const origin = getAppUrl();
         const isEsGm = godmother.locale === "es";
-
-        const { renderPublicEmailTemplate } = await import("@/lib/brevo");
-        const htmlContent = renderPublicEmailTemplate("Email - Godmother Credited.html", {
-          first_name: godmother.firstName || "Godmother",
-          friend_first_name: personRecord.firstName || "Your friend",
-          bonus: bonusCredits,
-          balance: newBalance,
-          account_url: `${origin}/account`,
-        }) || `
-          <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #fdf8f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
-            <h2 style="color: #7b1f2c; margin-top: 0;">${isEsGm ? "¡Gracias por compartir The Mothers!" : "Thank you for sharing The Mothers!"}</h2>
-            <p>${isEsGm ? `Tu amiga ${personRecord.firstName} se ha unido. Hemos añadido <strong>${bonusCredits} créditos</strong> a tu cuenta.` : `Your friend ${personRecord.firstName} has joined. We've added <strong>${bonusCredits} credits</strong> to your wallet.`}</p>
-            <p style="margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
-          </div>
-        `;
 
         await queueAndSendEmail({
           personId: godmother.id,
@@ -653,13 +632,19 @@ async function handleMembershipCheckout({
           templateKey: "godmother_credited",
           dedupeKey: `godmother_reward_${mem.personId}`,
           subject: isEsGm ? `+${bonusCredits} créditos por tu recomendación — The Mothers` : `+${bonusCredits} credits for your referral — The Mothers`,
-          htmlContent,
+          htmlContent: `
+            <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #fdf8f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
+              <h2 style="color: #7b1f2c; margin-top: 0;">${isEsGm ? "¡Gracias por compartir The Mothers!" : "Thank you for sharing The Mothers!"}</h2>
+              <p>${isEsGm ? `Tu amiga ${personRecord.firstName} se ha unido. Hemos añadido <strong>${bonusCredits} créditos</strong> a tu cuenta.` : `Your friend ${personRecord.firstName} has joined. We've added <strong>${bonusCredits} credits</strong> to your wallet.`}</p>
+              <p style="margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+            </div>
+          `,
           isTransactional: true,
         });
       }
     }
 
-    // 7. Send Welcome / Subscription Confirmation Email
+    // 6. Send Welcome / Subscription Confirmation Email
     const appUrl = getAppUrl();
     const planName = isQuarterly ? `Quarterly Membership (€${defaultQuarterlyPrice / 100} / 3 months)` : `Monthly Membership (€${defaultMonthlyPrice / 100} / month)`;
     const isEs = personRecord.locale === "es";
@@ -681,7 +666,7 @@ async function handleMembershipCheckout({
       isTransactional: true,
     });
 
-    // 8. Audit Log
+    // 7. Audit Log & Mark stripeEvent done atomically
     await tx.insert(auditLog).values({
       actorId: mem.personId,
       actorType: "system",
@@ -690,6 +675,12 @@ async function handleMembershipCheckout({
       entityId: memberId,
       after: { status: "active", subscriptionId, amountTotalCents, initialCredits },
     });
+
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "checkout.session.completed",
+      payload: session as any,
+    }).onConflictDoNothing();
   });
 }
 
@@ -697,10 +688,12 @@ async function handleInvoicePaymentSucceeded({
   customerId,
   subscriptionId,
   invoice,
+  webhookEventId,
 }: {
   customerId: string;
   subscriptionId: string;
   invoice: any;
+  webhookEventId: string;
 }) {
   const memberRecord = await db.query.member.findFirst({
     where: eq(member.stripeCustomerId, customerId),
@@ -728,22 +721,37 @@ async function handleInvoicePaymentSucceeded({
       ? (clubSettings.quarterlyCreditsGranted ?? 60)
       : (clubSettings.monthlyCreditsGranted ?? 20);
 
-    // 1. Record payment in ledger
+    // 1. Record payment in ledger from actual line items
     const lines = invoice.lines?.data || [];
-    for (const line of lines) {
-      const purpose = line.subscription ? (isQuarterly ? "subscription_quarterly" : "subscription_monthly") : "joining_fee";
+    if (lines.length === 0) {
       await tx
         .insert(payment)
         .values({
           personId: memberRecord.personId,
-          purpose,
-          amountCents: line.amount,
+          purpose: isQuarterly ? "subscription_quarterly" : "subscription_monthly",
+          amountCents: invoice.amount_paid || (isQuarterly ? 9900 : 3900),
           currency: (invoice.currency || "eur").toUpperCase(),
           status: "succeeded",
           stripeInvoiceId: invoice.id,
           occurredAt: new Date(),
         })
         .onConflictDoNothing();
+    } else {
+      for (const line of lines) {
+        const purpose = line.subscription ? (isQuarterly ? "subscription_quarterly" : "subscription_monthly") : "joining_fee";
+        await tx
+          .insert(payment)
+          .values({
+            personId: memberRecord.personId,
+            purpose,
+            amountCents: line.amount,
+            currency: (invoice.currency || "eur").toUpperCase(),
+            status: "succeeded",
+            stripeInvoiceId: invoice.id,
+            occurredAt: new Date(),
+          })
+          .onConflictDoNothing();
+      }
     }
 
     // 2. Grant credits to FIFO wallet for renewal
@@ -764,7 +772,7 @@ async function handleInvoicePaymentSucceeded({
       })
       .where(eq(member.id, memberRecord.id));
 
-    // 4. Audit Log
+    // 4. Audit Log & Mark stripeEvent done atomically
     await tx.insert(auditLog).values({
       actorId: memberRecord.personId,
       actorType: "system",
@@ -773,15 +781,23 @@ async function handleInvoicePaymentSucceeded({
       entityId: memberRecord.id,
       after: { amountPaidCents: invoice.amount_paid, invoiceId: invoice.id, renewalCredits },
     });
+
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "invoice.paid",
+      payload: invoice as any,
+    }).onConflictDoNothing();
   });
 }
 
 async function handleInvoicePaymentFailed({
   customerId,
   invoice,
+  webhookEventId,
 }: {
   customerId: string;
   invoice: any;
+  webhookEventId: string;
 }) {
   const memberRecord = await db.query.member.findFirst({
     where: eq(member.stripeCustomerId, customerId),
@@ -789,13 +805,31 @@ async function handleInvoicePaymentFailed({
 
   if (!memberRecord) return;
 
-  await db
-    .update(member)
-    .set({
-      status: "past_due",
-      updatedAt: new Date(),
-    })
-    .where(eq(member.id, memberRecord.id));
+  await db.transaction(async (tx) => {
+    // Keep 'past_due' (overdue) as distinct status - do NOT set to 'paused'
+    await tx
+      .update(member)
+      .set({
+        status: "past_due",
+        updatedAt: new Date(),
+      })
+      .where(eq(member.id, memberRecord.id));
+
+    await tx.insert(auditLog).values({
+      actorId: memberRecord.personId,
+      actorType: "system",
+      action: "membership_payment_failed",
+      entity: "member",
+      entityId: memberRecord.id,
+      after: { invoiceId: invoice.id, amountDue: invoice.amount_due },
+    });
+
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "invoice.payment_failed",
+      payload: invoice as any,
+    }).onConflictDoNothing();
+  });
 
   const personRecord = await db.query.person.findFirst({
     where: eq(person.id, memberRecord.personId),
@@ -836,23 +870,16 @@ async function handleInvoicePaymentFailed({
       isTransactional: true,
     });
   }
-
-  await db.insert(auditLog).values({
-    actorId: memberRecord.personId,
-    actorType: "system",
-    action: "membership_payment_failed",
-    entity: "member",
-    entityId: memberRecord.id,
-    after: { invoiceId: invoice.id, amountDue: invoice.amount_due },
-  });
 }
 
 async function handleSubscriptionCancelled({
   customerId,
   subscription,
+  webhookEventId,
 }: {
   customerId: string;
   subscription: any;
+  webhookEventId: string;
 }) {
   const memberRecord = await db.query.member.findFirst({
     where: eq(member.stripeCustomerId, customerId),
@@ -860,30 +887,40 @@ async function handleSubscriptionCancelled({
 
   if (!memberRecord) return;
 
-  await db
-    .update(member)
-    .set({
-      status: "lapsed",
-      updatedAt: new Date(),
-    })
-    .where(eq(member.id, memberRecord.id));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(member)
+      .set({
+        status: "lapsed",
+        updatedAt: new Date(),
+      })
+      .where(eq(member.id, memberRecord.id));
 
-  await db.insert(auditLog).values({
-    actorId: memberRecord.personId,
-    actorType: "system",
-    action: "membership_lapsed",
-    entity: "member",
-    entityId: memberRecord.id,
-    after: { stripeSubscriptionId: subscription.id },
+    await tx.insert(auditLog).values({
+      actorId: memberRecord.personId,
+      actorType: "system",
+      action: "membership_lapsed",
+      entity: "member",
+      entityId: memberRecord.id,
+      after: { stripeSubscriptionId: subscription.id },
+    });
+
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "customer.subscription.deleted",
+      payload: subscription as any,
+    }).onConflictDoNothing();
   });
 }
 
 async function handleSubscriptionUpdated({
   customerId,
   subscription,
+  webhookEventId,
 }: {
   customerId: string;
   subscription: any;
+  webhookEventId: string;
 }) {
   const memberRecord = await db.query.member.findFirst({
     where: eq(member.stripeCustomerId, customerId),
@@ -893,25 +930,153 @@ async function handleSubscriptionUpdated({
 
   let newStatus = memberRecord.status;
   if (subscription.status === "canceled") newStatus = "lapsed";
-  else if (subscription.status === "past_due" || subscription.status === "unpaid") newStatus = "paused";
+  else if (subscription.status === "past_due" || subscription.status === "unpaid") newStatus = "past_due";
   else if (subscription.status === "active") newStatus = "active";
 
-  await db
-    .update(member)
-    .set({
-      status: newStatus as any,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
-      updatedAt: new Date(),
-    })
-    .where(eq(member.id, memberRecord.id));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(member)
+      .set({
+        status: newStatus as any,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        updatedAt: new Date(),
+      })
+      .where(eq(member.id, memberRecord.id));
 
-  await db.insert(auditLog).values({
-    actorId: memberRecord.personId,
-    actorType: "system",
-    action: "membership_status_changed",
-    entity: "member",
-    entityId: memberRecord.id,
-    before: { status: memberRecord.status },
-    after: { status: newStatus, stripeStatus: subscription.status, cancelAtPeriodEnd: subscription.cancel_at_period_end },
+    await tx.insert(auditLog).values({
+      actorId: memberRecord.personId,
+      actorType: "system",
+      action: "membership_status_changed",
+      entity: "member",
+      entityId: memberRecord.id,
+      before: { status: memberRecord.status },
+      after: { status: newStatus, stripeStatus: subscription.status, cancelAtPeriodEnd: subscription.cancel_at_period_end },
+    });
+
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "customer.subscription.updated",
+      payload: subscription as any,
+    }).onConflictDoNothing();
+  });
+}
+
+async function handleChargeRefunded({
+  charge,
+  webhookEventId,
+}: {
+  charge: any;
+  webhookEventId: string;
+}) {
+  await db.transaction(async (tx) => {
+    const paymentIntentId = charge.payment_intent as string | null;
+    const invoiceId = charge.invoice as string | null;
+
+    const payRecord = await tx.query.payment.findFirst({
+      where: or(
+        paymentIntentId ? eq(payment.stripePaymentIntentId, paymentIntentId) : sql`false`,
+        invoiceId ? eq(payment.stripeInvoiceId, invoiceId) : sql`false`
+      ),
+    });
+
+    if (!payRecord) return;
+
+    // 1. Update payment status to refunded
+    await tx.update(payment).set({
+      status: "refunded",
+    }).where(eq(payment.id, payRecord.id));
+
+    // 2. Clawback / Remove unused credits from creditBatch if topup/subscription
+    const batches = await tx.query.creditBatch.findMany({
+      where: and(
+        eq(creditBatch.personId, payRecord.personId),
+        gt(creditBatch.remaining, 0),
+        gt(creditBatch.expiresAt, new Date())
+      ),
+      orderBy: [desc(creditBatch.createdAt)],
+    });
+
+    const refundAmountCents = charge.amount_refunded || payRecord.amountCents;
+    let creditsToClawback = Math.max(1, Math.floor(refundAmountCents / 200));
+
+    let totalClawedBack = 0;
+    for (const b of batches) {
+      if (creditsToClawback <= 0) break;
+      const remove = Math.min(b.remaining, creditsToClawback);
+      await tx.update(creditBatch).set({
+        remaining: b.remaining - remove,
+      }).where(eq(creditBatch.id, b.id));
+      totalClawedBack += remove;
+      creditsToClawback -= remove;
+    }
+
+    const remainingUnrecovered = creditsToClawback;
+
+    // 3. Audit Log & Alert
+    await tx.insert(auditLog).values({
+      actorId: payRecord.personId,
+      actorType: "system",
+      action: "payment_refunded_clawback",
+      entity: "payment",
+      entityId: payRecord.id,
+      after: {
+        amountRefundedCents: refundAmountCents,
+        totalClawedBack,
+        remainingUnrecoveredSpent: remainingUnrecovered,
+        alertTeam: remainingUnrecovered > 0,
+      },
+    });
+
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "charge.refunded",
+      payload: charge as any,
+    }).onConflictDoNothing();
+  });
+}
+
+async function handleChargeDisputed({
+  dispute,
+  webhookEventId,
+}: {
+  dispute: any;
+  webhookEventId: string;
+}) {
+  await db.transaction(async (tx) => {
+    const chargeId = dispute.charge as string;
+    const paymentIntentId = dispute.payment_intent as string | null;
+
+    const payRecord = await tx.query.payment.findFirst({
+      where: or(
+        paymentIntentId ? eq(payment.stripePaymentIntentId, paymentIntentId) : sql`false`,
+        eq(payment.stripeInvoiceId, chargeId)
+      ),
+    });
+
+    if (payRecord) {
+      await tx.update(payment).set({
+        status: "disputed",
+      }).where(eq(payment.id, payRecord.id));
+
+      await tx.insert(auditLog).values({
+        actorId: payRecord.personId,
+        actorType: "system",
+        action: "charge_disputed_alert",
+        entity: "payment",
+        entityId: payRecord.id,
+        after: {
+          disputeId: dispute.id,
+          amountDisputedCents: dispute.amount,
+          reason: dispute.reason,
+          status: dispute.status,
+        },
+      });
+    }
+
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "charge.dispute.created",
+      payload: dispute as any,
+    }).onConflictDoNothing();
   });
 }

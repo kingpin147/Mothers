@@ -10,7 +10,7 @@ export async function publishAdminEvent(eventId: string) {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "host", "super_admin"];
+  const allowed = ["owner", "manager", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -189,7 +189,7 @@ export async function createAdminEvent(data: {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "host", "super_admin"];
+  const allowed = ["owner", "manager", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -330,7 +330,7 @@ export async function updateAdminEvent(eventId: string, data: {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "host", "super_admin"];
+  const allowed = ["owner", "manager", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -580,7 +580,7 @@ export async function confirmEventDecision(eventId: string) {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "host", "super_admin"];
+  const allowed = ["owner", "manager", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -624,7 +624,7 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "host", "super_admin"];
+  const allowed = ["owner", "manager", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
@@ -781,31 +781,44 @@ export async function duplicateAdminEvent(eventId: string) {
     .insert(event)
     .values({
       title,
+      titleEs: orig.titleEs,
+      titleFr: orig.titleFr,
       slug,
       categoryId: orig.categoryId,
+      partnerId: orig.partnerId,
       description: orig.description,
+      descriptionEs: orig.descriptionEs,
+      descriptionFr: orig.descriptionFr,
       neighbourhood: orig.neighbourhood,
       venueName: orig.venueName,
       meetingPoint: orig.meetingPoint,
       startsAt,
       endsAt,
       creditCost: orig.creditCost,
+      memberCredits: orig.memberCredits ?? orig.creditCost,
+      nonMemberCredits: orig.nonMemberCredits ?? orig.creditCost,
       capacityMember: orig.capacityMember,
       minToConfirm: orig.minToConfirm,
       isSignature: orig.isSignature,
       isFreeWalk: orig.isFreeWalk,
-      status: "published_pending",
+      cancellationWindowHours: orig.cancellationWindowHours,
+      cancellationRefundPercent: orig.cancellationRefundPercent,
+      childcare: orig.childcare,
+      guestPriceCents: orig.guestPriceCents,
+      imageId: orig.imageId,
+      languages: orig.languages,
+      status: "draft", // Save copy as draft (not published)
       hostAdminId: adminId,
     })
     .returning();
 
   await db.insert(auditLog).values({
-    actorId: adminId,
+    actorId: adminId || "admin",
     actorType: "admin",
     action: "duplicate_event",
     entity: "event",
     entityId: inserted[0].id,
-    after: { originalEventId: eventId, newEventId: inserted[0].id },
+    after: { originalEventId: eventId, newEventId: inserted[0].id, status: "draft" },
   });
 
   const { revalidatePath } = await import("next/cache");
@@ -907,7 +920,7 @@ export async function getEventRoster(eventId: string) {
 export async function markAttendance(bookingId: string, attended: boolean) {
   const session = await auth();
   const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "host", "super_admin"];
+  const allowed = ["owner", "manager", "super_admin"];
   if (!role || !allowed.includes(role)) {
     return { success: false, error: "UNAUTHORIZED_ADMIN" };
   }
