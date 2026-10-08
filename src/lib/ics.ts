@@ -9,7 +9,7 @@ export interface IcsEventOptions {
   organizerEmail?: string;
 }
 
-function formatDateToICS(d: Date): string {
+export function formatDateToICS(d: Date): string {
   return d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
@@ -69,6 +69,53 @@ export function generateIcsString(opts: IcsEventOptions): string {
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
+}
+
+export function generateGoogleCalendarUrl(opts: IcsEventOptions): string {
+  const start = typeof opts.startsAt === "string" ? new Date(opts.startsAt) : opts.startsAt;
+  const end = opts.endsAt
+    ? typeof opts.endsAt === "string"
+      ? new Date(opts.endsAt)
+      : opts.endsAt
+    : new Date(start.getTime() + 2 * 60 * 60 * 1000);
+
+  const startIso = formatDateToICS(start);
+  const endIso = formatDateToICS(end);
+
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: opts.title || "The Mothers Gathering",
+    dates: `${startIso}/${endIso}`,
+    details: opts.description || "The Mothers Barcelona Gathering",
+    location: opts.location || "Barcelona, Spain",
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+export function generateCalendarDownloadUrl(opts: {
+  eventId?: string;
+  title: string;
+  startsAt: Date | string;
+  endsAt?: Date | string;
+  location?: string;
+  description?: string;
+  baseUrl?: string;
+}): string {
+  const base = opts.baseUrl || "https://themothers.cc";
+  if (opts.eventId) {
+    return `${base}/api/events/${encodeURIComponent(opts.eventId)}/ics`;
+  }
+  const start = typeof opts.startsAt === "string" ? opts.startsAt : opts.startsAt.toISOString();
+  const end = opts.endsAt ? (typeof opts.endsAt === "string" ? opts.endsAt : opts.endsAt.toISOString()) : undefined;
+  const params = new URLSearchParams({
+    title: opts.title,
+    startsAt: start,
+    ...(end ? { endsAt: end } : {}),
+    ...(opts.location ? { location: opts.location } : {}),
+    ...(opts.description ? { description: opts.description } : {}),
+  });
+  return `${base}/api/calendar/ics?${params.toString()}`;
 }
 
 export function generateIcsDataUri(opts: IcsEventOptions): string {

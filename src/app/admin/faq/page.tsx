@@ -28,6 +28,8 @@ export default function AdminFaqPage() {
   const [draftA, setDraftA] = useState("");
   const [draftQes, setDraftQes] = useState("");
   const [draftAes, setDraftAes] = useState("");
+  const [draftQfr, setDraftQfr] = useState("");
+  const [draftAfr, setDraftAfr] = useState("");
   const [draftTried, setDraftTried] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
 
@@ -38,6 +40,8 @@ export default function AdminFaqPage() {
   const [editA, setEditA] = useState("");
   const [editQes, setEditQes] = useState("");
   const [editAes, setEditAes] = useState("");
+  const [editQfr, setEditQfr] = useState("");
+  const [editAfr, setEditAfr] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [savingEdit, setSavingEdit] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -70,11 +74,11 @@ export default function AdminFaqPage() {
     let statusMatched = true;
     if (statusFilter === "published") statusMatched = f.active === true;
     if (statusFilter === "draft") statusMatched = f.active === false;
-    if (statusFilter === "missing") statusMatched = !f.questionEs || f.questionEs.trim() === "";
+    if (statusFilter === "missing") statusMatched = (!f.questionEs || f.questionEs.trim() === "") || (!f.questionFr || f.questionFr.trim() === "");
     if (statusFilter === "policy") statusMatched = POLICY_RE.test(f.answerEn || "");
     const textMatched =
       !q ||
-      `${f.questionEn} ${f.answerEn} ${f.questionEs || ""} ${f.answerEs || ""}`
+      `${f.questionEn} ${f.answerEn} ${f.questionEs || ""} ${f.answerEs || ""} ${f.questionFr || ""} ${f.answerFr || ""}`
         .toLowerCase()
         .includes(q);
     return groupMatched && statusMatched && textMatched;
@@ -715,6 +719,175 @@ export default function AdminFaqPage() {
                     resize: "vertical",
                   }}
                 />
+              </div>\n              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Question, in English
+                </label>
+                <input
+                  type="text"
+                  value={draftQ}
+                  onChange={(e) => {
+                    setDraftQ(e.target.value);
+                    setDraftTried(false);
+                  }}
+                  placeholder="As a member would ask it"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    border: "1px solid rgba(57,41,42,0.25)",
+                    borderRadius: "4px",
+                    padding: "10px 12px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px",
+                    background: "#fff",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Group
+                </label>
+                <select
+                  value={draftGroup}
+                  onChange={(e) => setDraftGroup(e.target.value)}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    border: "1px solid rgba(57,41,42,0.25)",
+                    borderRadius: "4px",
+                    padding: "10px 12px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px",
+                    background: "#fff",
+                  }}
+                >
+                  {GROUP_ORDER.map((grp) => (
+                    <option key={grp} value={grp}>
+                      {grp}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+                gap: "14px",
+                marginBottom: "12px",
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Answer, in English
+                </label>
+                <textarea
+                  rows={4}
+                  value={draftA}
+                  onChange={(e) => {
+                    setDraftA(e.target.value);
+                    setDraftTried(false);
+                  }}
+                  placeholder="Plainly, in our voice. French can follow later."
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    border: "1px solid rgba(57,41,42,0.25)",
+                    borderRadius: "4px",
+                    padding: "10px 12px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "13.5px",
+                    lineHeight: 1.65,
+                    background: "#fff",
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Question, in French (optional)
+                </label>
+                <input
+                  type="text"
+                  value={draftQfr}
+                  onChange={(e) => setDraftQfr(e.target.value)}
+                  placeholder="Pregunta en français"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    border: "1px solid rgba(57,41,42,0.25)",
+                    borderRadius: "4px",
+                    padding: "10px 12px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14px",
+                    background: "#fff",
+                    marginBottom: "10px",
+                  }}
+                />
+                <label
+                  style={{
+                    display: "block",
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Answer, in French (optional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={draftAfr}
+                  onChange={(e) => setDraftAfr(e.target.value)}
+                  placeholder="Respuesta en français."
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    border: "1px solid rgba(57,41,42,0.25)",
+                    borderRadius: "4px",
+                    padding: "10px 12px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "13.5px",
+                    lineHeight: 1.65,
+                    background: "#fff",
+                    resize: "vertical",
+                  }}
+                />
               </div>
             </div>
 
@@ -910,6 +1083,7 @@ export default function AdminFaqPage() {
                   {g.items.map((f, idx) => {
                     const isOpen = openId === f.id;
                     const hasMissingEs = !f.questionEs || f.questionEs.trim() === "";
+                    const hasMissingFr = !f.questionFr || f.questionFr.trim() === "";
                     const hasPolicy = POLICY_RE.test(f.answerEn || "");
                     const isDraft = !f.active;
                     const rowBg = isDraft
@@ -984,6 +1158,18 @@ export default function AdminFaqPage() {
                               {hasMissingEs
                                 ? "Not translated — the page shows the English"
                                 : f.questionEs}
+                            </div>\n                            <div
+                              style={{
+                                fontSize: "13.5px",
+                                lineHeight: 1.6,
+                                color: hasMissingFr ? AMBER : "rgba(57,41,42,0.72)",
+                                fontStyle: hasMissingFr ? "italic" : "normal",
+                                marginBottom: "7px",
+                              }}
+                            >
+                              {hasMissingFr
+                                ? "Not translated — the page shows the English"
+                                : f.questionFr}
                             </div>
                             {/* Tags */}
                             <div style={{ display: "flex", gap: "7px", flexWrap: "wrap" }}>
@@ -1230,6 +1416,55 @@ export default function AdminFaqPage() {
                                   value={editAes}
                                   onChange={(e) => setEditAes(e.target.value)}
                                   placeholder="Sin traducir"
+                                  style={{
+                                    width: "100%",
+                                    boxSizing: "border-box",
+                                    border: "1px solid rgba(57,41,42,0.25)",
+                                    borderRadius: "4px",
+                                    padding: "10px 12px",
+                                    fontFamily: "'Lora', Georgia, serif",
+                                    fontSize: "13.5px",
+                                    lineHeight: 1.65,
+                                    background: "#fff",
+                                    resize: "vertical",
+                                  }}
+                                />
+                              </div>\n<div>
+                                <div
+                                  style={{
+                                    fontFamily: "'Cormorant Garamond', serif",
+                                    fontWeight: 600,
+                                    fontSize: "10.5px",
+                                    letterSpacing: "0.12em",
+                                    textTransform: "uppercase",
+                                    color: "rgba(57,41,42,0.55)",
+                                    marginBottom: "6px",
+                                  }}
+                                >
+                                  French
+                                </div>
+                                <input
+                                  type="text"
+                                  value={editQfr}
+                                  onChange={(e) => setEditQfr(e.target.value)}
+                                  placeholder="Non traduit — la page affiche l'anglais"
+                                  style={{
+                                    width: "100%",
+                                    boxSizing: "border-box",
+                                    border: "1px solid rgba(57,41,42,0.25)",
+                                    borderRadius: "4px",
+                                    padding: "10px 12px",
+                                    fontFamily: "'Lora', Georgia, serif",
+                                    fontSize: "14px",
+                                    background: "#fff",
+                                    marginBottom: "8px",
+                                  }}
+                                />
+                                <textarea
+                                  rows={5}
+                                  value={editAfr}
+                                  onChange={(e) => setEditAfr(e.target.value)}
+                                  placeholder="Non traduit"
                                   style={{
                                     width: "100%",
                                     boxSizing: "border-box",

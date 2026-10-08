@@ -54,7 +54,7 @@ export default function JournalEditorModal({
   post,
   onSaved,
 }: JournalEditorModalProps) {
-  const [activeLang, setActiveLang] = useState<"en" | "es">("en");
+  const [activeLang, setActiveLang] = useState<"en" | "es" | "fr">("en");
   
   // English fields
   const [title, setTitle] = useState("");
@@ -77,6 +77,17 @@ export default function JournalEditorModal({
   const [reviewedNoteEs, setReviewedNoteEs] = useState("Información general, no consejo médico ni legal.");
   const [seoTitleEs, setSeoTitleEs] = useState("");
   const [seoDescriptionEs, setSeoDescriptionEs] = useState("");
+  // French fields
+  const [titleFr, setTitleFr] = useState("");
+  const [excerptFr, setExcerptFr] = useState("");
+  const [bodyFr, setBodyFr] = useState("");
+  const [quoteFr, setQuoteFr] = useState("");
+  const [authorRoleFr, setAuthorRoleFr] = useState("");
+  const [bylineFr, setBylineFr] = useState("");
+  const [reviewedNoteFr, setReviewedNoteFr] = useState("Informations générales, pas de conseils médicaux ou légaux.");
+  const [seoTitleFr, setSeoTitleFr] = useState("");
+  const [seoDescriptionFr, setSeoDescriptionFr] = useState("");
+
 
   // Shared metadata
   const [category, setCategory] = useState("postpartum");
@@ -462,6 +473,28 @@ export default function JournalEditorModal({
                 <span>🇪🇸 Spanish</span>
                 {titleEs && <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: GREEN }} />}
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveLang("fr")}
+                style={{
+                  border: "none",
+                  backgroundColor: activeLang === "fr" ? "#fff" : "transparent",
+                  color: activeLang === "fr" ? WINE : "#39292a",
+                  fontWeight: activeLang === "fr" ? 600 : 400,
+                  padding: "6px 14px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  boxShadow: activeLang === "fr" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span>🇪🇸 Spanish</span>
+                {titleEs && <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: GREEN }} />}
+              </button>
             </div>
 
             <button
@@ -822,7 +855,7 @@ export default function JournalEditorModal({
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
                     Author Role / Affiliation (English)
@@ -865,7 +898,7 @@ export default function JournalEditorModal({
                 </div>
               </div>
             </div>
-          ) : (
+          ) : activeLang === "es" ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <div style={{ borderBottom: "1px solid rgba(123,31,44,0.2)", paddingBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: WINE }}>
@@ -965,7 +998,7 @@ export default function JournalEditorModal({
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
                     Rol / Especialidad en Español
@@ -995,6 +1028,149 @@ export default function JournalEditorModal({
                     type="text"
                     value={reviewedNoteEs}
                     onChange={(e) => setReviewedNoteEs(e.target.value)}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "9px 11px",
+                      borderRadius: "4px",
+                      border: "1px solid rgba(57, 41, 42, 0.25)",
+                      backgroundColor: "#fff",
+                      fontSize: "13.5px",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ borderBottom: "1px solid rgba(123,31,44,0.2)", paddingBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: WINE }}>
+                  French Content / Contenu en Français
+                </span>
+                <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>Visible en mode Français</span>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>
+                  Titre en Français
+                </label>
+                <input
+                  type="text"
+                  value={titleFr}
+                  onChange={(e) => setTitleFr(e.target.value)}
+                  placeholder="e.g. Encontrar una doula posparto en Barcelona"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "11px 13px",
+                    borderRadius: "4px",
+                    border: "1px solid rgba(57, 41, 42, 0.25)",
+                    backgroundColor: "#fff",
+                    fontSize: "15px",
+                    fontFamily: "'Lora', Georgia, serif",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>
+                  Sous-titre / Dek en Français
+                </label>
+                <input
+                  type="text"
+                  value={excerptFr}
+                  onChange={(e) => setExcerptFr(e.target.value)}
+                  placeholder="Una o dos frases resumiendo el artículo."
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "10px 12px",
+                    borderRadius: "4px",
+                    border: "1px solid rgba(57, 41, 42, 0.25)",
+                    backgroundColor: "#fff",
+                    fontSize: "14px",
+                    fontFamily: "'Lora', Georgia, serif",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>
+                  Citation en Français
+                </label>
+                <input
+                  type="text"
+                  value={quoteFr}
+                  onChange={(e) => setQuoteFr(e.target.value)}
+                  placeholder="e.g. Pregúntale qué hace cuando una madre llora. La respuesta dice más que cualquier certificado."
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "10px 12px",
+                    borderRadius: "4px",
+                    border: "1px solid rgba(57, 41, 42, 0.25)",
+                    backgroundColor: "#fff",
+                    fontSize: "14px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontStyle: "italic",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>
+                  Corps de l'article en Français
+                </label>
+                <textarea
+                  rows={9}
+                  value={bodyFr}
+                  onChange={(e) => setBodyFr(e.target.value)}
+                  placeholder="Escribe el artículo completo en español. Separa párrafos con líneas en blanco."
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "12px 14px",
+                    borderRadius: "4px",
+                    border: "1px solid rgba(57, 41, 42, 0.25)",
+                    backgroundColor: "#fff",
+                    fontSize: "14px",
+                    lineHeight: 1.7,
+                    fontFamily: "'Lora', Georgia, serif",
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
+                    Rôle / Spécialité en Français
+                  </label>
+                  <input
+                    type="text"
+                    value={authorRoleFr}
+                    onChange={(e) => setAuthorRoleFr(e.target.value)}
+                    placeholder="e.g. doula posparto, Eixample"
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      padding: "9px 11px",
+                      borderRadius: "4px",
+                      border: "1px solid rgba(57, 41, 42, 0.25)",
+                      backgroundColor: "#fff",
+                      fontSize: "13.5px",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", marginBottom: "6px" }}>
+                    Note de Révision en Français
+                  </label>
+                  <input
+                    type="text"
+                    value={reviewedNoteFr}
+                    onChange={(e) => setReviewedNoteFr(e.target.value)}
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -1043,7 +1219,7 @@ export default function JournalEditorModal({
 
             {showSeo && (
               <div style={{ padding: "0 18px 18px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "12px", marginBottom: "4px" }}>SEO Title (EN)</label>
                     <input
@@ -1064,9 +1240,19 @@ export default function JournalEditorModal({
                       style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: "4px", border: "1px solid rgba(57, 41, 42, 0.25)", fontSize: "13px" }}
                     />
                   </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", marginBottom: "4px" }}>SEO Title (FR)</label>
+                    <input
+                      type="text"
+                      value={seoTitleFr}
+                      onChange={(e) => setSeoTitleFr(e.target.value)}
+                      placeholder="Titre pour Google"
+                      style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: "4px", border: "1px solid rgba(57, 41, 42, 0.25)", fontSize: "13px" }}
+                    />
+                  </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "12px", marginBottom: "4px" }}>SEO Description (EN)</label>
                     <textarea
@@ -1084,6 +1270,16 @@ export default function JournalEditorModal({
                       value={seoDescriptionEs}
                       onChange={(e) => setSeoDescriptionEs(e.target.value)}
                       placeholder="Meta descripción en español"
+                      style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: "4px", border: "1px solid rgba(57, 41, 42, 0.25)", fontSize: "13px" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", marginBottom: "4px" }}>SEO Description (FR)</label>
+                    <textarea
+                      rows={2}
+                      value={seoDescriptionFr}
+                      onChange={(e) => setSeoDescriptionFr(e.target.value)}
+                      placeholder="Méta-description en français"
                       style={{ width: "100%", boxSizing: "border-box", padding: "8px 10px", borderRadius: "4px", border: "1px solid rgba(57, 41, 42, 0.25)", fontSize: "13px" }}
                     />
                   </div>

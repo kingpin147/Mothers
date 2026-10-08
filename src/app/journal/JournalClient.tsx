@@ -28,111 +28,6 @@ export interface PublicArticle {
   audience?: string;
 }
 
-const STATIC_FALLBACKS: PublicArticle[] = [
-  {
-    id: "doula",
-    slug: "doula",
-    cat: "postpartum",
-    dateEn: "Aug 4, 2026",
-    dateEs: "4 ago 2026",
-    readEn: "6 min read",
-    readEs: "6 min de lectura",
-    author: "Marta Vidal",
-    roleEn: "postpartum doula, Eixample",
-    roleEs: "doula posparto, Eixample",
-    image: "/assets/journal-doula.jpg",
-    titleEn: "Finding a postpartum doula in Barcelona",
-    titleEs: "Encontrar una doula posparto en Barcelona",
-    dekEn: "What a doula actually does in the fourth trimester, what it costs here, and the questions worth asking before you book one.",
-    dekEs: "Qué hace realmente una doula en el cuarto trimestre, cuánto cuesta aquí y qué conviene preguntar antes de contratarla.",
-  },
-  {
-    id: "friends",
-    slug: "friends",
-    cat: "friendship",
-    dateEn: "Jul 28, 2026",
-    dateEs: "28 jul 2026",
-    readEn: "5 min read",
-    readEs: "5 min de lectura",
-    author: "The Mothers",
-    roleEn: "",
-    roleEs: "",
-    image: "/assets/journal-friends.jpg",
-    titleEn: "Making mum friends in a city that isn't yours",
-    titleEs: "Hacer amigas madres en una ciudad que no es la tuya",
-    dekEn: "Why it is harder than anyone admits, and the three things that actually move a friendly acquaintance into a friend.",
-    dekEs: "Por qué cuesta más de lo que nadie admite, y las tres cosas que convierten a una conocida amable en una amiga.",
-  },
-  {
-    id: "sleep",
-    slug: "sleep",
-    cat: "sleep",
-    dateEn: "Jul 19, 2026",
-    dateEs: "19 jul 2026",
-    readEn: "7 min read",
-    readEs: "7 min de lectura",
-    author: "Dorm Bé Sleep Consultants",
-    roleEn: "partner",
-    roleEs: "partner",
-    image: "/assets/journal-sleep.jpg",
-    titleEn: "The first twelve weeks of sleep, honestly",
-    titleEs: "Las primeras doce semanas de sueño, sin cuentos",
-    dekEn: "What is developmentally normal, what is not worth fixing yet, and the two things that genuinely help before three months.",
-    dekEs: "Qué es normal en el desarrollo, qué no merece la pena arreglar todavía y las dos cosas que de verdad ayudan antes de los tres meses.",
-  },
-  {
-    id: "feeding",
-    slug: "feeding",
-    cat: "feeding",
-    dateEn: "Jul 8, 2026",
-    dateEs: "8 jul 2026",
-    readEn: "6 min read",
-    readEs: "6 min de lectura",
-    author: "BabyLatch Consultants",
-    roleEn: "partner",
-    roleEs: "partner",
-    image: "/assets/journal-feeding.jpg",
-    titleEn: "Feeding: the questions nobody answers at 3am",
-    titleEs: "Lactancia: las preguntas que nadie responde a las 3 de la mañana",
-    dekEn: "Pain, supply, mixed feeding and when to actually call someone — the practical answers, without the ideology.",
-    dekEs: "Dolor, producción, lactancia mixta y cuándo llamar de verdad a alguien — las respuestas prácticas, sin ideología.",
-  },
-  {
-    id: "yoga",
-    slug: "yoga",
-    cat: "body",
-    dateEn: "Jun 30, 2026",
-    dateEs: "30 jun 2026",
-    readEn: "4 min read",
-    readEs: "4 min de lectura",
-    author: "Loto Barcelona Yoga",
-    roleEn: "partner",
-    roleEs: "partner",
-    image: "/assets/journal-yoga.jpg",
-    titleEn: "Prenatal yoga in Barcelona: what to ask before you book",
-    titleEs: "Yoga prenatal en Barcelona: qué preguntar antes de apuntarte",
-    dekEn: "Not all prenatal classes are prenatal classes. Five questions that tell you whether the teacher in front of you is trained for a pregnant body.",
-    dekEs: "No todas las clases prenatales lo son. Cinco preguntas que te dicen si quien tienes delante está formada para un cuerpo embarazado.",
-  },
-  {
-    id: "work",
-    slug: "work",
-    cat: "work",
-    dateEn: "Jun 17, 2026",
-    dateEs: "17 jun 2026",
-    readEn: "6 min read",
-    readEs: "6 min de lectura",
-    author: "Momentum Careers Barcelona",
-    roleEn: "partner",
-    roleEs: "partner",
-    image: "/assets/journal-work.jpg",
-    titleEn: "Going back to work: the conversations to have first",
-    titleEs: "Volver al trabajo: las conversaciones previas",
-    dekEn: "Before the logistics, three conversations that decide how the return actually goes — with your employer, your partner, and yourself.",
-    dekEs: "Antes de la logística, tres conversaciones que deciden cómo va la vuelta — con tu empresa, con tu pareja y contigo misma.",
-  },
-];
-
 const CAT_ORDER = ["all", "postpartum", "feeding", "sleep", "body", "friendship", "work"];
 
 const CATS_EN: Record<string, string> = {
@@ -183,8 +78,7 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
 
-  const allArticles: PublicArticle[] =
-    dynamicArticles.length > 0 ? dynamicArticles : STATIC_FALLBACKS;
+  const allArticles: PublicArticle[] = dynamicArticles;
 
   // Category filter
   const filtered =
@@ -428,11 +322,36 @@ export default function JournalClient({ dynamicArticles = [] }: JournalClientPro
         </div>
 
         {filtered.length === 0 && (
-          <p style={{ fontSize: "15.5px", color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
-            {lang === "en"
-              ? "Nothing here yet — try another category."
-              : "Aquí todavía no hay nada — prueba otra categoría."}
-          </p>
+          <div
+            style={{
+              padding: "48px 24px",
+              textAlign: "center",
+              backgroundColor: "rgba(57, 41, 42, 0.03)",
+              borderRadius: "8px",
+              border: "1px dashed rgba(57, 41, 42, 0.15)",
+              maxWidth: "540px",
+              margin: "20px auto",
+            }}
+          >
+            <p style={{ fontSize: "16px", color: "rgba(57, 41, 42, 0.8)", margin: "0 0 6px", fontWeight: 500 }}>
+              {allArticles.length === 0
+                ? lang === "en"
+                  ? "No articles published yet."
+                  : "Aún no hay artículos publicados."
+                : lang === "en"
+                ? "Nothing in this category yet."
+                : "Aquí todavía no hay nada en esta categoría."}
+            </p>
+            <p style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.6)", margin: 0 }}>
+              {allArticles.length === 0
+                ? lang === "en"
+                  ? "Check back soon for stories, perspectives and notes from The Mothers."
+                  : "Vuelve pronto para leer nuevas historias y artículos de The Mothers."
+                : lang === "en"
+                ? "Try selecting another category or view Everything."
+                : "Prueba seleccionando otra categoría o mira Todo."}
+            </p>
+          </div>
         )}
       </section>
     </div>

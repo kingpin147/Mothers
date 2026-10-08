@@ -38,99 +38,6 @@ interface ArticleData {
   audience: string;
 }
 
-const STATIC_SEEDS: Record<string, ArticleData> = {
-  doula: {
-    id: "doula",
-    slug: "doula",
-    cat: "postpartum",
-    dateEn: "Aug 4, 2026",
-    dateEs: "4 ago 2026",
-    readEn: "6 min read",
-    readEs: "6 min de lectura",
-    author: "Marta Vidal",
-    roleEn: "postpartum doula, Eixample",
-    roleEs: "doula posparto, Eixample",
-    heroImageUrl: "/assets/journal-doula.jpg",
-    heroImageAlt: "A doula and mother sitting together at a kitchen table, natural light",
-    titleEn: "Finding a postpartum doula in Barcelona",
-    titleEs: "Encontrar una doula posparto en Barcelona",
-    dekEn: "What a doula actually does in the fourth trimester, what it costs here, and the questions worth asking before you book one.",
-    dekEs: "Qué hace realmente una doula en el cuarto trimestre, cuánto cuesta aquí y qué conviene preguntar antes de contratarla.",
-    quoteEn: "Ask her what she does when a mother cries. The answer tells you more than any certificate.",
-    quoteEs: "Pregúntale qué hace cuando una madre llora. La respuesta dice más que cualquier certificado.",
-    bodyEn: [
-      "A postpartum doula is not a night nurse, not a cleaner, and not a midwife. She is someone who comes to your home in the weeks after birth and takes the weight off — the practical weight and the emotional one. In Barcelona she will usually work in blocks of three or four hours, once or twice a week, for the first six to twelve weeks.",
-      "What that looks like in practice is unglamorous and enormously useful. She holds the baby while you shower. She watches you feed and notices the things you cannot see from where you are sitting. She cooks something you can eat with one hand. She tells you what is normal, which is the sentence most new mothers are starving for.",
-      "Rates in the city sit broadly between €25 and €45 an hour, higher for overnight support, and many doulas sell packages rather than single visits. Ask what is included: some include a prenatal meeting and unlimited WhatsApp support between visits, which is often worth more than an extra hour in the house.",
-      "Where to look, in rough order of usefulness: your midwife at the CAP, who often knows who works in your neighbourhood; the associations that certify doulas in Catalonia; your antenatal group; and lastly Instagram, where the presentation is polished and the vetting is yours to do.",
-    ],
-    bodyEs: [
-      "Una doula posparto no es una enfermera de noche, ni una limpiadora, ni una matrona. Es alguien que viene a tu casa en las semanas posteriores al parto y te quita peso — el práctico y el emocional. En Barcelona suele trabajar en bloques de tres o cuatro horas, una o dos veces por semana, durante las primeras seis a doce semanas.",
-      "En la práctica es poco glamuroso y enormemente útil. Sostiene al bebé mientras te duchas. Te mira dar el pecho y ve lo que tú no puedes ver desde donde estás sentada. Cocina algo que puedas comer con una mano. Te dice qué es normal, que es la frase que más necesita oír una madre reciente.",
-      "Las tarifas en la ciudad van más o menos de 25€ a 45€ la hora, más caro de noche, y muchas doulas venden paquetes en lugar de visitas sueltas. Pregunta qué incluye: algunas incluyen una visita prenatal y WhatsApp ilimitado entre sesiones, que a menudo vale más que una hora extra en casa.",
-      "Dónde buscar, por orden de utilidad: tu matrona del CAP, que suele saber quién trabaja en tu barrio; las asociaciones que acreditan doulas en Cataluña; tu grupo de preparación al parto; y por último Instagram, donde la presentación es impecable y el filtro lo pones tú.",
-    ],
-    bodyAfterEn: [
-      "Three questions worth asking on the first call. What does a typical visit look like, hour by hour? What do you not do — is laundry in scope, are older siblings? And who covers you if you are ill on the day?",
-      "One practical note: book earlier than feels necessary. Good doulas in Barcelona are often full six to eight weeks ahead, and the version of you who needs one is not the version of you with the energy to interview four strangers.",
-    ],
-    bodyAfterEs: [
-      "Tres preguntas para la primera llamada. ¿Cómo es una visita típica, hora a hora? ¿Qué no haces — entra la colada, entra la de los hermanos mayores? ¿Y quién te cubre si ese día estás enferma?",
-      "Un apunte práctico: reserva antes de lo que parece necesario. Las buenas doulas en Barcelona suelen estar llenas con seis u ocho semanas de antelación, y la versión de ti que la necesitará no es la que tiene energía para entrevistar a cuatro desconocidas.",
-    ],
-    bylineEn: "Written by Marta Vidal · Postpartum support series",
-    bylineEs: "Escrito por Marta Vidal · Serie de apoyo posparto",
-    reviewedNoteEn: "Reviewed by The Mothers Editorial",
-    reviewedNoteEs: "Revisado por la redacción de The Mothers",
-    audience: "public",
-  },
-  friends: {
-    id: "friends",
-    slug: "friends",
-    cat: "friendship",
-    dateEn: "Jul 28, 2026",
-    dateEs: "28 jul 2026",
-    readEn: "5 min read",
-    readEs: "5 min de lectura",
-    author: "The Mothers",
-    roleEn: "",
-    roleEs: "",
-    heroImageUrl: "/assets/journal-friends.jpg",
-    heroImageAlt: "Two mothers with strollers talking on a park path, seen from behind",
-    titleEn: "Making mum friends in a city that isn't yours",
-    titleEs: "Hacer amigas madres en una ciudad que no es la tuya",
-    dekEn: "Why it is harder than anyone admits, and the three things that actually move a friendly acquaintance into a friend.",
-    dekEs: "Por qué es más difícil de lo que se admite y las tres cosas que realmente convierten a una conocida en una amiga.",
-    quoteEn: "The third time you see someone is when the conversation stops being about the babies.",
-    quoteEs: "La tercera vez que ves a alguien es cuando la conversación deja de girar en torno a los bebés.",
-    bodyEn: [
-      "Moving to Barcelona with a baby, or having one shortly after arriving, produces a specific kind of loneliness. You are surrounded by people all day and speaking to almost none of them. The friendships you had at home ran on years of accumulated context; here you are starting from a shared bench in a playground.",
-      "The first thing worth knowing is that proximity is not friendship, and most advice confuses the two. Joining a class puts you in a room with other mothers. It does not, on its own, produce anyone who will answer the phone at eleven at night.",
-      "What does move things along is repetition. The same faces, at the same time, every week. Almost every real friendship formed in early motherhood comes from a recurring fixture rather than a one-off event, because the third conversation is where people stop performing.",
-      "The second is asymmetry of effort. Somebody has to be the one who suggests the coffee, and in a group of tired strangers everyone is waiting for someone else to do it. Being that person feels exposing and works nearly every time.",
-    ],
-    bodyEs: [
-      "Mudarse a Barcelona con un bebé, o tenerlo poco después de llegar, produce un tipo específico de soledad. Estás rodeada de gente todo el día y no hablas con casi nadie. Las amistades que tenías en casa funcionaban con años de contexto acumulado; aquí empiezas desde un banco compartido en un parque.",
-      "Lo primero que conviene saber es que la proximidad no es amistad, y la mayoría de los consejos confunden ambas cosas. Apuntarse a una clase te mete en una sala con otras madres. No produce, por sí solo, a nadie que te coja el teléfono a las once de la noche.",
-      "Lo que sí hace avanzar las cosas es la repetición. Las mismas caras, a la misma hora, todas las semanas. Casi todas las amistades reales en la maternidad temprana surgen de un encuentro recurrente más que de un evento único, porque en la tercera conversación es donde la gente deja de actuar.",
-      "Lo segundo es la asimetría del esfuerzo. Alguien tiene que ser quien proponga el café, y en un grupo de desconocidas cansadas todas esperan a que lo haga otra. Ser esa persona da pudor, pero funciona casi siempre.",
-    ],
-    bodyAfterEn: [
-      "The third is honesty, earlier than feels comfortable. The mothers who find their people quickly are usually the ones who answer 'how are you?' truthfully in week two rather than in month six. It filters fast, in both directions, and what remains is real.",
-      "Language matters less than people fear. Barcelona motherhood runs in Spanish, Catalan, English and a good deal of gesture, and nobody has ever been excluded from a park bench for imperfect grammar.",
-    ],
-    bodyAfterEs: [
-      "Lo tercero es la honestidad, antes de lo que resulta cómodo. Las madres que encuentran a su gente rápido suelen ser las que responden a '¿cómo estás?' con la verdad en la segunda semana en lugar de en el sexto mes. Filtra rápido, en ambas direcciones, y lo que queda es real.",
-      "El idioma importa menos de lo que la gente teme. La maternidad en Barcelona funciona en castellano, catalán, inglés y muchos gestos, y a nadie se le ha excluido nunca de un banco del parque por una gramática imperfecta.",
-    ],
-    bylineEn: "Written by The Mothers Editorial",
-    bylineEs: "Escrito por la redacción de The Mothers",
-    reviewedNoteEn: "Reviewed by The Mothers",
-    reviewedNoteEs: "Revisado por The Mothers",
-    audience: "public",
-  },
-};
-
 export default function JournalSlugPage() {
   const params = useParams();
   const rawSlug = Array.isArray(params.slug) ? params.slug.join("/") : params.slug || "";
@@ -160,7 +67,7 @@ export default function JournalSlugPage() {
         incrementJournalPostViews(cleanSlug);
       }
 
-      // Check DB first
+      // Check DB
       const res = await getPublicJournalArticle(cleanSlug);
       if (res && res.post) {
         const p = res.post;
@@ -187,7 +94,7 @@ export default function JournalSlugPage() {
           author: p.author || "The Mothers",
           roleEn: p.authorRoleEn || "",
           roleEs: p.authorRoleEs || "",
-          heroImageUrl: p.heroImageUrl || "/assets/journal-doula.jpg",
+          heroImageUrl: p.heroImageUrl || undefined,
           heroImageAlt: p.heroImageAlt || p.title,
           titleEn: p.title,
           titleEs: p.titleEs || p.title,
@@ -209,8 +116,6 @@ export default function JournalSlugPage() {
         if (res.related) {
           setRelated(res.related);
         }
-      } else if (STATIC_SEEDS[cleanSlug]) {
-        setArticle(STATIC_SEEDS[cleanSlug]);
       } else {
         setArticle(null);
       }

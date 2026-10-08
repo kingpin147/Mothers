@@ -27,6 +27,7 @@ import {
   queueAndSendEmail,
   generateBookingConfirmedEmailHtml,
 } from "@/lib/brevo";
+import { generateIcsString } from "@/lib/ics";
 import { getAppUrl } from "@/lib/urls";
 import crypto from "crypto";
 import { z } from "zod";
@@ -237,6 +238,7 @@ export async function bookEvent(eventId: string) {
         status: initialStatus,
         eventStatus: targetEventStatus,
         startsAt: ev.startsAt,
+        endsAt: ev.endsAt,
         venueName: ev.venueName,
         meetingPoint: ev.meetingPoint,
         creditsCharged: requiredCredits,
@@ -273,8 +275,19 @@ export async function bookEvent(eventId: string) {
         meetingPoint: result.meetingPoint || result.venueName || undefined,
         creditsCharged: result.creditsCharged,
         startsAt: result.startsAt,
+        endsAt: result.endsAt,
+        eventId,
         appUrl: origin,
         isEs,
+      });
+
+      const icsString = generateIcsString({
+        title: result.eventTitle,
+        description: `The Mothers gathering: ${result.eventTitle}. Meeting point: ${result.meetingPoint || result.venueName || "Barcelona"}`,
+        location: result.meetingPoint || result.venueName || "Barcelona, Spain",
+        startsAt: result.startsAt,
+        endsAt: result.endsAt,
+        url: `${origin}/events/${eventId}`,
       });
 
       await queueAndSendEmail({
@@ -286,6 +299,12 @@ export async function bookEvent(eventId: string) {
         subject,
         htmlContent,
         isTransactional: true,
+        attachments: [
+          {
+            name: "mothers-gathering.ics",
+            content: Buffer.from(icsString, "utf-8").toString("base64"),
+          },
+        ],
       });
     }
 

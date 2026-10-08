@@ -153,11 +153,15 @@ export async function getAdminEvents() {
 
 export async function createAdminEvent(data: {
   title: string;
+  titleEs?: string;
+  titleFr?: string;
   categoryId?: string;
   category?: string;
   partnerId?: string;
   host?: string;
   description?: string;
+  descriptionEs?: string;
+  descriptionFr?: string;
   neighbourhood: string;
   venueName: string;
   meetingPoint: string;
@@ -220,9 +224,13 @@ export async function createAdminEvent(data: {
       .insert(event)
       .values({
         title: data.title,
+        titleEs: data.titleEs || null,
+        titleFr: data.titleFr || null,
         slug,
         categoryId: resolvedCategoryId,
         description: data.description || "A curated club gathering for mothers in Barcelona.",
+        descriptionEs: data.descriptionEs || null,
+        descriptionFr: data.descriptionFr || null,
         neighbourhood: data.neighbourhood || "Barcelona",
         venueName: data.venueName,
         meetingPoint: data.meetingPoint,
@@ -283,11 +291,15 @@ export async function createAdminEvent(data: {
 
 export async function updateAdminEvent(eventId: string, data: {
   title?: string;
+  titleEs?: string | null;
+  titleFr?: string | null;
   categoryId?: string;
   category?: string;
   partnerId?: string;
   host?: string;
   description?: string;
+  descriptionEs?: string | null;
+  descriptionFr?: string | null;
   neighbourhood?: string;
   venueName?: string;
   meetingPoint?: string;
@@ -356,8 +368,12 @@ export async function updateAdminEvent(eventId: string, data: {
     .update(event)
     .set({
       ...(data.title !== undefined && { title: data.title }),
+      ...(data.titleEs !== undefined && { titleEs: data.titleEs }),
+      ...(data.titleFr !== undefined && { titleFr: data.titleFr }),
       ...(resolvedCategoryId !== undefined && { categoryId: resolvedCategoryId || null }),
       ...(data.description !== undefined && { description: data.description }),
+      ...(data.descriptionEs !== undefined && { descriptionEs: data.descriptionEs }),
+      ...(data.descriptionFr !== undefined && { descriptionFr: data.descriptionFr }),
       ...(data.neighbourhood !== undefined && { neighbourhood: data.neighbourhood }),
       ...(data.venueName !== undefined && { venueName: data.venueName }),
       ...(data.meetingPoint !== undefined && { meetingPoint: data.meetingPoint }),

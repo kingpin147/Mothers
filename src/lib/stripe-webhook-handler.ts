@@ -24,6 +24,7 @@ import {
   generateBookingConfirmedEmailHtml,
   generatePaymentReceiptEmailHtml,
 } from "@/lib/brevo";
+import { generateIcsString } from "@/lib/ics";
 import { getAppUrl } from "@/lib/urls";
 import crypto from "crypto";
 
@@ -436,8 +437,10 @@ async function handleTopUpCheckout({
 
             bookingConfirmedResult = {
               bookingId: insertedB.id,
+              eventId: ev.id,
               eventTitle: ev.title,
               startsAt: ev.startsAt,
+              endsAt: ev.endsAt,
               venueName: ev.venueName,
               meetingPoint: ev.meetingPoint,
               creditsCharged: requiredCredits,
@@ -470,8 +473,19 @@ async function handleTopUpCheckout({
           meetingPoint: bookingConfirmedResult.meetingPoint || bookingConfirmedResult.venueName || undefined,
           creditsCharged: bookingConfirmedResult.creditsCharged,
           startsAt: bookingConfirmedResult.startsAt,
+          endsAt: bookingConfirmedResult.endsAt,
+          eventId: bookingConfirmedResult.eventId,
           appUrl: origin,
           isEs,
+        });
+
+        const icsString = generateIcsString({
+          title: bookingConfirmedResult.eventTitle,
+          description: `The Mothers gathering: ${bookingConfirmedResult.eventTitle}. Meeting point: ${bookingConfirmedResult.meetingPoint || bookingConfirmedResult.venueName || "Barcelona"}`,
+          location: bookingConfirmedResult.meetingPoint || bookingConfirmedResult.venueName || "Barcelona, Spain",
+          startsAt: bookingConfirmedResult.startsAt,
+          endsAt: bookingConfirmedResult.endsAt,
+          url: `${origin}/events/${bookingConfirmedResult.eventId}`,
         });
 
         await queueAndSendEmail({
@@ -483,6 +497,12 @@ async function handleTopUpCheckout({
           subject: bookingSubject,
           htmlContent: bookingHtml,
           isTransactional: true,
+          attachments: [
+            {
+              name: "mothers-gathering.ics",
+              content: Buffer.from(icsString, "utf-8").toString("base64"),
+            },
+          ],
         });
       }
     } catch (bookingErr) {

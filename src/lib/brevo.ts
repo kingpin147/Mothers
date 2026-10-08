@@ -2,7 +2,12 @@ import * as brevo from "@getbrevo/brevo";
 import { db } from "@/db";
 import { emailLog } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { generateIcsDataUri } from "./ics";
+import {
+  generateIcsDataUri,
+  generateIcsString,
+  generateGoogleCalendarUrl,
+  generateCalendarDownloadUrl,
+} from "./ics";
 import { withTimeout } from "./errors";
 import fs from "fs";
 import path from "path";
@@ -320,17 +325,31 @@ export function generateBookingConfirmedEmailHtml(params: {
   meetingPoint?: string;
   creditsCharged: number;
   startsAt: Date | string;
+  endsAt?: Date | string;
+  eventId?: string;
   appUrl?: string;
   isEs?: boolean;
 }): string {
   const isEs = params.isEs || false;
   const baseUrl = params.appUrl || "https://themothers.cc";
-  const icsDataUri = generateIcsDataUri({
+
+  const calendarIcsUrl = generateCalendarDownloadUrl({
+    eventId: params.eventId,
+    title: params.eventTitle,
+    startsAt: params.startsAt,
+    endsAt: params.endsAt,
+    location: params.meetingPoint || params.venueName || "Barcelona, Spain",
+    description: `The Mothers gathering: ${params.eventTitle}. Meeting point: ${params.meetingPoint || params.venueName || "Barcelona"}`,
+    baseUrl,
+  });
+
+  const googleCalendarUrl = generateGoogleCalendarUrl({
     title: params.eventTitle,
     description: `The Mothers gathering: ${params.eventTitle}. Meeting point: ${params.meetingPoint || params.venueName || "Barcelona"}`,
     location: params.meetingPoint || params.venueName || "Barcelona, Spain",
     startsAt: params.startsAt,
-    url: `${baseUrl}/account`,
+    endsAt: params.endsAt,
+    url: params.eventId ? `${baseUrl}/events/${params.eventId}` : `${baseUrl}/account`,
   });
 
   return `<!DOCTYPE html>
@@ -341,8 +360,10 @@ export function generateBookingConfirmedEmailHtml(params: {
 <title>${isEs ? `Reserva confirmada: ${params.eventTitle}` : `You're booked — ${params.eventTitle}`}</title>
 <style>
 @media only screen and (max-width:620px){
-  .px{padding-left:24px !important;padding-right:24px !important;}
-  .h1{font-size:28px !important;line-height:34px !important;}
+  .px{padding-left:20px !important;padding-right:20px !important;}
+  .h1{font-size:26px !important;line-height:32px !important;}
+  .stack-col{display:block !important;width:100% !important;padding-left:0 !important;padding-right:0 !important;padding-top:6px !important;padding-bottom:6px !important;}
+  .btn-full{display:block !important;width:100% !important;box-sizing:border-box !important;text-align:center !important;}
 }
 </style>
 </head>
@@ -401,16 +422,30 @@ export function generateBookingConfirmedEmailHtml(params: {
 
 <tr>
 <td class="px" style="padding:28px 48px 0;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
   <tr>
-  <td bgcolor="#7b1f2c" style="border-radius:4px;">
-    <a href="${baseUrl}/account" style="display:block;padding:15px 32px;font-size:15px;line-height:20px;color:#faf7f1;text-decoration:none;font-weight:bold;">
+  <td bgcolor="#7b1f2c" style="border-radius:4px;text-align:center;">
+    <a href="${baseUrl}/account" class="btn-full" style="display:block;padding:15px 24px;font-size:15px;line-height:20px;color:#faf7f1;text-decoration:none;font-weight:bold;text-align:center;">
       ${isEs ? "Ver o gestionar mi reserva &rarr;" : "View or manage in your Account &rarr;"}
     </a>
   </td>
-  <td style="padding-left:14px;">
-    <a href="${icsDataUri}" download="mothers-event.ics" style="display:block;padding:14px 22px;font-size:14px;line-height:20px;color:#7b1f2c;border:1px solid #7b1f2c;border-radius:4px;text-decoration:none;">
-      ${isEs ? "📅 Añadir a calendario (.ics)" : "📅 Add to Calendar (.ics)"}
+  </tr>
+  </table>
+
+  <div style="font-size:11px;line-height:16px;letter-spacing:1.5px;text-transform:uppercase;color:#8a807a;font-weight:bold;padding-top:18px;padding-bottom:10px;text-align:center;">
+    ${isEs ? "Añadir al calendario" : "Add to your calendar"}
+  </div>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+  <tr>
+  <td class="stack-col" width="50%" style="padding-right:6px;">
+    <a href="${calendarIcsUrl}" class="btn-full" style="display:block;padding:12px 14px;font-size:13px;line-height:18px;color:#7b1f2c;border:1px solid #7b1f2c;border-radius:4px;text-decoration:none;text-align:center;font-weight:600;background-color:#ffffff;white-space:nowrap;">
+      📅 Apple / Outlook (.ics)
+    </a>
+  </td>
+  <td class="stack-col" width="50%" style="padding-left:6px;">
+    <a href="${googleCalendarUrl}" target="_blank" rel="noopener noreferrer" class="btn-full" style="display:block;padding:12px 14px;font-size:13px;line-height:18px;color:#7b1f2c;border:1px solid #7b1f2c;border-radius:4px;text-decoration:none;text-align:center;font-weight:600;background-color:#ffffff;white-space:nowrap;">
+      📅 Google Calendar
     </a>
   </td>
   </tr>
@@ -1038,6 +1073,10 @@ export interface SendEmailParams {
   htmlContent: string;
   isTransactional?: boolean; // Default true
   marketingOptIn?: boolean;
+  attachments?: Array<{
+    name: string;
+    content: string; // base64 encoded
+  }>;
 }
 
 export async function queueAndSendEmail(params: SendEmailParams): Promise<{ success: boolean; error?: string }> {
@@ -1076,7 +1115,7 @@ export async function queueAndSendEmail(params: SendEmailParams): Promise<{ succ
   const isRealApiKey = apiKey && apiKey !== "your-brevo-api-key" && !apiKey.startsWith("your-");
 
   if (!isRealApiKey) {
-    console.log(`[Brevo Email Simulated] To: ${params.toEmail} | Subject: "${params.subject}" | Template: ${params.templateKey}`);
+    console.log(`[Brevo Email Simulated] To: ${params.toEmail} | Subject: "${params.subject}" | Template: ${params.templateKey}${params.attachments ? ` | Attachments: ${params.attachments.map(a => a.name).join(", ")}` : ""}`);
     if (logId) {
       await db
         .update(emailLog)
@@ -1102,6 +1141,13 @@ export async function queueAndSendEmail(params: SendEmailParams): Promise<{ succ
       email: process.env.BREVO_SENDER_EMAIL || "external@themothers.cc",
     };
     sendSmtpEmail.to = [{ email: params.toEmail, name: params.toName }];
+
+    if (params.attachments && params.attachments.length > 0) {
+      sendSmtpEmail.attachment = params.attachments.map((att) => ({
+        name: att.name,
+        content: att.content,
+      }));
+    }
 
     const result = await withTimeout(
       apiInstance.sendTransacEmail(sendSmtpEmail),

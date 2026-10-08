@@ -12,6 +12,8 @@ export default function AdminCreateEventPage() {
 
   // Form State
   const [title, setTitle] = useState("");
+  const [titleEs, setTitleEs] = useState("");
+  const [titleFr, setTitleFr] = useState("");
   const [category, setCategory] = useState("Easy connection");
   const [neighbourhood, setNeighbourhood] = useState("Ciutat Vella");
   const [venueName, setVenueName] = useState("");
@@ -27,6 +29,8 @@ export default function AdminCreateEventPage() {
   const [cancellationWindowHours, setCancellationWindowHours] = useState("24");
   const [isMembershipLive, setIsMembershipLive] = useState(false);
   const [description, setDescription] = useState("");
+  const [descriptionEs, setDescriptionEs] = useState("");
+  const [descriptionFr, setDescriptionFr] = useState("");
 
   useEffect(() => {
     import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
@@ -258,6 +262,8 @@ export default function AdminCreateEventPage() {
 
     const res = await createAdminEvent({
       title,
+      titleEs: titleEs.trim() || undefined,
+      titleFr: titleFr.trim() || undefined,
       category,
       partnerId: host.trim() || undefined,
       host: host.trim() || undefined,
@@ -276,6 +282,8 @@ export default function AdminCreateEventPage() {
       capacityMember: noCeiling ? 0 : (memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces)),
       minToConfirm: noMinimum || minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0),
       description,
+      descriptionEs: descriptionEs.trim() || undefined,
+      descriptionFr: descriptionFr.trim() || undefined,
       status,
       languages: langs,
       targetStages: stages,
@@ -322,7 +330,9 @@ export default function AdminCreateEventPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Title <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Morning walk & coffee in Ciutadella" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Morning walk & coffee in Ciutadella" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff", marginBottom: "8px" }} />
+                <input type="text" value={titleEs} onChange={(e) => setTitleEs(e.target.value)} placeholder="Title (Spanish) - optional" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff", marginBottom: "8px" }} />
+                <input type="text" value={titleFr} onChange={(e) => setTitleFr(e.target.value)} placeholder="Title (French) - optional" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
                 <div>
@@ -640,7 +650,9 @@ export default function AdminCreateEventPage() {
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>The words members read</div>
             <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Description <span style={{ color: "#7b1f2c" }}>*</span></label>
-            <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What happens, who it suits, what to bring. Two or three sentences." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
+            <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (English). What happens, who it suits, what to bring." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical", marginBottom: "8px" }}></textarea>
+            <textarea rows={4} value={descriptionEs} onChange={(e) => setDescriptionEs(e.target.value)} placeholder="Description (Spanish) - optional." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical", marginBottom: "8px" }}></textarea>
+            <textarea rows={4} value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} placeholder="Description (French) - optional." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
             <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Spanish version can be added after publishing — the page falls back to English until it exists.</div>
           </div>
 

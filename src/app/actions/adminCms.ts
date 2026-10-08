@@ -78,6 +78,8 @@ const saveFaqSchema = z.object({
   answerEn: z.string().trim().min(1, "Answer (EN) is required"),
   questionEs: z.string().optional(),
   answerEs: z.string().optional(),
+  questionFr: z.string().optional(),
+  answerFr: z.string().optional(),
   sortOrder: z.number().int().optional(),
   active: z.boolean().optional(),
   policyQuote: z.string().optional(),
@@ -87,21 +89,28 @@ const saveJournalPostSchema = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(1, "Title is required"),
   titleEs: z.string().optional(),
+  titleFr: z.string().optional(),
   slug: z.string().optional(),
   category: z.string().optional(),
   excerpt: z.string().trim().min(1, "Excerpt is required"),
   excerptEs: z.string().optional(),
+  excerptFr: z.string().optional(),
   body: z.string().trim().min(1, "Body is required"),
   bodyEs: z.string().optional(),
+  bodyFr: z.string().optional(),
   quoteEn: z.string().optional(),
   quoteEs: z.string().optional(),
+  quoteFr: z.string().optional(),
   author: z.string().optional(),
   authorRoleEn: z.string().optional(),
   authorRoleEs: z.string().optional(),
+  authorRoleFr: z.string().optional(),
   bylineEn: z.string().optional(),
   bylineEs: z.string().optional(),
+  bylineFr: z.string().optional(),
   reviewedNoteEn: z.string().optional(),
   reviewedNoteEs: z.string().optional(),
+  reviewedNoteFr: z.string().optional(),
   heroImageId: z.string().nullable().optional(),
   heroImageUrl: z.string().nullable().optional(),
   status: z.string().optional(),
@@ -110,8 +119,10 @@ const saveJournalPostSchema = z.object({
   audience: z.string().optional(),
   seoTitle: z.string().optional(),
   seoTitleEs: z.string().optional(),
+  seoTitleFr: z.string().optional(),
   seoDescription: z.string().optional(),
   seoDescriptionEs: z.string().optional(),
+  seoDescriptionFr: z.string().optional(),
   notifySubscribers: z.boolean().optional(),
 });
 
@@ -1097,6 +1108,8 @@ export async function saveFaq(rawData: {
   answerEn: string;
   questionEs?: string;
   answerEs?: string;
+  questionFr?: string;
+  answerFr?: string;
   sortOrder?: number;
   active?: boolean;
   policyQuote?: string;
@@ -1123,6 +1136,8 @@ export async function saveFaq(rawData: {
           answerEn: data.answerEn,
           questionEs: data.questionEs || "",
           answerEs: data.answerEs || "",
+          questionFr: data.questionFr || "",
+          answerFr: data.answerFr || "",
           policyQuote: data.policyQuote || null,
           sortOrder: data.sortOrder || 0,
           active: isActive,
@@ -1138,6 +1153,8 @@ export async function saveFaq(rawData: {
         answerEn: data.answerEn,
         questionEs: data.questionEs || "",
         answerEs: data.answerEs || "",
+        questionFr: data.questionFr || "",
+        answerFr: data.answerFr || "",
         policyQuote: data.policyQuote || null,
         sortOrder: data.sortOrder || 0,
         active: isActive,
@@ -1230,21 +1247,28 @@ export async function saveJournalPost(rawData: {
   id?: string;
   title: string;
   titleEs?: string;
+  titleFr?: string;
   slug?: string;
   category?: string;
   excerpt: string;
   excerptEs?: string;
+  excerptFr?: string;
   body: string;
   bodyEs?: string;
+  bodyFr?: string;
   quoteEn?: string;
   quoteEs?: string;
+  quoteFr?: string;
   author?: string;
   authorRoleEn?: string;
   authorRoleEs?: string;
+  authorRoleFr?: string;
   bylineEn?: string;
   bylineEs?: string;
+  bylineFr?: string;
   reviewedNoteEn?: string;
   reviewedNoteEs?: string;
+  reviewedNoteFr?: string;
   heroImageId?: string | null;
   heroImageUrl?: string | null;
   status?: string; // 'published' | 'scheduled' | 'draft' | 'unpublished'
@@ -1253,8 +1277,10 @@ export async function saveJournalPost(rawData: {
   audience?: string; // 'public' | 'members_only'
   seoTitle?: string;
   seoTitleEs?: string;
+  seoTitleFr?: string;
   seoDescription?: string;
   seoDescriptionEs?: string;
+  seoDescriptionFr?: string;
   notifySubscribers?: boolean;
 }): Promise<{ success: boolean; id?: string; error?: string; notifiedCount?: number }> {
   const parsed = saveJournalPostSchema.safeParse(rawData);
@@ -1284,28 +1310,37 @@ export async function saveJournalPost(rawData: {
     const payload = {
       title: data.title.trim(),
       titleEs: data.titleEs?.trim() || null,
+      titleFr: data.titleFr?.trim() || null,
       category: data.category || "postpartum",
       excerpt: data.excerpt.trim(),
       excerptEs: data.excerptEs?.trim() || null,
+      excerptFr: data.excerptFr?.trim() || null,
       body: data.body.trim(),
       bodyEs: data.bodyEs?.trim() || null,
+      bodyFr: data.bodyFr?.trim() || null,
       quoteEn: data.quoteEn?.trim() || null,
       quoteEs: data.quoteEs?.trim() || null,
+      quoteFr: data.quoteFr?.trim() || null,
       author: data.author?.trim() || "The Mothers",
       authorRoleEn: data.authorRoleEn?.trim() || null,
       authorRoleEs: data.authorRoleEs?.trim() || null,
+      authorRoleFr: data.authorRoleFr?.trim() || null,
       bylineEn: data.bylineEn?.trim() || null,
       bylineEs: data.bylineEs?.trim() || null,
+      bylineFr: data.bylineFr?.trim() || null,
       reviewedNoteEn: data.reviewedNoteEn?.trim() || null,
       reviewedNoteEs: data.reviewedNoteEs?.trim() || null,
+      reviewedNoteFr: data.reviewedNoteFr?.trim() || null,
       heroImageId: data.heroImageId || null,
       audience: data.audience || "public",
       status: computedStatus,
       publishedAt: computedPublishedAt,
       seoTitle: data.seoTitle?.trim() || null,
       seoTitleEs: data.seoTitleEs?.trim() || null,
+      seoTitleFr: data.seoTitleFr?.trim() || null,
       seoDescription: data.seoDescription?.trim() || null,
       seoDescriptionEs: data.seoDescriptionEs?.trim() || null,
+      seoDescriptionFr: data.seoDescriptionFr?.trim() || null,
       updatedAt: now,
     };
 
@@ -1437,6 +1472,12 @@ export async function saveJournalPost(rawData: {
       }
     }
 
+    revalidatePath("/journal");
+    revalidatePath("/admin/journal");
+    if (targetSlug) {
+      revalidatePath(`/journal/${targetSlug}`);
+    }
+
     return { success: true, id: targetId, notifiedCount };
   } catch (error: any) {
     console.error("Save journal post error:", error);
@@ -1458,29 +1499,38 @@ export async function duplicateJournalPost(id: string): Promise<{ success: boole
     const inserted = await db.insert(journalPost).values({
       title: newTitle,
       titleEs: orig.titleEs ? `${orig.titleEs} (Borrador)` : null,
+      titleFr: orig.titleFr ? `${orig.titleFr} (Brouillon)` : null,
       slug: newSlug,
       category: orig.category,
       excerpt: orig.excerpt,
       excerptEs: orig.excerptEs,
+      excerptFr: orig.excerptFr,
       body: orig.body,
       bodyEs: orig.bodyEs,
+      bodyFr: orig.bodyFr,
       quoteEn: orig.quoteEn,
       quoteEs: orig.quoteEs,
+      quoteFr: orig.quoteFr,
       author: orig.author,
       authorRoleEn: orig.authorRoleEn,
       authorRoleEs: orig.authorRoleEs,
+      authorRoleFr: orig.authorRoleFr,
       bylineEn: orig.bylineEn,
       bylineEs: orig.bylineEs,
+      bylineFr: orig.bylineFr,
       reviewedNoteEn: orig.reviewedNoteEn,
       reviewedNoteEs: orig.reviewedNoteEs,
+      reviewedNoteFr: orig.reviewedNoteFr,
       heroImageId: orig.heroImageId,
       audience: orig.audience,
       status: "draft",
       publishedAt: null,
       seoTitle: orig.seoTitle,
       seoTitleEs: orig.seoTitleEs,
+      seoTitleFr: orig.seoTitleFr,
       seoDescription: orig.seoDescription,
       seoDescriptionEs: orig.seoDescriptionEs,
+      seoDescriptionFr: orig.seoDescriptionFr,
     }).returning({ id: journalPost.id });
 
     await db.insert(auditLog).values({
@@ -1491,6 +1541,9 @@ export async function duplicateJournalPost(id: string): Promise<{ success: boole
       entityId: inserted[0]?.id,
       after: { sourceId: id, newTitle, newSlug },
     });
+
+    revalidatePath("/journal");
+    revalidatePath("/admin/journal");
 
     return { success: true };
   } catch (error: any) {
@@ -1533,6 +1586,10 @@ export async function updateJournalPostSlug(id: string, newSlug: string): Promis
       entityId: id,
       after: { newSlug: cleanSlug },
     });
+
+    revalidatePath("/journal");
+    revalidatePath(`/journal/${cleanSlug}`);
+    revalidatePath("/admin/journal");
 
     return { success: true };
   } catch (error: any) {
@@ -1580,6 +1637,9 @@ export async function toggleJournalPostStatus(id: string, action: "publish" | "u
       after: { status: newStatus },
     });
 
+    revalidatePath("/journal");
+    revalidatePath("/admin/journal");
+
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "TOGGLE_STATUS_FAILED" };
@@ -1597,6 +1657,8 @@ export async function deleteJournalPost(id: string): Promise<{ success: boolean;
       entity: "journal_post",
       entityId: id,
     });
+    revalidatePath("/journal");
+    revalidatePath("/admin/journal");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "DELETE_POST_FAILED" };
@@ -1624,21 +1686,28 @@ export async function getPublicJournalArticle(slug: string) {
         id: journalPost.id,
         title: journalPost.title,
         titleEs: journalPost.titleEs,
+        titleFr: journalPost.titleFr,
         slug: journalPost.slug,
         category: journalPost.category,
         excerpt: journalPost.excerpt,
         excerptEs: journalPost.excerptEs,
+        excerptFr: journalPost.excerptFr,
         body: journalPost.body,
         bodyEs: journalPost.bodyEs,
+        bodyFr: journalPost.bodyFr,
         quoteEn: journalPost.quoteEn,
         quoteEs: journalPost.quoteEs,
+        quoteFr: journalPost.quoteFr,
         author: journalPost.author,
         authorRoleEn: journalPost.authorRoleEn,
         authorRoleEs: journalPost.authorRoleEs,
+        authorRoleFr: journalPost.authorRoleFr,
         bylineEn: journalPost.bylineEn,
         bylineEs: journalPost.bylineEs,
+        bylineFr: journalPost.bylineFr,
         reviewedNoteEn: journalPost.reviewedNoteEn,
         reviewedNoteEs: journalPost.reviewedNoteEs,
+        reviewedNoteFr: journalPost.reviewedNoteFr,
         heroImageId: journalPost.heroImageId,
         heroImageUrl: mediaAsset.publicUrl,
         heroImageAlt: mediaAsset.altText,

@@ -15,6 +15,8 @@ export default function AdminEditEventPage() {
 
   // Form State
   const [title, setTitle] = useState("");
+  const [titleEs, setTitleEs] = useState("");
+  const [titleFr, setTitleFr] = useState("");
   const [category, setCategory] = useState("Easy connection");
   const [neighbourhood, setNeighbourhood] = useState("Ciutat Vella");
   const [venueName, setVenueName] = useState("");
@@ -30,6 +32,8 @@ export default function AdminEditEventPage() {
   const [cancellationWindowHours, setCancellationWindowHours] = useState("24");
   const [isMembershipLive, setIsMembershipLive] = useState(false);
   const [description, setDescription] = useState("");
+  const [descriptionEs, setDescriptionEs] = useState("");
+  const [descriptionFr, setDescriptionFr] = useState("");
 
   // Cover photo state (AD-16)
   const [imageId, setImageId] = useState<string | null>(null);
@@ -111,6 +115,8 @@ export default function AdminEditEventPage() {
         const ev = res.event;
         setBookingCount(res.bookings?.length || 0);
         setTitle(ev.title || "");
+        setTitleEs(ev.titleEs || "");
+        setTitleFr(ev.titleFr || "");
         if (ev.categoryId) setCategory(ev.categoryId);
         if (ev.partnerId) setHost(ev.partnerId);
         setNeighbourhood(ev.neighbourhood || "Ciutat Vella");
@@ -145,6 +151,8 @@ export default function AdminEditEventPage() {
         });
 
         setDescription(ev.description || "");
+        setDescriptionEs(ev.descriptionEs || "");
+        setDescriptionFr(ev.descriptionFr || "");
         setLangs(ev.languages || ["English"]);
         setEventStatus(ev.status || "draft");
         setNeedsHost(!!ev.needsHost);
@@ -334,6 +342,8 @@ export default function AdminEditEventPage() {
 
     const res = await updateAdminEvent(eventId, {
       title,
+      titleEs: titleEs.trim() || null,
+      titleFr: titleFr.trim() || null,
       category,
       partnerId: host.trim() || undefined,
       host: host.trim() || undefined,
@@ -350,6 +360,8 @@ export default function AdminEditEventPage() {
       capacityMember: memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces),
       minToConfirm: minToConfirm.trim() === "" ? undefined : parseInt(minToConfirm),
       description,
+      descriptionEs: descriptionEs.trim() || null,
+      descriptionFr: descriptionFr.trim() || null,
       languages: langs,
       targetStages: stages,
       needsHost,
@@ -425,7 +437,9 @@ export default function AdminEditEventPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Title <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Morning stroll & flat whites" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Morning stroll & flat whites" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff", marginBottom: "8px" }} />
+                <input type="text" value={titleEs} onChange={(e) => setTitleEs(e.target.value)} placeholder="Title (Spanish) - optional" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff", marginBottom: "8px" }} />
+                <input type="text" value={titleFr} onChange={(e) => setTitleFr(e.target.value)} placeholder="Title (French) - optional" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "14px" }}>
                 <div>
@@ -691,7 +705,9 @@ export default function AdminEditEventPage() {
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>The words members read</div>
             <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Description <span style={{ color: "#7b1f2c" }}>*</span></label>
-            <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What happens, who it suits, what to bring. Two or three sentences." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
+            <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (English). What happens, who it suits, what to bring." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical", marginBottom: "8px" }}></textarea>
+            <textarea rows={4} value={descriptionEs} onChange={(e) => setDescriptionEs(e.target.value)} placeholder="Description (Spanish) - optional." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical", marginBottom: "8px" }}></textarea>
+            <textarea rows={4} value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} placeholder="Description (French) - optional." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
             <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Spanish version can be added after publishing — the page falls back to English until it exists.</div>
           </div>
 
