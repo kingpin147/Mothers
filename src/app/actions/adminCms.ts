@@ -287,6 +287,7 @@ export async function getAdminMemberDetail(memberId: string) {
       joinedAt: member.joinedAt,
       createdAt: person.createdAt,
       monthlyPriceCents: member.monthlyPriceCents,
+      billingFrequency: member.billingFrequency,
       currentPeriodEnd: member.currentPeriodEnd,
       cancelAtPeriodEnd: member.cancelAtPeriodEnd,
       atRiskSince: member.atRiskSince,
@@ -326,6 +327,7 @@ export async function getAdminMemberDetail(memberId: string) {
         joinedAt: personRec.createdAt,
         createdAt: personRec.createdAt,
         monthlyPriceCents: 0,
+        billingFrequency: "monthly",
         currentPeriodEnd: null,
         cancelAtPeriodEnd: false,
         atRiskSince: null,
@@ -1345,8 +1347,17 @@ export async function saveJournalPost(rawData: {
 
     if (computedPublishedAt && new Date(computedPublishedAt) > now && computedStatus !== "draft" && computedStatus !== "unpublished") {
       computedStatus = "scheduled";
+      console.log("[saveJournalPost] Setting status to 'scheduled'", {
+        computedPublishedAt: new Date(computedPublishedAt).toISOString(),
+        now: now.toISOString(),
+        diff: (new Date(computedPublishedAt).getTime() - now.getTime()) / 1000 / 60,
+      });
     } else if (computedPublishedAt && new Date(computedPublishedAt) <= now && computedStatus === "scheduled") {
       computedStatus = "published";
+      console.log("[saveJournalPost] Scheduled time is in past, setting status to 'published'", {
+        computedPublishedAt: new Date(computedPublishedAt).toISOString(),
+        now: now.toISOString(),
+      });
     }
 
     const payload = {

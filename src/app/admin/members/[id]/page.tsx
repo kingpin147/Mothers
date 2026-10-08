@@ -310,10 +310,11 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                   ? (langMap[member.languages.toLowerCase()] || member.languages)
                   : "English, Spanish";
 
+                const planName = member.billingFrequency === 'quarterly' ? 'Quarterly' : 'Monthly';
                 return [
                   { label: 'Stage', value: stageStr },
                   { label: 'Children', value: member.children?.length ? `${member.children.length}` : "—" },
-                  { label: 'Plan', value: `€${(member.monthlyPriceCents/100).toFixed(0)} monthly` },
+                  { label: 'Plan', value: `${planName} · €${(member.monthlyPriceCents/100).toFixed(0)} / month` },
                   { label: 'Rate held until', value: member.priceLockedUntil ? new Date(member.priceLockedUntil).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : "—" },
                   { label: 'Renews', value: member.currentPeriodEnd ? new Date(member.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : (member.joinedAt ? new Date(new Date(member.joinedAt).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : "—") },
                   { label: 'Pauses used', value: `${member.pauseMonthsUsedYear || 0} of 2` },

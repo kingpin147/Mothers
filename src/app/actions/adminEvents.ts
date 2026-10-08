@@ -180,6 +180,7 @@ export async function createAdminEvent(data: {
   nonMemberCredits?: number;
   nonMemberCreditCost?: number;
   cancellationWindowHours?: number;
+  childcare?: string;
   needsHost?: boolean;
   nonMemberOpensAt?: Date | null;
   imageId?: string | null;
@@ -241,6 +242,7 @@ export async function createAdminEvent(data: {
         memberCredits: memberCost,
         nonMemberCredits: nonMemberCost,
         cancellationWindowHours: data.cancellationWindowHours !== undefined ? data.cancellationWindowHours : 24,
+        childcare: data.childcare || "adults_only",
         capacityMember: data.capacityMember,
         minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 0,
         isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),

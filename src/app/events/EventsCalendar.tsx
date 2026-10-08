@@ -1465,8 +1465,8 @@ function EventCard({
           </svg>
           <span>
             {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
-              ? (lang === "en" ? "Mothers only" : "Solo madres")
-              : (lang === "en" ? "Children welcome" : "Peques bienvenidos")}
+              ? (lang === "en" ? "Mothers only" : lang === "es" ? "Solo madres" : "Mères seulement")
+              : (lang === "en" ? "Children welcome" : lang === "es" ? "Peques bienvenidos" : "Enfants bienvenus")}
           </span>
         </div>
       </div>

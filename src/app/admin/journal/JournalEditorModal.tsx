@@ -307,12 +307,37 @@ export default function JournalEditorModal({
         setSaving(false);
         return;
       }
+      // datetime-local input gives "YYYY-MM-DDTHH:mm" which represents LOCAL time
+      // Parse it as local time in the browser's timezone
       targetPublishedAt = new Date(scheduleDate);
-      if (targetPublishedAt <= new Date()) {
-        targetStatus = "published";
-      } else {
-        targetStatus = "scheduled";
+      const now = new Date();
+      
+      // Debug logging
+      console.log("Schedule Debug:", {
+        scheduleDate,
+        targetPublishedAt: targetPublishedAt.toISOString(),
+        now: now.toISOString(),
+        comparison: targetPublishedAt.getTime() > now.getTime(),
+        diff: (targetPublishedAt.getTime() - now.getTime()) / 1000 / 60, // minutes
+      });
+      
+      // Check if scheduled time is in the past
+      if (targetPublishedAt.getTime() < now.getTime()) {
+        setFormError(`Cannot schedule for a past date and time. The selected time (${targetPublishedAt.toLocaleString()}) has already passed. Current time: ${now.toLocaleString()}`);
+        setSaving(false);
+        return;
       }
+      
+      // Check if scheduled time is at least 2 minutes in the future to avoid edge cases
+      const twoMinutesFromNow = new Date(now.getTime() + 2 * 60 * 1000);
+      
+      if (targetPublishedAt.getTime() < twoMinutesFromNow.getTime()) {
+        setFormError(`Scheduled time must be at least 2 minutes in the future to ensure proper scheduling. Selected: ${targetPublishedAt.toLocaleString()}, Current time: ${now.toLocaleString()}`);
+        setSaving(false);
+        return;
+      }
+      
+      targetStatus = "scheduled";
     } else {
       targetStatus = "draft";
       targetPublishedAt = null;

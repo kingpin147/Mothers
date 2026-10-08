@@ -313,8 +313,8 @@ export default function EventDetailPage() {
             </span>
             <span style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.72)" }}>
               {ev.audienceType === "mothers_only" || ev.audienceType === "moms_only"
-                ? (lang === "en" ? "Mothers only — no children" : "Solo madres — sin peques")
-                : (lang === "en" ? "Children welcome" : "Peques bienvenidos")}
+                ? (lang === "en" ? "Mothers only" : lang === "es" ? "Solo madres" : "Mères seulement")
+                : (lang === "en" ? "Children welcome" : lang === "es" ? "Peques bienvenidos" : "Enfants bienvenus")}
             </span>
           </div>
 
@@ -458,29 +458,34 @@ export default function EventDetailPage() {
             {(() => {
               const cost = isFree ? 0 : viewerCost;
               return (
-                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "6px" }}>
-                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "44px", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
-                    {cost === 0 ? (lang === "en" ? "Free" : "Gratis") : cost}
-                  </span>
-                  {cost > 0 && (
-                    <span style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.72)" }}>
-                      {cost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}
+                <>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "6px" }}>
+                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "44px", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
+                      {cost === 0 ? (lang === "en" ? "Free" : "Gratis") : cost}
                     </span>
+                    {cost > 0 && (
+                      <span style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.72)" }}>
+                        {cost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {cost > 0 && (
+                    <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.72)", marginBottom: "18px" }}>
+                      {(() => {
+                        const m = creditLifeMonths;
+                        const en = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+                        const es = ["", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce"];
+                        const word = (lang === "en" ? en : es)[m] || String(m);
+                        return lang === "en"
+                          ? `Credits last ${word} ${m === 1 ? "month" : "months"}.`
+                          : `Los créditos duran ${word} ${m === 1 ? "mes" : "meses"}.`;
+                      })()}
+                    </div>
                   )}
-                </div>
+                </>
               );
             })()}
-            <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.72)", marginBottom: "18px" }}>
-              {(() => {
-                const m = creditLifeMonths;
-                const en = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
-                const es = ["", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce"];
-                const word = (lang === "en" ? en : es)[m] || String(m);
-                return lang === "en"
-                  ? `Credits last ${word} ${m === 1 ? "month" : "months"}.`
-                  : `Los créditos duran ${word} ${m === 1 ? "mes" : "meses"}.`;
-              })()}
-            </div>
 
             {/* Status Line */}
             <div style={{ fontSize: "13px", color: "#456f04", borderTop: "1px solid rgba(57, 41, 42, 0.12)", paddingTop: "14px", marginBottom: "6px" }}>
@@ -502,9 +507,14 @@ export default function EventDetailPage() {
               </svg>
               {(() => {
                 const win = (ev as any).cancellationWindowHours ?? 24;
+                const cost = isFree ? 0 : viewerCost;
+                if (cost === 0) {
+                  // Free events - no cancellation policy needed
+                  return lang === "en" ? "Free — no credits to refund" : "Gratis — sin créditos que devolver";
+                }
                 if (win === 0) return lang === "en" ? "Cancel any time" : "Cancela en cualquier momento";
-                if (win === 168) return lang === "en" ? "Cancel any time up to 7 days before" : "Cancela gratis hasta 7 días antes";
-                return lang === "en" ? `Cancel any time up to ${win}h before` : `Cancela gratis hasta ${win}h antes`;
+                if (win === 168) return lang === "en" ? "Free cancellation up to 7 days before" : "Cancelación gratuita hasta 7 días antes";
+                return lang === "en" ? `Free cancellation up to ${win}h before` : `Cancelación gratuita hasta ${win}h antes`;
               })()}
             </div>
 
