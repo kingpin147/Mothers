@@ -18,6 +18,7 @@ import {
   TopUpModal,
   getEventDisplayTitle,
   getEventDisplayDesc,
+  getEventStageDisplay,
   getLanguageLabel,
   EventCardImage,
 } from "@/app/events/EventsCalendar";
@@ -263,15 +264,17 @@ export default function EventDetailPage() {
         style={{
           maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(20px, 3vw, 30px) clamp(20px, 5vw, 64px) clamp(40px, 5vw, 70px)",
+          padding: "clamp(18px, 3vw, 30px) clamp(12px, 4vw, 48px) clamp(40px, 5vw, 70px)",
           display: "flex",
           flexWrap: "wrap",
-          gap: "clamp(28px, 4vw, 48px)",
+          gap: "clamp(24px, 4vw, 48px)",
           alignItems: "flex-start",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         {/* Left Column: Event details & content */}
-        <div style={{ flex: "1 1 420px", minWidth: "290px" }}>
+        <div style={{ flex: "1 1 420px", minWidth: 0, width: "100%", maxWidth: "100%" }}>
           {/* Photo Slot */}
           <div style={{ background: "#ecdcd0", padding: "7px", borderRadius: "6px", marginBottom: "26px" }}>
             <div
@@ -315,6 +318,10 @@ export default function EventDetailPage() {
               {ev.audienceType === "mothers_only" || ev.audienceType === "moms_only"
                 ? (lang === "en" ? "Mothers only" : lang === "es" ? "Solo madres" : "Mères seulement")
                 : (lang === "en" ? "Children welcome" : lang === "es" ? "Peques bienvenidos" : "Enfants bienvenus")}
+            </span>
+            <span style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.72)", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+              <span>·</span>
+              <span>{getEventStageDisplay(ev, lang).displayLabel}</span>
             </span>
           </div>
 
@@ -452,7 +459,7 @@ export default function EventDetailPage() {
         </div>
 
         {/* Right Column: Sticky Booking Sidebar */}
-        <aside style={{ flex: "0 1 330px", minWidth: "270px", position: "sticky", top: "90px" }}>
+        <aside style={{ flex: "1 1 300px", minWidth: 0, width: "100%", maxWidth: "100%", position: "sticky", top: "90px" }}>
           <div style={{ border: "1px solid rgba(57, 41, 42, 0.2)", borderRadius: "8px", background: "#ffffff", padding: "24px" }}>
             {/* Price Row */}
             {(() => {

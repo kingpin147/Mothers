@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { circlePost, circleReply, circleHeart, circleReport, person, member, setting } from "@/db/schema";
+import { circlePost, circleReply, circleHeart, circleReport, circleSavedPost, person, member, setting } from "@/db/schema";
 import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -22,6 +22,7 @@ export interface PostItem {
   photoGrid: string;
   heartsCount: number;
   isHearted: boolean;
+  isSaved?: boolean;
   repliesCount: number;
   createdAt: string;
   meta: string;
@@ -187,14 +188,38 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
   const session = await auth();
   const currentUserId = session?.user?.id ? ((session.user as any).personId || session.user.id) : null;
 
-  const whereClause = selectedTopic && selectedTopic !== "all"
+  let userSavedPostIds = new Set<string>();
+  let userSavedAtMap = new Map<string, Date>();
+
+  if (currentUserId) {
+    try {
+      const userSaved = await db.query.circleSavedPost.findMany({
+        where: eq(circleSavedPost.personId, currentUserId),
+        orderBy: [desc(circleSavedPost.createdAt)],
+      });
+      userSaved.forEach((s) => {
+        userSavedPostIds.add(s.postId);
+        userSavedAtMap.set(s.postId, s.createdAt);
+      });
+    } catch {
+      // Table may not exist yet in dev
+    }
+  }
+
+  if (selectedTopic === "saved") {
+    if (!currentUserId || userSavedPostIds.size === 0) {
+      return [];
+    }
+  }
+
+  const whereClause = selectedTopic && selectedTopic !== "all" && selectedTopic !== "saved"
     ? and(eq(circlePost.topic, selectedTopic), sql`${circlePost.status} IN ('visible', 'hidden')`)
     : sql`${circlePost.status} IN ('visible', 'hidden')`;
 
   const posts = await db.query.circlePost.findMany({
     where: whereClause,
     orderBy: [desc(circlePost.createdAt)],
-    limit: 60,
+    limit: selectedTopic === "saved" ? 200 : 60,
   });
 
   if (!posts.length) return [];
@@ -214,6 +239,14 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
   const result: PostItem[] = [];
 
   for (const p of posts) {
+    if (selectedTopic === "saved" && !userSavedPostIds.has(p.id)) {
+      continue;
+    }
+    // If post is removed/deleted/hidden, drop from saved feed
+    if (selectedTopic === "saved" && p.status !== "visible") {
+      continue;
+    }
+
     const isPostHidden = p.status === "hidden";
     const authorPerson = await db.query.person.findFirst({
       where: eq(person.id, p.personId),
@@ -302,6 +335,7 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
       photoGrid,
       heartsCount: p.heartsCount,
       isHearted: userHeartedPostIds.has(p.id),
+      isSaved: userSavedPostIds.has(p.id),
       repliesCount: replies.length,
       createdAt: p.createdAt.toISOString(),
       meta: formatTimeAgo(new Date(p.createdAt)),
@@ -310,6 +344,15 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
       status: p.status,
       replies,
     });
+  }
+
+  if (selectedTopic === "saved") {
+    result.sort((a, b) => {
+      const timeA = userSavedAtMap.get(a.id)?.getTime() || new Date(a.createdAt).getTime();
+      const timeB = userSavedAtMap.get(b.id)?.getTime() || new Date(b.createdAt).getTime();
+      return timeB - timeA;
+    });
+    return result;
   }
 
   if (sortBy === "trending") {
@@ -778,10 +821,88 @@ export async function getTrendingCircleTags(): Promise<{ topic: string; label: s
   return sorted;
 }
 
+// Toggle bookmark/save for a post (Private, no public counters, author not notified)
+export async function toggleCircleSavedPost(postId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    throw new Error("You must be logged in to save a post.");
+  }
+
+  const personId = (session.user as any).personId || session.user.id;
+
+  try {
+    const existing = await db.query.circleSavedPost.findFirst({
+      where: and(eq(circleSavedPost.personId, personId), eq(circleSavedPost.postId, postId)),
+    });
+
+    if (existing) {
+      await db.delete(circleSavedPost).where(eq(circleSavedPost.id, existing.id));
+      const [countRes] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(circleSavedPost)
+        .where(eq(circleSavedPost.personId, personId));
+      return { saved: false, savedCount: countRes?.count || 0 };
+    } else {
+      await db.insert(circleSavedPost).values({
+        personId,
+        postId,
+      });
+      const [countRes] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(circleSavedPost)
+        .where(eq(circleSavedPost.personId, personId));
+      return { saved: true, savedCount: countRes?.count || 0 };
+    }
+  } catch (err: any) {
+    // If table doesn't exist yet, auto-create and retry
+    if (err?.message?.includes("relation") || err?.message?.includes("does not exist")) {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS circle_saved_post (
+          id text PRIMARY KEY,
+          person_id text NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+          post_id text NOT NULL REFERENCES circle_post(id) ON DELETE CASCADE,
+          created_at timestamptz DEFAULT now() NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_person_saved_post ON circle_saved_post(person_id, post_id);
+        CREATE INDEX IF NOT EXISTS idx_circle_saved_post_person ON circle_saved_post(person_id, created_at);
+      `);
+      const existing = await db.query.circleSavedPost.findFirst({
+        where: and(eq(circleSavedPost.personId, personId), eq(circleSavedPost.postId, postId)),
+      });
+      if (existing) {
+        await db.delete(circleSavedPost).where(eq(circleSavedPost.id, existing.id));
+        return { saved: false, savedCount: 0 };
+      } else {
+        await db.insert(circleSavedPost).values({ personId, postId });
+        return { saved: true, savedCount: 1 };
+      }
+    }
+    throw err;
+  }
+}
+
+export async function getUserSavedPostsCount(): Promise<number> {
+  const session = await auth();
+  if (!session?.user?.id) return 0;
+  const personId = (session.user as any).personId || session.user.id;
+  try {
+    const [res] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(circleSavedPost)
+      .innerJoin(circlePost, eq(circleSavedPost.postId, circlePost.id))
+      .where(and(eq(circleSavedPost.personId, personId), eq(circlePost.status, "visible")));
+    return res?.count || 0;
+  } catch {
+    return 0;
+  }
+}
+
 // Named Aliases
 export const getGazettePosts = getCirclePosts;
 export const createGazettePost = createCirclePost;
 export const createGazetteReply = createCircleReply;
 export const toggleGazetteHeart = toggleCircleHeart;
+export const toggleGazetteSavedPost = toggleCircleSavedPost;
 export const reportGazettePost = reportCirclePost;
 export const getTrendingGazetteTags = getTrendingCircleTags;
+

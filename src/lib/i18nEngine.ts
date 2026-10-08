@@ -1134,7 +1134,11 @@ export const DICTIONARY_FR: Record<string, string> = {
   "Godmother bonus (credits)": "Bonus marraine (crédits)",
   "Pause allowance (months per year)": "Autorisation de pause (mois par an)",
   "Pinned tag": "Tag épinglé",
-  "Blocked tags": "Tags bloqués"
+  "Blocked tags": "Tags bloqués",
+  "Saved": "Enregistré",
+  "Saved posts": "Publications enregistrées",
+  "Nothing saved yet. Tap Save on any post — a recommendation, a tip, a product — and find it here whenever you need it.": "Rien d'enregistré pour le moment. Appuyez sur Enregistrer sur n'importe quelle publication — une recommandation, un conseil, un produit — et retrouvez-la ici dès que vous en avez besoin.",
+  "Please log in to save posts.": "Veuillez vous connecter pour enregistrer des publications."
 };
 
 export const DICTIONARY_ES: Record<string, string> = {
@@ -2269,7 +2273,11 @@ export const DICTIONARY_ES: Record<string, string> = {
   "Godmother bonus (credits)": "Bonificación de madrina (créditos)",
   "Pause allowance (months per year)": "Meses de pausa permitidos (por año)",
   "Pinned tag": "Etiqueta fijada",
-  "Blocked tags": "Etiquetas bloqueadas"
+  "Blocked tags": "Etiquetas bloqueadas",
+  "Saved": "Guardado",
+  "Saved posts": "Publicaciones guardadas",
+  "Nothing saved yet. Tap Save on any post — a recommendation, a tip, a product — and find it here whenever you need it.": "Nada guardado todavía. Toca Guardar en cualquier publicación — una recomendación, un consejo, un producto — y encuéntrala aquí cuando la necesites.",
+  "Please log in to save posts.": "Inicia sesión para guardar publicaciones."
 };
 
 export const MONTHS_FR: Record<string, string> = {

@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { tStr } from "@/lib/i18nEngine";
 import {
   getEventDisplayTitle,
+  getEventStageDisplay,
   getCategoryInfo,
   formatEventDate,
   formatCardDate,
@@ -680,6 +681,14 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                           ? (lang === "en" ? "Mothers only" : "Solo madres")
                           : (lang === "en" ? "Children welcome" : "Peques bienvenidos")}
                       </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flexShrink: 0 }}>
+                        <path d="M12 17V3" />
+                        <path d="M6 9l6-6 6 6" />
+                        <path d="M4 21h16" />
+                      </svg>
+                      <span>{getEventStageDisplay(ev, lang as any).displayLabel}</span>
                     </div>
                   </div>
                 </div>

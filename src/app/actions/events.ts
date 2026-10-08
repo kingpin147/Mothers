@@ -439,6 +439,16 @@ export async function getPublicEventById(rawId: string) {
     const now = new Date();
     const daysUntil = Math.round((starts.getTime() - now.getTime()) / 86400000);
 
+    const stageLinks = await db
+      .select({
+        labelEn: stage.labelEn,
+      })
+      .from(eventStage)
+      .innerJoin(stage, eq(eventStage.stageId, stage.id))
+      .where(eq(eventStage.eventId, ev.id));
+
+    const targetStages = stageLinks.map((s) => s.labelEn);
+
     return {
       success: true,
       event: {
@@ -457,6 +467,7 @@ export async function getPublicEventById(rawId: string) {
         guestPassEligible,
         audienceType: ev.childcare === "adults_only" ? "moms_only" : "moms_child",
         languages: ev.languages || ["es", "en"],
+        targetStages,
       },
     };
   } catch (error: any) {

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 import { tStr } from "@/lib/i18nEngine";
 import {
@@ -11,6 +12,7 @@ import {
   createCircleReply,
   toggleCircleHeart,
   toggleCircleReplyHeart,
+  toggleCircleSavedPost,
   reportCirclePost,
 } from "@/app/actions/gazette";
 import { compressImageClient } from "@/lib/imageCompression";
@@ -61,9 +63,20 @@ export function GazetteFeedClient({
   trendingTopics?: { topic: string; label: string; score: number; postCount: number }[];
 }) {
   const { language: lang } = useLanguage();
+  const searchParams = useSearchParams();
   const [posts, setPosts] = useState<PostItem[]>(initialPosts);
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedFilter, setSelectedFilter] = useState(() => {
+    const p = searchParams?.get("filter") || searchParams?.get("topic");
+    return p === "saved" ? "saved" : "all";
+  });
   const [customTagFilter, setCustomTagFilter] = useState<string | null>(null);
+
+  useEffect(() => {
+    const f = searchParams?.get("filter") || searchParams?.get("topic");
+    if (f === "saved") {
+      setSelectedFilter("saved");
+    }
+  }, [searchParams]);
 
   // Composer State
   const [draft, setDraft] = useState("");
@@ -282,6 +295,44 @@ export function GazetteFeedClient({
     });
   };
 
+  const handleToggleSave = async (postId: string) => {
+    if (!currentUser) {
+      setLoginPromptTargetId(postId);
+      return;
+    }
+
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === postId) {
+          return {
+            ...p,
+            isSaved: !p.isSaved,
+          };
+        }
+        return p;
+      })
+    );
+
+    startTransition(async () => {
+      try {
+        await toggleCircleSavedPost(postId);
+      } catch {
+        // Rollback on failure
+        setPosts((prev) =>
+          prev.map((p) => {
+            if (p.id === postId) {
+              return {
+                ...p,
+                isSaved: !p.isSaved,
+              };
+            }
+            return p;
+          })
+        );
+      }
+    });
+  };
+
   const handleSendReply = async (postId: string) => {
     const text = replyDrafts[postId]?.trim();
     if (!text) return;
@@ -393,7 +444,10 @@ export function GazetteFeedClient({
       ? "rgba(57, 41, 42, 0.72)"
       : "#7b1f2c";
 
+  const savedCount = posts.filter((p) => p.isSaved).length;
+
   const filteredPosts = posts.filter((p) => {
+    if (selectedFilter === "saved") return p.isSaved;
     if (selectedFilter === "all") return true;
     return p.topic === selectedFilter;
   });
@@ -438,26 +492,30 @@ export function GazetteFeedClient({
         style={{
           maxWidth: "1160px",
           margin: "0 auto",
-          padding: "clamp(24px, 3vw, 36px) clamp(20px, 5vw, 64px) 80px",
+          padding: "clamp(18px, 3vw, 32px) clamp(12px, 4vw, 48px) 80px",
           display: "flex",
           flexWrap: "wrap",
-          gap: "36px",
+          gap: "28px",
           alignItems: "flex-start",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         {/* Left Feed Column */}
-        <div style={{ flex: "1 1 540px", minWidth: "300px", display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div style={{ flex: "1 1 540px", minWidth: 0, width: "100%", maxWidth: "100%", display: "flex", flexDirection: "column", gap: "20px" }}>
           {/* Post Composer Card */}
           <div
             style={{
               border: "1px solid rgba(57, 41, 42, 0.2)",
               borderRadius: "8px",
               backgroundColor: "#ffffff",
-              padding: "clamp(16px, 3.5vw, 22px)",
+              padding: "clamp(14px, 3.5vw, 22px)",
               boxShadow: "0 2px 8px rgba(57, 41, 42, 0.04)",
+              width: "100%",
+              boxSizing: "border-box",
             }}
           >
-            <div style={{ display: "flex", gap: "clamp(10px, 2.5vw, 14px)", alignItems: "flex-start" }}>
+            <div style={{ display: "flex", gap: "clamp(10px, 2.5vw, 14px)", alignItems: "flex-start", width: "100%" }}>
               <div
                 style={{
                   flex: "none",
@@ -574,19 +632,20 @@ export function GazetteFeedClient({
                 )}
 
                 {/* Unified Composer Action Bar */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", justifyContent: "space-between", marginTop: "12px" }}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "7px", alignItems: "center", flex: "1 1 300px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "flex-end", justifyContent: "space-between", marginTop: "12px", width: "100%" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", flex: "1 1 200px", minWidth: 0 }}>
                     <label
                       style={{
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: "7px",
+                        gap: "6px",
                         border: "1px solid rgba(57, 41, 42, 0.25)",
                         borderRadius: "14px",
-                        padding: "5px 13px",
+                        padding: "5px 11px",
                         fontSize: "12.5px",
                         color: "rgba(57, 41, 42, 0.74)",
                         cursor: "pointer",
+                        flexShrink: 0,
                       }}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
@@ -611,10 +670,11 @@ export function GazetteFeedClient({
                             backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "transparent",
                             color: isSelected ? "#7b1f2c" : "#39292a",
                             borderRadius: "14px",
-                            padding: "5px 12px",
+                            padding: "5px 11px",
                             fontFamily: "'Lora', Georgia, serif",
-                            fontSize: "12.5px",
+                            fontSize: "12px",
                             cursor: "pointer",
+                            whiteSpace: "nowrap",
                           }}
                         >
                           {lang === "en" ? topicObj?.labelEn : topicObj?.labelEs}
@@ -623,8 +683,8 @@ export function GazetteFeedClient({
                     })}
                   </div>
 
-                  <div style={{ display: "flex", gap: "12px", alignItems: "center", marginLeft: "auto" }}>
-                    <label style={{ display: "flex", gap: "7px", alignItems: "center", cursor: "pointer", fontSize: "13px", color: "rgba(57,41,42,0.72)" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end", marginLeft: "auto", flexShrink: 0, maxWidth: "100%" }}>
+                    <label style={{ display: "flex", gap: "7px", alignItems: "center", cursor: "pointer", fontSize: "13px", color: "rgba(57,41,42,0.72)", whiteSpace: "nowrap" }}>
                       <input
                         type="checkbox"
                         checked={isAnon}
@@ -643,12 +703,14 @@ export function GazetteFeedClient({
                         backgroundColor: "transparent",
                         color: "#7b1f2c",
                         borderRadius: "4px",
-                        padding: "9px 20px",
+                        padding: "8px 16px",
                         fontFamily: "'Cormorant Garamond', Georgia, serif",
                         fontWeight: 600,
-                        fontSize: "14.5px",
+                        fontSize: "14px",
                         cursor: posting ? "wait" : "pointer",
-                        whiteSpace: "nowrap",
+                        maxWidth: "100%",
+                        boxSizing: "border-box",
+                        textAlign: "center",
                         transition: "all 0.15s ease",
                       }}
                       onMouseEnter={(e) => {
@@ -718,6 +780,41 @@ export function GazetteFeedClient({
                 </button>
               );
             })}
+
+            {/* Saved Posts Filter (Shows only when signed in) */}
+            {isUserSignedIn && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFilter(selectedFilter === "saved" ? "all" : "saved");
+                  setCustomTagFilter(null);
+                }}
+                style={{
+                  border: selectedFilter === "saved" ? "1px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.2)",
+                  backgroundColor: selectedFilter === "saved" ? "#7b1f2c" : "#ffffff",
+                  color: selectedFilter === "saved" ? "#fdf8f2" : "#39292a",
+                  borderRadius: "16px",
+                  padding: "7px 15px",
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "13.5px",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.15s ease",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill={selectedFilter === "saved" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" width="13" height="13">
+                  <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                </svg>
+                <span>
+                  {savedCount > 0
+                    ? (lang === "fr" ? `Enregistrés · ${savedCount}` : lang === "es" ? `Guardados · ${savedCount}` : `Saved · ${savedCount}`)
+                    : (lang === "fr" ? "Enregistrés" : lang === "es" ? "Guardados" : "Saved")}
+                </span>
+              </button>
+            )}
           </div>
 
           {(selectedFilter !== "all" || customTagFilter) && (
@@ -735,7 +832,21 @@ export function GazetteFeedClient({
               }}
             >
               <span>
-                {lang === "en" ? (
+                {selectedFilter === "saved" ? (
+                  lang === "fr" ? (
+                    <>
+                      Affichage de <strong>{filteredPosts.length}</strong> {filteredPosts.length === 1 ? "publication enregistrée" : "publications enregistrées"}
+                    </>
+                  ) : lang === "es" ? (
+                    <>
+                      Mostrando <strong>{filteredPosts.length}</strong> {filteredPosts.length === 1 ? "publicación guardada" : "publicaciones guardadas"}
+                    </>
+                  ) : (
+                    <>
+                      Showing <strong>{filteredPosts.length}</strong> saved {filteredPosts.length === 1 ? "post" : "posts"}
+                    </>
+                  )
+                ) : lang === "en" ? (
                   <>
                     Showing <strong>{filteredPosts.length}</strong> posts on{" "}
                     <strong>{customTagFilter || TOPICS.find((t) => t.id === selectedFilter)?.labelEn || selectedFilter}</strong>
@@ -771,18 +882,59 @@ export function GazetteFeedClient({
           {/* Posts Feed */}
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {filteredPosts.length === 0 ? (
-              <div
-                style={{
-                  border: "1px solid rgba(57, 41, 42, 0.16)",
-                  borderRadius: "8px",
-                  backgroundColor: "#ffffff",
-                  padding: "48px 24px",
-                  textAlign: "center",
-                  color: "rgba(57, 41, 42, 0.65)",
-                }}
-              >
-                {lang === "en" ? "No posts in this category yet. Be the first to share!" : "Todavía no hay publicaciones aquí. ¡Sé la primera!"}
-              </div>
+              selectedFilter === "saved" ? (
+                <div
+                  style={{
+                    border: "1px solid rgba(57, 41, 42, 0.16)",
+                    borderRadius: "8px",
+                    backgroundColor: "#ffffff",
+                    padding: "48px 24px",
+                    textAlign: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "12px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "50%",
+                      backgroundColor: "rgba(123, 31, 44, 0.08)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#7b1f2c",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="20" height="20">
+                      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                    </svg>
+                  </div>
+                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.78)", margin: 0, maxWidth: "48ch" }}>
+                    {lang === "fr"
+                      ? "Rien d'enregistré pour le moment. Appuyez sur Enregistrer sur n'importe quelle publication — une recommandation, un conseil, un produit — et retrouvez-la ici dès que vous en avez besoin."
+                      : lang === "es"
+                      ? "Nada guardado todavía. Toca Guardar en cualquier publicación — una recomendación, un consejo, un producto — y encuéntrala aquí cuando la necesites."
+                      : "Nothing saved yet. Tap Save on any post — a recommendation, a tip, a product — and find it here whenever you need it."}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    border: "1px solid rgba(57, 41, 42, 0.16)",
+                    borderRadius: "8px",
+                    backgroundColor: "#ffffff",
+                    padding: "48px 24px",
+                    textAlign: "center",
+                    color: "rgba(57, 41, 42, 0.65)",
+                  }}
+                >
+                  {lang === "en" ? "No posts in this category yet. Be the first to share!" : "Todavía no hay publicaciones aquí. ¡Sé la primera!"}
+                </div>
+              )
             ) : (
               filteredPosts.map((post) => {
                 const isReported = reportedPostIds.has(post.id);
@@ -951,6 +1103,41 @@ export function GazetteFeedClient({
                           {post.repliesCount === 0
                             ? (lang === "en" ? "Reply" : "Responder")
                             : `${post.repliesCount} ${post.repliesCount === 1 ? (lang === "en" ? "reply" : "respuesta") : (lang === "en" ? "replies" : "respuestas")}`}
+                        </span>
+                      </button>
+
+                      {/* Save Button (Private bookmark) */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSave(post.id)}
+                        style={{
+                          border: "none",
+                          backgroundColor: "transparent",
+                          padding: 0,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          fontFamily: "'Lora', Georgia, serif",
+                          fontSize: "13.5px",
+                          color: post.isSaved ? "#7b1f2c" : "rgba(57, 41, 42, 0.72)",
+                          transition: "color 0.15s ease",
+                        }}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill={post.isSaved ? "#7b1f2c" : "none"}
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                          width="16"
+                          height="16"
+                        >
+                          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                        </svg>
+                        <span>
+                          {post.isSaved
+                            ? (lang === "fr" ? "Enregistré" : lang === "es" ? "Guardado" : "Saved")
+                            : (lang === "fr" ? "Enregistrer" : lang === "es" ? "Guardar" : "Save")}
                         </span>
                       </button>
 
@@ -1226,7 +1413,7 @@ export function GazetteFeedClient({
         </div>
 
         {/* Right Sidebar Column */}
-        <aside style={{ flex: "0 1 320px", minWidth: "270px", display: "flex", flexDirection: "column", gap: "18px" }}>
+        <aside style={{ flex: "1 1 280px", minWidth: 0, width: "100%", maxWidth: "100%", display: "flex", flexDirection: "column", gap: "18px" }}>
           {/* Talked About This Week Module (Image 1) */}
           <div style={{ border: "1px solid rgba(57, 41, 42, 0.18)", borderRadius: "8px", backgroundColor: "#ffffff", padding: "22px", boxShadow: "0 2px 8px rgba(57, 41, 42, 0.04)" }}>
             <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "20px", marginBottom: "14px", color: "#39292a" }}>

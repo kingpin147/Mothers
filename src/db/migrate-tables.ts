@@ -383,6 +383,15 @@ async function main() {
       );
       CREATE INDEX IF NOT EXISTS idx_circle_report_post ON circle_report(post_id);
       CREATE INDEX IF NOT EXISTS idx_circle_report_status ON circle_report(status);
+
+      CREATE TABLE IF NOT EXISTS circle_saved_post (
+        id text PRIMARY KEY,
+        person_id text NOT NULL REFERENCES person(id) ON DELETE CASCADE,
+        post_id text NOT NULL REFERENCES circle_post(id) ON DELETE CASCADE,
+        created_at timestamptz DEFAULT now() NOT NULL
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_person_saved_post ON circle_saved_post(person_id, post_id);
+      CREATE INDEX IF NOT EXISTS idx_circle_saved_post_person ON circle_saved_post(person_id, created_at);
     `);
 
     console.log("✅ DDL migration completed successfully!");

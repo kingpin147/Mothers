@@ -905,10 +905,27 @@ export const gazetteReport = pgTable(
   ]
 );
 
+export const gazetteBookmark = pgTable(
+  "circle_saved_post",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    postId: text("post_id").notNull().references(() => gazettePost.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_unique_person_saved_post").on(table.personId, table.postId),
+    index("idx_circle_saved_post_person").on(table.personId, table.createdAt),
+  ]
+);
+
 // Backward-compatible aliases
 export const circlePost = gazettePost;
 export const circleReply = gazetteReply;
 export const circleHeart = gazetteHeart;
 export const circleReport = gazetteReport;
+export const circleBookmark = gazetteBookmark;
+export const circleSavedPost = gazetteBookmark;
+
 
 

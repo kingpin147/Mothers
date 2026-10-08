@@ -74,7 +74,13 @@ const GROUPS: UATGroup[] = [
       { id: "C-08", prio: "P1", title: "Rate limits", steps: "Post twice in 30 s; post 6 times in a day; reply 21 times.", expected: "Wait message; daily limit messages at 5 posts / 20 replies." },
       { id: "C-09", prio: "P1", title: "Replies + hearts persist", steps: "Reply and heart; reload.", expected: "Both saved." },
       { id: "C-10", prio: "P1", title: "Report", steps: "Report a post with a reason; reload.", expected: '"Reported — thank you" stays; Report button hidden for that post.' },
-      { id: "C-11", prio: "P2", title: "Topic filters", steps: "Click topic chips.", expected: "Only matching posts." }
+      { id: "C-11", prio: "P2", title: "Topic filters", steps: "Click topic chips.", expected: "Only matching posts." },
+      { id: "C-22", prio: "P1", title: "Save button on posts", steps: "Tap Save bookmark icon on a post.", expected: "Toggles to filled 'Saved'; tapping again removes it. Private: no public count, author not notified." },
+      { id: "C-23", prio: "P1", title: "Saved · N filter", steps: "Tap 'Saved · N' chip after topics while signed in.", expected: "Feed shows only her saved posts, most recently saved first. Shows friendly empty state if none saved." },
+      { id: "C-24", prio: "P1", title: "Save while signed out", steps: "Tap Save on a post while signed out.", expected: "Prompts to sign in or open a free account, then returns to La Gazette." },
+      { id: "C-25", prio: "P1", title: "Deleted saved post", steps: "A saved post is hidden or removed by moderation.", expected: "Post automatically drops out of the saved posts list." },
+      { id: "C-26", prio: "P1", title: "Saving limit check", steps: "Save multiple posts with a non-member account.", expected: "Saving does not count towards the 3 free posts limit." },
+      { id: "C-27", prio: "P2", title: "Saved posts link in My Account", steps: "In My Account Overview tab, tap 'Saved posts (N)'.", expected: "Opens La Gazette with the Saved filter already on, showing only saved posts." }
     ]
   },
   {

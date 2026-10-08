@@ -8,6 +8,7 @@ import { Locale } from "@/lib/i18n";
 import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, reactivateMembership, getStripePortalUrl, deleteMyAccountGDPR, leaveWaitlist } from "@/app/actions/memberAccount";
 import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
 import { getUpcomingEventsNeedingHost, checkHostEligibility, applyToHostEvent, withdrawHostRequest } from "@/app/actions/host";
+import { getUserSavedPostsCount } from "@/app/actions/gazette";
 import { formatEventDate } from "@/app/events/EventsCalendar";
 import ThemeLoader from "@/components/ThemeLoader";
 import { ForwardArrow } from "@/components/Icons";
@@ -81,6 +82,7 @@ function AccountPageContent() {
   const [topUpAmount, setTopUpAmount] = useState<number>(10);
   const [accountLoading, setAccountLoading] = useState(true);
   const [accountData, setAccountData] = useState<any>(null);
+  const [savedPostsCount, setSavedPostsCount] = useState<number>(0);
   const [accountError, setAccountError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>(calculateTimeLeft);
 
@@ -315,11 +317,13 @@ function AccountPageContent() {
       const loadData = async () => {
         try {
           setAccountLoading(true);
-          const [res, eligRes, eventsRes] = await Promise.all([
+          const [res, eligRes, eventsRes, savedCount] = await Promise.all([
             getAccountData(),
             checkHostEligibility(),
             getUpcomingEventsNeedingHost(),
+            getUserSavedPostsCount(),
           ]);
+          setSavedPostsCount(savedCount || 0);
           if (res.success) {
             setAccountData(res);
             setAccountError(null);
@@ -694,6 +698,89 @@ function AccountPageContent() {
                   ? "Meeting points are shared with booked members only — please keep them inside the club. Cancel more than 24 hours ahead and your credits come straight back. Inside 24 hours, they remain only if someone on the waitlist takes your place — and we've all been in those last-minute fix moments. Reserved credits are held for events until filling. They return to your balance if the occasion can't go ahead."
                   : "Los puntos de encuentro se comparten solo con las socias reservadas; por favor, mantenlos dentro del club. Si cancelas con más de 24 horas de antelación, tus créditos vuelven de inmediato. Dentro de las 24 horas, solo se devuelven si alguien de la lista de espera ocupa tu plaza. Los créditos reservados se retienen hasta completarse el evento y regresan a tu saldo si la ocasión no puede llevarse a cabo."}
               </p>
+            </div>
+
+            {/* Quick Community / Forum Links: Say hello in La Gazette · Saved posts (N) · Find your next event */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "14px",
+                alignItems: "center",
+                padding: "16px 22px",
+                backgroundColor: "#fffdfa",
+                border: "1px solid rgba(57, 41, 42, 0.14)",
+                borderRadius: "8px",
+              }}
+            >
+              <Link
+                href="/gazette"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "14px",
+                  fontFamily: "'Lora', Georgia, serif",
+                  color: "#7b1f2c",
+                  textDecoration: "none",
+                  fontWeight: 500,
+                }}
+              >
+                <span>{lang === "fr" ? "Discuter dans La Gazette" : lang === "es" ? "Saludar en La Gazette" : "Say hello in La Gazette"}</span>
+                <span style={{ fontSize: "12px" }}>→</span>
+              </Link>
+
+              <span style={{ color: "rgba(57, 41, 42, 0.25)" }}>·</span>
+
+              <Link
+                href="/gazette?filter=saved"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "14px",
+                  fontFamily: "'Lora', Georgia, serif",
+                  color: "#7b1f2c",
+                  textDecoration: "none",
+                  fontWeight: 500,
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14">
+                  <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                </svg>
+                <span>
+                  {savedPostsCount > 0
+                    ? (lang === "fr"
+                        ? `Publications enregistrées (${savedPostsCount})`
+                        : lang === "es"
+                        ? `Publicaciones guardadas (${savedPostsCount})`
+                        : `Saved posts (${savedPostsCount})`)
+                    : (lang === "fr"
+                        ? "Publications enregistrées"
+                        : lang === "es"
+                        ? "Publicaciones guardadas"
+                        : "Saved posts")}
+                </span>
+              </Link>
+
+              <span style={{ color: "rgba(57, 41, 42, 0.25)" }}>·</span>
+
+              <Link
+                href="/events"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontSize: "14px",
+                  fontFamily: "'Lora', Georgia, serif",
+                  color: "#7b1f2c",
+                  textDecoration: "none",
+                  fontWeight: 500,
+                }}
+              >
+                <span>{lang === "fr" ? "Trouver votre prochain événement" : lang === "es" ? "Encuentra tu próximo evento" : "Find your next event"}</span>
+                <span style={{ fontSize: "12px" }}>→</span>
+              </Link>
             </div>
 
             {/* Pre-Launch Early Access Waiver Banner */}

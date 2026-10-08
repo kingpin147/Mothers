@@ -99,7 +99,7 @@ interface Props {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // Normalise raw DB stage value → canonical display label
-function getStageLabel(raw: string | null | undefined, lang: Lang): string {
+export function getStageLabel(raw: string | null | undefined, lang: Lang): string {
   if (!raw) return "";
   const s = raw.toLowerCase().trim();
   if (s.includes("pregnant") || s.includes("embaraz") || s.includes("expecting") || s.includes("enceinte")) {
@@ -118,24 +118,25 @@ function getStageLabel(raw: string | null | undefined, lang: Lang): string {
     return lang === "en" ? "Children" : lang === "fr" ? "Enfants" : "Niños";
   }
   if (s.includes("all") || s.includes("todo") || s.includes("toda") || s.includes("open") || s.includes("abierto") || s.includes("toutes")) {
-    return lang === "en" ? "Open to every stage" : lang === "fr" ? "Ouvert à toutes les étapes" : "Abierto a todas las etapas";
+    return lang === "fr" ? "Toutes les étapes" : lang === "es" ? "Todas las etapas" : "All stages";
   }
   if (s.includes("mom") || s.includes("madre") || s.includes("mère") || s.includes("adult") || s.includes("welcome") || s.includes("bienvenido")) return "";
   return raw; // fallback: show as-is
 }
 
-function getEventStageDisplay(ev: PublicEvent, lang: Lang): { isAllStages: boolean; stages: string[]; displayLabel: string } {
+export function getEventStageDisplay(ev: PublicEvent | any, lang: Lang): { isAllStages: boolean; stages: string[]; displayLabel: string } {
   const totalCanonicalStages = 5; // Pregnant, Babies, Toddlers, Children, Big kids
+  const allStagesLabel = lang === "fr" ? "Toutes les étapes" : lang === "es" ? "Todas las etapas" : "All stages";
 
   if (ev.targetStages && Array.isArray(ev.targetStages) && ev.targetStages.length > 0) {
     if (ev.targetStages.length >= totalCanonicalStages) {
       return {
         isAllStages: true,
         stages: [],
-        displayLabel: lang === "en" ? "Open to every stage" : lang === "fr" ? "Ouvert à toutes les étapes" : "Abierto a todas las etapas",
+        displayLabel: allStagesLabel,
       };
     }
-    const mapped = ev.targetStages.map((s) => getStageLabel(s, lang)).filter(Boolean);
+    const mapped = ev.targetStages.map((s: string) => getStageLabel(s, lang)).filter(Boolean);
     if (mapped.length > 0) {
       return {
         isAllStages: false,
@@ -145,10 +146,9 @@ function getEventStageDisplay(ev: PublicEvent, lang: Lang): { isAllStages: boole
     }
   }
 
-  if (ev.stage && ev.stage !== "All Stages") {
+  if (ev.stage && typeof ev.stage === "string" && ev.stage.toLowerCase() !== "all stages" && ev.stage.toLowerCase() !== "all" && !ev.stage.toLowerCase().includes("all")) {
     const label = getStageLabel(ev.stage, lang);
-    const openLabel = lang === "en" ? "Open to every stage" : lang === "fr" ? "Ouvert à toutes les étapes" : "Abierto a todas las etapas";
-    if (label && label !== openLabel) {
+    if (label && label !== allStagesLabel) {
       return {
         isAllStages: false,
         stages: [label],
@@ -160,7 +160,7 @@ function getEventStageDisplay(ev: PublicEvent, lang: Lang): { isAllStages: boole
   return {
     isAllStages: true,
     stages: [],
-    displayLabel: lang === "en" ? "Open to every stage" : lang === "fr" ? "Ouvert à toutes les étapes" : "Abierto a todas las etapas",
+    displayLabel: allStagesLabel,
   };
 }
 
@@ -1469,6 +1469,16 @@ function EventCard({
               : (lang === "en" ? "Children welcome" : lang === "es" ? "Peques bienvenidos" : "Enfants bienvenus")}
           </span>
         </div>
+
+        {/* 5. Stages */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" style={{ flexShrink: 0 }}>
+            <path d="M12 17V3" />
+            <path d="M6 9l6-6 6 6" />
+            <path d="M4 21h16" />
+          </svg>
+          <span>{getEventStageDisplay(ev, lang).displayLabel}</span>
+        </div>
       </div>
 
       {/* ─── Details Link (Opens event page directly) ─── */}
@@ -1956,46 +1966,49 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
 
     // 2. Multi-stage match
     if (selectedStages.length > 0) {
-      const stageKeys = (ev.targetStages || []).map((s) => s.toLowerCase());
-      const rawStage = (ev.stage || "").toLowerCase();
+      const stageInfo = getEventStageDisplay(ev, "en");
+      if (!stageInfo.isAllStages) {
+        const stageKeys = (ev.targetStages || []).map((s) => s.toLowerCase());
+        const rawStage = (ev.stage || "").toLowerCase();
 
-      const matchesAnySelected = selectedStages.some((stageKey) => {
-        const hasTargetMatch = stageKeys.some((sk) => {
+        const matchesAnySelected = selectedStages.some((stageKey) => {
+          const hasTargetMatch = stageKeys.some((sk) => {
+            if (stageKey === "big_kids" || stageKey === "big kids") {
+              return sk.includes("big") || sk.includes("grande") || sk.includes("10+") || sk.includes("6–10") || sk.includes("6-10") || sk.includes("6+") || sk.includes("children610") || sk.includes("grand");
+            }
+            if (stageKey === "babies") {
+              return sk.includes("bab") || sk.includes("0–12") || sk.includes("0-12") || sk.includes("postpartum") || sk.includes("posparto") || sk.includes("bébé");
+            }
+            if (stageKey === "toddlers") {
+              return sk.includes("toddler") || sk.includes("peque") || sk.includes("1–3") || sk.includes("1-3") || sk.includes("petit");
+            }
+            if (stageKey === "children") {
+              return sk.includes("child") || sk.includes("niño") || sk.includes("3–6") || sk.includes("3-6") || sk.includes("3y+") || sk.includes("children36") || sk.includes("enfant");
+            }
+            if (stageKey === "pregnant") {
+              return sk.includes("pregnant") || sk.includes("embaraz") || sk.includes("expecting") || sk.includes("enceinte");
+            }
+            return sk.includes(stageKey);
+          });
+
+          if (hasTargetMatch) return true;
+
           if (stageKey === "big_kids" || stageKey === "big kids") {
-            return sk.includes("big") || sk.includes("grande") || sk.includes("10+") || sk.includes("6–10") || sk.includes("6-10") || sk.includes("6+") || sk.includes("children610") || sk.includes("grand");
+            return rawStage.includes("big") || rawStage.includes("grande") || rawStage.includes("10+") || rawStage.includes("6–10") || rawStage.includes("6-10") || rawStage.includes("6+") || rawStage.includes("grand");
+          } else if (stageKey === "babies") {
+            return rawStage.includes("bab") || rawStage.includes("0–12") || rawStage.includes("0-12") || rawStage.includes("postpartum") || rawStage.includes("posparto") || rawStage.includes("bébé");
+          } else if (stageKey === "toddlers") {
+            return rawStage.includes("toddler") || rawStage.includes("peque") || rawStage.includes("1–3") || rawStage.includes("1-3") || rawStage.includes("petit");
+          } else if (stageKey === "children") {
+            return rawStage.includes("child") || rawStage.includes("niño") || rawStage.includes("3–6") || rawStage.includes("3-6") || rawStage.includes("3y+") || rawStage.includes("children36") || rawStage.includes("enfant");
+          } else if (stageKey === "pregnant") {
+            return rawStage.includes("pregnant") || rawStage.includes("embaraz") || rawStage.includes("expecting") || rawStage.includes("enceinte");
           }
-          if (stageKey === "babies") {
-            return sk.includes("bab") || sk.includes("0–12") || sk.includes("0-12") || sk.includes("postpartum") || sk.includes("posparto") || sk.includes("bébé");
-          }
-          if (stageKey === "toddlers") {
-            return sk.includes("toddler") || sk.includes("peque") || sk.includes("1–3") || sk.includes("1-3") || sk.includes("petit");
-          }
-          if (stageKey === "children") {
-            return sk.includes("child") || sk.includes("niño") || sk.includes("3–6") || sk.includes("3-6") || sk.includes("3y+") || sk.includes("children36") || sk.includes("enfant");
-          }
-          if (stageKey === "pregnant") {
-            return sk.includes("pregnant") || sk.includes("embaraz") || sk.includes("expecting") || sk.includes("enceinte");
-          }
-          return sk.includes(stageKey);
+          return rawStage.includes(stageKey);
         });
 
-        if (hasTargetMatch) return true;
-
-        if (stageKey === "big_kids" || stageKey === "big kids") {
-          return rawStage.includes("big") || rawStage.includes("grande") || rawStage.includes("10+") || rawStage.includes("6–10") || rawStage.includes("6-10") || rawStage.includes("6+") || rawStage.includes("grand");
-        } else if (stageKey === "babies") {
-          return rawStage.includes("bab") || rawStage.includes("0–12") || rawStage.includes("0-12") || rawStage.includes("postpartum") || rawStage.includes("posparto") || rawStage.includes("bébé");
-        } else if (stageKey === "toddlers") {
-          return rawStage.includes("toddler") || rawStage.includes("peque") || rawStage.includes("1–3") || rawStage.includes("1-3") || rawStage.includes("petit");
-        } else if (stageKey === "children") {
-          return rawStage.includes("child") || rawStage.includes("niño") || rawStage.includes("3–6") || rawStage.includes("3-6") || rawStage.includes("3y+") || rawStage.includes("children36") || rawStage.includes("enfant");
-        } else if (stageKey === "pregnant") {
-          return rawStage.includes("pregnant") || rawStage.includes("embaraz") || rawStage.includes("expecting") || rawStage.includes("enceinte");
-        }
-        return rawStage.includes(stageKey);
-      });
-
-      if (!matchesAnySelected) return false;
+        if (!matchesAnySelected) return false;
+      }
     }
 
     // 3. Audience / Kids match
@@ -2921,7 +2934,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
             )}
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px", alignItems: "stretch" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))", gap: "24px", alignItems: "stretch", width: "100%", boxSizing: "border-box" }}>
             {sortedEvents.map((ev) => (
               <EventCard
                 key={ev.id}

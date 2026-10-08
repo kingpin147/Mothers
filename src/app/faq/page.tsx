@@ -30,6 +30,8 @@ export default async function FaqPage() {
           aEn: faq.answerEn,
           qEs: faq.questionEs && faq.questionEs.trim() ? faq.questionEs : faq.questionEn,
           aEs: faq.answerEs && faq.answerEs.trim() ? faq.answerEs : faq.answerEn,
+          qFr: faq.questionFr && faq.questionFr.trim() ? faq.questionFr : undefined,
+          aFr: faq.answerFr && faq.answerFr.trim() ? faq.answerFr : undefined,
         }))
       : CANONICAL_FAQS.map((faq) => ({
           group: faq.group || "Coming to an event now",
@@ -37,6 +39,8 @@ export default async function FaqPage() {
           aEn: faq.aEn,
           qEs: faq.qEs,
           aEs: faq.aEs,
+          qFr: faq.qFr,
+          aFr: faq.aFr,
         }));
 
   const publicSettings = await getPublicSettings();
