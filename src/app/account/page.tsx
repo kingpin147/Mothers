@@ -700,7 +700,12 @@ function AccountPageContent() {
               <div style={{ display: "flex", gap: "12px", marginTop: "20px", flexWrap: "wrap" }}>
                 {[
                   {
-                    icon: "📍",
+                    icon: (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                    ),
                     label: lang === "fr" ? "Point de rendez-vous" : lang === "es" ? "Punto de encuentro" : "Meeting point",
                     body: lang === "fr"
                       ? "Affiché une fois votre réservation confirmée. Gardez-le à l'intérieur du club."
@@ -709,21 +714,33 @@ function AccountPageContent() {
                       : "Shown once you are booked. Please keep it inside the club.",
                   },
                   {
-                    icon: "⏱",
+                    icon: (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    ),
                     label: lang === "fr" ? "Annuler à temps" : lang === "es" ? "Cancela a tiempo" : "Cancel in time",
                     body: lang === "fr"
                       ? "Dans le délai de l'événement, affiché sous chaque réservation — vos crédits reviennent directement."
                       : lang === "es"
-                      ? "Dentro del plazo del evento, visible bajo cada reserva — tus créditos vuelven de inmediato."
+                      ? "Dentro del plazo del evento, visible bajo cada reserva — tus crédits vuelven de inmediato."
                       : "Within the event's window, shown under each booking — your credits come straight back.",
                   },
                   {
-                    icon: "🔄",
+                    icon: (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                        <path d="M16 16h5v5" />
+                      </svg>
+                    ),
                     label: lang === "fr" ? "Trop tard ?" : lang === "es" ? "¿Demasiado tarde?" : "Too late?",
                     body: lang === "fr"
                       ? "Vos crédits reviennent uniquement si quelqu'un prend votre place."
                       : lang === "es"
-                      ? "Tus créditos vuelven solo si alguien ocupa tu plaza."
+                      ? "Tus crédits vuelven solo si alguien ocupa tu plaza."
                       : "Your credits come back only if someone takes your place.",
                   },
                 ].map((item) => (
@@ -737,7 +754,7 @@ function AccountPageContent() {
                       backgroundColor: "#fffdfa",
                     }}
                   >
-                    <div style={{ fontSize: "15px", marginBottom: "6px" }}>{item.icon}</div>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}>{item.icon}</div>
                     <div style={{ fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "4px", fontFamily: "'Lora', Georgia, serif" }}>
                       {item.label}
                     </div>
