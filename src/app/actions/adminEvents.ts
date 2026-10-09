@@ -7,69 +7,75 @@ import { auth } from "@/lib/auth";
 import { refundPersonCredits, refundBookingCredits } from "@/lib/ledger";
 
 export async function publishAdminEvent(eventId: string) {
-  const session = await auth();
-  const adminId = session?.user?.id;
-  const role = (session?.user as any)?.role;
-  const allowed = ["owner", "manager", "super_admin"];
-  if (!role || !allowed.includes(role)) {
-    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  try {
+    const session = await auth();
+    const adminId = session?.user?.id;
+    const role = (session?.user as any)?.role;
+    const allowed = ["owner", "manager", "super_admin"];
+    if (!role || !allowed.includes(role)) {
+      return { success: false, error: "UNAUTHORIZED_ADMIN" };
+    }
+
+    const existing = await db.select().from(event).where(eq(event.id, eventId));
+    if (existing.length === 0) {
+      return { success: false, error: "EVENT_NOT_FOUND" };
+    }
+    const ev = existing[0];
+
+    // Validation Criteria per Backend & Admin Briefs:
+    const isTbc = ev.neighbourhood === "To be confirmed";
+    if (!ev.title || (!isTbc && (!ev.venueName || !ev.meetingPoint)) || !ev.startsAt || !ev.endsAt) {
+      return { success: false, error: `Missing required fields (${!ev.title ? "title" : !ev.startsAt || !ev.endsAt ? "dates" : "venue, meeting point"}).` };
+    }
+
+    if (new Date(ev.startsAt).getTime() <= Date.now()) {
+      return { success: false, error: "Cannot publish an event with a date in the past." };
+    }
+
+    if (ev.capacityMember < 0) {
+      return { success: false, error: "Member capacity cannot be negative." };
+    }
+
+    const totalCap = ev.capacityMember;
+    if (totalCap > 0 && ev.minToConfirm > totalCap) {
+      return { success: false, error: "Minimum to confirm cannot exceed event room capacity." };
+    }
+
+    // If minToConfirm is 0, skips pending and goes directly to confirmed (§4.3)
+    const targetStatus = (ev.minToConfirm || 0) === 0 ? "confirmed" : "published_pending";
+    const now = new Date();
+
+    // Compute T-schedule defaults if not already present
+    const starts = new Date(ev.startsAt);
+    let decisionAt = ev.decisionAt;
+    if (!decisionAt) {
+      const t7Default = new Date(starts.getTime() - 7 * 86400000);
+      decisionAt = t7Default > now ? t7Default : new Date(Math.min(starts.getTime() - 3600000, Math.max(now.getTime() + 3600000, starts.getTime() - 2 * 86400000)));
+    }
+
+    await db.update(event).set({
+      status: targetStatus,
+      publishedAt: now,
+      confirmedAt: targetStatus === "confirmed" ? now : ev.confirmedAt,
+      decisionAt,
+      updatedAt: now,
+    }).where(eq(event.id, eventId));
+
+    await db.insert(auditLog).values({
+      actorId: adminId || "admin",
+      actorType: "admin",
+      action: "event.publish",
+      entity: "event",
+      entityId: eventId,
+      before: { status: ev.status },
+      after: { status: targetStatus, publishedAt: now },
+    });
+
+    return { success: true, status: targetStatus };
+  } catch (err: any) {
+    console.error("publishAdminEvent error:", err);
+    return { success: false, error: err?.message || "Failed to publish event" };
   }
-
-  const existing = await db.select().from(event).where(eq(event.id, eventId));
-  if (existing.length === 0) {
-    return { success: false, error: "EVENT_NOT_FOUND" };
-  }
-  const ev = existing[0];
-
-  // Validation Criteria per Backend & Admin Briefs:
-  if (!ev.title || !ev.venueName || !ev.meetingPoint || !ev.startsAt || !ev.endsAt) {
-    return { success: false, error: "Missing required fields (title, venue, meeting point, dates)." };
-  }
-
-  if (new Date(ev.startsAt).getTime() <= Date.now()) {
-    return { success: false, error: "Cannot publish an event with a date in the past." };
-  }
-
-  if (ev.capacityMember < 0) {
-    return { success: false, error: "Member capacity cannot be negative." };
-  }
-
-  const totalCap = ev.capacityMember;
-  if (totalCap > 0 && ev.minToConfirm > totalCap) {
-    return { success: false, error: "Minimum to confirm cannot exceed event room capacity." };
-  }
-
-  // If minToConfirm is 0, skips pending and goes directly to confirmed (§4.3)
-  const targetStatus = (ev.minToConfirm || 0) === 0 ? "confirmed" : "published_pending";
-  const now = new Date();
-
-  // Compute T-schedule defaults if not already present
-  const starts = new Date(ev.startsAt);
-  let decisionAt = ev.decisionAt;
-  if (!decisionAt) {
-    const t7Default = new Date(starts.getTime() - 7 * 86400000);
-    decisionAt = t7Default > now ? t7Default : new Date(Math.min(starts.getTime() - 3600000, Math.max(now.getTime() + 3600000, starts.getTime() - 2 * 86400000)));
-  }
-
-  await db.update(event).set({
-    status: targetStatus,
-    publishedAt: now,
-    confirmedAt: targetStatus === "confirmed" ? now : ev.confirmedAt,
-    decisionAt,
-    updatedAt: now,
-  }).where(eq(event.id, eventId));
-
-  await db.insert(auditLog).values({
-    actorId: adminId || "admin",
-    actorType: "admin",
-    action: "event.publish",
-    entity: "event",
-    entityId: eventId,
-    before: { status: ev.status },
-    after: { status: targetStatus, publishedAt: now },
-  });
-
-  return { success: true, status: targetStatus };
 }
 
 export async function getAdminEvents() {
@@ -163,8 +169,8 @@ export async function createAdminEvent(data: {
   descriptionEs?: string;
   descriptionFr?: string;
   neighbourhood: string;
-  venueName: string;
-  meetingPoint: string;
+  venueName?: string;
+  meetingPoint?: string;
   startsAt: Date;
   endsAt: Date;
   creditCost: number;
@@ -187,6 +193,7 @@ export async function createAdminEvent(data: {
   imageId?: string | null;
   hostPersonId?: string | null;
 }) {
+  try {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
@@ -223,6 +230,10 @@ export async function createAdminEvent(data: {
     const memberCost = data.memberCredits !== undefined ? data.memberCredits : data.creditCost;
     const nonMemberCost = data.nonMemberCredits !== undefined ? data.nonMemberCredits : (data.nonMemberCreditCost !== undefined ? data.nonMemberCreditCost : memberCost);
 
+    const isTbc = data.neighbourhood === "To be confirmed";
+    const venue = data.venueName?.trim() || (isTbc ? "To be confirmed" : "");
+    const meeting = data.meetingPoint?.trim() || (isTbc ? "To be confirmed" : "");
+
     const inserted = await db
       .insert(event)
       .values({
@@ -235,8 +246,8 @@ export async function createAdminEvent(data: {
         descriptionEs: data.descriptionEs || null,
         descriptionFr: data.descriptionFr || null,
         neighbourhood: data.neighbourhood || "Barcelona",
-        venueName: data.venueName,
-        meetingPoint: data.meetingPoint,
+        venueName: venue,
+        meetingPoint: meeting,
         startsAt: data.startsAt,
         endsAt: data.endsAt,
         creditCost: memberCost,
@@ -293,6 +304,10 @@ export async function createAdminEvent(data: {
   revalidatePath("/admin/events");
 
   return { success: true, eventId: newEventId };
+  } catch (err: any) {
+    console.error("createAdminEvent error:", err);
+    return { success: false, error: err?.message || "Failed to create event" };
+  }
 }
 
 export async function updateAdminEvent(eventId: string, data: {
@@ -330,6 +345,7 @@ export async function updateAdminEvent(eventId: string, data: {
   hostPersonId?: string | null;
   status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
 }) {
+  try {
   const session = await auth();
   const adminId = session?.user?.id;
   const role = (session?.user as any)?.role;
@@ -578,6 +594,10 @@ export async function updateAdminEvent(eventId: string, data: {
   revalidatePath("/admin/events");
 
   return { success: true };
+  } catch (err: any) {
+    console.error("updateAdminEvent error:", err);
+    return { success: false, error: err?.message || "Failed to update event" };
+  }
 }
 
 export async function confirmEventDecision(eventId: string) {

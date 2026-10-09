@@ -2452,7 +2452,10 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                     return (
                       <button
                         type="button"
-                        onClick={() => setSelectedStages([])}
+                        onClick={() => {
+                          setSelectedStages([]);
+                          setOpenDropdown(null);
+                        }}
                         style={{
                           display: "flex",
                           alignItems: "center",

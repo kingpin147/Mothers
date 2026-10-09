@@ -175,9 +175,15 @@ export default function AdminCreateEventPage() {
     ? 'No credits taken for this event (free gathering).'
     : 'Price in credits (e.g. 15 credits). Single price applies before membership launch.';
 
-  const validationLine = freeEvent
-    ? 'Still needed before publishing: title, venue, meeting point, dates, minimum, description.'
-    : 'Still needed before publishing: title, venue, meeting point, dates, minimum, price in credits, description.';
+  const isTbc = neighbourhood === "To be confirmed";
+
+  const validationLine = isTbc
+    ? (freeEvent
+        ? 'Still needed before publishing: title, dates, minimum, description.'
+        : 'Still needed before publishing: title, dates, minimum, price in credits, description.')
+    : (freeEvent
+        ? 'Still needed before publishing: title, venue, meeting point, dates, minimum, description.'
+        : 'Still needed before publishing: title, venue, meeting point, dates, minimum, price in credits, description.');
 
   // Helper to parse T-X schedule into Dates
   const calculateDate = (startD: string, expr: string) => {
@@ -214,6 +220,15 @@ export default function AdminCreateEventPage() {
     if (val) {
       const startD = new Date(val);
       if (!isNaN(startD.getTime())) {
+        if (!endsAt) {
+          const endD = new Date(startD.getTime() + 2 * 60 * 60 * 1000);
+          const year = endD.getFullYear();
+          const month = String(endD.getMonth() + 1).padStart(2, "0");
+          const day = String(endD.getDate()).padStart(2, "0");
+          const hours = String(endD.getHours()).padStart(2, "0");
+          const minutes = String(endD.getMinutes()).padStart(2, "0");
+          setEndsAt(`${year}-${month}-${day}T${hours}:${minutes}`);
+        }
         const days = (startD.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
         if (days <= 7.5 && days > 0) {
           if (schDecision === "T-7") {
@@ -239,87 +254,129 @@ export default function AdminCreateEventPage() {
   };
 
   const handleSave = async (status: "draft" | "published_pending") => {
-    if (!title || !venueName || !meetingPoint || !startsAt || !endsAt) {
-      alert("Please fill in core details (title, venue, dates) even for draft.");
+    if (!title.trim()) {
+      alert("Please enter the event Title.");
+      return;
+    }
+
+    if (!startsAt) {
+      alert("Please select the Starts date and time.");
+      return;
+    }
+
+    let effectiveEndsAt = endsAt;
+    if (!effectiveEndsAt) {
+      const startD = new Date(startsAt);
+      if (!isNaN(startD.getTime())) {
+        const endD = new Date(startD.getTime() + 2 * 60 * 60 * 1000);
+        const year = endD.getFullYear();
+        const month = String(endD.getMonth() + 1).padStart(2, "0");
+        const day = String(endD.getDate()).padStart(2, "0");
+        const hours = String(endD.getHours()).padStart(2, "0");
+        const minutes = String(endD.getMinutes()).padStart(2, "0");
+        effectiveEndsAt = `${year}-${month}-${day}T${hours}:${minutes}`;
+        setEndsAt(effectiveEndsAt);
+      } else {
+        alert("Please enter a valid Start date and time.");
+        return;
+      }
+    }
+
+    if (!isTbc && !venueName.trim()) {
+      alert("Please enter the Venue name (or select 'To be confirmed' under Neighbourhood).");
+      return;
+    }
+
+    if (!isTbc && !meetingPoint.trim()) {
+      alert("Please enter the Exact meeting point (or select 'To be confirmed' under Neighbourhood).");
       return;
     }
 
     const parsedCredits = freeEvent ? 0 : (parseInt(creditCost) || 0);
-    if (!freeEvent && parsedCredits <= 0) {
+    if (!freeEvent && parsedCredits <= 0 && status === "published_pending") {
       alert("Please enter the price in credits (e.g. 15) or tick 'Free event'.");
+      return;
+    }
+
+    if (status === "published_pending" && !description.trim()) {
+      alert("Please provide a short Description before publishing to the calendar.");
       return;
     }
 
     setLoadingAction(status);
     
-    const parsedCap = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
-    const parsedMin = noMinimum ? 0 : (parseInt(minToConfirm) || 0);
+    try {
+      const parsedCap = noCeiling ? 0 : (parseInt(memberPlaces) || 0);
+      const parsedMin = noMinimum ? 0 : (parseInt(minToConfirm) || 0);
 
-    if (!noCeiling && parsedCap > 0 && parsedMin > parsedCap) {
-      alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Capacity (${parsedCap}).`);
+      if (!noCeiling && parsedCap > 0 && parsedMin > parsedCap) {
+        alert(`Minimum to confirm (${parsedMin}) cannot exceed Total Capacity (${parsedCap}).`);
+        return;
+      }
+
+      const start = new Date(startsAt);
+      const resolvedDecisionAt = calculateDate(startsAt, schDecision);
+
+      if (status === "published_pending" && parsedMin > 0) {
+        if (resolvedDecisionAt && resolvedDecisionAt.getTime() <= Date.now()) {
+          alert("The confirmation decision deadline (" + resolvedDecisionAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + ") is in the past. Please set a decision deadline before the event starts (e.g. T-2, T-1, or 24h).");
+          return;
+        }
+        if (resolvedDecisionAt && resolvedDecisionAt.getTime() >= start.getTime()) {
+          alert("The confirmation decision deadline must be before the event starts.");
+          return;
+        }
+      }
+      
+      const parsedMemberCredits = freeEvent ? 0 : (parseInt(isMembershipLive ? (memberCredits || creditCost) : creditCost) || 0);
+      const parsedNonMemberCredits = freeEvent ? 0 : (parseInt(isMembershipLive ? (nonMemberCredits || creditCost) : creditCost) || 0);
+
+      const res = await createAdminEvent({
+        title,
+        titleEs: titleEs.trim() || undefined,
+        titleFr: titleFr.trim() || undefined,
+        categoryId: category,
+        partnerId: host.trim() || undefined,
+        host: host.trim() || undefined,
+        hostPersonId: assignedHostPersonId || undefined,
+        isSignature: category === "cat-signature",
+        neighbourhood,
+        venueName: venueName.trim() || (isTbc ? "To be confirmed" : ""),
+        meetingPoint: meetingPoint.trim() || (isTbc ? "To be confirmed" : ""),
+        startsAt: start,
+        endsAt: new Date(endsAt),
+        creditCost: parsedMemberCredits,
+        memberCredits: parsedMemberCredits,
+        nonMemberCredits: parsedNonMemberCredits,
+        cancellationWindowHours: parseInt(cancellationWindowHours) || 0,
+        childcare,
+        needsHost,
+        // 0 = uncapped (no ceiling). When noCeiling is checked, store 0 explicitly.
+        capacityMember: noCeiling ? 0 : (memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces)),
+        minToConfirm: noMinimum || minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0),
+        description,
+        descriptionEs: descriptionEs.trim() || undefined,
+        descriptionFr: descriptionFr.trim() || undefined,
+        status,
+        languages: langs,
+        targetStages: stages,
+        nonMemberOpensAt: nonMemberOpensAt ? new Date(nonMemberOpensAt) : undefined,
+        imageId: imageId || undefined,
+        decisionAt: resolvedDecisionAt,
+        publishedAt: status === "published_pending" ? new Date() : undefined,
+      });
+
+      if (res.success) {
+        alert(status === "draft" ? "Draft saved successfully!" : "Event published successfully!");
+        router.push("/admin/events");
+      } else {
+        alert(res.error || "Failed to save event");
+      }
+    } catch (err: any) {
+      console.error("handleSave error:", err);
+      alert(err?.message || "An unexpected error occurred while saving the event.");
+    } finally {
       setLoadingAction(null);
-      return;
-    }
-
-    const start = new Date(startsAt);
-    const resolvedDecisionAt = calculateDate(startsAt, schDecision);
-
-    if (status === "published_pending" && parsedMin > 0) {
-      if (resolvedDecisionAt && resolvedDecisionAt.getTime() <= Date.now()) {
-        alert("The confirmation decision deadline (" + resolvedDecisionAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + ") is in the past. Please set a decision deadline before the event starts (e.g. T-2, T-1, or 24h).");
-        setLoadingAction(null);
-        return;
-      }
-      if (resolvedDecisionAt && resolvedDecisionAt.getTime() >= start.getTime()) {
-        alert("The confirmation decision deadline must be before the event starts.");
-        setLoadingAction(null);
-        return;
-      }
-    }
-    
-    const parsedMemberCredits = freeEvent ? 0 : (parseInt(isMembershipLive ? (memberCredits || creditCost) : creditCost) || 0);
-    const parsedNonMemberCredits = freeEvent ? 0 : (parseInt(isMembershipLive ? (nonMemberCredits || creditCost) : creditCost) || 0);
-
-    const res = await createAdminEvent({
-      title,
-      titleEs: titleEs.trim() || undefined,
-      titleFr: titleFr.trim() || undefined,
-      categoryId: category,
-      partnerId: host.trim() || undefined,
-      host: host.trim() || undefined,
-      isSignature: category === "cat-signature",
-      neighbourhood,
-      venueName,
-      meetingPoint,
-      startsAt: start,
-      endsAt: new Date(endsAt),
-      creditCost: parsedMemberCredits,
-      memberCredits: parsedMemberCredits,
-      nonMemberCredits: parsedNonMemberCredits,
-      cancellationWindowHours: parseInt(cancellationWindowHours) || 0,
-      childcare,
-      needsHost,
-      // 0 = uncapped (no ceiling). When noCeiling is checked, store 0 explicitly.
-      capacityMember: noCeiling ? 0 : (memberPlaces.trim() === "" || parseInt(memberPlaces) <= 0 ? 0 : parseInt(memberPlaces)),
-      minToConfirm: noMinimum || minToConfirm.trim() === "" ? 0 : (parseInt(minToConfirm) || 0),
-      description,
-      descriptionEs: descriptionEs.trim() || undefined,
-      descriptionFr: descriptionFr.trim() || undefined,
-      status,
-      languages: langs,
-      targetStages: stages,
-      nonMemberOpensAt: nonMemberOpensAt ? new Date(nonMemberOpensAt) : undefined,
-      imageId: imageId || undefined,
-      decisionAt: resolvedDecisionAt,
-      publishedAt: status === "published_pending" ? new Date() : undefined,
-    });
-
-    setLoadingAction(null);
-    if (res.success) {
-      alert(status === "draft" ? "Draft saved successfully!" : "Event published successfully!");
-      router.push("/admin/events");
-    } else {
-      alert(res.error || "Failed to save event");
     }
   };
 
@@ -393,13 +450,53 @@ export default function AdminCreateEventPage() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
                 <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Venue, publicly <span style={{ color: "#7b1f2c" }}>*</span></label>
-                  <input type="text" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="e.g. Parc de la Ciutadella" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>
+                    Venue, publicly {isTbc ? <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.6)" }}>— optional for now</span> : <span style={{ color: "#7b1f2c" }}>*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    value={venueName}
+                    onChange={(e) => setVenueName(e.target.value)}
+                    placeholder={isTbc ? "Add once the location is set" : "e.g. Parc de la Ciutadella"}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      border: isTbc ? "1px solid rgba(57,41,42,0.18)" : "1px solid rgba(57,41,42,0.25)",
+                      borderRadius: "4px",
+                      padding: "11px 13px",
+                      fontFamily: "'Lora', Georgia, serif",
+                      fontSize: "14.5px",
+                      color: "#39292a",
+                      background: isTbc ? "rgba(57,41,42,0.04)" : "#fff",
+                    }}
+                  />
                 </div>
                 <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Exact meeting point <span style={{ color: "#7b1f2c" }}>*</span></label>
-                  <input type="text" value={meetingPoint} onChange={(e) => setMeetingPoint(e.target.value)} placeholder="e.g. Til·lers gate, by the fountain" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
-                  <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Sent only to people who have booked.</div>
+                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>
+                    Exact meeting point {isTbc ? <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.6)" }}>— optional for now</span> : <span style={{ color: "#7b1f2c" }}>*</span>}
+                  </label>
+                  <input
+                    type="text"
+                    value={meetingPoint}
+                    onChange={(e) => setMeetingPoint(e.target.value)}
+                    placeholder={isTbc ? "Add once the location is set" : "e.g. Til·lers gate, by the fountain"}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      border: isTbc ? "1px solid rgba(57,41,42,0.18)" : "1px solid rgba(57,41,42,0.25)",
+                      borderRadius: "4px",
+                      padding: "11px 13px",
+                      fontFamily: "'Lora', Georgia, serif",
+                      fontSize: "14.5px",
+                      color: "#39292a",
+                      background: isTbc ? "rgba(57,41,42,0.04)" : "#fff",
+                    }}
+                  />
+                  <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>
+                    {isTbc
+                      ? "Hidden from mothers while the location is to be confirmed. When you pick the real neighbourhood and save, everyone booked gets the “Location confirmed” email."
+                      : "Sent only to people who have booked."}
+                  </div>
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
