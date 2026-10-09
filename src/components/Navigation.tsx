@@ -108,25 +108,35 @@ export function Navigation() {
   const lastScrollY = useRef(0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+    let ticking = false;
+    const apply = () => {
+      const currentScrollY = window.scrollY || 0;
       setScrolled(currentScrollY > 10);
 
-      // On mobile (screen width <= 768) or when menu is open, always keep pinned
-      if (mobileMenuOpen || window.innerWidth <= 768) {
+      if (mobileMenuOpen) {
         setHeaderVisible(true);
         lastScrollY.current = currentScrollY;
+        ticking = false;
         return;
       }
 
-      if (currentScrollY < 10) {
+      const h = stickyContainerRef.current?.offsetHeight || 60;
+      if (currentScrollY <= h) {
         setHeaderVisible(true);
-      } else if (currentScrollY > lastScrollY.current + 8 && currentScrollY > 100) {
+      } else if (currentScrollY > lastScrollY.current + 4) {
         setHeaderVisible(false);
-      } else if (currentScrollY < lastScrollY.current - 8) {
+      } else if (currentScrollY < lastScrollY.current - 4) {
         setHeaderVisible(true);
       }
       lastScrollY.current = currentScrollY;
+      ticking = false;
+    };
+
+    const handleScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(apply);
+      }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });

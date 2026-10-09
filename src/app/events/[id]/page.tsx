@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { bookEvent, joinEventWaitlist } from "@/app/actions/booking";
+import { bookEvent, joinEventWaitlist, releaseBooking } from "@/app/actions/booking";
 import { getPublicEventById } from "@/app/actions/events";
 import { getAccountData } from "@/app/actions/memberAccount";
 import ThemeLoader from "@/components/ThemeLoader";
@@ -44,6 +44,8 @@ export default function EventDetailPage() {
 
   const [memberCredits, setMemberCredits] = useState<number | null>(null);
   const [isAlreadyBooked, setIsAlreadyBooked] = useState(false);
+  const [userBookingId, setUserBookingId] = useState<string | null>(null);
+  const [cancellingBooking, setCancellingBooking] = useState(false);
   const [isAlreadyWaitlisted, setIsAlreadyWaitlisted] = useState(false);
   const [userWaitlistPos, setUserWaitlistPos] = useState<number | null>(null);
   const [isLive, setIsLive] = useState(false);
@@ -88,8 +90,9 @@ export default function EventDetailPage() {
       getAccountData().then((res) => {
         if (res.success) {
           setMemberCredits(res.credits?.available ?? 0);
-          const booked = res.bookings?.some((b: any) => b.eventId === ev.id && b.status !== "released");
-          setIsAlreadyBooked(!!booked);
+          const activeBooking = res.bookings?.find((b: any) => b.eventId === ev.id && b.status !== "released");
+          setIsAlreadyBooked(!!activeBooking);
+          setUserBookingId(activeBooking?.id || null);
           const waitlisted = res.bookings?.find((b: any) => b.eventId === ev.id && b.status === "waitlisted");
           if (waitlisted) {
             setIsAlreadyWaitlisted(true);
@@ -100,6 +103,26 @@ export default function EventDetailPage() {
     }
   }, [session, ev?.id]);
 
+  const handleReleaseBooking = async () => {
+    if (!userBookingId) return;
+    setCancellingBooking(true);
+    try {
+      const res = await releaseBooking(userBookingId);
+      if (res.success) {
+        setIsAlreadyBooked(false);
+        setUserBookingId(null);
+        loadEvent();
+        getAccountData().then((r) => {
+          if (r.success) setMemberCredits(r.credits?.available ?? 0);
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCancellingBooking(false);
+    }
+  };
+
   const isMember = (session?.user as any)?.role === "member" && !!(session?.user as any)?.memberId;
   const currentCreditBalance = memberCredits ?? 0;
 
@@ -108,7 +131,7 @@ export default function EventDetailPage() {
     if (typeof window !== "undefined" && ev && status !== "loading") {
       const query = new URLSearchParams(window.location.search);
       const isBookingSuccess = query.get("booking_success") === "true";
-      const isTopUpSuccess = query.get("topup_success") === "trheader ue";
+      const isTopUpSuccess = query.get("topup_success") === "true";
       const isActionBook = query.get("action") === "book";
 
       if (isBookingSuccess || (isTopUpSuccess && isAlreadyBooked)) {
@@ -537,26 +560,28 @@ export default function EventDetailPage() {
             {/* Main Booking Button */}
             {isMember ? (
               isAlreadyBooked ? (
-                <button
-                  type="button"
-                  disabled
+                <Link
+                  href="/account"
                   style={{
+                    display: "block",
                     width: "100%",
+                    boxSizing: "border-box",
+                    textAlign: "center",
                     border: "1px solid rgba(86, 139, 5, 0.4)",
-                    backgroundColor: "#edf5e8",
-                    color: "#568b05",
+                    backgroundColor: "rgba(86, 139, 5, 0.1)",
+                    color: "#456f04",
                     borderRadius: "4px",
                     padding: "13px 16px",
                     fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 600,
                     fontSize: "15.5px",
-                    cursor: "default",
+                    textDecoration: "none",
                   }}
                 >
                   {isOpenList
-                    ? (lang === "en" ? "You're on the list" : "Estás en la lista")
-                    : (lang === "en" ? "Booked" : "Reservada")}
-                </button>
+                    ? (lang === "en" ? "You're on the list — see your account" : "Estás en la lista — ver mi cuenta")
+                    : (lang === "en" ? "Booked — see your account" : "Reservada — ver mi cuenta")}
+                </Link>
               ) : isAlreadyWaitlisted ? (
                 <button
                   type="button"
@@ -670,6 +695,39 @@ export default function EventDetailPage() {
                     ? `You have ${cr(currentCreditBalance)}. Add ${cr(need)} in your account to book.`
                     : `Tienes ${cr(currentCreditBalance)}. Añade ${cr(need)} en tu cuenta para reservar.`;
                 })()}
+              </div>
+            )}
+
+            {/* Release my place section when booked (§Event.dc.html) */}
+            {isAlreadyBooked && (
+              <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: "1px solid rgba(57, 41, 42, 0.12)" }}>
+                <button
+                  type="button"
+                  onClick={handleReleaseBooking}
+                  disabled={cancellingBooking || !userBookingId}
+                  style={{
+                    width: "100%",
+                    border: "1px solid rgba(57, 41, 42, 0.28)",
+                    background: "transparent",
+                    color: "rgba(57, 41, 42, 0.72)",
+                    borderRadius: "4px",
+                    padding: "11px 16px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "13.5px",
+                    cursor: cancellingBooking ? "wait" : "pointer",
+                  }}
+                >
+                  {cancellingBooking
+                    ? (lang === "en" ? "Releasing…" : "Liberando…")
+                    : (lang === "en" ? "Release my place" : "Liberar mi plaza")}
+                </button>
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57, 41, 42, 0.72)", marginTop: "8px" }}>
+                  {isFree
+                    ? (lang === "en" ? "Nothing to refund." : "Nada que reembolsar.")
+                    : (lang === "en"
+                      ? `You will get your ${viewerCost} ${viewerCost === 1 ? "credit" : "credits"} back.`
+                      : `Recibirás ${viewerCost} ${viewerCost === 1 ? "crédito" : "créditos"} de vuelta.`)}
+                </div>
               </div>
             )}
           </div>
