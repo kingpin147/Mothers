@@ -1821,7 +1821,9 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
           window.dispatchEvent(new Event("tm_first_booking_done"));
         }
       } else {
-        if (res.error === "INSUFFICIENT_CREDITS") {
+        if (res.error === "ALREADY_BOOKED") {
+          setBookingSuccessEvent(ev);
+        } else if (res.error === "INSUFFICIENT_CREDITS") {
           setTopUpEvent(ev);
         } else {
           setBookingError(res.error || (lang === "en" ? "Could not complete booking." : "No se pudo completar la reserva."));

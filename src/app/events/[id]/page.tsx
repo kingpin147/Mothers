@@ -107,10 +107,14 @@ export default function EventDetailPage() {
   useEffect(() => {
     if (typeof window !== "undefined" && ev && status !== "loading") {
       const query = new URLSearchParams(window.location.search);
-      if (query.get("booking_success") === "true") {
+      const isBookingSuccess = query.get("booking_success") === "true";
+      const isTopUpSuccess = query.get("topup_success") === "true";
+      const isActionBook = query.get("action") === "book";
+
+      if (isBookingSuccess || (isTopUpSuccess && isAlreadyBooked)) {
         setBookingSuccessEvent(ev);
         window.history.replaceState({}, "", `/events/${eventId}`);
-      } else if (query.get("topup_success") === "true" || query.get("action") === "book") {
+      } else if (isTopUpSuccess || isActionBook) {
         window.history.replaceState({}, "", `/events/${eventId}`);
         if (!isMember) {
           setSignedOutEvent(ev);
@@ -119,7 +123,7 @@ export default function EventDetailPage() {
         }
       }
     }
-  }, [ev, isMember, status, eventId]);
+  }, [ev, isMember, status, eventId, isAlreadyBooked]);
 
   const handleMemberBook = async (targetEv: PublicEvent) => {
     const viewerCost = isLive
@@ -149,15 +153,16 @@ export default function EventDetailPage() {
           window.dispatchEvent(new Event("tm_first_booking_done"));
         }
       } else {
-        if (res.error === "INSUFFICIENT_CREDITS") {
+        if (res.error === "ALREADY_BOOKED") {
+          setIsAlreadyBooked(true);
+          setBookingSuccessEvent(targetEv);
+        } else if (res.error === "INSUFFICIENT_CREDITS") {
           setTopUpEvent(targetEv);
         } else if (res.error === "MEMBER_CAPACITY_FULL") {
           handleMemberWaitlist(targetEv);
         } else {
           setBookingError(
-            res.error === "ALREADY_BOOKED"
-              ? (lang === "en" ? "You already have a booking for this event." : "Ya tienes una reserva para este evento.")
-              : res.error || (lang === "en" ? "Booking failed." : "Error en la reserva.")
+            res.error || (lang === "en" ? "Booking failed." : "Error en la reserva.")
           );
         }
       }
