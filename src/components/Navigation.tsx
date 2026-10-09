@@ -145,20 +145,28 @@ export function Navigation() {
 
   return (
     <>
-      <header
-        ref={stickyContainerRef}
-        className="site-header-container"
+      <div
+        data-autohide=""
         style={{
           position: "sticky",
           top: 0,
           zIndex: 1000,
-          padding: "16px clamp(20px, 5vw, 64px)",
-          borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
-          backgroundColor: isEventsPage ? "var(--color-bg-events, #fefdf9)" : "var(--color-bg, #fdf8f2)",
-          boxShadow: scrolled ? "0 4px 20px rgba(57, 41, 42, 0.08)" : "none",
-          transition: "box-shadow 0.2s ease, background-color 0.2s ease",
+          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+          transition: "transform 0.28s ease",
+          willChange: "transform",
         }}
       >
+        <header
+          ref={stickyContainerRef}
+          className="site-header-container"
+          style={{
+            padding: "16px clamp(20px, 5vw, 64px)",
+            borderBottom: "1px solid rgba(57, 41, 42, 0.16)",
+            backgroundColor: isEventsPage ? "var(--color-bg-events, #fefdf9)" : "var(--color-bg, #fdf8f2)",
+            boxShadow: scrolled ? "0 4px 20px rgba(57, 41, 42, 0.08)" : "none",
+            transition: "box-shadow 0.2s ease, background-color 0.2s ease",
+          }}
+        >
         <div
           style={{
             maxWidth: "1160px",
@@ -403,6 +411,7 @@ export function Navigation() {
 
       {/* Public pages: countdown banner. Admin pages: pre-membership mode banner. */}
       {isAdminRoute ? <AdminModeBanner /> : <StickyCountdownBanner />}
+      </div>
 
       {/* Mobile Drawer Overlay: Below Banner, matching client design */}
       {mobileMenuOpen && (
