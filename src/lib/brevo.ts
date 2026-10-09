@@ -1453,6 +1453,65 @@ export async function sendAccountDeletionAlertEmail(params: {
   });
 }
 
+export async function sendAccountDeletionConfirmationEmail(params: {
+  personId: string;
+  email: string;
+  firstName: string;
+  releasedBookingTitles?: string[];
+  remainingCredits?: number;
+  hadActiveSub?: boolean;
+}) {
+  const firstName = params.firstName || "there";
+  const now = new Date();
+  const deletedDate = now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const deletedTime = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+  const bulletLines: string[] = [];
+  if (params.releasedBookingTitles && params.releasedBookingTitles.length > 0) {
+    const titles = params.releasedBookingTitles.join(", ");
+    bulletLines.push(`&bull; Your places on ${titles} were released for other mothers.<br>`);
+  }
+  if (params.remainingCredits && params.remainingCredits > 0) {
+    bulletLines.push(`&bull; Your ${params.remainingCredits} remaining credit${params.remainingCredits > 1 ? "s were" : " was"} removed.<br>`);
+  }
+  if (params.hadActiveSub) {
+    bulletLines.push(`&bull; Your membership was cancelled. You won't be charged again.<br>`);
+  }
+  bulletLines.push(`&bull; Your name, email, phone and profile answers are gone.<br>`);
+  bulletLines.push(`&bull; Your posts in La Gazette stay, signed \u201cA mother in Barcelona\u201d.<br>`);
+  bulletLines.push(`&bull; Payment records are kept for tax, as the law requires.`);
+
+  const htmlContent = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8efe2;">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#fffdfa;border:1px solid #e3d6c9;border-radius:8px;">
+          <tr><td style="padding:28px 36px 8px;font-family:Georgia,'Times New Roman',serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;">The Mothers</td></tr>
+          <tr><td style="padding:8px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;color:#39292a;">Your account is deleted, ${firstName}</td></tr>
+          <tr><td style="padding:16px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#5a4a4b;">You deleted your The Mothers account on ${deletedDate} at ${deletedTime}. Here is what that means:</td></tr>
+          <tr><td style="padding:14px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.7;color:#5a4a4b;">
+            ${bulletLines.join("\n            ")}
+          </td></tr>
+          <tr><td style="padding:18px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#5a4a4b;">You\u2019re always welcome back \u2014 just open a new account.</td></tr>
+          <tr><td style="padding:22px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.6;color:#5a4a4b;">Didn\u2019t do this? Write to us straight away.</td></tr>
+          <tr><td style="padding:14px 36px 0;"><a href="mailto:hello@themothers.cc" style="display:inline-block;background:#7b1f2c;color:#ffffff;text-decoration:none;font-family:Georgia,serif;font-size:16px;padding:13px 26px;border-radius:4px;">Write to us</a></td></tr>
+          <tr><td style="padding:28px 36px 30px;font-family:Georgia,serif;font-size:13px;line-height:1.6;color:#8a7b7c;">Sent once, when a mother deletes her account from My Account, to the email she had just before it was removed. The Mothers &middot; Barcelona &middot; <a href="mailto:hello@themothers.cc" style="color:#7b1f2c;">hello@themothers.cc</a></td></tr>
+        </table>
+      </td></tr>
+    </table>
+  `;
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "account_deleted_confirmation",
+    dedupeKey: `account_deleted_${params.personId}`,
+    subject: `Your The Mothers account is deleted`,
+    htmlContent,
+    isTransactional: true,
+  });
+}
+
 export async function sendVerificationCodeEmail(params: {
   email: string;
   firstName: string;

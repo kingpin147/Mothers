@@ -677,8 +677,8 @@ export async function releaseBooking(bookingId: string) {
 // ─── 4. BUY EXTRA CREDITS (FOR ALL ACCOUNT HOLDERS §20.3) ────────────────────
 
 export async function buyExtraCredits(amount: number, eventId?: string) {
-  if (!Number.isInteger(amount) || amount < 5 || amount > 100) {
-    return { success: false, error: "INVALID_AMOUNT_MIN_5" };
+  if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
+    return { success: false, error: "INVALID_AMOUNT_MIN_1" };
   }
 
   const session = await auth();

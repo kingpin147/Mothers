@@ -673,9 +673,11 @@ function AccountPageContent() {
               ) : (
                 <div style={{ padding: "32px 20px", backgroundColor: "#faf7f2", borderRadius: "6px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
                   <div style={{ color: "rgba(57,41,42,0.6)", fontSize: "14px", fontStyle: "italic" }}>
-                    {lang === "en"
-                      ? "No upcoming bookings. Browse the calendar and reserve your next spot."
-                      : "Sin próximas reservas. Explora el calendario y reserva tu siguiente plaza."}
+                    {lang === "fr"
+                      ? "Aucune réservation à venir. Parcourez le calendrier et réservez votre prochaine place."
+                      : lang === "es"
+                      ? "Sin próximas reservas. Explora el calendario y reserva tu siguiente plaza."
+                      : "No upcoming bookings. Browse the calendar and reserve your next spot."}
                   </div>
                   <Link
                     href="/events"
@@ -690,16 +692,61 @@ function AccountPageContent() {
                       textDecoration: "none",
                     }}
                   >
-                    {lang === "en" ? "Explore events calendar" : "Explorar calendario de eventos"}
+                    {lang === "fr" ? "Explorer le calendrier des événements" : lang === "es" ? "Explorar calendario de eventos" : "Explore events calendar"}
                   </Link>
                 </div>
               )}
 
-              <p style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.55)", lineHeight: 1.55, marginTop: "24px", marginBottom: 0 }}>
-                {lang === "en"
-                  ? "Meeting points are shared with booked members only — please keep them inside the club. Cancel more than 24 hours ahead and your credits come straight back. Inside 24 hours, they remain only if someone on the waitlist takes your place — and we've all been in those last-minute fix moments. Reserved credits are held for events until filling. They return to your balance if the occasion can't go ahead."
-                  : "Los puntos de encuentro se comparten solo con las socias reservadas; por favor, mantenlos dentro del club. Si cancelas con más de 24 horas de antelación, tus créditos vuelven de inmediato. Dentro de las 24 horas, solo se devuelven si alguien de la lista de espera ocupa tu plaza. Los créditos reservados se retienen hasta completarse el evento y regresan a tu saldo si la ocasión no puede llevarse a cabo."}
-              </p>
+              <div style={{ display: "flex", gap: "12px", marginTop: "20px", flexWrap: "wrap" }}>
+                {[
+                  {
+                    icon: "📍",
+                    label: lang === "fr" ? "Point de rendez-vous" : lang === "es" ? "Punto de encuentro" : "Meeting point",
+                    body: lang === "fr"
+                      ? "Affiché une fois votre réservation confirmée. Gardez-le à l'intérieur du club."
+                      : lang === "es"
+                      ? "Se muestra cuando reservas. Por favor, mantenlo dentro del club."
+                      : "Shown once you are booked. Please keep it inside the club.",
+                  },
+                  {
+                    icon: "⏱",
+                    label: lang === "fr" ? "Annuler à temps" : lang === "es" ? "Cancela a tiempo" : "Cancel in time",
+                    body: lang === "fr"
+                      ? "Dans le délai de l'événement, affiché sous chaque réservation — vos crédits reviennent directement."
+                      : lang === "es"
+                      ? "Dentro del plazo del evento, visible bajo cada reserva — tus créditos vuelven de inmediato."
+                      : "Within the event's window, shown under each booking — your credits come straight back.",
+                  },
+                  {
+                    icon: "🔄",
+                    label: lang === "fr" ? "Trop tard ?" : lang === "es" ? "¿Demasiado tarde?" : "Too late?",
+                    body: lang === "fr"
+                      ? "Vos crédits reviennent uniquement si quelqu'un prend votre place."
+                      : lang === "es"
+                      ? "Tus créditos vuelven solo si alguien ocupa tu plaza."
+                      : "Your credits come back only if someone takes your place.",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      flex: "1 1 160px",
+                      border: "1px solid rgba(57, 41, 42, 0.12)",
+                      borderRadius: "8px",
+                      padding: "14px 16px",
+                      backgroundColor: "#fffdfa",
+                    }}
+                  >
+                    <div style={{ fontSize: "15px", marginBottom: "6px" }}>{item.icon}</div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "4px", fontFamily: "'Lora', Georgia, serif" }}>
+                      {item.label}
+                    </div>
+                    <div style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.65)", lineHeight: 1.55 }}>
+                      {item.body}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Quick Community / Forum Links: Say hello in La Gazette · Saved posts (N) · Find your next event */}

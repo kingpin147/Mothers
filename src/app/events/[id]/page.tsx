@@ -84,13 +84,13 @@ export default function EventDetailPage() {
   }, [loadEvent]);
 
   useEffect(() => {
-    if (session?.user && eventId) {
+    if (session?.user && ev?.id) {
       getAccountData().then((res) => {
         if (res.success) {
           setMemberCredits(res.credits?.available ?? 0);
-          const booked = res.bookings?.some((b: any) => b.eventId === eventId && b.status !== "released");
+          const booked = res.bookings?.some((b: any) => b.eventId === ev.id && b.status !== "released");
           setIsAlreadyBooked(!!booked);
-          const waitlisted = res.bookings?.find((b: any) => b.eventId === eventId && b.status === "waitlisted");
+          const waitlisted = res.bookings?.find((b: any) => b.eventId === ev.id && b.status === "waitlisted");
           if (waitlisted) {
             setIsAlreadyWaitlisted(true);
             setUserWaitlistPos(waitlisted.waitlistPosition || 1);
@@ -98,7 +98,7 @@ export default function EventDetailPage() {
         }
       });
     }
-  }, [session, eventId]);
+  }, [session, ev?.id]);
 
   const isMember = (session?.user as any)?.role === "member" && !!(session?.user as any)?.memberId;
   const currentCreditBalance = memberCredits ?? 0;
@@ -438,7 +438,7 @@ export default function EventDetailPage() {
                   return lang === "en" ? `Free cancellation up to ${win} hours before.` : `Cancelación gratuita hasta ${win} horas antes.`;
                 })()}
               </p>
-              {ev.minToConfirm && ev.minToConfirm > 0 && (
+              {(ev.minToConfirm ?? 0) > 0 && (
                 <p style={{ margin: 0 }}>
                   {lang === "en"
                     ? `This event gathers ${ev.minToConfirm} mothers before it is confirmed. Credits are only taken if it goes ahead.`
@@ -446,13 +446,17 @@ export default function EventDetailPage() {
                 </p>
               )}
               <p style={{ margin: 0 }}>
-                {isLive
+                {ev.membersOnly
                   ? (lang === "en"
-                    ? "This event is open to members and non-members. You book for yourself, and the place is yours the moment it is confirmed."
-                    : "Este evento está abierto a socias y no socias. Reservas para ti y la plaza es tuya en cuanto se confirma.")
-                  : (lang === "en"
-                    ? "Before membership launch, this event is open to every mother, member or not. You book for yourself, and the place is yours the moment it is confirmed."
-                    : "Antes del lanzamiento de la membresía, este evento está abierto a todas las madres, socias o no. Reservas para ti y la plaza es tuya en cuanto se confirma.")}
+                    ? "This event is exclusively for members. You book for yourself, and the place is yours the moment it is confirmed."
+                    : "Este evento es exclusivo para socias. Reservas para ti y la plaza es tuya en cuanto se confirma.")
+                  : isLive
+                    ? (lang === "en"
+                      ? "This event is open to members and non-members. You book for yourself, and the place is yours the moment it is confirmed."
+                      : "Este evento está abierto a socias y no socias. Reservas para ti y la plaza es tuya en cuanto se confirma.")
+                    : (lang === "en"
+                      ? "Before membership launch, this event is open to every mother, member or not. You book for yourself, and the place is yours the moment it is confirmed."
+                      : "Antes del lanzamiento de la membresía, este evento está abierto a todas las madres, socias o no. Reservas para ti y la plaza es tuya en cuanto se confirma.")}
               </p>
             </div>
           </div>

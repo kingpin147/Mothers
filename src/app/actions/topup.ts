@@ -18,8 +18,8 @@ export async function createTopUpCheckoutSession(data: {
   }
 
   const creditAmount = Math.floor(Number(data.amount));
-  if (isNaN(creditAmount) || creditAmount < 5 || creditAmount > 100) {
-    return { success: false, error: "INVALID_AMOUNT_MIN_5" };
+  if (isNaN(creditAmount) || creditAmount < 1 || creditAmount > 100) {
+    return { success: false, error: "INVALID_AMOUNT_MIN_1" };
   }
 
   const personId = (session.user as any).personId || session.user.id;

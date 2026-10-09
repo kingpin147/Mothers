@@ -890,6 +890,19 @@ export async function deleteMyAccountGDPR() {
     // 3b. Remove saved posts entries (§C-23, GDPR)
     await db.delete(circleSavedPost).where(eq(circleSavedPost.personId, personId));
 
+    // 3c. Fetch and zero out remaining credits (no refund)
+    const creditBatches = await db
+      .select({ id: creditBatch.id, remaining: creditBatch.remaining })
+      .from(creditBatch)
+      .where(and(eq(creditBatch.personId, personId), sql`${creditBatch.remaining} > 0`));
+    const totalRemainingCredits = creditBatches.reduce((sum, b) => sum + (b.remaining || 0), 0);
+    if (creditBatches.length > 0) {
+      await db
+        .update(creditBatch)
+        .set({ remaining: 0, updatedAt: new Date() })
+        .where(and(eq(creditBatch.personId, personId), sql`${creditBatch.remaining} > 0`));
+    }
+
     // 4. Anonymize circle posts and delete attached photos
     await db
       .update(circlePost)
@@ -911,7 +924,22 @@ export async function deleteMyAccountGDPR() {
       })
       .where(eq(circleReply.personId, personId));
 
-    // 6. Scrub personal details & email per GDPR
+    // 6a. Send confirmation email to her BEFORE her email is scrubbed
+    try {
+      const { sendAccountDeletionConfirmationEmail } = await import("@/lib/brevo");
+      await sendAccountDeletionConfirmationEmail({
+        personId,
+        email: originalEmail,
+        firstName: personRecord?.firstName || "there",
+        releasedBookingTitles: futureBookings.map((fb) => fb.eventTitle || "Event"),
+        remainingCredits: totalRemainingCredits,
+        hadActiveSub,
+      });
+    } catch (emailErr) {
+      console.warn("[GDPR Delete] Confirmation email to member warning:", emailErr);
+    }
+
+    // 6b. Scrub personal details & email per GDPR
     const scrubbedEmail = `deleted-${personId.slice(0, 8)}@invalid.the-mothers.internal`;
     await db
       .update(person)

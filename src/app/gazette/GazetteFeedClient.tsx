@@ -892,8 +892,8 @@ export function GazetteFeedClient({
                 </svg>
                 <span>
                   {savedCount > 0
-                    ? (lang === "fr" ? `Enregistrés · ${savedCount}` : lang === "es" ? `Guardados · ${savedCount}` : `Saved · ${savedCount}`)
-                    : (lang === "fr" ? "Enregistrés" : lang === "es" ? "Guardados" : "Saved")}
+                    ? (lang === "fr" ? `Publications enregistrées · ${savedCount}` : lang === "es" ? `Publicaciones guardadas · ${savedCount}` : `Saved publications · ${savedCount}`)
+                    : (lang === "fr" ? "Publications enregistrées" : lang === "es" ? "Publicaciones guardadas" : "Saved publications")}
                 </span>
               </button>
             )}
@@ -976,37 +976,18 @@ export function GazetteFeedClient({
                     border: "1px solid rgba(57, 41, 42, 0.16)",
                     borderRadius: "8px",
                     backgroundColor: "#ffffff",
-                    padding: "48px 24px",
-                    textAlign: "center",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "12px",
+                    padding: "24px",
+                    color: "rgba(57, 41, 42, 0.78)",
                   }}
                 >
-                  <div
-                    style={{
-                      width: "44px",
-                      height: "44px",
-                      borderRadius: "50%",
-                      backgroundColor: "rgba(123, 31, 44, 0.08)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#7b1f2c",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="20" height="20">
-                      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-                    </svg>
-                  </div>
-                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.78)", margin: 0, maxWidth: "48ch" }}>
-                    {lang === "fr"
-                      ? "Rien d'enregistré pour le moment. Appuyez sur Enregistrer sur n'importe quelle publication — une recommandation, un conseil, un produit — et retrouvez-la ici dès que vous en avez besoin."
-                      : lang === "es"
-                      ? "Nada guardado todavía. Toca Guardar en cualquier publicación — una recomendación, un consejo, un producto — y encuéntrala aquí cuando la necesites."
-                      : "Nothing saved yet. Tap Save on any post — a recommendation, a tip, a product — and find it here whenever you need it."}
+                  <p style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "15px", lineHeight: 1.6, margin: 0 }}>
+                    {lang === "fr" ? (
+                      <>Rien d'enregistré pour le moment. Appuyez sur <strong>Enregistrer</strong> sur n'importe quelle publication — une recommandation, un conseil, un produit — et retrouvez-la ici dès que vous en avez besoin.</>
+                    ) : lang === "es" ? (
+                      <>Nada guardado todavía. Toca <strong>Guardar</strong> en cualquier publicación — una recomendación, un consejo, un producto — y encuéntrala aquí cuando la necesites.</>
+                    ) : (
+                      <>Nothing saved yet. Tap <strong>Save</strong> on any post — a recommendation, a tip, a product — and find it here whenever you need it.</>
+                    )}
                   </p>
                 </div>
               ) : (

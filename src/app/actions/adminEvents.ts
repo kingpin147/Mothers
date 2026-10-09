@@ -171,6 +171,7 @@ export async function createAdminEvent(data: {
   capacityMember: number;
   minToConfirm?: number;
   isSignature?: boolean;
+  membersOnly?: boolean;
   status?: "draft" | "published_pending";
   languages?: string[];
   decisionAt?: Date;
@@ -246,6 +247,7 @@ export async function createAdminEvent(data: {
         capacityMember: data.capacityMember,
         minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 0,
         isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
+        membersOnly: !!data.membersOnly,
         isFreeWalk: memberCost === 0,
         needsHost: !!data.needsHost,
         nonMemberOpensAt: data.nonMemberOpensAt === undefined ? null : data.nonMemberOpensAt,
@@ -316,6 +318,7 @@ export async function updateAdminEvent(eventId: string, data: {
   capacityMember?: number;
   minToConfirm?: number;
   isSignature?: boolean;
+  membersOnly?: boolean;
   languages?: string[];
   targetStages?: string[];
   decisionAt?: Date | null;
@@ -399,6 +402,7 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.nonMemberOpensAt !== undefined && { nonMemberOpensAt: data.nonMemberOpensAt }),
       ...(data.imageId !== undefined && { imageId: data.imageId }),
       ...(isSig !== undefined && { isSignature: isSig }),
+      ...(data.membersOnly !== undefined && { membersOnly: data.membersOnly }),
       ...((data.partnerId !== undefined || data.host !== undefined) && { partnerId: data.partnerId || data.host || null }),
       ...(data.hostPersonId !== undefined && { hostPersonId: data.hostPersonId || null }),
       ...(data.languages !== undefined && { languages: data.languages }),

@@ -267,6 +267,7 @@ export const event = pgTable(
     guestPriceCents: integer("guest_price_cents").default(3500).notNull(),
     childcare: text("childcare").default("child_inclusive").notNull(), // 'child_inclusive', 'childcare_on_site', 'adults_only'
     isSignature: boolean("is_signature").default(false).notNull(),
+    membersOnly: boolean("members_only").default(false).notNull(),
     isFreeWalk: boolean("is_free_walk").default(false).notNull(),
     needsHost: boolean("needs_host").default(false).notNull(),
     hostPersonId: text("host_person_id").references(() => person.id),

@@ -59,6 +59,7 @@ export interface PublicEvent {
   isFreeWalk?: boolean | null;
   isOnline?: boolean | null;
   isSignature?: boolean | null;
+  membersOnly?: boolean | null;
   audienceType?: string | null;
   languages?: string[] | null;
   capacityMember?: number | null;
@@ -1327,7 +1328,7 @@ function EventCard({
                 {lang === "en" ? "Cancelled" : "Cancelado"}
               </span>
             )}
-            {ev.isSignature && !isCancelled && (
+            {ev.membersOnly && !isCancelled && (
               <span
                 style={{
                   fontSize: "11px",
