@@ -108,7 +108,7 @@ export default function EventDetailPage() {
     if (typeof window !== "undefined" && ev && status !== "loading") {
       const query = new URLSearchParams(window.location.search);
       const isBookingSuccess = query.get("booking_success") === "true";
-      const isTopUpSuccess = query.get("topup_success") === "true";
+      const isTopUpSuccess = query.get("topup_success") === "trheader ue";
       const isActionBook = query.get("action") === "book";
 
       if (isBookingSuccess || (isTopUpSuccess && isAlreadyBooked)) {
