@@ -22,6 +22,7 @@ import {
   getLanguageLabel,
   EventCardImage,
 } from "@/app/events/EventsCalendar";
+import { CancelBookingModal } from "@/components/CancelBookingModal";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -46,6 +47,8 @@ export default function EventDetailPage() {
   const [isAlreadyBooked, setIsAlreadyBooked] = useState(false);
   const [userBookingId, setUserBookingId] = useState<string | null>(null);
   const [cancellingBooking, setCancellingBooking] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelToast, setCancelToast] = useState<{ type: 'refunded' | 'lost', message: string, title: string } | null>(null);
   const [isAlreadyWaitlisted, setIsAlreadyWaitlisted] = useState(false);
   const [userWaitlistPos, setUserWaitlistPos] = useState<number | null>(null);
   const [isLive, setIsLive] = useState(false);
@@ -103,14 +106,32 @@ export default function EventDetailPage() {
     }
   }, [session, ev?.id]);
 
+  const isMember = (session?.user as any)?.role === "member" && !!(session?.user as any)?.memberId;
+
   const handleReleaseBooking = async () => {
-    if (!userBookingId) return;
+    if (!userBookingId || !ev) return;
     setCancellingBooking(true);
     try {
       const res = await releaseBooking(userBookingId);
       if (res.success) {
         setIsAlreadyBooked(false);
         setUserBookingId(null);
+        setShowCancelModal(false);
+        
+        const isFree = ev.creditCost === 0 || (ev.isFreeWalk && (isMember || !ev.isLive));
+        const viewerCost = isFree ? 0 : (ev.isLive ? (isMember ? (ev.memberCredits ?? ev.creditCost ?? 0) : (ev.nonMemberCredits ?? ev.creditCost ?? 0)) : (ev.creditCost ?? 0));
+        
+        const win = ev.cancellationWindowHours ?? 24;
+        const isInsideWindow = new Date() > new Date(new Date(ev.startsAt).getTime() - win * 3600000);
+        
+        if (isFree || viewerCost === 0) {
+           setCancelToast({ type: 'refunded', title: lang === "en" ? "Your place is cancelled" : "Tu plaza está cancelada", message: lang === "en" ? "Nothing to refund." : "Nada que reembolsar." });
+        } else if (isInsideWindow) {
+           setCancelToast({ type: 'lost', title: lang === "en" ? "Your place is cancelled" : "Tu plaza está cancelada", message: lang === "en" ? `Your ${viewerCost} credits were not refunded because you cancelled inside the ${win}-hour window. If someone takes your place, we will add them back and email you.` : `Tus ${viewerCost} créditos no fueron reembolsados porque cancelaste dentro del plazo de ${win} horas. Si alguien ocupa tu lugar, te los devolveremos y te enviaremos un correo.` });
+        } else {
+           setCancelToast({ type: 'refunded', title: lang === "en" ? "Your place is cancelled" : "Tu plaza está cancelada", message: lang === "en" ? `${viewerCost} credits are back in your wallet.` : `${viewerCost} créditos han vuelto a tu monedero.` });
+        }
+        
         loadEvent();
         getAccountData().then((r) => {
           if (r.success) setMemberCredits(r.credits?.available ?? 0);
@@ -123,7 +144,6 @@ export default function EventDetailPage() {
     }
   };
 
-  const isMember = (session?.user as any)?.role === "member" && !!(session?.user as any)?.memberId;
   const currentCreditBalance = memberCredits ?? 0;
 
   // Handle URL intent triggers
@@ -267,6 +287,15 @@ export default function EventDetailPage() {
 
   return (
     <div style={{ backgroundColor: "#fdf8f2", minHeight: "100vh", fontFamily: "'Lora', Georgia, serif", color: "#39292a" }}>
+      {cancelToast && (
+        <div style={{ maxWidth: "1160px", margin: "24px auto 0", padding: "0 clamp(20px, 5vw, 64px)" }}>
+          <div style={{ padding: "16px", backgroundColor: cancelToast.type === 'refunded' ? "#e8f1e9" : "#fbf1f1", color: "#39292a", borderRadius: "8px", position: "relative" }}>
+            <button onClick={() => setCancelToast(null)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", cursor: "pointer", color: "rgba(57,41,42,0.6)" }}>✕</button>
+            <div style={{ fontWeight: 600, marginBottom: "4px" }}>{cancelToast.title}</div>
+            <div style={{ fontSize: "14.5px" }}>{cancelToast.message}</div>
+          </div>
+        </div>
+      )}
       {/* ─── BREADCRUMB / BACK LINK ─── */}
       <section style={{ maxWidth: "1160px", margin: "0 auto", padding: "clamp(26px, 4vw, 44px) clamp(20px, 5vw, 64px) 0" }}>
         <Link
@@ -703,7 +732,7 @@ export default function EventDetailPage() {
               <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: "1px solid rgba(57, 41, 42, 0.12)" }}>
                 <button
                   type="button"
-                  onClick={handleReleaseBooking}
+                  onClick={() => setShowCancelModal(true)}
                   disabled={cancellingBooking || !userBookingId}
                   style={{
                     width: "100%",
@@ -851,6 +880,16 @@ export default function EventDetailPage() {
                 ? (lang === "en"
                     ? "You need an active membership to reserve member-only gatherings and access credit top-ups."
                     : "Necesitas una membresía activa para reservar encuentros exclusivos de socias y recargar créditos.")
+                : bookingError === "PERSON_NOT_FOUND"
+                ? (lang === "en" ? "Your account profile could not be found (Admins cannot book events). Please contact support." : "No se encontró tu perfil de cuenta (Los administradores no pueden reservar eventos). Por favor, contacta con soporte.")
+                : bookingError === "ACCOUNT_SUSPENDED"
+                ? (lang === "en" ? "Your account is currently suspended." : "Tu cuenta está suspendida actualmente.")
+                : bookingError === "EVENT_FULL"
+                ? (lang === "en" ? "This event is fully booked." : "Este evento está completo.")
+                : bookingError === "MEMBERS_ONLY_WINDOW"
+                ? (lang === "en" ? "This event is currently only open to members." : "Este evento actualmente solo está abierto para socias.")
+                : bookingError === "NOT_OPEN_YET"
+                ? (lang === "en" ? "Booking is not open yet." : "Las reservas aún no están abiertas.")
                 : bookingError}
             </p>
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>

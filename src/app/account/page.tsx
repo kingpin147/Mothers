@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Locale } from "@/lib/i18n";
 import { getAccountData, pauseMembership, resumeMembership, updatePersonDetails, cancelMembership, reactivateMembership, getStripePortalUrl, deleteMyAccountGDPR, leaveWaitlist } from "@/app/actions/memberAccount";
 import { buyExtraCredits, releaseBooking } from "@/app/actions/booking";
+import { CancelBookingModal } from "@/components/CancelBookingModal";
 import { getUpcomingEventsNeedingHost, checkHostEligibility, applyToHostEvent, withdrawHostRequest } from "@/app/actions/host";
 import { getUserSavedPostsCount } from "@/app/actions/gazette";
 import { formatEventDate } from "@/app/events/EventsCalendar";
@@ -130,6 +131,8 @@ function AccountPageContent() {
 
   // Cancel reservation state
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+  const [cancelModalBooking, setCancelModalBooking] = useState<any | null>(null);
+  const [cancelToast, setCancelToast] = useState<{ type: 'refunded' | 'lost', message: string, title: string } | null>(null);
   const [leavingWaitlistId, setLeavingWaitlistId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -427,17 +430,26 @@ function AccountPageContent() {
     }
   };
 
-  const handleCancelBooking = async (bookingId: string) => {
-    const promptMsg = lang === "en"
-      ? "Are you sure you want to cancel this reservation? If you cancel more than 24 hours ahead, your credits return immediately."
-      : "¿Estás segura de que quieres cancelar esta reserva? Si cancelas con más de 24 horas de antelación, tus créditos vuelven de inmediato.";
-    
-    if (!window.confirm(promptMsg)) return;
-
-    setCancellingBookingId(bookingId);
+  const handleCancelBookingConfirm = async () => {
+    if (!cancelModalBooking) return;
+    setCancellingBookingId(cancelModalBooking.id);
     try {
-      const res = await releaseBooking(bookingId);
+      const res = await releaseBooking(cancelModalBooking.id);
       if (res.success) {
+        setCancelModalBooking(null);
+        const viewerCost = cancelModalBooking.creditsCharged ?? 0;
+        const isFree = viewerCost === 0;
+        const win = cancelModalBooking.cancellationWindowHours ?? 24;
+        const isInsideWindow = new Date() > new Date(new Date(cancelModalBooking.eventDate).getTime() - win * 3600000);
+        
+        if (isFree || viewerCost === 0) {
+           setCancelToast({ type: 'refunded', title: lang === "en" ? "Your place is cancelled" : "Tu plaza está cancelada", message: lang === "en" ? "Nothing to refund." : "Nada que reembolsar." });
+        } else if (isInsideWindow) {
+           setCancelToast({ type: 'lost', title: lang === "en" ? "Your place is cancelled" : "Tu plaza está cancelada", message: lang === "en" ? `Your ${viewerCost} credits were not refunded because you cancelled inside the ${win}-hour window. If someone takes your place, we will add them back and email you.` : `Tus ${viewerCost} créditos no fueron reembolsados porque cancelaste dentro del plazo de ${win} horas. Si alguien ocupa tu lugar, te los devolveremos y te enviaremos un correo.` });
+        } else {
+           setCancelToast({ type: 'refunded', title: lang === "en" ? "Your place is cancelled" : "Tu plaza está cancelada", message: lang === "en" ? `${viewerCost} credits are back in your wallet.` : `${viewerCost} créditos han vuelto a tu monedero.` });
+        }
+
         const updated = await getAccountData();
         if (updated.success) {
           setAccountData(updated);
@@ -470,7 +482,27 @@ function AccountPageContent() {
 
   return (
     <div style={{ backgroundColor: "#fdf8f2", color: "#39292a", minHeight: "100vh", fontFamily: "'Lora', Georgia, serif", padding: "clamp(40px, 5vw, 64px) clamp(24px, 5vw, 64px) 88px" }}>
+      {cancelModalBooking && (
+        <CancelBookingModal
+          isOpen={!!cancelModalBooking}
+          onClose={() => setCancelModalBooking(null)}
+          onConfirm={handleCancelBookingConfirm}
+          eventTitle={cancelModalBooking.eventTitle}
+          eventStartsAt={cancelModalBooking.eventDate}
+          cancellationWindowHours={cancelModalBooking.cancellationWindowHours ?? 24}
+          creditsCharged={cancelModalBooking.creditsCharged ?? 0}
+          isCancelling={cancellingBookingId === cancelModalBooking.id}
+        />
+      )}
+      
       <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+        {cancelToast && (
+          <div style={{ padding: "16px", backgroundColor: cancelToast.type === 'refunded' ? "#e8f1e9" : "#fbf1f1", color: "#39292a", marginBottom: "32px", borderRadius: "8px", position: "relative" }}>
+            <button onClick={() => setCancelToast(null)} style={{ position: "absolute", top: "16px", right: "16px", background: "none", border: "none", cursor: "pointer", color: "rgba(57,41,42,0.6)" }}>✕</button>
+            <div style={{ fontWeight: 600, marginBottom: "4px" }}>{cancelToast.title}</div>
+            <div style={{ fontSize: "14.5px" }}>{cancelToast.message}</div>
+          </div>
+        )}
         
         {/* Header Greeting */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "28px" }}>
@@ -648,7 +680,7 @@ function AccountPageContent() {
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
                           <button
                             type="button"
-                            onClick={() => handleCancelBooking(b.id)}
+                            onClick={() => setCancelModalBooking(b)}
                             disabled={cancellingBookingId === b.id}
                             style={{
                               border: "1px solid rgba(57, 41, 42, 0.28)",

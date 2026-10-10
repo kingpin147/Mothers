@@ -130,6 +130,7 @@ export async function getAccountData(targetMemberId?: string) {
           eventStatus: event.status,
           minToConfirm: event.minToConfirm,
           isSignature: event.isSignature,
+          cancellationWindowHours: event.cancellationWindowHours,
           categoryName: eventCategory.name,
           categorySlug: eventCategory.slug,
           creditsCharged: booking.creditsCharged,

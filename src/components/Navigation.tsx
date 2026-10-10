@@ -156,14 +156,10 @@ export function Navigation() {
   return (
     <>
       <div
-        data-autohide=""
         style={{
           position: "sticky",
           top: 0,
           zIndex: 1000,
-          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-          transition: "transform 0.28s ease",
-          willChange: "transform",
         }}
       >
         <header
@@ -418,10 +414,10 @@ export function Navigation() {
           </button>
         </div>
       </header>
+      </div>
 
       {/* Public pages: countdown banner. Admin pages: pre-membership mode banner. */}
       {isAdminRoute ? <AdminModeBanner /> : <StickyCountdownBanner />}
-      </div>
 
       {/* Mobile Drawer Overlay: Below Banner, matching client design */}
       {mobileMenuOpen && (

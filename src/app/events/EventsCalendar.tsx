@@ -450,8 +450,8 @@ export function SignedOutMemberModal({
 
   const formattedDate = formatEventDate(ev.startsAt, lang);
   const targetCallback = returnUrl || (typeof window !== "undefined"
-    ? (window.location.pathname.startsWith("/events/") ? `${window.location.pathname}?action=book` : `/events?book_event=${ev.id}`)
-    : `/events?book_event=${ev.id}`);
+    ? (window.location.pathname.startsWith("/events/") ? window.location.pathname : `/events`)
+    : `/events`);
 
   return (
     <div
@@ -1741,21 +1741,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     setCurrentCreditBalance(creditBalance);
   }, [creditBalance]);
 
-  // Intent preservation for returning signed-in members (§3 State 13)
-  useEffect(() => {
-    if (typeof window !== "undefined" && session?.user && eventsList.length > 0) {
-      const query = new URLSearchParams(window.location.search);
-      const bookEventId = query.get("book_event");
-      if (bookEventId) {
-        const targetEv = eventsList.find((e) => e.id === bookEventId);
-        if (targetEv && !targetEv.userStatus?.isBooked) {
-          const newUrl = window.location.pathname;
-          window.history.replaceState({}, document.title, newUrl);
-          handleMemberBook(targetEv);
-        }
-      }
-    }
-  }, [session, eventsList]);
+
 
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [activeDateFilter, setActiveDateFilter] = useState<string>("all");
@@ -3048,6 +3034,16 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                 ? (lang === "en"
                     ? "You need an active membership to reserve member-only gatherings and access credit top-ups."
                     : "Necesitas una membresía activa para reservar encuentros exclusivos de socias y recargar créditos.")
+                : bookingError === "PERSON_NOT_FOUND"
+                ? (lang === "en" ? "Your account profile could not be found (Admins cannot book events). Please contact support." : "No se encontró tu perfil de cuenta (Los administradores no pueden reservar eventos). Por favor, contacta con soporte.")
+                : bookingError === "ACCOUNT_SUSPENDED"
+                ? (lang === "en" ? "Your account is currently suspended." : "Tu cuenta está suspendida actualmente.")
+                : bookingError === "EVENT_FULL"
+                ? (lang === "en" ? "This event is fully booked." : "Este evento está completo.")
+                : bookingError === "MEMBERS_ONLY_WINDOW"
+                ? (lang === "en" ? "This event is currently only open to members." : "Este evento actualmente solo está abierto para socias.")
+                : bookingError === "NOT_OPEN_YET"
+                ? (lang === "en" ? "Booking is not open yet." : "Las reservas aún no están abiertas.")
                 : bookingError}
             </p>
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
