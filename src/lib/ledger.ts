@@ -89,7 +89,9 @@ export async function grantCreditsToPerson(
   amount: number,
   source: "topup" | "subscription" | "godmother" | "host_reward" | "admin_adjustment" | "refund",
   validityMonths: number | null = null,
-  txOrDb: any = db
+  txOrDb: any = db,
+  stripeInvoiceId: string | null = null,
+  stripePaymentIntentId: string | null = null
 ): Promise<{ batchId: string; amount: number; expiresAt: Date }> {
   if (amount <= 0) throw new Error("GRANT_AMOUNT_MUST_BE_POSITIVE");
 
@@ -105,6 +107,8 @@ export async function grantCreditsToPerson(
       remaining: amount,
       source,
       expiresAt,
+      stripeInvoiceId,
+      stripePaymentIntentId,
     })
     .returning();
 

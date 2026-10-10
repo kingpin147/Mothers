@@ -125,10 +125,10 @@ export async function POST(req: Request) {
         ? await db.query.member.findFirst({ where: eq(member.id, memberId) })
         : await db.query.member.findFirst({ where: eq(member.personId, personId) });
 
-      // Check already active member (F-08)
-      if (memberRecord?.status === "active" && memberRecord?.stripeSubscriptionId) {
+      // Check already active or past_due member (P2-16)
+      if (memberRecord?.stripeSubscriptionId && memberRecord?.status !== "lapsed" && memberRecord?.status !== "applicant") {
         return NextResponse.json(
-          { error: "You are already an active member." },
+          { error: "You already have an active or past-due subscription. Please go to Manage Billing to update your card." },
           { status: 400 }
         );
       }
@@ -177,8 +177,22 @@ export async function POST(req: Request) {
       const creditDiscountCents = Math.min(walletBalance * creditRate, unitAmount);
       const creditsToConsume = Math.floor(creditDiscountCents / creditRate);
 
+      let creditDeductionsStr = "";
+      if (creditsToConsume > 0) {
+        const { db } = await import("@/db");
+        const { spendPersonCreditsFIFO } = await import("@/lib/ledger");
+        const spendResult = await spendPersonCreditsFIFO(personId, creditsToConsume, db);
+        const mapped = spendResult.batchesDeducted.map((b) => ({
+          batchId: b.batchId,
+          deducted: b.deducted,
+          expiresAt: new Date(b.expiresAt).toISOString(),
+        }));
+        creditDeductionsStr = JSON.stringify(mapped);
+      }
+
       // Create one-off Stripe coupon if wallet discount applies (M-07)
       let discounts: any[] | undefined = undefined;
+      let couponId: string | undefined = undefined;
       if (creditDiscountCents > 0) {
         const coupon = await stripe.coupons.create({
           amount_off: creditDiscountCents,
@@ -187,6 +201,7 @@ export async function POST(req: Request) {
           name: `Credits Discount (${creditsToConsume} credits)`,
           max_redemptions: 1,
         });
+        couponId = coupon.id;
         discounts = [{ coupon: coupon.id }];
       }
 
@@ -197,8 +212,8 @@ export async function POST(req: Request) {
             product_data: {
               name: isQuarterly ? "THE Mothers — Quarterly Membership" : "THE Mothers — Monthly Membership",
               description: isQuarterly
-                ? "Quarterly membership access including 60 event credits · THE Mothers Barcelona"
-                : "Full membership access including 20 monthly event credits · THE Mothers Barcelona",
+                ? `Quarterly membership access including ${clubSettings.quarterlyGrantCredits ?? 60} event credits · THE Mothers Barcelona`
+                : `Full membership access including ${clubSettings.monthlyGrantCredits ?? 20} monthly event credits · THE Mothers Barcelona`,
             },
             unit_amount: unitAmount,
             recurring: {
@@ -249,6 +264,7 @@ export async function POST(req: Request) {
             personId,
             isQuarterly: String(isQuarterly),
             creditsToConsume: String(creditsToConsume),
+            creditDeductions: creditDeductionsStr,
             company: "THE Mothers",
           }
         },
@@ -259,6 +275,8 @@ export async function POST(req: Request) {
           isQuarterly: String(isQuarterly),
           feeWaived: String(isFeeWaived),
           creditsToConsume: String(creditsToConsume),
+          creditDeductions: creditDeductionsStr,
+          couponId: couponId || "",
           company: "THE Mothers",
         },
         custom_text: {

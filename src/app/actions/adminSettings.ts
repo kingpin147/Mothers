@@ -196,6 +196,8 @@ export async function saveClubSettingsAudit(
   return { success: true };
 }
 
+import { after } from "next/server";
+
 export async function setMembershipLiveMode(live: boolean, switchDualPrice: boolean = false) {
   const { adminId } = await verifyAdmin();
 
@@ -268,55 +270,58 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
         }
       }
 
-      let emailsSent = 0;
-      for (const recipient of recipientMap.values()) {
-        try {
-          await sendMembershipIsOpenEmail({
-            personId: recipient.id,
-            email: recipient.email,
-            firstName: recipient.firstName,
-          });
-          emailsSent++;
-        } catch (sendErr) {
-          console.warn(`[setMembershipLiveMode] Failed to send membership open email to ${recipient.email}:`, sendErr);
+      after(async () => {
+        let emailsSent = 0;
+        for (const recipient of recipientMap.values()) {
+          try {
+            await sendMembershipIsOpenEmail({
+              personId: recipient.id,
+              email: recipient.email,
+              firstName: recipient.firstName,
+            });
+            emailsSent++;
+          } catch (sendErr) {
+            console.warn(`[setMembershipLiveMode] Failed to send membership open email to ${recipient.email}:`, sendErr);
+          }
         }
-      }
 
-      const broadcastTimestamp = new Date().toISOString();
+        const broadcastTimestamp = new Date().toISOString();
 
-      await db
-        .insert(setting)
-        .values({
-          key: "membership_is_open_broadcast_sent_at",
-          value: broadcastTimestamp,
-        })
-        .onConflictDoUpdate({
-          target: setting.key,
-          set: { value: broadcastTimestamp, updatedAt: new Date() },
+        await db
+          .insert(setting)
+          .values({
+            key: "membership_is_open_broadcast_sent_at",
+            value: broadcastTimestamp,
+          })
+          .onConflictDoUpdate({
+            target: setting.key,
+            set: { value: broadcastTimestamp, updatedAt: new Date() },
+          });
+
+        await db.insert(auditLog).values({
+          actorId: adminId,
+          actorType: "admin",
+          action: "broadcast_membership_is_open_email",
+          entity: "broadcast",
+          entityId: "membership_is_open",
+          after: {
+            emailsSent,
+            totalRecipients: recipientMap.size,
+            broadcastAt: broadcastTimestamp,
+          },
         });
-
-      await db.insert(auditLog).values({
-        actorId: adminId,
-        actorType: "admin",
-        action: "broadcast_membership_is_open_email",
-        entity: "broadcast",
-        entityId: "membership_is_open",
-        after: {
-          emailsSent,
-          totalRecipients: recipientMap.size,
-          broadcastAt: broadcastTimestamp,
-        },
       });
     }
   }
 
-  if (!live && switchDualPrice) {
+  if (switchDualPrice) {
+    const nextPriceDisplay = live ? "dual" : "single";
     await db
       .insert(setting)
-      .values({ key: "price_display", value: "dual" })
+      .values({ key: "price_display", value: nextPriceDisplay })
       .onConflictDoUpdate({
         target: setting.key,
-        set: { value: "dual", updatedAt: new Date() },
+        set: { value: nextPriceDisplay, updatedAt: new Date() },
       });
   } else if (!live) {
     await db

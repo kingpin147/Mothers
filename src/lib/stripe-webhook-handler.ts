@@ -123,6 +123,13 @@ export async function handleStripeWebhook(req: Request) {
         }
         break;
       }
+      
+      // ─── H. CHECKOUT SESSION EXPIRED ────────────────────────────────────────
+      case "checkout.session.expired": {
+        const session = eventData;
+        await handleCheckoutSessionExpired({ session, webhookEventId: event.id });
+        break;
+      }
 
       // ─── C. INVOICE PAYMENT FAILED ──────────────────────────────────────────
       case "invoice.payment_failed": {
@@ -217,7 +224,9 @@ async function handleTopUpCheckout({
     });
     if (!pRecord) return null;
 
-    const gResult = await grantCreditsToPerson(personId, creditAmount, "topup", 6, tx);
+    const creditLife = clubSettings.creditLifeMonths ?? 6;
+    const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id || null;
+    const gResult = await grantCreditsToPerson(personId, creditAmount, "topup", creditLife, tx, null, paymentIntentId);
 
     await tx.insert(payment).values({
       personId,
@@ -307,10 +316,16 @@ async function handleTopUpCheckout({
         });
         const isMember = !!mem;
 
-        // Check if non-members are allowed if user is not a member
-        if (!isMember && ev.nonMemberCredits === null && ev.isSignature) {
-          console.warn(`[Auto-Booking] Event ${eventId} is signature member-only. Keeping credits in wallet.`);
-          return;
+        // Check if non-members are allowed if user is not a member (P2-10 fix)
+        if (clubSettings.membershipLive && !isMember) {
+          if (ev.nonMemberOpensAt && new Date() < new Date(ev.nonMemberOpensAt)) {
+            console.warn(`[Auto-Booking] Event ${eventId} embargo active for non-members. Keeping credits in wallet.`);
+            return;
+          }
+          if (ev.nonMemberCredits === null) {
+            console.warn(`[Auto-Booking] Event ${eventId} is member-only. Keeping credits in wallet.`);
+            return;
+          }
         }
 
         let requiredCredits = 0;
@@ -532,12 +547,10 @@ async function handleMembershipCheckout({
     const isQuarterly = mem.billingFrequency === "quarterly" || session?.metadata?.isQuarterly === "true";
     const defaultMonthlyPrice = clubSettings.monthlyFeeCents ?? 3900;
     const defaultQuarterlyPrice = clubSettings.quarterlyFeeCents ?? 9900;
-    const defaultJoiningFee = clubSettings.joiningFeeCents ?? 1900;
+    
+    // P2-14: Plan credits ignore "credit life" in Settings
+    const creditLife = clubSettings.creditLifeMonths ?? 6;
 
-    const subAmount = isQuarterly ? defaultQuarterlyPrice : defaultMonthlyPrice;
-    const isFeeWaived = session?.metadata?.feeWaived === "true";
-    const joiningFeeAmount = isFeeWaived ? 0 : defaultJoiningFee;
-    const amountTotalCents = session?.amount_total || (subAmount + joiningFeeAmount);
     const creditsToConsume = parseInt(session?.metadata?.creditsToConsume || "0", 10);
 
     // 1. Activate member
@@ -549,31 +562,44 @@ async function handleMembershipCheckout({
       updatedAt: new Date(),
     }).where(eq(member.id, memberId));
 
-    // 2. Deduct consumed wallet credits from subscription discount if any (M-07)
-    if (creditsToConsume > 0) {
-      const balance = await getPersonWalletBalance(mem.personId, tx);
-      const toSpend = Math.min(balance, creditsToConsume);
-      if (toSpend > 0) {
-        await spendPersonCreditsFIFO(mem.personId, toSpend, tx);
+    // 2. We skip deducting credits here because route.ts already consumed them dynamically. (P2-03)
+
+    // 3. Record Payment in finance ledger matching actual breakdown from Stripe (P2-08)
+    const { stripe } = await import("@/lib/stripe");
+    let initialInvoiceLines: any[] = [];
+    if (session?.invoice) {
+      try {
+        const inv = await stripe.invoices.retrieve(session.invoice as string);
+        if (inv.lines?.data) initialInvoiceLines = inv.lines.data;
+      } catch (err) {
+        console.warn("Failed to fetch invoice lines for checkout session:", err);
       }
     }
 
-    // 3. Record Payment in finance ledger matching actual breakdown from Stripe (F-09)
-    await tx.insert(payment).values({
-      personId: mem.personId,
-      purpose: isQuarterly ? "subscription_quarterly" : "subscription_monthly",
-      amountCents: subAmount,
-      currency: "EUR",
-      status: "succeeded",
-      stripeInvoiceId: subscriptionId || session?.id || null,
-      occurredAt: new Date(),
-    }).onConflictDoNothing();
-
-    if (joiningFeeAmount > 0) {
+    if (initialInvoiceLines.length > 0) {
+      for (const line of initialInvoiceLines) {
+        let purpose = "other";
+        if (line.type === "subscription" || line.subscription) {
+          purpose = isQuarterly ? "subscription_quarterly" : "subscription_monthly";
+        } else if (line.description?.toLowerCase().includes("joining")) {
+          purpose = "joining_fee";
+        }
+        await tx.insert(payment).values({
+          personId: mem.personId,
+          purpose: purpose as any,
+          amountCents: line.amount,
+          currency: "EUR",
+          status: "succeeded",
+          stripeInvoiceId: subscriptionId || session?.id || null,
+          occurredAt: new Date(),
+        }).onConflictDoNothing();
+      }
+    } else {
+      // Fallback
       await tx.insert(payment).values({
         personId: mem.personId,
-        purpose: "joining_fee",
-        amountCents: joiningFeeAmount,
+        purpose: isQuarterly ? "subscription_quarterly" : "subscription_monthly",
+        amountCents: session?.amount_total || 3900,
         currency: "EUR",
         status: "succeeded",
         stripeInvoiceId: subscriptionId || session?.id || null,
@@ -599,7 +625,11 @@ async function handleMembershipCheckout({
     const initialCredits = isQuarterly
       ? (clubSettings.quarterlyCreditsGranted ?? 60)
       : (clubSettings.monthlyCreditsGranted ?? 20);
-    await grantCreditsToPerson(mem.personId, initialCredits, "subscription", 6, tx);
+    
+    const initialInvoiceId = typeof session?.invoice === "string" ? session.invoice : session?.invoice?.id || null;
+    const initialPaymentIntentId = typeof session?.payment_intent === "string" ? session.payment_intent : session?.payment_intent?.id || null;
+    
+    await grantCreditsToPerson(mem.personId, initialCredits, "subscription", creditLife, tx, initialInvoiceId, initialPaymentIntentId);
 
     // 5. Godmother referral bonus (§10 / §A-03 / F-10): Grant only ONCE per person
     const godmotherPersonId =
@@ -611,7 +641,7 @@ async function handleMembershipCheckout({
     if (godmotherPersonId && !personRecord.godmotherRewardedAt) {
       const bonusCredits = clubSettings.referralBonusCredits || 5;
 
-      await grantCreditsToPerson(godmotherPersonId, bonusCredits, "godmother", null, tx);
+      await grantCreditsToPerson(godmotherPersonId, bonusCredits, "godmother", creditLife, tx);
 
       await tx
         .update(person)
@@ -673,7 +703,7 @@ async function handleMembershipCheckout({
       action: "membership_activated",
       entity: "member",
       entityId: memberId,
-      after: { status: "active", subscriptionId, amountTotalCents, initialCredits },
+      after: { status: "active", subscriptionId, amountTotalCents: session?.amount_total || 0, initialCredits },
     });
 
     await tx.insert(stripeEvent).values({
@@ -702,6 +732,11 @@ async function handleInvoicePaymentSucceeded({
   if (!memberRecord) return;
 
   await db.transaction(async (tx) => {
+    // Skip the first invoice; it is handled by checkout.session.completed
+    if (invoice.billing_reason === "subscription_create") {
+      return;
+    }
+
     // Check if invoice already processed (F-03 idempotency guard)
     if (invoice.id) {
       const existingPayment = await tx.query.payment.findFirst({
@@ -721,7 +756,11 @@ async function handleInvoicePaymentSucceeded({
       ? (clubSettings.quarterlyCreditsGranted ?? 60)
       : (clubSettings.monthlyCreditsGranted ?? 20);
 
+    // P2-14: Plan credits ignore "credit life" in Settings
+    const creditLife = clubSettings.creditLifeMonths ?? 6;
+
     // 1. Record payment in ledger from actual line items
+    // P2-09: Renewal lines can be booked as "joining fee"
     const lines = invoice.lines?.data || [];
     if (lines.length === 0) {
       await tx
@@ -738,12 +777,17 @@ async function handleInvoicePaymentSucceeded({
         .onConflictDoNothing();
     } else {
       for (const line of lines) {
-        const purpose = line.subscription ? (isQuarterly ? "subscription_quarterly" : "subscription_monthly") : "joining_fee";
+        let purpose = "other";
+        if (line.type === "subscription" || line.subscription) {
+          purpose = isQuarterly ? "subscription_quarterly" : "subscription_monthly";
+        } else if (line.description?.toLowerCase().includes("proration")) {
+          purpose = "proration";
+        }
         await tx
           .insert(payment)
           .values({
             personId: memberRecord.personId,
-            purpose,
+            purpose: purpose as any,
             amountCents: line.amount,
             currency: (invoice.currency || "eur").toUpperCase(),
             status: "succeeded",
@@ -755,7 +799,9 @@ async function handleInvoicePaymentSucceeded({
     }
 
     // 2. Grant credits to FIFO wallet for renewal
-    await grantCreditsToPerson(memberRecord.personId, renewalCredits, "subscription", 6, tx);
+    const invoiceId = invoice.id || null;
+    const paymentIntentId = invoice.payment_intent || null;
+    await grantCreditsToPerson(memberRecord.personId, renewalCredits, "subscription", creditLife, tx, invoiceId, paymentIntentId);
 
     // 3. Advance billing period end
     const nextPeriodEnd = invoice.lines?.data?.[0]?.period?.end
@@ -931,7 +977,13 @@ async function handleSubscriptionUpdated({
   let newStatus = memberRecord.status;
   if (subscription.status === "canceled") newStatus = "lapsed";
   else if (subscription.status === "past_due" || subscription.status === "unpaid") newStatus = "past_due";
-  else if (subscription.status === "active") newStatus = "active";
+  else if (subscription.status === "active") {
+    if (subscription.pause_collection) {
+      newStatus = "paused";
+    } else {
+      newStatus = "active";
+    }
+  }
 
   await db.transaction(async (tx) => {
     await tx
@@ -987,17 +1039,51 @@ async function handleChargeRefunded({
     }).where(eq(payment.id, payRecord.id));
 
     // 2. Clawback / Remove unused credits from creditBatch if topup/subscription
-    const batches = await tx.query.creditBatch.findMany({
-      where: and(
-        eq(creditBatch.personId, payRecord.personId),
-        gt(creditBatch.remaining, 0),
-        gt(creditBatch.expiresAt, new Date())
-      ),
-      orderBy: [desc(creditBatch.createdAt)],
-    });
+    // First try to find the exact batch that was granted by this payment
+    const condition = [];
+    if (paymentIntentId) condition.push(eq(creditBatch.stripePaymentIntentId, paymentIntentId));
+    if (invoiceId) condition.push(eq(creditBatch.stripeInvoiceId, invoiceId));
+    
+    let batches: any[] = [];
+    if (condition.length > 0) {
+      batches = await tx.query.creditBatch.findMany({
+        where: and(
+          eq(creditBatch.personId, payRecord.personId),
+          gt(creditBatch.remaining, 0),
+          or(...condition)
+        ),
+        orderBy: [desc(creditBatch.createdAt)],
+      });
+    }
+
+    // If no exact match found, fallback to all valid batches
+    if (batches.length === 0) {
+      batches = await tx.query.creditBatch.findMany({
+        where: and(
+          eq(creditBatch.personId, payRecord.personId),
+          gt(creditBatch.remaining, 0),
+          gt(creditBatch.expiresAt, new Date())
+        ),
+        orderBy: [desc(creditBatch.createdAt)],
+      });
+    }
 
     const refundAmountCents = charge.amount_refunded || payRecord.amountCents;
-    let creditsToClawback = Math.max(1, Math.floor(refundAmountCents / 200));
+    
+    // Determine how many credits were granted by this specific payment
+    let creditsToClawback = 0;
+    const exactBatch = batches.find(b => 
+      (paymentIntentId && b.stripePaymentIntentId === paymentIntentId) || 
+      (invoiceId && b.stripeInvoiceId === invoiceId)
+    );
+
+    if (exactBatch) {
+       // Only claw back exactly what was granted (or whatever is remaining of it)
+       creditsToClawback = exactBatch.amount; // Clawback the original granted amount
+    } else {
+       // Fallback logic
+       creditsToClawback = Math.max(1, Math.floor(refundAmountCents / 200));
+    }
 
     let totalClawedBack = 0;
     for (const b of batches) {
@@ -1077,6 +1163,48 @@ async function handleChargeDisputed({
       id: webhookEventId,
       type: "charge.dispute.created",
       payload: dispute as any,
+    }).onConflictDoNothing();
+  });
+}
+
+async function handleCheckoutSessionExpired({
+  session,
+  webhookEventId,
+}: {
+  session: any;
+  webhookEventId: string;
+}) {
+  await db.transaction(async (tx) => {
+    // If the session was for a membership checkout with reserved credits
+    if (session.metadata?.type === "membership" && session.metadata?.creditDeductions) {
+      try {
+        const deductions = JSON.parse(session.metadata.creditDeductions);
+        if (Array.isArray(deductions) && deductions.length > 0) {
+          const { refundBookingCredits } = await import("@/lib/ledger");
+          // Re-use refundBookingCredits which takes an array of deductions
+          await refundBookingCredits(
+            { personId: session.metadata.personId, creditDeductions: deductions },
+            undefined,
+            tx
+          );
+        }
+      } catch (e) {
+        console.error("Failed to parse/refund creditDeductions on expired session:", e);
+      }
+    }
+
+    if (session.metadata?.couponId) {
+      try {
+        await stripe.coupons.del(session.metadata.couponId);
+      } catch (e) {
+        console.warn("Failed to delete unused coupon:", e);
+      }
+    }
+
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "checkout.session.expired",
+      payload: session as any,
     }).onConflictDoNothing();
   });
 }

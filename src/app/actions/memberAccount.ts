@@ -372,15 +372,21 @@ export async function leaveWaitlist(waitlistId: string) {
 export async function pauseMembership(months: number = 1) {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
-  const memberId = (session.user as any).memberId;
-  if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+  const personId = (session.user as any).personId || session.user.id;
+  if (!personId) return { success: false, error: "AUTH_REQUIRED" };
 
   const pauseMonths = Math.min(2, Math.max(1, Math.floor(Number(months) || 1)));
 
   try {
-    const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
+    const memberRecord = await db.query.member.findFirst({ where: eq(member.personId, personId) });
     if (!memberRecord) return { success: false, error: "MEMBER_NOT_FOUND" };
-    if (memberRecord.status === "paused" || (memberRecord.pausedUntil && new Date(memberRecord.pausedUntil) > new Date())) {
+    if (memberRecord.status !== "active") {
+      return { success: false, error: "CANNOT_PAUSE" };
+    }
+    if (memberRecord.cancelAtPeriodEnd) {
+      return { success: false, error: "CANNOT_PAUSE_WHILE_CANCELLING" };
+    }
+    if (memberRecord.pausedUntil && new Date(memberRecord.pausedUntil) > new Date()) {
       return { success: false, error: "ALREADY_PAUSED" };
     }
     const usedMonths = memberRecord.pauseMonthsUsedYear ?? 0;
@@ -401,8 +407,8 @@ export async function pauseMembership(months: number = 1) {
             resumes_at: Math.floor(pausedUntil.getTime() / 1000),
           },
         });
-      } catch (stripeErr) {
-        console.warn("Stripe pause_collection warning:", stripeErr);
+      } catch (stripeErr: any) {
+        throw new Error(stripeErr.message || "STRIPE_PAUSE_FAILED");
       }
     }
     
@@ -414,7 +420,7 @@ export async function pauseMembership(months: number = 1) {
         currentPauseMonths: pauseMonths,
         updatedAt: new Date() 
       })
-      .where(eq(member.id, memberId));
+      .where(eq(member.id, memberRecord.id));
       
     return { success: true, pausedUntil };
   } catch (e: any) {
@@ -425,11 +431,11 @@ export async function pauseMembership(months: number = 1) {
 export async function resumeMembership() {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
-  const memberId = (session.user as any).memberId;
-  if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+  const personId = (session.user as any).personId || session.user.id;
+  if (!personId) return { success: false, error: "AUTH_REQUIRED" };
 
   try {
-    const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
+    const memberRecord = await db.query.member.findFirst({ where: eq(member.personId, personId) });
     if (!memberRecord) return { success: false, error: "MEMBER_NOT_FOUND" };
 
     if (memberRecord.stripeSubscriptionId) {
@@ -462,7 +468,7 @@ export async function resumeMembership() {
         pauseMonthsUsedYear: newUsedMonths,
         updatedAt: new Date(),
       })
-      .where(eq(member.id, memberId));
+      .where(eq(member.id, memberRecord.id));
 
     return { success: true };
   } catch (e: any) {
@@ -541,11 +547,11 @@ export async function updatePersonDetails(rawData: { firstName: string; lastName
 export async function cancelMembership() {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
-  const memberId = (session.user as any).memberId;
-  if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+  const personId = (session.user as any).personId || session.user.id;
+  if (!personId) return { success: false, error: "AUTH_REQUIRED" };
 
   try {
-    const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
+    const memberRecord = await db.query.member.findFirst({ where: eq(member.personId, personId) });
     if (!memberRecord) return { success: false, error: "MEMBER_NOT_FOUND" };
     if (memberRecord.cancelAtPeriodEnd) return { success: false, error: "ALREADY_CANCELLING" };
 
@@ -561,7 +567,7 @@ export async function cancelMembership() {
     // but we update optimistically so UI reflects immediately)
     await db.update(member)
       .set({ cancelAtPeriodEnd: true, updatedAt: new Date() })
-      .where(eq(member.id, memberId));
+      .where(eq(member.id, memberRecord.id));
 
     return {
       success: true,
@@ -575,13 +581,17 @@ export async function cancelMembership() {
 export async function reactivateMembership() {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
-  const memberId = (session.user as any).memberId;
-  if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+  const personId = (session.user as any).personId || session.user.id;
+  if (!personId) return { success: false, error: "AUTH_REQUIRED" };
 
   try {
-    const memberRecord = await db.query.member.findFirst({ where: eq(member.id, memberId) });
+    const memberRecord = await db.query.member.findFirst({ where: eq(member.personId, personId) });
     if (!memberRecord) return { success: false, error: "MEMBER_NOT_FOUND" };
-    if (!memberRecord.cancelAtPeriodEnd && memberRecord.status === "active") {
+    
+    if (memberRecord.status !== "active" && memberRecord.status !== "paused") {
+      return { success: false, error: "CANNOT_REACTIVATE_LAPSED" };
+    }
+    if (!memberRecord.cancelAtPeriodEnd) {
       return { success: false, error: "ALREADY_ACTIVE" };
     }
 
@@ -591,18 +601,19 @@ export async function reactivateMembership() {
         await stripe.subscriptions.update(memberRecord.stripeSubscriptionId, {
           cancel_at_period_end: false,
         });
-      } catch (stripeErr) {
-        console.warn("Stripe reactivate warning:", stripeErr);
+      } catch (stripeErr: any) {
+        throw new Error(stripeErr.message || "STRIPE_REACTIVATE_FAILED");
       }
+    } else {
+      return { success: false, error: "NO_SUBSCRIPTION" };
     }
 
     await db.update(member)
       .set({
         cancelAtPeriodEnd: false,
-        status: "active",
         updatedAt: new Date(),
       })
-      .where(eq(member.id, memberId));
+      .where(eq(member.id, memberRecord.id));
 
     return { success: true };
   } catch (e: any) {
@@ -613,12 +624,12 @@ export async function reactivateMembership() {
 export async function getStripePortalUrl() {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
-  const memberId = (session.user as any).memberId;
-  if (!memberId) return { success: false, error: "NOT_A_MEMBER" };
+  const personId = (session.user as any).personId || session.user.id;
+  if (!personId) return { success: false, error: "AUTH_REQUIRED" };
 
   try {
     const memberRecord = await db.query.member.findFirst({
-      where: eq(member.id, memberId),
+      where: eq(member.personId, personId),
     });
 
     if (!memberRecord || !memberRecord.stripeCustomerId) {
@@ -648,10 +659,25 @@ export async function revealPerkCode(rawPerkId: string) {
   const session = await auth();
   if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
 
-  const memberId = (session.user as any).memberId;
-  if (!memberId) return { success: false, error: "MEMBER_REQUIRED" };
+  const personId = (session.user as any).personId || session.user.id;
+  if (!personId) return { success: false, error: "AUTH_REQUIRED" };
 
   try {
+    const memberRecord = await db.query.member.findFirst({ where: eq(member.personId, personId) });
+    if (!memberRecord) return { success: false, error: "MEMBER_REQUIRED" };
+    if (memberRecord.status !== "active" && memberRecord.status !== "paused") {
+      return { success: false, error: "NOT_ACTIVE_MEMBER" };
+    }
+    
+    // Also check membershipLive (P2-05)
+    const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+    const settings = await getPublicClubSettings();
+    if (!settings.membershipLive) {
+      return { success: false, error: "MEMBERSHIP_NOT_LIVE" };
+    }
+
+    const memberId = memberRecord.id;
+
     const result = await db.transaction(async (tx) => {
       const perk = await tx.query.partnerPerk.findFirst({
         where: and(eq(partnerPerk.id, perkId), eq(partnerPerk.active, true)),
