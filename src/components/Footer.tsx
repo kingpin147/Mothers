@@ -276,7 +276,7 @@ export function Footer() {
         >
           {/* Brand Column */}
           <div style={{ flex: "1 1 260px", minWidth: "220px" }}>
-            <Link href="/home" style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", textDecoration: "none" }}>
+            <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", textDecoration: "none" }}>
               <img
                 src="/assets/logo-mark-alpha.png"
                 alt="The Mothers"

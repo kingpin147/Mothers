@@ -512,10 +512,32 @@ export default function AdminEditEventPage() {
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>The basics</div>
             <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
               <div>
-                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Title <span style={{ color: "#7b1f2c" }}>*</span></label>
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Morning stroll & flat whites" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff", marginBottom: "8px" }} />
-                <input type="text" value={titleEs} onChange={(e) => setTitleEs(e.target.value)} placeholder="Title (Spanish) - optional" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff", marginBottom: "8px" }} />
-                <input type="text" value={titleFr} onChange={(e) => setTitleFr(e.target.value)} placeholder="Title (French) - optional" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>Title <span style={{ color: "#7b1f2c" }}>*</span></label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", background: "#7b1f2c", color: "#fff", padding: "2px 6px", borderRadius: "3px" }}>EN</span>
+                      <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(57,41,42,0.85)" }}>English (Main) <span style={{ color: "#7b1f2c" }}>*</span></span>
+                    </div>
+                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Morning stroll & flat whites" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", background: "rgba(57,41,42,0.14)", color: "#39292a", padding: "2px 6px", borderRadius: "3px" }}>ES</span>
+                      <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(57,41,42,0.85)" }}>Spanish (Español)</span>
+                      <span style={{ fontSize: "11px", color: "rgba(57,41,42,0.5)" }}>— optional</span>
+                    </div>
+                    <input type="text" value={titleEs} onChange={(e) => setTitleEs(e.target.value)} placeholder="Título en español (opcional)" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", background: "rgba(57,41,42,0.14)", color: "#39292a", padding: "2px 6px", borderRadius: "3px" }}>FR</span>
+                      <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(57,41,42,0.85)" }}>French (Français)</span>
+                      <span style={{ fontSize: "11px", color: "rgba(57,41,42,0.5)" }}>— optional</span>
+                    </div>
+                    <input type="text" value={titleFr} onChange={(e) => setTitleFr(e.target.value)} placeholder="Titre en français (optionnel)" style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }} />
+                  </div>
+                </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "14px" }}>
                 <div>
@@ -843,11 +865,35 @@ export default function AdminEditEventPage() {
           {/* DESCRIPTION */}
           <div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(57,41,42,0.5)", marginBottom: "14px" }}>The words members read</div>
-            <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Description <span style={{ color: "#7b1f2c" }}>*</span></label>
-            <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (English). What happens, who it suits, what to bring." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical", marginBottom: "8px" }}></textarea>
-            <textarea rows={4} value={descriptionEs} onChange={(e) => setDescriptionEs(e.target.value)} placeholder="Description (Spanish) - optional." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical", marginBottom: "8px" }}></textarea>
-            <textarea rows={4} value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} placeholder="Description (French) - optional." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
-            <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Spanish version can be added after publishing — the page falls back to English until it exists.</div>
+            <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", marginBottom: "8px" }}>Description <span style={{ color: "#7b1f2c" }}>*</span></label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", background: "#7b1f2c", color: "#fff", padding: "2px 6px", borderRadius: "3px" }}>EN</span>
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(57,41,42,0.85)" }}>English Description (Main) <span style={{ color: "#7b1f2c" }}>*</span></span>
+                </div>
+                <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description in English. What happens, who it suits, what to bring." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", background: "rgba(57,41,42,0.14)", color: "#39292a", padding: "2px 6px", borderRadius: "3px" }}>ES</span>
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(57,41,42,0.85)" }}>Spanish Description (Español)</span>
+                  <span style={{ fontSize: "11px", color: "rgba(57,41,42,0.5)" }}>— optional</span>
+                </div>
+                <textarea rows={4} value={descriptionEs} onChange={(e) => setDescriptionEs(e.target.value)} placeholder="Descripción en español (opcional). Qué pasará, para quién es, qué traer." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", background: "rgba(57,41,42,0.14)", color: "#39292a", padding: "2px 6px", borderRadius: "3px" }}>FR</span>
+                  <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(57,41,42,0.85)" }}>French Description (Français)</span>
+                  <span style={{ fontSize: "11px", color: "rgba(57,41,42,0.5)" }}>— optional</span>
+                </div>
+                <textarea rows={4} value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} placeholder="Description en français (optionnel). Déroulement, pour qui, quoi apporter." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
+              </div>
+            </div>
+            <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "8px" }}>
+              Spanish and French versions can be added now or later — the site automatically serves the corresponding translation when visitors switch languages (falling back to English if empty).
+            </div>
           </div>
 
           {/* COVER PHOTO (AD-16) */}

@@ -15,7 +15,7 @@ export default function ConditionalShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isComingSoonPage = pathname === "/" || pathname === "/coming-soon" || pathname?.startsWith("/coming-soon");
+  const isComingSoonPage = pathname === "/coming-soon" || pathname?.startsWith("/coming-soon");
   const isAdminPage = pathname?.startsWith("/admin");
   const isStandalone = isComingSoonPage;
 

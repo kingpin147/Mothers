@@ -9,6 +9,7 @@ import { getPublicEventById } from "@/app/actions/events";
 import { getAccountData } from "@/app/actions/memberAccount";
 import ThemeLoader from "@/components/ThemeLoader";
 import { BackArrow } from "@/components/Icons";
+import { useLanguage } from "@/components/LanguageProvider";
 import {
   PublicEvent,
   Lang,
@@ -28,8 +29,15 @@ export default function EventDetailPage() {
   const params = useParams();
   const eventId = params?.id as string;
   const { data: session, status } = useSession();
+  const { language } = useLanguage();
 
-  const [lang, setLang] = useState<Lang>("en");
+  const [lang, setLang] = useState<Lang>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("site_language") || localStorage.getItem("tm_lang");
+      if (saved === "es" || saved === "fr" || saved === "en") return saved as Lang;
+    }
+    return (language === "es" || language === "fr" || language === "en") ? (language as Lang) : "en";
+  });
   const [ev, setEv] = useState<PublicEvent | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -56,9 +64,22 @@ export default function EventDetailPage() {
   const [creditLifeMonths, setCreditLifeMonths] = useState<number>(6);
 
   useEffect(() => {
-    const saved = localStorage.getItem("tm_lang");
-    if (saved === "es" || saved === "en") setLang(saved as Lang);
+    const updateLang = () => {
+      const saved = localStorage.getItem("site_language") || localStorage.getItem("tm_lang");
+      if (saved === "es" || saved === "fr" || saved === "en") setLang(saved as Lang);
+    };
+    updateLang();
+    window.addEventListener("tm_lang_change", updateLang);
+    return () => window.removeEventListener("tm_lang_change", updateLang);
+  }, []);
 
+  useEffect(() => {
+    if (language === "es" || language === "fr" || language === "en") {
+      setLang(language as Lang);
+    }
+  }, [language]);
+
+  useEffect(() => {
     import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
       getPublicClubSettings().then((s) => {
         if (s.membershipLive) setIsLive(true);
@@ -312,7 +333,7 @@ export default function EventDetailPage() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
             <path d="M19 12H5M11 18l-6-6 6-6" />
           </svg>
-          {lang === "en" ? "All events" : "Todos los eventos"}
+          {lang === "fr" ? "Tous les événements" : lang === "es" ? "Todos los eventos" : "All events"}
         </Link>
       </section>
 
@@ -423,16 +444,16 @@ export default function EventDetailPage() {
           >
             <div>
               <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
-                {lang === "en" ? "When" : "Cuándo"}
+                {lang === "fr" ? "Quand" : lang === "es" ? "Cuándo" : "When"}
               </div>
               <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
-                {ev.dateStr || new Date(ev.startsAt).toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "long", day: "numeric", month: "short", timeZone: "Europe/Madrid" })}
+                {ev.dateStr || new Date(ev.startsAt).toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", { weekday: "long", day: "numeric", month: "short", timeZone: "Europe/Madrid" })}
               </div>
             </div>
 
             <div>
               <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
-                {lang === "en" ? "Where" : "Dónde"}
+                {lang === "fr" ? "Où" : lang === "es" ? "Dónde" : "Where"}
               </div>
               <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
                 {ev.neighbourhood === "To be confirmed"
@@ -443,18 +464,18 @@ export default function EventDetailPage() {
 
             <div>
               <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
-                {lang === "en" ? "Spoken" : "Idioma"}
+                {lang === "fr" ? "Langues parlées" : lang === "es" ? "Idioma" : "Spoken"}
               </div>
               <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
                 {ev.languages && ev.languages.length > 0
                   ? ev.languages.map((l) => getLanguageLabel(l, lang)).join(" · ")
-                  : (lang === "en" ? "English, Spanish" : "Inglés, Español")}
+                  : (lang === "fr" ? "Anglais, Espagnol" : lang === "es" ? "Inglés, Español" : "English, Spanish")}
               </div>
             </div>
 
             <div>
               <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
-                {lang === "en" ? "Hosted with" : "Colaborador"}
+                {lang === "fr" ? "En collaboration avec" : lang === "es" ? "Colaborador" : "Hosted with"}
               </div>
               <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
                 {ev.partnerName || "The Mothers"}
@@ -465,55 +486,81 @@ export default function EventDetailPage() {
           {/* Meeting Point Section */}
           <div style={{ borderTop: "1px solid rgba(57, 41, 42, 0.16)", marginTop: "22px", paddingTop: "22px" }}>
             <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "8px" }}>
-              {lang === "en" ? "Meeting point" : "Punto de encuentro"}
+              {lang === "fr" ? "Point de rendez-vous" : lang === "es" ? "Punto de encuentro" : "Meeting point"}
             </div>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: isAlreadyBooked ? "#39292a" : "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "60ch" }}>
               {ev.neighbourhood === "To be confirmed"
                 ? (lang === "es" ? "Estamos confirmando el lugar. Todas las inscritas recibirán un email con la zona y el punto de encuentro en cuanto se defina." : lang === "fr" ? "Nous confirmons le lieu. Toutes les inscrites recevront un email avec la zone et le point de rendez-vous dès qu'il sera défini." : "We are confirming the location. Everyone booked gets an email with the area and the meeting point as soon as it is set.")
                 : isAlreadyBooked
-                ? (ev.meetingPointNote || ev.venueAddress || ev.venueName || (lang === "en" ? "Meeting point details will be sent via email." : "Los detalles del punto de encuentro se enviarán por email."))
-                : (lang === "en"
-                    ? `The exact address is sent when you book.${ev.neighbourhood ? ` ${ev.neighbourhood}, near public transport.` : ""}`
-                    : `La dirección exacta se envía al reservar.${ev.neighbourhood ? ` ${ev.neighbourhood}, cerca del transporte público.` : ""}`)}
+                ? (ev.meetingPointNote || ev.venueAddress || ev.venueName || (lang === "fr" ? "Les détails du point de rendez-vous seront envoyés par e-mail." : lang === "es" ? "Los detalles del punto de encuentro se enviarán por email." : "Meeting point details will be sent via email."))
+                : (lang === "fr"
+                    ? `L'adresse exacte est envoyée lors de la réservation.${ev.neighbourhood ? ` ${ev.neighbourhood}, près des transports en commun.` : ""}`
+                    : lang === "es"
+                    ? `La dirección exacta se envía al reservar.${ev.neighbourhood ? ` ${ev.neighbourhood}, cerca del transporte público.` : ""}`
+                    : `The exact address is sent when you book.${ev.neighbourhood ? ` ${ev.neighbourhood}, near public transport.` : ""}`)}
             </p>
           </div>
 
           {/* Before You Book Section */}
           <div style={{ borderTop: "1px solid rgba(57, 41, 42, 0.16)", marginTop: "22px", paddingTop: "22px" }}>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "21px", margin: "0 0 12px" }}>
-              {lang === "en" ? "Before you book" : "Antes de reservar"}
+              {lang === "fr" ? "Avant de réserver" : lang === "es" ? "Antes de reservar" : "Before you book"}
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.7)", maxWidth: "64ch" }}>
               <p style={{ margin: 0 }}>
                 <strong style={{ fontWeight: 600, color: "#39292a" }}>
-                  {lang === "en" ? "Cancellation: " : "Cancelación: "}
+                  {lang === "fr" ? "Annulation : " : lang === "es" ? "Cancelación: " : "Cancellation: "}
                 </strong>
                 {(() => {
                   const win = (ev as any).cancellationWindowHours ?? 24;
-                  if (win === 0) return lang === "en" ? "Free cancellation any time." : "Cancelación gratuita en cualquier momento.";
-                  if (win === 168) return lang === "en" ? "Free cancellation up to 7 days before." : "Cancelación gratuita hasta 7 días antes.";
-                  return lang === "en" ? `Free cancellation up to ${win} hours before.` : `Cancelación gratuita hasta ${win} horas antes.`;
+                  if (win === 0) {
+                    return lang === "fr"
+                      ? "Annulation gratuite à tout moment."
+                      : lang === "es"
+                      ? "Cancelación gratuita en cualquier momento."
+                      : "Free cancellation any time.";
+                  }
+                  if (win === 168) {
+                    return lang === "fr"
+                      ? "Annulation gratuite jusqu'à 7 jours avant."
+                      : lang === "es"
+                      ? "Cancelación gratuita hasta 7 días antes."
+                      : "Free cancellation up to 7 days before.";
+                  }
+                  return lang === "fr"
+                    ? `Annulation gratuite jusqu'à ${win} heures avant.`
+                    : lang === "es"
+                    ? `Cancelación gratuita hasta ${win} horas antes.`
+                    : `Free cancellation up to ${win} hours before.`;
                 })()}
               </p>
               {(ev.minToConfirm ?? 0) > 0 && (
                 <p style={{ margin: 0 }}>
-                  {lang === "en"
-                    ? `This event gathers ${ev.minToConfirm} mothers before it is confirmed. Credits are only taken if it goes ahead.`
-                    : `Este evento reúne a ${ev.minToConfirm} madres para confirmarse. Los créditos solo se descuentan si se realiza.`}
+                  {lang === "fr"
+                    ? `Cet événement réunit ${ev.minToConfirm} mères avant d'être confirmé. Les crédits ne sont prélevés que s'il a lieu.`
+                    : lang === "es"
+                    ? `Este evento reúne a ${ev.minToConfirm} madres para confirmarse. Los créditos solo se descuentan si se realiza.`
+                    : `This event gathers ${ev.minToConfirm} mothers before it is confirmed. Credits are only taken if it goes ahead.`}
                 </p>
               )}
               <p style={{ margin: 0 }}>
                 {ev.membersOnly
-                  ? (lang === "en"
-                    ? "This event is exclusively for members. You book for yourself, and the place is yours the moment it is confirmed."
-                    : "Este evento es exclusivo para socias. Reservas para ti y la plaza es tuya en cuanto se confirma.")
+                  ? (lang === "fr"
+                    ? "Cet événement est exclusivement réservé aux membres. Vous réservez pour vous-même, et votre place est assurée dès confirmation."
+                    : lang === "es"
+                    ? "Este evento es exclusivo para socias. Reservas para ti y la plaza es tuya en cuanto se confirma."
+                    : "This event is exclusively for members. You book for yourself, and the place is yours the moment it is confirmed.")
                   : isLive
-                    ? (lang === "en"
-                      ? "This event is open to members and non-members. You book for yourself, and the place is yours the moment it is confirmed."
-                      : "Este evento está abierto a socias y no socias. Reservas para ti y la plaza es tuya en cuanto se confirma.")
-                    : (lang === "en"
-                      ? "Before membership launch, this event is open to every mother, member or not. You book for yourself, and the place is yours the moment it is confirmed."
-                      : "Antes del lanzamiento de la membresía, este evento está abierto a todas las madres, socias o no. Reservas para ti y la plaza es tuya en cuanto se confirma.")}
+                    ? (lang === "fr"
+                      ? "Cet événement est ouvert aux membres et non-membres. Vous réservez pour vous-même, et votre place est assurée dès confirmation."
+                      : lang === "es"
+                      ? "Este evento está abierto a socias y no socias. Reservas para ti y la plaza es tuya en cuanto se confirma."
+                      : "This event is open to members and non-members. You book for yourself, and the place is yours the moment it is confirmed.")
+                    : (lang === "fr"
+                      ? "Avant le lancement officiel de l'adhésion, cet événement est ouvert à toutes les mères, membres ou non. Vous réservez pour vous-même, et votre place est assurée dès confirmation."
+                      : lang === "es"
+                      ? "Antes del lanzamiento de la membresía, este evento está abierto a todas las madres, socias o no. Reservas para ti y la plaza es tuya en cuanto se confirma."
+                      : "Before membership launch, this event is open to every mother, member or not. You book for yourself, and the place is yours the moment it is confirmed.")}
               </p>
             </div>
           </div>
@@ -529,11 +576,13 @@ export default function EventDetailPage() {
                 <>
                   <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "6px" }}>
                     <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "44px", lineHeight: 1, fontFeatureSettings: "'tnum'" }}>
-                      {cost === 0 ? (lang === "en" ? "Free" : "Gratis") : cost}
+                      {cost === 0 ? (lang === "fr" ? "Gratuit" : lang === "es" ? "Gratis" : "Free") : cost}
                     </span>
                     {cost > 0 && (
                       <span style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.72)" }}>
-                        {cost === 1 ? (lang === "en" ? "credit" : "crédito") : (lang === "en" ? "credits" : "créditos")}
+                        {cost === 1
+                          ? (lang === "fr" ? "crédit" : lang === "es" ? "crédito" : "credit")
+                          : (lang === "fr" ? "crédits" : lang === "es" ? "créditos" : "credits")}
                       </span>
                     )}
                   </div>
@@ -544,10 +593,13 @@ export default function EventDetailPage() {
                         const m = creditLifeMonths;
                         const en = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
                         const es = ["", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce"];
-                        const word = (lang === "en" ? en : es)[m] || String(m);
-                        return lang === "en"
-                          ? `Credits last ${word} ${m === 1 ? "month" : "months"}.`
-                          : `Los créditos duran ${word} ${m === 1 ? "mes" : "meses"}.`;
+                        const fr = ["", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze"];
+                        const word = (lang === "fr" ? fr : lang === "es" ? es : en)[m] || String(m);
+                        return lang === "fr"
+                          ? `Les crédits sont valables ${word} ${m === 1 ? "mois" : "mois"}.`
+                          : lang === "es"
+                          ? `Los créditos duran ${word} ${m === 1 ? "mes" : "meses"}.`
+                          : `Credits last ${word} ${m === 1 ? "month" : "months"}.`;
                       })()}
                     </div>
                   )}
@@ -558,14 +610,24 @@ export default function EventDetailPage() {
             {/* Status Line */}
             <div style={{ fontSize: "13px", color: "#456f04", borderTop: "1px solid rgba(57, 41, 42, 0.12)", paddingTop: "14px", marginBottom: "6px" }}>
               {isOpenList
-                ? (lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas")
+                ? (lang === "fr" ? "Liste ouverte — sans limite de places" : lang === "es" ? "Lista abierta — sin límite de plazas" : "Open list — no limit on places")
                 : isFull
-                ? (lang === "en" ? "Full" : "Completo")
+                ? (lang === "fr" ? "Complet" : lang === "es" ? "Completo" : "Full")
                 : (() => {
                     const left = ev.capacityRemaining ?? ev.capacityTotal ?? 0;
                     const total = ev.capacityTotal;
-                    if (total) return lang === "en" ? `${left} of ${total} places left` : `Quedan ${left} de ${total} plazas`;
-                    return lang === "en" ? `${left} places left` : `Quedan ${left} plazas`;
+                    if (total) {
+                      return lang === "fr"
+                        ? `Il reste ${left} places sur ${total}`
+                        : lang === "es"
+                        ? `Quedan ${left} de ${total} plazas`
+                        : `${left} of ${total} places left`;
+                    }
+                    return lang === "fr"
+                      ? `Il reste ${left} places`
+                      : lang === "es"
+                      ? `Quedan ${left} plazas`
+                      : `${left} places left`;
                   })()}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "12.5px", color: "rgba(57, 41, 42, 0.74)", marginBottom: "14px" }}>
@@ -577,12 +639,11 @@ export default function EventDetailPage() {
                 const win = (ev as any).cancellationWindowHours ?? 24;
                 const cost = isFree ? 0 : viewerCost;
                 if (cost === 0) {
-                  // Free events - no cancellation policy needed
-                  return lang === "en" ? "Free — no credits to refund" : "Gratis — sin créditos que devolver";
+                  return lang === "fr" ? "Gratuit — aucun crédit à rembourser" : lang === "es" ? "Gratis — sin créditos que devolver" : "Free — no credits to refund";
                 }
-                if (win === 0) return lang === "en" ? "Cancel any time" : "Cancela en cualquier momento";
-                if (win === 168) return lang === "en" ? "Free cancellation up to 7 days before" : "Cancelación gratuita hasta 7 días antes";
-                return lang === "en" ? `Free cancellation up to ${win}h before` : `Cancelación gratuita hasta ${win}h antes`;
+                if (win === 0) return lang === "fr" ? "Annulation à tout moment" : lang === "es" ? "Cancela en cualquier momento" : "Cancel any time";
+                if (win === 168) return lang === "fr" ? "Annulation gratuite jusqu'à 7 jours avant" : lang === "es" ? "Cancelación gratuita hasta 7 días antes" : "Free cancellation up to 7 days before";
+                return lang === "fr" ? `Annulation gratuite jusqu'à ${win}h avant` : lang === "es" ? `Cancelación gratuita hasta ${win}h antes` : `Free cancellation up to ${win}h before`;
               })()}
             </div>
 
@@ -608,8 +669,8 @@ export default function EventDetailPage() {
                   }}
                 >
                   {isOpenList
-                    ? (lang === "en" ? "You're on the list — see your account" : "Estás en la lista — ver mi cuenta")
-                    : (lang === "en" ? "Booked — see your account" : "Reservada — ver mi cuenta")}
+                    ? (lang === "fr" ? "Vous êtes sur la liste — voir mon compte" : lang === "es" ? "Estás en la lista — ver mi cuenta" : "You're on the list — see your account")
+                    : (lang === "fr" ? "Réservée — voir mon compte" : lang === "es" ? "Reservada — ver mi cuenta" : "Booked — see your account")}
                 </Link>
               ) : isAlreadyWaitlisted ? (
                 <button
@@ -628,7 +689,11 @@ export default function EventDetailPage() {
                     cursor: "default",
                   }}
                 >
-                  {lang === "en" ? `On waitlist (position ${userWaitlistPos ?? 1})` : `En lista de espera (${userWaitlistPos ?? 1})`}
+                  {lang === "fr"
+                    ? `Sur liste d'attente (position ${userWaitlistPos ?? 1})`
+                    : lang === "es"
+                    ? `En lista de espera (${userWaitlistPos ?? 1})`
+                    : `On waitlist (position ${userWaitlistPos ?? 1})`}
                 </button>
               ) : isFull ? (
                 <button
@@ -648,14 +713,16 @@ export default function EventDetailPage() {
                     cursor: actionLoading ? "wait" : "pointer",
                   }}
                 >
-                  {actionLoading ? (lang === "en" ? "Joining…" : "Uniéndome…") : (lang === "en" ? "Join waitlist" : "Unirme a la lista")}
+                  {actionLoading
+                    ? (lang === "fr" ? "Inscription..." : lang === "es" ? "Uniéndome…" : "Joining…")
+                    : (lang === "fr" ? "Rejoindre la liste d'attente" : lang === "es" ? "Unirme a la lista" : "Join waitlist")}
                 </button>
               ) : (
                 <button
                   type="button"
                   disabled={actionLoading}
                   onClick={() => {
-                    // BLOCKER FIX: If insufficient credits, go directly to top-up instead of attempting book
+                    // If insufficient credits, go directly to top-up instead of attempting book
                     if (!isFree && currentCreditBalance < viewerCost) {
                       setTopUpEvent(ev);
                     } else {
@@ -676,10 +743,12 @@ export default function EventDetailPage() {
                   }}
                 >
                   {actionLoading
-                    ? (lang === "en" ? "Booking…" : "Reservando…")
+                    ? (lang === "fr" ? "Réservation..." : lang === "es" ? "Reservando…" : "Booking…")
                     : (!isFree && currentCreditBalance < viewerCost)
-                    ? (lang === "en" ? "Top up to book" : "Recargar para reservar")
-                    : (lang === "en" ? "Book" : "Reservar")}
+                    ? (lang === "fr" ? "Recharger pour réserver" : lang === "es" ? "Recargar para reservar" : "Top up to book")
+                    : isFree
+                    ? (lang === "fr" ? "Rejoindre — gratuit" : lang === "es" ? "Unirme — gratis" : "Join — free")
+                    : (lang === "fr" ? "Réserver" : lang === "es" ? "Reservar" : "Book")}
                 </button>
               )
             ) : (
@@ -702,32 +771,61 @@ export default function EventDetailPage() {
                   cursor: "pointer",
                 }}
               >
-                {lang === "en" ? "Book" : "Reservar"}
+                {isFree
+                  ? (lang === "fr" ? "Rejoindre — gratuit" : lang === "es" ? "Unirme — gratis" : "Join — free")
+                  : (lang === "fr" ? "Réserver" : lang === "es" ? "Reservar" : "Book")}
               </button>
             )}
 
             {!session?.user ? (
               <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", marginTop: "12px" }}>
-                {lang === "en" ? "No account yet? It is created with this booking." : "¿Aún sin cuenta? Se crea con esta reserva."}
+                {lang === "fr"
+                  ? "Pas encore de compte ? Il est créé lors de cette réservation."
+                  : lang === "es"
+                  ? "¿Aún sin cuenta? Se crea con esta reserva."
+                  : "No account yet? It is created with this booking."}
               </div>
             ) : memberCredits !== null && (
               <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", marginTop: "12px" }}>
                 {(() => {
-                  const cr = (n: number) => lang === "en"
-                    ? `${n} ${n === 1 ? "credit" : "credits"}`
-                    : `${n} ${n === 1 ? "crédito" : "créditos"}`;
-                  if (isAlreadyBooked) return lang === "en" ? "Confirmation and the meeting point are in your account." : "La confirmación y el punto de encuentro están en tu cuenta.";
-                  if (isFree || viewerCost === 0) return lang === "en" ? "Nothing is deducted from your wallet." : "No se descuenta nada de tu monedero.";
+                  const cr = (n: number) =>
+                    lang === "fr"
+                      ? `${n} ${n === 1 ? "crédit" : "crédits"}`
+                      : lang === "es"
+                      ? `${n} ${n === 1 ? "crédito" : "créditos"}`
+                      : `${n} ${n === 1 ? "credit" : "credits"}`;
+                  if (isAlreadyBooked) {
+                    return lang === "fr"
+                      ? "La confirmation et le point de rendez-vous sont dans votre compte."
+                      : lang === "es"
+                      ? "La confirmación y el punto de encuentro están en tu cuenta."
+                      : "Confirmation and the meeting point are in your account.";
+                  }
+                  if (isFree || viewerCost === 0) {
+                    return lang === "fr"
+                      ? "Rien n'est débité de votre portefeuille."
+                      : lang === "es"
+                      ? "No se descuenta nada de tu monedero."
+                      : "Nothing is deducted from your wallet.";
+                  }
                   const need = viewerCost - currentCreditBalance;
-                  if (need <= 0) return lang === "en" ? `Balance after booking: ${cr(currentCreditBalance - viewerCost)}.` : `Saldo tras reservar: ${cr(currentCreditBalance - viewerCost)}.`;
-                  return lang === "en"
-                    ? `You have ${cr(currentCreditBalance)}. Add ${cr(need)} in your account to book.`
-                    : `Tienes ${cr(currentCreditBalance)}. Añade ${cr(need)} en tu cuenta para reservar.`;
+                  if (need <= 0) {
+                    return lang === "fr"
+                      ? `Solde après réservation : ${cr(currentCreditBalance - viewerCost)}.`
+                      : lang === "es"
+                      ? `Saldo tras reservar: ${cr(currentCreditBalance - viewerCost)}.`
+                      : `Balance after booking: ${cr(currentCreditBalance - viewerCost)}.`;
+                  }
+                  return lang === "fr"
+                    ? `Vous avez ${cr(currentCreditBalance)}. Ajoutez ${cr(need)} sur votre compte pour réserver.`
+                    : lang === "es"
+                    ? `Tienes ${cr(currentCreditBalance)}. Añade ${cr(need)} en tu cuenta para reservar.`
+                    : `You have ${cr(currentCreditBalance)}. Add ${cr(need)} in your account to book.`;
                 })()}
               </div>
             )}
 
-            {/* Release my place section when booked (§Event.dc.html) */}
+            {/* Release my place section when booked */}
             {isAlreadyBooked && (
               <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: "1px solid rgba(57, 41, 42, 0.12)" }}>
                 <button
@@ -747,15 +845,17 @@ export default function EventDetailPage() {
                   }}
                 >
                   {cancellingBooking
-                    ? (lang === "en" ? "Releasing…" : "Liberando…")
-                    : (lang === "en" ? "Release my place" : "Liberar mi plaza")}
+                    ? (lang === "fr" ? "Annulation…" : lang === "es" ? "Liberando…" : "Releasing…")
+                    : (lang === "fr" ? "Libérer ma place" : lang === "es" ? "Liberar mi plaza" : "Release my place")}
                 </button>
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57, 41, 42, 0.72)", marginTop: "8px" }}>
                   {isFree
-                    ? (lang === "en" ? "Nothing to refund." : "Nada que reembolsar.")
-                    : (lang === "en"
-                      ? `You will get your ${viewerCost} ${viewerCost === 1 ? "credit" : "credits"} back.`
-                      : `Recibirás ${viewerCost} ${viewerCost === 1 ? "crédito" : "créditos"} de vuelta.`)}
+                    ? (lang === "fr" ? "Rien à rembourser." : lang === "es" ? "Nada que reembolsar." : "Nothing to refund.")
+                    : (lang === "fr"
+                      ? `Vous récupérerez vos ${viewerCost} ${viewerCost === 1 ? "crédit" : "crédits"}.`
+                      : lang === "es"
+                      ? `Recibirás ${viewerCost} ${viewerCost === 1 ? "crédito" : "créditos"} de vuelta.`
+                      : `You will get your ${viewerCost} ${viewerCost === 1 ? "credit" : "credits"} back.`)}
                 </div>
               </div>
             )}

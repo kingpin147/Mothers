@@ -34,7 +34,11 @@ export interface PublicEvent {
   id: string;
   slug?: string | null;
   title: string;
+  titleEs?: string | null;
+  titleFr?: string | null;
   description?: string | null;
+  descriptionEs?: string | null;
+  descriptionFr?: string | null;
   startsAt: string | Date;
   endsAt?: string | Date;
   dateStr?: string;
@@ -271,6 +275,12 @@ const EVENT_I18N: Record<string, { esTitle: string; esDesc: string; frTitle?: st
 };
 
 export function getEventDisplayTitle(ev: PublicEvent, lang: Lang): string {
+  if (lang === "fr" && ev.titleFr && ev.titleFr.trim()) {
+    return ev.titleFr.trim();
+  }
+  if (lang === "es" && ev.titleEs && ev.titleEs.trim()) {
+    return ev.titleEs.trim();
+  }
   if (lang === "es" || lang === "fr") {
     const raw = (ev.title || "").toLowerCase();
     for (const [key, val] of Object.entries(EVENT_I18N)) {
@@ -284,6 +294,12 @@ export function getEventDisplayTitle(ev: PublicEvent, lang: Lang): string {
 }
 
 export function getEventDisplayDesc(ev: PublicEvent, lang: Lang): string | null | undefined {
+  if (lang === "fr" && ev.descriptionFr && ev.descriptionFr.trim()) {
+    return ev.descriptionFr.trim();
+  }
+  if (lang === "es" && ev.descriptionEs && ev.descriptionEs.trim()) {
+    return ev.descriptionEs.trim();
+  }
   if (lang === "es" || lang === "fr") {
     const raw = (ev.title || "").toLowerCase();
     for (const [key, val] of Object.entries(EVENT_I18N)) {
@@ -389,19 +405,17 @@ export function formatDecideByDate(startsAt: string | Date, lang: Lang, decision
     }
   }
 
-  if (lang === "en") {
-    return targetDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "Europe/Madrid" });
-  } else {
-    return targetDate.toLocaleDateString("es-ES", { day: "numeric", month: "long", timeZone: "Europe/Madrid" });
-  }
+  const locale = lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB";
+  return targetDate.toLocaleDateString(locale, { day: "numeric", month: "long", timeZone: "Europe/Madrid" });
 }
 
 export function formatEventDate(startsAt: string | Date, lang: Lang): string {
   const d = new Date(startsAt);
-  const weekday = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "short", timeZone: "Europe/Madrid" });
+  const locale = lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB";
+  const weekday = d.toLocaleDateString(locale, { weekday: "short", timeZone: "Europe/Madrid" });
   const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
   const day = d.toLocaleDateString("en-GB", { day: "numeric", timeZone: "Europe/Madrid" });
-  const month = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { month: "short", timeZone: "Europe/Madrid" });
+  const month = d.toLocaleDateString(locale, { month: "short", timeZone: "Europe/Madrid" });
   const year = d.toLocaleDateString("en-GB", { year: "numeric", timeZone: "Europe/Madrid" });
   const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
   return `${capWeekday} ${day} ${month} ${year} · ${time}`;
@@ -410,10 +424,11 @@ export function formatEventDate(startsAt: string | Date, lang: Lang): string {
 export function formatCardDate(startsAt: string | Date, lang: Lang): string {
   const d = new Date(startsAt);
   if (isNaN(d.getTime())) return "";
-  const weekday = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { weekday: "long", timeZone: "Europe/Madrid" });
+  const locale = lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB";
+  const weekday = d.toLocaleDateString(locale, { weekday: "long", timeZone: "Europe/Madrid" });
   const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
   const day = d.toLocaleDateString("en-GB", { day: "numeric", timeZone: "Europe/Madrid" });
-  const month = d.toLocaleDateString(lang === "en" ? "en-GB" : "es-ES", { month: "long", timeZone: "Europe/Madrid" });
+  const month = d.toLocaleDateString(locale, { month: "long", timeZone: "Europe/Madrid" });
   const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
   const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
   return `${capWeekday} ${day} ${capMonth} · ${time}`;
@@ -1388,8 +1403,12 @@ function EventCard({
           }}
         >
           {isViewerFree || viewerCost === 0
-            ? (lang === "en" ? "Free" : "Gratis")
-            : `${viewerCost} ${lang === "en" ? (viewerCost === 1 ? "credit" : "credits") : (viewerCost === 1 ? "crédito" : "créditos")}`}
+            ? (lang === "fr" ? "Gratuit" : lang === "es" ? "Gratis" : "Free")
+            : `${viewerCost} ${
+                viewerCost === 1
+                  ? (lang === "fr" ? "crédit" : lang === "es" ? "crédito" : "credit")
+                  : (lang === "fr" ? "crédits" : lang === "es" ? "créditos" : "credits")
+              }`}
         </div>
       </div>
 
@@ -1522,36 +1541,38 @@ function EventCard({
       >
         {isCancelled ? (
           <div style={{ fontSize: "13px", color: "#993842", fontWeight: 600 }}>
-            {lang === "en" ? "Cancelled" : "Cancelado"}{ev.cancelReason ? ` — ${ev.cancelReason}` : ""}
+            {lang === "fr" ? "Annulé" : lang === "es" ? "Cancelado" : "Cancelled"}{ev.cancelReason ? ` — ${ev.cancelReason}` : ""}
           </div>
         ) : isPast ? (
           <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.65)" }}>
-            {lang === "en" ? "This one has already happened." : "Este evento ya ha tenido lugar."}
+            {lang === "fr" ? "Cet événement a déjà eu lieu." : lang === "es" ? "Este evento ya ha tenido lugar." : "This one has already happened."}
           </div>
         ) : isPending && ev.minToConfirm ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: "13px", color: "#8a6116", fontWeight: 600 }}>
-              <span>{lang === "en" ? "Minimum mothers to confirm" : "Mínimo de madres para confirmar"}</span>
+              <span>{lang === "fr" ? "Minimum de mères pour confirmer" : lang === "es" ? "Mínimo de madres para confirmar" : "Minimum mothers to confirm"}</span>
               <span style={{ fontFeatureSettings: "'tnum'" }}>{ev.bookedMember || 0} of {ev.minToConfirm}</span>
             </div>
             <div style={{ height: "3px", borderRadius: "2px", background: "rgba(164,118,31,0.2)", overflow: "hidden" }}>
               <div style={{ height: "100%", background: "#a4761f", width: `${Math.min(100, (((ev.bookedMember || 0) / ev.minToConfirm) * 100))}%` }} />
             </div>
             <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)" }}>
-              {lang === "en"
-                ? `The team confirms by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
-                : `El equipo confirma antes del ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`}
+              {lang === "fr"
+                ? `L'équipe confirme d'ici le ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                : lang === "es"
+                ? `El equipo confirma antes del ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`
+                : `The team confirms by ${formatDecideByDate(ev.startsAt, lang, ev.decisionAt)}.`}
             </div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "13.5px", color: "#456f04", fontWeight: 600 }}>
-              <span>{lang === "en" ? "Confirmed — going ahead" : "Confirmado — se realiza"}</span>
+              <span>{lang === "fr" ? "Confirmé — a lieu" : lang === "es" ? "Confirmado — se realiza" : "Confirmed — going ahead"}</span>
             </div>
             <div style={{ fontSize: "12.5px", color: "rgba(57,41,42,0.68)" }}>
               {isOpenList
-                ? (lang === "en" ? "No limit on places" : "Sin límite de plazas")
-                : (lang === "en" ? "Meeting point shared once you book" : "Punto de encuentro compartido tras reservar")}
+                ? (lang === "fr" ? "Sans limite de places" : lang === "es" ? "Sin límite de plazas" : "No limit on places")
+                : (lang === "fr" ? "Point de rendez-vous partagé après réservation" : lang === "es" ? "Punto de encuentro compartido tras reservar" : "Meeting point shared once you book")}
             </div>
           </div>
         )}
@@ -1581,17 +1602,19 @@ function EventCard({
           }}
         >
           {isPast ? (
-            lang === "en" ? "Past event" : "Evento pasado"
+            lang === "fr" ? "Événement passé" : lang === "es" ? "Evento pasado" : "Past event"
           ) : isCancelled ? (
-            lang === "en" ? "Cancelled" : "Cancelado"
+            lang === "fr" ? "Annulé" : lang === "es" ? "Cancelado" : "Cancelled"
           ) : isOpenList ? (
-            lang === "en" ? "Open list — no limit on places" : "Lista abierta — sin límite de plazas"
+            lang === "fr" ? "Liste ouverte — sans limite de places" : lang === "es" ? "Lista abierta — sin límite de plazas" : "Open list — no limit on places"
           ) : isFull ? (
-            lang === "en" ? `Places left: 0 of ${ev.capacityTotal ?? 0}` : `Plazas libres: 0 de ${ev.capacityTotal ?? 0}`
+            lang === "fr" ? `Places restantes : 0 sur ${ev.capacityTotal ?? 0}` : lang === "es" ? `Plazas libres: 0 de ${ev.capacityTotal ?? 0}` : `Places left: 0 of ${ev.capacityTotal ?? 0}`
           ) : (
-            lang === "en"
-              ? `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}`
-              : `Plazas libres: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`
+            lang === "fr"
+              ? `Places restantes : ${ev.capacityRemaining ?? ev.capacityTotal} sur ${ev.capacityTotal}`
+              : lang === "es"
+              ? `Plazas libres: ${ev.capacityRemaining ?? ev.capacityTotal} de ${ev.capacityTotal}`
+              : `Places left: ${ev.capacityRemaining ?? ev.capacityTotal} of ${ev.capacityTotal}`
           )}
         </div>
 
@@ -1613,7 +1636,7 @@ function EventCard({
                 whiteSpace: "nowrap",
               }}
             >
-              {tStr("Passed", lang)}
+              {lang === "fr" ? "Terminé" : tStr("Passed", lang)}
             </button>
           ) : isCancelled ? null : ev.userStatus?.isBooked ? (
             <span
@@ -1630,7 +1653,7 @@ function EventCard({
                 display: "inline-block",
               }}
             >
-              {lang === "en" ? "Booked" : "Reservada"}
+              {lang === "fr" ? "Réservée" : lang === "es" ? "Reservada" : "Booked"}
             </span>
           ) : ev.userStatus?.isWaitlisted ? (
             <Link
@@ -1649,7 +1672,7 @@ function EventCard({
                 display: "inline-block",
               }}
             >
-              {lang === "en" ? "Waitlisted" : "En espera"}
+              {lang === "fr" ? "Sur liste d'attente" : lang === "es" ? "En espera" : "Waitlisted"}
             </Link>
           ) : isFull ? (
             isMember ? (
@@ -1670,7 +1693,9 @@ function EventCard({
                   whiteSpace: "nowrap",
                 }}
               >
-                {isBooking ? (lang === "en" ? "Joining..." : "Uniéndome...") : (lang === "en" ? "Waitlist" : "Lista")}
+                {isBooking
+                  ? (lang === "fr" ? "Inscription..." : lang === "es" ? "Uniéndome..." : "Joining...")
+                  : (lang === "fr" ? "Liste d'attente" : lang === "es" ? "Lista" : "Waitlist")}
               </button>
             ) : null
           ) : (
@@ -1695,10 +1720,10 @@ function EventCard({
               onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "#7b1f2c")}
             >
               {isBooking
-                ? (lang === "en" ? "Booking..." : "Reservando...")
+                ? (lang === "fr" ? "Réservation..." : lang === "es" ? "Reservando..." : "Booking...")
                 : isViewerFree
-                ? (lang === "en" ? "Join — free" : "Unirme — gratis")
-                : (lang === "en" ? "Book" : "Reservar")}
+                ? (lang === "fr" ? "Rejoindre — gratuit" : lang === "es" ? "Unirme — gratis" : "Join — free")
+                : (lang === "fr" ? "Réserver" : lang === "es" ? "Reservar" : "Book")}
             </button>
           )}
         </div>

@@ -184,7 +184,7 @@ export function Navigation() {
           }}
         >
           {/* Brand Lockup */}
-          <Link href="/home" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
             <img
               src="/assets/logo-mark-alpha.png"
               alt="The Mothers"

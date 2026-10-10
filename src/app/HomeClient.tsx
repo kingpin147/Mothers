@@ -168,9 +168,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               margin: "0 0 18px",
             }}
           >
-            {lang === "en"
-              ? "Motherhood is better with friends who get it. Meet mothers at your stage, in your neighbourhood — and keep seeing them, week after week, until they are yours."
-              : "La maternidad se vive mejor con amigas que te entienden. Conoce a madres en tu misma etapa, en tu barrio — y sigue viéndolas, semana tras semana, hasta que formen parte de tu vida."}
+            {tStr("Motherhood is better with friends who get it. Meet mothers at your stage, in your neighbourhood — and keep seeing them, week after week, until they are yours.", lang)}
           </p>
 
           <p
@@ -184,9 +182,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               maxWidth: "48ch",
             }}
           >
-            {lang === "en"
-              ? "Walks, play dates, suppers and talks across Barcelona — from pregnancy through the school years."
-              : "Caminatas, quedadas, cenas y charlas por toda Barcelona — desde el embarazo hasta la etapa escolar."}
+            {tStr("Walks, play dates, suppers and talks across Barcelona — from pregnancy through the school years.", lang)}
           </p>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", alignItems: "center", marginTop: "26px" }}>
@@ -302,9 +298,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               {tStr("Come once", lang)}
             </h3>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
-              {lang === "en"
-                ? "Start with a walk or a hosted coffee. A host makes the introductions, so you never walk in alone."
-                : "Empieza con una caminata o un café con anfitriona. Una madre anfitriona hace las presentaciones para que nunca llegues sola."}
+              {tStr("Start with a walk or a hosted coffee. A host makes the introductions, so you never walk in alone.", lang)}
             </p>
           </div>
 
@@ -327,9 +321,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               {tStr("Keep coming back", lang)}
             </h3>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
-              {lang === "en"
-                ? "Small groups, the same faces. By the third time, you are not talking about the babies any more."
-                : "Grupos reducidos, las mismas caras. A la tercera vez, ya no solo habláis de los bebés."}
+              {tStr("Small groups, the same faces. By the third time, you are not talking about the babies any more.", lang)}
             </p>
           </div>
 
@@ -352,9 +344,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               {tStr("Find your circle", lang)}
             </h3>
             <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
-              {lang === "en"
-                ? "The mothers you call on a bad Tuesday. The ones who get it, because they are living it too."
-                : "Las madres a las que llamas un martes difícil. Las que te entienden porque están viviendo lo mismo."}
+              {tStr("The mothers you call on a bad Tuesday. The ones who get it, because they are living it too.", lang)}
             </p>
           </div>
         </div>
@@ -518,17 +508,11 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               const isViewerFree = viewerCost === 0 || (ev.isFreeWalk && (isMember || !isLive));
               const priceDisplay =
                 isViewerFree || viewerCost === 0
-                  ? lang === "en"
-                    ? "Free"
-                    : "Gratis"
+                  ? (lang === "fr" ? "Gratuit" : lang === "es" ? "Gratis" : "Free")
                   : `${viewerCost} ${
                       viewerCost === 1
-                        ? lang === "en"
-                          ? "credit"
-                          : "crédito"
-                        : lang === "en"
-                        ? "credits"
-                        : "créditos"
+                        ? (lang === "fr" ? "crédit" : lang === "es" ? "crédito" : "credit")
+                        : (lang === "fr" ? "crédits" : lang === "es" ? "créditos" : "credits")
                     }`;
             const locationDisplay = ev.neighbourhood
               ? `${ev.neighbourhood}${ev.venueName ? ` · ${ev.venueName}` : ""}`
@@ -678,8 +662,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                       </svg>
                       <span>
                         {ev.audienceType === "moms_only" || ev.audienceType === "mothers_only"
-                          ? (lang === "en" ? "Mothers only" : "Solo madres")
-                          : (lang === "en" ? "Children welcome" : "Peques bienvenidos")}
+                          ? (lang === "fr" ? "Mères uniquement" : lang === "es" ? "Solo madres" : "Mothers only")
+                          : (lang === "fr" ? "Enfants bienvenus" : lang === "es" ? "Peques bienvenidos" : "Children welcome")}
                       </span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
@@ -746,9 +730,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
             </h2>
 
             <p style={{ fontSize: "16px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 20px", maxWidth: "52ch" }}>
-              {lang === "en"
-                ? "Every account comes with a personal invite code. Share it with the friend who has just moved here, the neighbour with the pram — and you earn 5 credits for every mother who becomes a member with it."
-                : "Cada cuenta incluye un código de invitación personal. Compártelo con la amiga que acaba de mudarse o la vecina con el carrito — y ganarás 5 créditos por cada madre que se haga socia con él."}
+              {tStr("Every account comes with a personal invite code. Share it with the friend who has just moved here, the neighbour with the pram — and you earn 5 credits for every mother who becomes a member with it.", lang)}
             </p>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
@@ -801,18 +783,22 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                   {tStr("Members only", lang)}
                 </span>
                 <br />
-                {lang === "en"
-                  ? <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother who becomes a member with your code{isLive ? "" : " (once membership opens)"}</>
-                  : <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre que se haga socia con tu código{isLive ? "" : " (una vez abierta la membresía)"}</>}
+                {lang === "fr"
+                  ? <>Vous gagnez <strong style={{ fontWeight: 600 }}>5 crédits</strong> pour chaque mère qui devient membre avec votre code{isLive ? "" : " (dès l'ouverture)"}</>
+                  : lang === "es"
+                  ? <>Ganas <strong style={{ fontWeight: 600 }}>5 créditos</strong> por cada madre que se haga socia con tu código{isLive ? "" : " (una vez abierta la membresía)"}</>
+                  : <>You earn <strong style={{ fontWeight: 600 }}>5 credits</strong> for each mother who becomes a member with your code{isLive ? "" : " (once membership opens)"}</>}
               </span>
             </div>
 
             <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", padding: "13px 0", borderTop: "1px solid rgba(86, 139, 5, 0.3)", borderBottom: "1px solid rgba(86, 139, 5, 0.3)" }}>
               <span style={{ flex: "none", width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#568b05", marginTop: "9px" }} />
               <span style={{ fontSize: "14.5px", lineHeight: 1.55, color: "#39292a" }}>
-                {lang === "en"
-                  ? <>Earn <strong style={{ fontWeight: 600 }}>2 credits</strong> each time you host — welcome the mothers at an event on the calendar — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>become a host</Link></>
-                  : <>Gana <strong style={{ fontWeight: 600 }}>2 créditos</strong> cada vez que seas anfitriona — da la bienvenida a las madres en un evento del calendario — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>sé anfitriona</Link></>}
+                {lang === "fr"
+                  ? <>Gagnez <strong style={{ fontWeight: 600 }}>2 crédits</strong> à chaque accueil — accueillez les mères lors d'un événement au calendrier — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>devenir hôtesse</Link></>
+                  : lang === "es"
+                  ? <>Gana <strong style={{ fontWeight: 600 }}>2 créditos</strong> cada vez que seas anfitriona — da la bienvenida a las madres en un evento del calendario — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>sé anfitriona</Link></>
+                  : <>Earn <strong style={{ fontWeight: 600 }}>2 credits</strong> each time you host — welcome the mothers at an event on the calendar — <Link href="/host" style={{ color: "#3b5e04", textDecoration: "underline", textUnderlineOffset: "3px" }}>become a host</Link></>}
               </span>
             </div>
           </div>
@@ -851,8 +837,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 }}
               >
                 {isLive
-                  ? (lang === "en" ? "MEMBERSHIP" : "MEMBRESÍA")
-                  : (lang === "en" ? "FROM LAUNCH" : "DESDE EL LANZAMIENTO")}
+                  ? (lang === "fr" ? "ADHÉSION" : lang === "es" ? "MEMBRESÍA" : "MEMBERSHIP")
+                  : (lang === "fr" ? "DÈS L'OUVERTURE" : lang === "es" ? "DESDE EL LANZAMIENTO" : "FROM LAUNCH")}
               </div>
 
               <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(26px, 3.4vw, 36px)", lineHeight: 1.15, margin: 0 }}>
@@ -1070,8 +1056,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
               }}
             >
               {isLive
-                ? (lang === "en" ? "Stay in touch" : "Mantente al día")
-                : (lang === "en" ? "Early access" : "Acceso preferente")}
+                ? (lang === "fr" ? "Restons en contact" : lang === "es" ? "Mantente al día" : "Stay in touch")
+                : (lang === "fr" ? "Accès prioritaire" : lang === "es" ? "Acceso preferente" : "Early access")}
             </div>
 
             <h3
@@ -1095,9 +1081,11 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 margin: "0 0 20px",
               }}
             >
-              {lang === "en"
-                ? "Mothers on this list receive pre-launch invitations. No joining fee if you join before launch."
-                : "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento. Sin cuota de alta si te unes antes del lanzamiento."}
+              {lang === "fr"
+                ? "Les mères sur cette liste reçoivent des invitations exclusives de pré-lancement. Pas de frais d'adhésion si vous nous rejoignez avant le lancement."
+                : lang === "es"
+                ? "Las madres en esta lista recibirán invitaciones exclusivas de pre-lanzamiento. Sin cuota de alta si te unes antes del lanzamiento."
+                : "Mothers on this list receive pre-launch invitations. No joining fee if you join before launch."}
             </p>
 
             <form onSubmit={handleJoinList} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -1149,8 +1137,8 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                 }}
               >
                 {loading
-                  ? (lang === "en" ? "Saving..." : "Guardando...")
-                  : (lang === "en" ? "Join the list" : "Unirme a la lista")}
+                  ? (lang === "fr" ? "Enregistrement..." : lang === "es" ? "Guardando..." : "Saving...")
+                  : (lang === "fr" ? "Rejoindre la liste" : lang === "es" ? "Unirme a la lista" : "Join the list")}
               </button>
             </form>
           </div>

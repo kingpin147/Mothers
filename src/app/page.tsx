@@ -1,15 +1,18 @@
 import React from "react";
-import ComingSoonClient from "./coming-soon/ComingSoonClient";
+import HomeClient from "./HomeClient";
+import { getPublicEvents } from "@/app/actions/events";
 import { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "The Mothers Barcelona — Private Membership Club for Moms",
+  title: "The Mothers — Private Moms Club & Community in Barcelona",
   description:
-    "A private membership club for mothers in Barcelona is opening soon. Join the early access list to receive priority invitations and connect with local mothers.",
+    "The Mothers is a private moms club in Barcelona offering curated gatherings, genuine community, and trusted experiences designed for modern mothers and bumps.",
   openGraph: {
-    title: "The Mothers Barcelona — Private Membership Club for Moms",
+    title: "The Mothers — Private Moms Club & Community in Barcelona",
     description:
-      "A private membership club for mothers in Barcelona is opening soon. Join the early access list to receive priority invitations and connect with local mothers.",
+      "The Mothers is a private moms club in Barcelona offering curated gatherings, genuine community, and trusted experiences designed for modern mothers and bumps.",
     url: "https://themothers.cc",
     siteName: "The Mothers",
     images: [
@@ -23,7 +26,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootComingSoonPage() {
-  return <ComingSoonClient />;
-}
+export default async function HomePage() {
+  let events: any[] = [];
+  try {
+    const data = await getPublicEvents();
+    events = data.events || [];
+  } catch {
+    events = [];
+  }
 
+  return <HomeClient initialEvents={events} />;
+}

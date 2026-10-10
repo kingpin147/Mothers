@@ -60,8 +60,8 @@ export default function JournalSlugPage() {
 
   useEffect(() => {
     const updateLang = () => {
-      const saved = localStorage.getItem("tm_lang");
-      if (saved === "es" || saved === "en") setLang(saved as Locale);
+      const saved = localStorage.getItem("site_language") || localStorage.getItem("tm_lang");
+      if (saved === "es" || saved === "fr" || saved === "en") setLang(saved as Locale);
     };
     updateLang();
     window.addEventListener("tm_lang_change", updateLang);
