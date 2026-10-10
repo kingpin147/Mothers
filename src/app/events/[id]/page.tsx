@@ -118,8 +118,8 @@ export default function EventDetailPage() {
         setUserBookingId(null);
         setShowCancelModal(false);
         
-        const isFree = ev.creditCost === 0 || (ev.isFreeWalk && (isMember || !ev.isLive));
-        const viewerCost = isFree ? 0 : (ev.isLive ? (isMember ? (ev.memberCredits ?? ev.creditCost ?? 0) : (ev.nonMemberCredits ?? ev.creditCost ?? 0)) : (ev.creditCost ?? 0));
+        const isFree = ev.creditCost === 0 || (ev.isFreeWalk && (isMember || !isLive));
+        const viewerCost = isFree ? 0 : (isLive ? (isMember ? (ev.memberCredits ?? ev.creditCost ?? 0) : (ev.nonMemberCredits ?? ev.creditCost ?? 0)) : (ev.creditCost ?? 0));
         
         const win = ev.cancellationWindowHours ?? 24;
         const isInsideWindow = new Date() > new Date(new Date(ev.startsAt).getTime() - win * 3600000);
