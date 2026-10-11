@@ -566,6 +566,7 @@ async function handleMembershipCheckout({
 
     // 3. Record Payment in finance ledger matching actual breakdown from Stripe (P2-08)
     const { stripe } = await import("@/lib/stripe");
+    const realInvoiceId = (typeof session?.invoice === "string" ? session.invoice : session?.invoice?.id) || subscriptionId || null;
     let initialInvoiceLines: any[] = [];
     if (session?.invoice) {
       try {
@@ -590,7 +591,7 @@ async function handleMembershipCheckout({
           amountCents: line.amount,
           currency: "EUR",
           status: "succeeded",
-          stripeInvoiceId: subscriptionId || session?.id || null,
+          stripeInvoiceId: realInvoiceId,
           occurredAt: new Date(),
         }).onConflictDoNothing();
       }
@@ -602,7 +603,7 @@ async function handleMembershipCheckout({
         amountCents: session?.amount_total || 3900,
         currency: "EUR",
         status: "succeeded",
-        stripeInvoiceId: subscriptionId || session?.id || null,
+        stripeInvoiceId: realInvoiceId,
         occurredAt: new Date(),
       }).onConflictDoNothing();
     }
@@ -616,7 +617,7 @@ async function handleMembershipCheckout({
         amountCents: -discountCents,
         currency: "EUR",
         status: "succeeded",
-        stripeInvoiceId: subscriptionId || session?.id || null,
+        stripeInvoiceId: realInvoiceId,
         occurredAt: new Date(),
       }).onConflictDoNothing();
     }
@@ -1081,12 +1082,18 @@ async function handleChargeRefunded({
        // Only claw back exactly what was granted (or whatever is remaining of it)
        creditsToClawback = exactBatch.amount; // Clawback the original granted amount
     } else {
-       // Fallback logic
-       creditsToClawback = Math.max(1, Math.floor(refundAmountCents / 200));
+       // Fallback logic using Settings rate
+       const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
+       const clubSettings = await getPublicClubSettings();
+       const creditRate = clubSettings.topUpPriceCents ?? 200;
+       creditsToClawback = Math.max(1, Math.floor(refundAmountCents / creditRate));
     }
 
+    // P2-15: Never claw back godmother or host_reward credits on refund
+    const eligibleBatches = batches.filter(b => b.source !== "godmother" && b.source !== "host_reward");
+
     let totalClawedBack = 0;
-    for (const b of batches) {
+    for (const b of eligibleBatches) {
       if (creditsToClawback <= 0) break;
       const remove = Math.min(b.remaining, creditsToClawback);
       await tx.update(creditBatch).set({

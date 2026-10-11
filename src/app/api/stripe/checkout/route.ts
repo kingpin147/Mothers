@@ -120,10 +120,8 @@ export async function POST(req: Request) {
         personEmail = personRecord.email;
       }
 
-      // Fetch member record directly
-      let memberRecord = memberId
-        ? await db.query.member.findFirst({ where: eq(member.id, memberId) })
-        : await db.query.member.findFirst({ where: eq(member.personId, personId) });
+      // P2-07: Always look up member by authenticated personId; ignore browser-supplied memberId
+      let memberRecord = await db.query.member.findFirst({ where: eq(member.personId, personId) });
 
       // Check already active or past_due member (P2-16)
       if (memberRecord?.stripeSubscriptionId && memberRecord?.status !== "lapsed" && memberRecord?.status !== "applicant") {
@@ -169,7 +167,8 @@ export async function POST(req: Request) {
       // Waived permanently if createdBeforeLaunch === true (§6.1, Pre-Membership Rule)
       const isFeeWaived = personRecord?.createdBeforeLaunch === true;
 
-      const unitAmount = isQuarterly ? defaultQuarterlyPrice : (memberRecord.priceCents > 0 ? memberRecord.priceCents : defaultMonthlyPrice);
+      // P2-16: Always use Settings price for new checkout session
+      const unitAmount = isQuarterly ? defaultQuarterlyPrice : defaultMonthlyPrice;
 
       // Check wallet credit discount on first payment (§M-07 / §5) using Settings credit rate (F-06 / F-19)
       const creditRate = clubSettings.topUpPriceCents ?? 200;

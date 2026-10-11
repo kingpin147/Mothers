@@ -226,6 +226,20 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
     });
 
     if (!alreadyBroadcast) {
+      const broadcastTimestamp = new Date().toISOString();
+
+      // P2-11: Record flag immediately to avoid race conditions/timeouts re-triggering broadcasts
+      await db
+        .insert(setting)
+        .values({
+          key: "membership_is_open_broadcast_sent_at",
+          value: broadcastTimestamp,
+        })
+        .onConflictDoUpdate({
+          target: setting.key,
+          set: { value: broadcastTimestamp, updatedAt: new Date() },
+        });
+
       const [allPersons, allLeads] = await Promise.all([
         db
           .select({
@@ -285,19 +299,6 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
           }
         }
 
-        const broadcastTimestamp = new Date().toISOString();
-
-        await db
-          .insert(setting)
-          .values({
-            key: "membership_is_open_broadcast_sent_at",
-            value: broadcastTimestamp,
-          })
-          .onConflictDoUpdate({
-            target: setting.key,
-            set: { value: broadcastTimestamp, updatedAt: new Date() },
-          });
-
         await db.insert(auditLog).values({
           actorId: adminId,
           actorType: "admin",
@@ -314,14 +315,14 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
     }
   }
 
-  if (switchDualPrice) {
-    const nextPriceDisplay = live ? "dual" : "single";
+  // P2-04: When switching on with switchDualPrice, immediately set price_display to dual; when switching off, return to single
+  if (live && switchDualPrice) {
     await db
       .insert(setting)
-      .values({ key: "price_display", value: nextPriceDisplay })
+      .values({ key: "price_display", value: "dual" })
       .onConflictDoUpdate({
         target: setting.key,
-        set: { value: nextPriceDisplay, updatedAt: new Date() },
+        set: { value: "dual", updatedAt: new Date() },
       });
   } else if (!live) {
     await db

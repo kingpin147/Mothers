@@ -665,7 +665,7 @@ export async function revealPerkCode(rawPerkId: string) {
   try {
     const memberRecord = await db.query.member.findFirst({ where: eq(member.personId, personId) });
     if (!memberRecord) return { success: false, error: "MEMBER_REQUIRED" };
-    if (memberRecord.status !== "active" && memberRecord.status !== "paused") {
+    if (memberRecord.status !== "active") {
       return { success: false, error: "NOT_ACTIVE_MEMBER" };
     }
     

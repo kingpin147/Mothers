@@ -26,6 +26,7 @@ import {
   emailLog,
   circlePost,
   circleReply,
+  hostRequest,
 } from "@/db/schema";
 import { eq, desc, and, or, sql, ne, asc, gt } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -214,6 +215,7 @@ export async function getAdminMembers() {
         monthlyPriceCents: member.monthlyPriceCents,
         currentPeriodEnd: member.currentPeriodEnd,
         cancelAtPeriodEnd: member.cancelAtPeriodEnd,
+        stripeSubscriptionId: member.stripeSubscriptionId,
         atRiskSince: member.atRiskSince,
         firstName: person.firstName,
         lastName: person.lastName,
@@ -299,6 +301,11 @@ export async function getAdminMemberDetail(memberId: string) {
       suspendedReason: person.suspendedReason,
       createdBeforeLaunch: person.createdBeforeLaunch,
       godmotherCode: person.godmotherCode,
+      profileData: person.profileData,
+      marketingOptIn: person.marketingOptIn,
+      stripeSubscriptionId: member.stripeSubscriptionId,
+      stripeCustomerId: member.stripeCustomerId,
+      referredByPersonId: person.referredByPersonId,
     })
     .from(member)
     .innerJoin(person, eq(member.personId, person.id))
@@ -339,6 +346,11 @@ export async function getAdminMemberDetail(memberId: string) {
         suspendedReason: personRec.suspendedReason,
         createdBeforeLaunch: personRec.createdBeforeLaunch !== false,
         godmotherCode: personRec.godmotherCode,
+        profileData: personRec.profileData,
+        marketingOptIn: personRec.marketingOptIn,
+        stripeSubscriptionId: null,
+        stripeCustomerId: null,
+        referredByPersonId: personRec.referredByPersonId,
       };
     }
   }
@@ -359,8 +371,8 @@ export async function getAdminMemberDetail(memberId: string) {
     }
   }
 
-  // 2. Fetch Batches, Booking Spends, Godmother Stats, Attendance, Contact History concurrently
-  const [batches, bookingSpends, godmotherStats, attendance, contactHistory, totalBalance] = await Promise.all([
+  // 2. Fetch Batches, Booking Spends, Godmother Stats, Attendance, Contact History, Host Requests concurrently
+  const [batches, bookingSpends, godmotherStats, attendance, contactHistory, totalBalance, hostRequestsList] = await Promise.all([
     // Credit Batches
     db
       .select()
@@ -391,9 +403,9 @@ export async function getAdminMemberDetail(memberId: string) {
     db
       .select()
       .from(godmotherReferral)
-      .where(eq(godmotherReferral.referrerMemberId, memberId)),
+      .where(eq(godmotherReferral.referrerMemberId, memberData.id)),
 
-    // Attendance History
+    // Attendance History (all bookings for this person or member)
     db
       .select({
         id: booking.id,
@@ -401,13 +413,14 @@ export async function getAdminMemberDetail(memberId: string) {
         creditsCharged: booking.creditsCharged,
         bookedAt: booking.bookedAt,
         releasedAt: booking.releasedAt,
+        noShow: booking.noShow,
         eventTitle: event.title,
         eventStartsAt: event.startsAt,
         isFreeWalk: event.isFreeWalk,
       })
       .from(booking)
       .innerJoin(event, eq(booking.eventId, event.id))
-      .where(eq(booking.memberId, memberId))
+      .where(or(eq(booking.personId, targetPersonId), eq(booking.memberId, memberData.id)))
       .orderBy(desc(event.startsAt)),
 
     // Contact History (Emails)
@@ -424,7 +437,29 @@ export async function getAdminMemberDetail(memberId: string) {
 
     // Wallet Total Balance
     getPersonWalletBalance(memberData.personId),
+
+    // Host Requests
+    db
+      .select({
+        id: hostRequest.id,
+        eventId: hostRequest.eventId,
+        status: hostRequest.status,
+        format: hostRequest.format,
+        eventTitle: event.title,
+      })
+      .from(hostRequest)
+      .leftJoin(event, eq(hostRequest.eventId, event.id))
+      .where(eq(hostRequest.personId, targetPersonId)),
   ]);
+
+  let referredByName = "—";
+  if (memberData.referredByPersonId) {
+    const refP = await db.query.person.findFirst({
+      where: eq(person.id, memberData.referredByPersonId),
+      columns: { firstName: true, lastName: true, email: true },
+    });
+    if (refP) referredByName = `${refP.firstName} ${refP.lastName}`.trim() || refP.email;
+  }
 
   const ledgerEntries = [
     ...batches.map((b) => ({
@@ -458,6 +493,9 @@ export async function getAdminMemberDetail(memberId: string) {
     godmotherStats,
     attendance,
     contactHistory,
+    hostRequests: hostRequestsList,
+    referredByName,
+    earliestExpiry: batches.filter(b => b.expiresAt && b.remaining > 0).map(b => b.expiresAt).sort()[0] || null,
   };
 }
 

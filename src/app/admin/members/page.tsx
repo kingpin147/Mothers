@@ -272,7 +272,8 @@ export default function AdminMembersPage() {
                   ? `Member since ${dateStrMonthYear || '—'}`
                   : (dateStrMonthYear ? `Account since ${dateStrMonthYear}` : '—');
 
-                const isNoPlan = m.status === 'applicant' || m.status !== 'active';
+                const isPaidMember = (m.status === 'active' || m.status === 'paused' || m.status === 'past_due' || m.status === 'cancelled_at_period_end') && Boolean(m.stripeSubscriptionId);
+                const isNoPlan = !isPaidMember;
                 const countBooked = m.bookedCount || m.attended || 0;
                 const bookedLabel = countBooked === 0 ? "Not seen yet" : countBooked === 1 ? "Booked 1 event" : `Booked ${countBooked} events`;
 
@@ -298,7 +299,7 @@ export default function AdminMembersPage() {
                             Account · no membership
                           </div>
                           <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
-                            Pay per event in credits · membership from January 2027
+                            Pay per event in credits - membership from January 2027
                           </div>
                         </div>
                       ) : (
@@ -316,7 +317,7 @@ export default function AdminMembersPage() {
                     <div>
                       {isNoPlan ? (
                         <div>
-                          <span style={{ display: "inline-block", border: `1px solid rgba(57,41,42,0.35)`, color: "#39292a", backgroundColor: "#ffffff", borderRadius: "3px", padding: "3px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                          <span style={{ display: "inline-block", border: `1px solid ${GREEN}`, color: GREEN, backgroundColor: "#ffffff", borderRadius: "3px", padding: "3px 8px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "11.5px", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
                             Account
                           </span>
                           <div style={{ fontSize: "11px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
