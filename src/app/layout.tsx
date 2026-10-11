@@ -4,6 +4,7 @@ import "./globals.css";
 import { SessionProviderWrapper } from "@/components/SessionProviderWrapper";
 import ConditionalShell from "@/components/ConditionalShell";
 import { LanguageProvider } from "@/components/LanguageProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -166,6 +167,7 @@ export default function RootLayout({
             <ConditionalShell>{children}</ConditionalShell>
           </LanguageProvider>
         </SessionProviderWrapper>
+        <SpeedInsights />
       </body>
     </html>
   );
