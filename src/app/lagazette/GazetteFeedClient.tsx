@@ -155,7 +155,7 @@ export function GazetteFeedClient({
 
   const handleCreatePost = async () => {
     if (!currentUser) {
-      window.location.href = "/account/login?redirect=/gazette&mode=register";
+      window.location.href = "/account/login?redirect=/lagazette&mode=register";
       return;
     }
 
@@ -386,7 +386,7 @@ export function GazetteFeedClient({
     if (!text) return;
 
     if (!currentUser) {
-      window.location.href = "/account/login?redirect=/gazette&mode=register";
+      window.location.href = "/account/login?redirect=/lagazette&mode=register";
       return;
     }
 
@@ -1282,8 +1282,8 @@ export function GazetteFeedClient({
                           <Link
                             href={
                               loginPrompt.action === "save"
-                                ? "/account/login?redirect=/gazette&mode=register"
-                                : "/account/login?redirect=/gazette"
+                                ? "/account/login?redirect=/lagazette&mode=register"
+                                : "/account/login?redirect=/lagazette"
                             }
                             style={{
                               fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -1609,7 +1609,7 @@ export function GazetteFeedClient({
                     : "Open a free account to post and reply, or book an event and meet the mothers you are talking to.")}
             </p>
             <Link
-              href={isUserSignedIn ? "/events" : "/account/login?redirect=/gazette&mode=register"}
+              href={isUserSignedIn ? "/events" : "/account/login?redirect=/lagazette&mode=register"}
               style={{
                 border: "1px solid #7b1f2c",
                 color: "#7b1f2c",

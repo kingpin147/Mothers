@@ -549,6 +549,7 @@ export async function createCirclePost(data: {
     replies: [],
   };
 
+  revalidatePath("/lagazette");
   revalidatePath("/gazette");
   return { success: true, post: formattedPost };
 }
@@ -649,6 +650,7 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     neighbourhood: realArea,
   };
 
+  revalidatePath("/lagazette");
   revalidatePath("/gazette");
   return { success: true, reply: formattedReply };
 }
@@ -783,6 +785,7 @@ export async function reportCirclePost(postId: string, reason: string, details?:
     })
     .where(eq(circlePost.id, postId));
 
+  revalidatePath("/lagazette");
   revalidatePath("/gazette");
   return { success: true };
 }
@@ -943,6 +946,7 @@ export async function deleteGazettePostAdmin(postId: string) {
     });
   });
 
+  revalidatePath("/lagazette");
   revalidatePath("/gazette");
   revalidatePath("/admin/reports");
   revalidatePath("/admin/pre-launch");
@@ -992,6 +996,7 @@ export async function deleteGazetteCommentAdmin(replyId: string) {
     });
   });
 
+  revalidatePath("/lagazette");
   revalidatePath("/gazette");
   revalidatePath("/admin/reports");
   return { success: true };

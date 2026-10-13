@@ -825,7 +825,7 @@ export default function MembershipClient({
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
               <Link
-                href="/gazette"
+                href="/lagazette"
                 style={{
                   border: "1px solid #7b1f2c",
                   background: "#7b1f2c",

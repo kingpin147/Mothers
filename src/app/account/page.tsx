@@ -812,7 +812,7 @@ function AccountPageContent() {
               }}
             >
               <Link
-                href="/gazette"
+                href="/lagazette"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -831,7 +831,7 @@ function AccountPageContent() {
               <span style={{ color: "rgba(57, 41, 42, 0.25)" }}>·</span>
 
               <Link
-                href="/gazette?filter=saved"
+                href="/lagazette?filter=saved"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",

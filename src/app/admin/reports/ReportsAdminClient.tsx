@@ -192,7 +192,7 @@ export function ReportsAdminClient({ initialReports }: { initialReports: ReportI
         </div>
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <Link
-            href="/gazette"
+            href="/lagazette"
             target="_blank"
             style={{
               border: "1px solid rgba(57,41,42,0.24)",

@@ -158,7 +158,7 @@ const GROUPS: UATGroup[] = [
         id: "RS-05",
         prio: "P1",
         title: "Post 3 times as Non-Member",
-        steps: "Open /gazette with a non-member account. Submit 3 posts or replies.",
+        steps: "Open /lagazette with a non-member account. Submit 3 posts or replies.",
         expected: "First 3 posts succeed; 4th attempt blocks with 'You have used your 3 free La Gazette posts/replies. Become a member for unlimited conversations.'"
       },
       {

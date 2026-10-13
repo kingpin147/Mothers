@@ -517,6 +517,7 @@ export async function saveGazetteTopics(data: { pinned: string; blocked: string[
       });
     }
 
+    revalidatePath("/lagazette");
     revalidatePath("/gazette");
     revalidatePath("/admin/pre-launch");
     revalidatePath("/admin/reports");

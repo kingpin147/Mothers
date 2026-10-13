@@ -117,6 +117,7 @@ export async function moderatePost(postId: string, action: "hide" | "restore") {
     .where(eq(circlePost.id, postId));
 
   revalidatePath("/admin/reports");
+  revalidatePath("/lagazette");
   revalidatePath("/gazette");
   return { success: true };
 }

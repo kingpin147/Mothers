@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/gazette",
+        destination: "/lagazette",
+        permanent: true,
+      },
+    ];
+  },
   // Security headers (§12)
   async headers() {
     return [
