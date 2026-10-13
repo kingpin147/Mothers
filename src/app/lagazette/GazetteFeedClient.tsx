@@ -30,6 +30,7 @@ const TOPICS = [
   { id: "friends", labelEn: "Meetups & friends", labelEs: "Quedadas y amigas", labelFr: "Rencontres & amies" },
   { id: "recs", labelEn: "Recommendations", labelEs: "Recomendaciones", labelFr: "Recommandations" },
   { id: "gear", labelEn: "Gear & Swap", labelEs: "Cosas y trueque", labelFr: "Affaires & troc" },
+  { id: "other", labelEn: "Other", labelEs: "Otros", labelFr: "Autre" },
 ];
 
 const COMPOSER_TOPIC_IDS = [
@@ -43,6 +44,7 @@ const COMPOSER_TOPIC_IDS = [
   "friends",
   "recs",
   "gear",
+  "other",
 ];
 
 const REPORT_REASONS = [

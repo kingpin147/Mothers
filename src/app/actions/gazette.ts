@@ -57,6 +57,7 @@ const TOPIC_LABELS: Record<string, string> = {
   friends: "Meetups & friends",
   recs: "Recommendations",
   gear: "Gear & Swap",
+  other: "Other",
 };
 
 function formatTimeAgo(date: Date): string {
