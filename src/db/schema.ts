@@ -56,6 +56,7 @@ export const bookingStatusEnum = pgEnum("booking_status", [
   "attended",
   "no_show",
   "waitlist",
+  "cancelled",
 ]);
 
 
