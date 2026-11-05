@@ -514,7 +514,12 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                         ? (lang === "fr" ? "crédit" : lang === "es" ? "crédito" : "credit")
                         : (lang === "fr" ? "crédits" : lang === "es" ? "créditos" : "credits")
                     }`;
-            const locationDisplay = [ev.neighbourhood, ev.venueName].filter(Boolean).join(" · ");
+            const locationDisplay =
+              ev.venueName && ev.venueName !== "To be confirmed"
+                ? ev.venueName
+                : (ev.neighbourhood === "To be confirmed" || ev.venueName === "To be confirmed")
+                ? (lang === "es" ? "Lugar por confirmar" : lang === "fr" ? "Lieu à confirmer" : "Location to be confirmed")
+                : (ev.neighbourhood || (ev.isOnline ? (lang === "fr" ? "En ligne" : lang === "es" ? "En línea" : "Online") : ""));
             const imgUrl =
               ev.imageUrl ||
               (ev.imageId &&

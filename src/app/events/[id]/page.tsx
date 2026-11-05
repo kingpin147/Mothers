@@ -453,15 +453,26 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            {ev.neighbourhood ? (
+            {(ev.venueName || ev.neighbourhood) ? (
               <div>
                 <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
                   {lang === "fr" ? "Où" : lang === "es" ? "Dónde" : "Where"}
                 </div>
                 <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
-                  {ev.neighbourhood === "To be confirmed"
-                    ? (lang === "es" ? "Lugar por confirmar" : lang === "fr" ? "Lieu à confirmer" : "Location to be confirmed")
-                    : ev.neighbourhood}
+                  {ev.venueName && ev.venueName !== "To be confirmed" ? (
+                    <div>
+                      <div style={{ fontWeight: 600, color: "#39292a" }}>{ev.venueName}</div>
+                      {ev.neighbourhood && ev.neighbourhood !== "To be confirmed" && (
+                        <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", marginTop: "2px" }}>
+                          {ev.neighbourhood}
+                        </div>
+                      )}
+                    </div>
+                  ) : ev.neighbourhood === "To be confirmed" || ev.venueName === "To be confirmed" ? (
+                    lang === "es" ? "Lugar por confirmar" : lang === "fr" ? "Lieu à confirmer" : "Location to be confirmed"
+                  ) : (
+                    ev.neighbourhood
+                  )}
                 </div>
               </div>
             ) : null}
@@ -498,7 +509,7 @@ export default function EventDetailPage() {
               {ev.neighbourhood === "To be confirmed"
                 ? (lang === "es" ? "Estamos confirmando el lugar. Todas las inscritas recibirán un email con la zona y el punto de encuentro en cuanto se defina." : lang === "fr" ? "Nous confirmons le lieu. Toutes les inscrites recevront un email avec la zone et le point de rendez-vous dès qu'il sera défini." : "We are confirming the location. Everyone booked gets an email with the area and the meeting point as soon as it is set.")
                 : isAlreadyBooked
-                ? (ev.meetingPointNote || ev.venueAddress || ev.venueName || (lang === "fr" ? "Les détails du point de rendez-vous seront envoyés par e-mail." : lang === "es" ? "Los detalles del punto de encuentro se enviarán por email." : "Meeting point details will be sent via email."))
+                ? (ev.meetingPoint || ev.meetingPointNote || ev.venueAddress || ev.venueName || (lang === "fr" ? "Les détails du point de rendez-vous seront envoyés par e-mail." : lang === "es" ? "Los detalles del punto de encuentro se enviarán por email." : "Meeting point details will be sent via email."))
                 : (lang === "fr"
                     ? `L'adresse exacte est envoyée lors de la réservation.${ev.neighbourhood ? ` ${ev.neighbourhood}, près des transports en commun.` : ""}`
                     : lang === "es"

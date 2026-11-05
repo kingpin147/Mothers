@@ -1775,7 +1775,7 @@ function AccountPageContent() {
                             {ev.title}
                           </h3>
                           <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)" }}>
-                            {dateFormatted} · {ev.neighbourhood || ev.venueName || "Barcelona"}
+                            {dateFormatted} · {ev.venueName || ev.neighbourhood || "Barcelona"}
                           </div>
                         </div>
 
