@@ -31,6 +31,8 @@ export default function AdminCreateEventPage() {
   const [memberCredits, setMemberCredits] = useState("");
   const [nonMemberCredits, setNonMemberCredits] = useState("");
   const [cancellationWindowHours, setCancellationWindowHours] = useState("24");
+  const [isCustomCancel, setIsCustomCancel] = useState(false);
+  const CANCEL_PRESETS = ["0", "12", "24", "48", "72", "96", "120", "168", "336"];
   const [isMembershipLive, setIsMembershipLive] = useState(false);
   const [description, setDescription] = useState("");
   const [descriptionEs, setDescriptionEs] = useState("");
@@ -714,15 +716,41 @@ export default function AdminCreateEventPage() {
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Cancellation window <span style={{ color: "#7b1f2c" }}>*</span></label>
                 <select
-                  value={cancellationWindowHours}
-                  onChange={(e) => setCancellationWindowHours(e.target.value)}
+                  value={CANCEL_PRESETS.includes(cancellationWindowHours) && !isCustomCancel ? cancellationWindowHours : "custom"}
+                  onChange={(e) => {
+                    if (e.target.value === "custom") {
+                      setIsCustomCancel(true);
+                    } else {
+                      setIsCustomCancel(false);
+                      setCancellationWindowHours(e.target.value);
+                    }
+                  }}
                   style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}
                 >
                   <option value="0">Any time (free cancellation)</option>
+                  <option value="12">12 hours before</option>
                   <option value="24">24 hours before (standard)</option>
-                  <option value="48">48 hours before</option>
+                  <option value="48">48 hours before (2 days)</option>
+                  <option value="72">72 hours before (3 days)</option>
+                  <option value="96">96 hours before (4 days)</option>
+                  <option value="120">120 hours before (5 days)</option>
                   <option value="168">7 days before (168 hours)</option>
+                  <option value="336">14 days before (336 hours)</option>
+                  <option value="custom">Custom hours...</option>
                 </select>
+                {(isCustomCancel || (!CANCEL_PRESETS.includes(cancellationWindowHours) && cancellationWindowHours !== "")) && (
+                  <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input
+                      type="number"
+                      min="0"
+                      value={cancellationWindowHours}
+                      onChange={(e) => setCancellationWindowHours(e.target.value)}
+                      placeholder="e.g. 72"
+                      style={{ width: "110px", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "8px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}
+                    />
+                    <span style={{ fontSize: "13.5px", color: "rgba(57,41,42,0.75)" }}>hours before start</span>
+                  </div>
+                )}
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>Window before start for free cancellation and host penalties.</div>
               </div>
             </div>

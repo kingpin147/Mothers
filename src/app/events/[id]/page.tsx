@@ -526,12 +526,13 @@ export default function EventDetailPage() {
                       ? "Cancelación gratuita en cualquier momento."
                       : "Free cancellation any time.";
                   }
-                  if (win === 168) {
+                  if (win % 24 === 0 && win >= 48) {
+                    const days = win / 24;
                     return lang === "fr"
-                      ? "Annulation gratuite jusqu'à 7 jours avant."
+                      ? `Annulation gratuite jusqu'à ${days} jours avant (${win}h).`
                       : lang === "es"
-                      ? "Cancelación gratuita hasta 7 días antes."
-                      : "Free cancellation up to 7 days before.";
+                      ? `Cancelación gratuita hasta ${days} días antes (${win} h).`
+                      : `Free cancellation up to ${days} days before (${win}h).`;
                   }
                   return lang === "fr"
                     ? `Annulation gratuite jusqu'à ${win} heures avant.`
@@ -648,7 +649,14 @@ export default function EventDetailPage() {
                   return lang === "fr" ? "Gratuit — aucun crédit à rembourser" : lang === "es" ? "Gratis — sin créditos que devolver" : "Free — no credits to refund";
                 }
                 if (win === 0) return lang === "fr" ? "Annulation à tout moment" : lang === "es" ? "Cancela en cualquier momento" : "Cancel any time";
-                if (win === 168) return lang === "fr" ? "Annulation gratuite jusqu'à 7 jours avant" : lang === "es" ? "Cancelación gratuita hasta 7 días antes" : "Free cancellation up to 7 days before";
+                if (win % 24 === 0 && win >= 48) {
+                  const days = win / 24;
+                  return lang === "fr"
+                    ? `Annulation gratuite jusqu'à ${days} jours avant`
+                    : lang === "es"
+                    ? `Cancelación gratuita hasta ${days} días antes`
+                    : `Free cancellation up to ${days} days before`;
+                }
                 return lang === "fr" ? `Annulation gratuite jusqu'à ${win}h avant` : lang === "es" ? `Cancelación gratuita hasta ${win}h antes` : `Free cancellation up to ${win}h before`;
               })()}
             </div>
