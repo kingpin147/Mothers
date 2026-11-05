@@ -48,6 +48,7 @@ export interface PublicEvent {
   neighbourhood?: string | null;
   partnerName?: string | null;
   partnerSlug?: string | null;
+  hostPersonName?: string | null;
   categoryName?: string | null;
   categorySlug?: string | null;
   categoryId?: string | null;
@@ -314,6 +315,12 @@ export function getEventDisplayDesc(ev: PublicEvent, lang: Lang): string | null 
 
 
 export function getCategoryInfo(ev: any, lang: Lang): { key: string; label: string } {
+  if (ev.categoryName) {
+    return {
+      key: ev.categorySlug || "category",
+      label: ev.categoryName,
+    };
+  }
   if (ev.isSignature) {
     return {
       key: "signature",
@@ -1462,9 +1469,27 @@ function EventCard({
           <span>
             {ev.neighbourhood === "To be confirmed"
               ? (lang === "es" ? "Lugar por confirmar" : lang === "fr" ? "Lieu à confirmer" : "Location to be confirmed")
-              : (ev.neighbourhood || ev.venueName || (ev.isOnline ? (lang === "en" ? "Online" : lang === "fr" ? "En ligne" : "En línea") : "Barcelona"))}
+              : (ev.neighbourhood || ev.venueName || (ev.isOnline ? (lang === "en" ? "Online" : lang === "fr" ? "En ligne" : "En línea") : ""))}
           </span>
         </div>
+
+        {/* Host / Partner */}
+        {(ev.partnerName || ev.hostPersonName) && (
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" style={{ flexShrink: 0 }}>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span>
+              {lang === "fr" ? "Avec " : lang === "es" ? "Con " : "With "}
+              <strong style={{ fontWeight: 600, color: "#39292a" }}>
+                {[ev.hostPersonName, ev.partnerName].filter(Boolean).join(" · ")}
+              </strong>
+            </span>
+          </div>
+        )}
 
         {/* 3. Languages */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1472,7 +1497,7 @@ function EventCard({
             <circle cx="12" cy="12" r="10" />
             <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" />
           </svg>
-          <span>{(ev.languages && ev.languages.length > 0 ? ev.languages : ["es", "en"]).map((l) => getLanguageLabel(l, lang)).join(", ")}</span>
+          <span>{(ev.languages && ev.languages.length > 0 ? ev.languages : []).map((l) => getLanguageLabel(l, lang)).join(", ")}</span>
         </div>
 
         {/* 4. Audience / Children */}

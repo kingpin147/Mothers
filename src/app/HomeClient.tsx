@@ -514,11 +514,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                         ? (lang === "fr" ? "crédit" : lang === "es" ? "crédito" : "credit")
                         : (lang === "fr" ? "crédits" : lang === "es" ? "créditos" : "credits")
                     }`;
-            const locationDisplay = ev.neighbourhood
-              ? `${ev.neighbourhood}${ev.venueName ? ` · ${ev.venueName}` : ""}`
-              : lang === "en"
-              ? "Barcelona"
-              : "Barcelona";
+            const locationDisplay = [ev.neighbourhood, ev.venueName].filter(Boolean).join(" · ");
             const imgUrl =
               ev.imageUrl ||
               (ev.imageId &&
@@ -646,12 +642,28 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                       </svg>
                       <span>{locationDisplay}</span>
                     </div>
+                    {(ev.partnerName || ev.hostPersonName) && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flexShrink: 0 }}>
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        <span>
+                          {lang === "fr" ? "Avec " : lang === "es" ? "Con " : "With "}
+                          <strong style={{ fontWeight: 600, color: "#39292a" }}>
+                            {[ev.hostPersonName, ev.partnerName].filter(Boolean).join(" · ")}
+                          </strong>
+                        </span>
+                      </div>
+                    )}
                     <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flexShrink: 0 }}>
                         <circle cx="12" cy="12" r="10" />
                         <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10Z" />
                       </svg>
-                      <span>{(ev.languages && ev.languages.length > 0 ? ev.languages : ["es", "en"]).map((l: string) => getLanguageLabel(l, lang as any)).join(", ")}</span>
+                      <span>{(ev.languages && ev.languages.length > 0 ? ev.languages : []).map((l: string) => getLanguageLabel(l, lang as any)).join(", ")}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
                       <svg viewBox="0 0 30 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="15" height="13" style={{ flexShrink: 0 }}>

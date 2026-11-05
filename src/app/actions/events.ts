@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, eventChangeLog, eventStage, stage, mediaAsset } from "@/db/schema";
+import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, person, eventChangeLog, eventStage, stage, mediaAsset } from "@/db/schema";
 import { eq, desc, asc, and, or, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
@@ -65,6 +65,8 @@ export async function getPublicEvents() {
           cancelReason: event.cancelReason,
           needsHost: event.needsHost,
           hostPersonId: event.hostPersonId,
+          hostPersonFirstName: person.firstName,
+          hostPersonLastName: person.lastName,
           memberCredits: event.memberCredits,
           nonMemberCredits: event.nonMemberCredits,
           cancellationWindowHours: event.cancellationWindowHours,
@@ -77,6 +79,7 @@ export async function getPublicEvents() {
         .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
         .leftJoin(partner, eq(event.partnerId, partner.id))
         .leftJoin(mediaAsset, eq(event.imageId, mediaAsset.id))
+        .leftJoin(person, eq(event.hostPersonId, person.id))
         .where(
           sql`${event.status} IN ('published_pending', 'confirmed', 'completed', 'cancelled')`
         )
@@ -215,10 +218,11 @@ export async function getPublicEvents() {
 
       return {
         ...ev,
-        partnerName: ev.partnerName || ev.partnerId || null,
-        partnerSlug: ev.partnerSlug || (ev.partnerId && ev.partnerId.length < 50 ? ev.partnerId.toLowerCase().replace(/[^a-z0-9]+/g, "-") : null),
-        category: ev.categoryName || "Easy connection",
-        stage: ev.stage || "All Stages",
+        hostPersonName: ev.hostPersonFirstName ? `${ev.hostPersonFirstName} ${ev.hostPersonLastName || ""}`.trim() : null,
+        partnerName: ev.partnerName || (ev.partnerId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ev.partnerId.trim()) ? ev.partnerId : null) || null,
+        partnerSlug: ev.partnerSlug || (ev.partnerId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ev.partnerId.trim()) && ev.partnerId.length < 50 ? ev.partnerId.toLowerCase().replace(/[^a-z0-9]+/g, "-") : null),
+        category: ev.categoryName || null,
+        stage: ev.stage || null,
         dateStr,
         timeStr: ends ? `${startTimeStr} – ${endTimeStr}` : startTimeStr,
         placesTaken,
@@ -228,7 +232,7 @@ export async function getPublicEvents() {
         capacityRemaining,
         isFull,
         audienceType,
-        languages: ev.languages || ["es", "en"],
+        languages: ev.languages || [],
         targetStages: stagesMap.get(ev.id) || [],
         userStatus,
       };
@@ -389,6 +393,9 @@ export async function getPublicEventById(rawId: string) {
         neighbourhood: event.neighbourhood,
         venueName: event.venueName,
         meetingPoint: event.meetingPoint,
+        partnerId: event.partnerId,
+        partnerName: partner.name,
+        partnerSlug: partner.id,
         startsAt: event.startsAt,
         endsAt: event.endsAt,
         creditCost: event.creditCost,
@@ -404,6 +411,8 @@ export async function getPublicEventById(rawId: string) {
         languages: event.languages,
         needsHost: event.needsHost,
         hostPersonId: event.hostPersonId,
+        hostPersonFirstName: person.firstName,
+        hostPersonLastName: person.lastName,
         memberCredits: event.memberCredits,
         nonMemberCredits: event.nonMemberCredits,
         cancellationWindowHours: event.cancellationWindowHours,
@@ -414,7 +423,9 @@ export async function getPublicEventById(rawId: string) {
       })
       .from(event)
       .leftJoin(eventCategory, eq(event.categoryId, eventCategory.id))
+      .leftJoin(partner, eq(event.partnerId, partner.id))
       .leftJoin(mediaAsset, eq(event.imageId, mediaAsset.id))
+      .leftJoin(person, eq(event.hostPersonId, person.id))
       .where(or(eq(event.id, id), eq(event.slug, id)))
       .limit(1);
 
@@ -459,10 +470,21 @@ export async function getPublicEventById(rawId: string) {
 
     const targetStages = stageLinks.map((s) => s.labelEn);
 
+    const isUuid = (val: string | null | undefined) =>
+      typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
+    const partnerName = ev.partnerName || (!isUuid(ev.partnerId) ? ev.partnerId : null) || null;
+    const partnerSlug = ev.partnerSlug || (ev.partnerId && !isUuid(ev.partnerId) && ev.partnerId.length < 50 ? ev.partnerId.toLowerCase().replace(/[^a-z0-9]+/g, "-") : null);
+    const hostPersonName = ev.hostPersonFirstName
+      ? `${ev.hostPersonFirstName} ${ev.hostPersonLastName || ""}`.trim()
+      : null;
+
     return {
       success: true,
       event: {
         ...ev,
+        partnerName,
+        partnerSlug,
+        hostPersonName,
         dateStr,
         timeStr,
         bookedMember,
@@ -476,7 +498,7 @@ export async function getPublicEventById(rawId: string) {
         daysUntil,
         guestPassEligible,
         audienceType: ev.childcare === "adults_only" ? "moms_only" : "moms_child",
-        languages: ev.languages || ["es", "en"],
+        languages: ev.languages || [],
         targetStages,
       },
     };

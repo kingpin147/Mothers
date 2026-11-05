@@ -380,18 +380,20 @@ export default function EventDetailPage() {
 
           {/* Category & Kids Badge Row */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", marginBottom: "14px" }}>
-            <span
-              style={{
-                fontSize: "11px",
-                letterSpacing: "0.04em",
-                color: "#7b1f2c",
-                border: "1px solid rgba(123, 31, 44, 0.35)",
-                borderRadius: "10px",
-                padding: "3px 10px",
-              }}
-            >
-              {ev.categoryName || (lang === "en" ? "Easy connection" : "Conexión")}
-            </span>
+            {ev.categoryName ? (
+              <span
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.04em",
+                  color: "#7b1f2c",
+                  border: "1px solid rgba(123, 31, 44, 0.35)",
+                  borderRadius: "10px",
+                  padding: "3px 10px",
+                }}
+              >
+                {ev.categoryName}
+              </span>
+            ) : null}
             <span style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.72)" }}>
               {ev.audienceType === "mothers_only" || ev.audienceType === "moms_only"
                 ? (lang === "en" ? "Mothers only" : lang === "es" ? "Solo madres" : "Mères seulement")
@@ -451,36 +453,40 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            <div>
-              <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
-                {lang === "fr" ? "Où" : lang === "es" ? "Dónde" : "Where"}
+            {ev.neighbourhood ? (
+              <div>
+                <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
+                  {lang === "fr" ? "Où" : lang === "es" ? "Dónde" : "Where"}
+                </div>
+                <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
+                  {ev.neighbourhood === "To be confirmed"
+                    ? (lang === "es" ? "Lugar por confirmar" : lang === "fr" ? "Lieu à confirmer" : "Location to be confirmed")
+                    : ev.neighbourhood}
+                </div>
               </div>
-              <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
-                {ev.neighbourhood === "To be confirmed"
-                  ? (lang === "es" ? "Lugar por confirmar" : lang === "fr" ? "Lieu à confirmer" : "Location to be confirmed")
-                  : (ev.neighbourhood || "Barcelona")}
-              </div>
-            </div>
+            ) : null}
 
-            <div>
-              <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
-                {lang === "fr" ? "Langues parlées" : lang === "es" ? "Idioma" : "Spoken"}
+            {ev.languages && ev.languages.length > 0 ? (
+              <div>
+                <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
+                  {lang === "fr" ? "Langues parlées" : lang === "es" ? "Idioma" : "Spoken"}
+                </div>
+                <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
+                  {ev.languages.map((l) => getLanguageLabel(l, lang)).join(" · ")}
+                </div>
               </div>
-              <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
-                {ev.languages && ev.languages.length > 0
-                  ? ev.languages.map((l) => getLanguageLabel(l, lang)).join(" · ")
-                  : (lang === "fr" ? "Anglais, Espagnol" : lang === "es" ? "Inglés, Español" : "English, Spanish")}
-              </div>
-            </div>
+            ) : null}
 
-            <div>
-              <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
-                {lang === "fr" ? "En collaboration avec" : lang === "es" ? "Colaborador" : "Hosted with"}
+            {[ (ev as any).hostPersonName, ev.partnerName ].filter(Boolean).length > 0 ? (
+              <div>
+                <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
+                  {lang === "fr" ? "En collaboration avec" : lang === "es" ? "Colaborador" : "Hosted with"}
+                </div>
+                <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
+                  {[ (ev as any).hostPersonName, ev.partnerName ].filter(Boolean).join(" · ")}
+                </div>
               </div>
-              <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
-                {ev.partnerName || "The Mothers"}
-              </div>
-            </div>
+            ) : null}
           </div>
 
           {/* Meeting Point Section */}
