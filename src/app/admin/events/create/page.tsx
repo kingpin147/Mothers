@@ -464,6 +464,7 @@ export default function AdminCreateEventPage() {
                     <option>Nou Barris</option>
                     <option>Sant Andreu</option>
                     <option>Sant Martí</option>
+                    <option>El Clot</option>
                     <option>Online</option>
                     <option>Outside Barcelona</option>
                   </select>

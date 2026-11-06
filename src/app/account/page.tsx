@@ -332,7 +332,7 @@ function AccountPageContent() {
             setAccountError(null);
             // Pre-populate details form
             const existingNeighbourhood = res.member?.neighbourhood || "";
-            const isPredefined = ["Ciutat Vella", "Eixample", "Sants-Montjuïc", "Les Corts", "Sarrià-Sant Gervasi", "Gràcia", "Horta-Guinardó", "Nou Barris", "Sant Andreu", "Sant Martí", "Outside Barcelona", "Other", ""].includes(existingNeighbourhood);
+            const isPredefined = ["Ciutat Vella", "Eixample", "Sants-Montjuïc", "Les Corts", "Sarrià-Sant Gervasi", "Gràcia", "Horta-Guinardó", "Nou Barris", "Sant Andreu", "Sant Martí", "El Clot", "Outside Barcelona", "Other", ""].includes(existingNeighbourhood);
             
             setDetailsForm({
               firstName: res.member?.firstName || "",
@@ -2588,7 +2588,7 @@ function AccountPageContent() {
                       onChange={(e) => setDetailsForm({ ...detailsForm, neighbourhood: e.target.value })}
                       style={{ width: "100%", boxSizing: "border-box", minHeight: "46px", padding: "11px 14px", fontSize: "15px", fontFamily: "'Lora', Georgia, serif", color: "#39292a", background: "#fff", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "5px", outline: "none" }}
                     >
-                      {["Ciutat Vella", "Eixample", "Sants-Montjuïc", "Les Corts", "Sarrià-Sant Gervasi", "Gràcia", "Horta-Guinardó", "Nou Barris", "Sant Andreu", "Sant Martí"].map((n) => (
+                      {["Ciutat Vella", "Eixample", "Sants-Montjuïc", "Les Corts", "Sarrià-Sant Gervasi", "Gràcia", "Horta-Guinardó", "Nou Barris", "Sant Andreu", "Sant Martí", "El Clot"].map((n) => (
                         <option key={n} value={n}>{n}</option>
                       ))}
                       <option value="Outside Barcelona">{lang === "en" ? "Outside Barcelona" : "Fuera de Barcelona"}</option>

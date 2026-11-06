@@ -200,6 +200,7 @@ export default function AdminMembersPage() {
             <option value="Sarrià–Sant Gervasi">Sarrià–Sant Gervasi</option>
             <option value="Ciutat Vella">Ciutat Vella</option>
             <option value="Sant Martí">Sant Martí</option>
+            <option value="El Clot">El Clot</option>
           </select>
 
           <select value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
