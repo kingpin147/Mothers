@@ -24,6 +24,7 @@ import {
   EventCardImage,
 } from "@/app/events/EventsCalendar";
 import { CancelBookingModal } from "@/components/CancelBookingModal";
+import { FormattedDescription } from "@/components/RichTextEditor";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -421,17 +422,7 @@ export default function EventDetailPage() {
 
           {/* Description */}
           {displayDesc && (
-            <p
-              style={{
-                fontSize: "17px",
-                lineHeight: 1.7,
-                color: "rgba(57, 41, 42, 0.78)",
-                margin: "0 0 26px",
-                maxWidth: "62ch",
-              }}
-            >
-              {displayDesc}
-            </p>
+            <FormattedDescription content={displayDesc} />
           )}
 
           {/* 4-Grid Meta: When, Where, Spoken, Hosted with */}

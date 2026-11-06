@@ -6,6 +6,7 @@ import Link from "next/link";
 import { updateAdminEvent, getEventRoster } from "@/app/actions/adminEvents";
 import { getAdminAllMothers } from "@/app/actions/adminCms";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
+import RichTextEditor from "@/components/RichTextEditor";
 
 export default function AdminEditEventPage() {
   const router = useRouter();
@@ -382,7 +383,8 @@ export default function AdminEditEventPage() {
       return;
     }
 
-    if (status === "published_pending" && !description.trim()) {
+    const plainTextDesc = description.replace(/<[^>]*>/g, "").trim();
+    if (status === "published_pending" && !plainTextDesc) {
       alert("Please provide a short Description before publishing to the calendar.");
       return;
     }
@@ -904,7 +906,12 @@ export default function AdminEditEventPage() {
                   <span style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", background: "#7b1f2c", color: "#fff", padding: "2px 6px", borderRadius: "3px" }}>EN</span>
                   <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(57,41,42,0.85)" }}>English Description (Main) <span style={{ color: "#7b1f2c" }}>*</span></span>
                 </div>
-                <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description in English. What happens, who it suits, what to bring." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
+                <RichTextEditor
+                  value={description}
+                  onChange={setDescription}
+                  placeholder="Description in English. What happens, who it suits, what to bring."
+                  minHeight="150px"
+                />
               </div>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
@@ -912,7 +919,12 @@ export default function AdminEditEventPage() {
                   <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(57,41,42,0.85)" }}>Spanish Description (Español)</span>
                   <span style={{ fontSize: "11px", color: "rgba(57,41,42,0.5)" }}>— optional</span>
                 </div>
-                <textarea rows={4} value={descriptionEs} onChange={(e) => setDescriptionEs(e.target.value)} placeholder="Descripción en español (opcional). Qué pasará, para quién es, qué traer." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
+                <RichTextEditor
+                  value={descriptionEs}
+                  onChange={setDescriptionEs}
+                  placeholder="Descripción en español (opcional). Qué pasará, para quién es, qué traer."
+                  minHeight="130px"
+                />
               </div>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
@@ -920,7 +932,12 @@ export default function AdminEditEventPage() {
                   <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(57,41,42,0.85)" }}>French Description (Français)</span>
                   <span style={{ fontSize: "11px", color: "rgba(57,41,42,0.5)" }}>— optional</span>
                 </div>
-                <textarea rows={4} value={descriptionFr} onChange={(e) => setDescriptionFr(e.target.value)} placeholder="Description en français (optionnel). Déroulement, pour qui, quoi apporter." style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", lineHeight: 1.6, color: "#39292a", background: "#fff", resize: "vertical" }}></textarea>
+                <RichTextEditor
+                  value={descriptionFr}
+                  onChange={setDescriptionFr}
+                  placeholder="Description en français (optionnel). Déroulement, pour qui, quoi apporter."
+                  minHeight="130px"
+                />
               </div>
             </div>
             <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "8px" }}>
