@@ -16,6 +16,7 @@ import {
   BookingSuccessModal,
   WaitlistModal,
   SignedOutMemberModal,
+  AdminBookingNoticeModal,
   TopUpModal,
   getEventDisplayTitle,
   getEventDisplayDesc,
@@ -48,12 +49,14 @@ export default function EventDetailPage() {
   const [waitlistSuccess, setWaitlistSuccess] = useState<{ event: PublicEvent; position: number } | null>(null);
   
   const [signedOutEvent, setSignedOutEvent] = useState<PublicEvent | null>(null);
+  const [adminNoticeEvent, setAdminNoticeEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const [memberCredits, setMemberCredits] = useState<number | null>(null);
   const [isAlreadyBooked, setIsAlreadyBooked] = useState(false);
+  const [accountLoaded, setAccountLoaded] = useState(false);
   const [userBookingId, setUserBookingId] = useState<string | null>(null);
   const [cancellingBooking, setCancellingBooking] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -113,22 +116,38 @@ export default function EventDetailPage() {
   useEffect(() => {
     if (session?.user && ev?.id) {
       getAccountData().then((res) => {
+        setAccountLoaded(true);
         if (res.success) {
           setMemberCredits(res.credits?.available ?? 0);
           const activeBooking = res.bookings?.find((b: any) => b.eventId === ev.id && b.status !== "released");
-          setIsAlreadyBooked(!!activeBooking);
+          const booked = !!activeBooking;
+          setIsAlreadyBooked(booked);
           setUserBookingId(activeBooking?.id || null);
           const waitlisted = res.bookings?.find((b: any) => b.eventId === ev.id && b.status === "waitlisted");
           if (waitlisted) {
             setIsAlreadyWaitlisted(true);
             setUserWaitlistPos(waitlisted.waitlistPosition || 1);
           }
+
+          // Check if returned from top-up / booking payment
+          const query = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+          const isTopUpSuccess = query?.get("topup_success") === "true";
+          const isBookingSuccess = query?.get("booking_success") === "true";
+
+          if (isBookingSuccess || (isTopUpSuccess && booked)) {
+            setTopUpEvent(null);
+            setBookingSuccessEvent(ev);
+            window.history.replaceState({}, "", `/events/${eventId}`);
+          }
         }
       });
+    } else if (status === "unauthenticated") {
+      setAccountLoaded(true);
     }
-  }, [session, ev?.id]);
+  }, [session, ev?.id, status, eventId]);
 
   const isMember = (session?.user as any)?.role === "member" && !!(session?.user as any)?.memberId;
+  const isAdmin = ["owner", "manager", "super_admin", "host"].includes((session?.user as any)?.role);
 
   const handleReleaseBooking = async () => {
     if (!userBookingId || !ev) return;
@@ -168,27 +187,60 @@ export default function EventDetailPage() {
 
   const currentCreditBalance = memberCredits ?? 0;
 
-  // Handle URL intent triggers
+  // Handle URL intent triggers only AFTER account data is confirmed loaded
   useEffect(() => {
-    if (typeof window !== "undefined" && ev && status !== "loading") {
+    if (typeof window !== "undefined" && ev && status !== "loading" && accountLoaded) {
       const query = new URLSearchParams(window.location.search);
       const isBookingSuccess = query.get("booking_success") === "true";
       const isTopUpSuccess = query.get("topup_success") === "true";
       const isActionBook = query.get("action") === "book";
 
-      if (isBookingSuccess || (isTopUpSuccess && isAlreadyBooked)) {
-        setBookingSuccessEvent(ev);
+      if (isBookingSuccess || isAlreadyBooked) {
+        if (isBookingSuccess || isTopUpSuccess) {
+          setTopUpEvent(null);
+          setBookingSuccessEvent(ev);
+          window.history.replaceState({}, "", `/events/${eventId}`);
+        }
+      } else if (isTopUpSuccess) {
+        // User completed Stripe checkout for top-up credits. Auto-book directly!
         window.history.replaceState({}, "", `/events/${eventId}`);
-      } else if (isTopUpSuccess || isActionBook) {
+        setTopUpEvent(null);
+        bookEvent(ev.id).then((res) => {
+          if (res.success || res.error === "ALREADY_BOOKED") {
+            setIsAlreadyBooked(true);
+            setBookingSuccessEvent(ev);
+          } else {
+            // Give webhook a moment in case it was running concurrently
+            setTimeout(() => {
+              getAccountData().then((retryRes) => {
+                const retryBooking = retryRes.bookings?.find((b: any) => b.eventId === ev.id && b.status !== "released");
+                if (retryBooking) {
+                  setIsAlreadyBooked(true);
+                  setBookingSuccessEvent(ev);
+                }
+              });
+            }, 1000);
+          }
+        });
+      } else if (isActionBook) {
         window.history.replaceState({}, "", `/events/${eventId}`);
-        if (!isMember) {
+        if (isAdmin) {
+          setAdminNoticeEvent(ev);
+        } else if (!isMember) {
           setSignedOutEvent(ev);
         } else {
           handleMemberBook(ev);
         }
       }
     }
-  }, [ev, isMember, status, eventId, isAlreadyBooked]);
+  }, [ev, isMember, isAdmin, status, eventId, isAlreadyBooked, accountLoaded]);
+
+  // Watchdog: If user is already booked, ensure topUpEvent modal is NEVER shown
+  useEffect(() => {
+    if (isAlreadyBooked && topUpEvent) {
+      setTopUpEvent(null);
+    }
+  }, [isAlreadyBooked, topUpEvent]);
 
   const handleMemberBook = async (targetEv: PublicEvent) => {
     const viewerCost = isLive
@@ -768,11 +820,15 @@ export default function EventDetailPage() {
                 </button>
               )
             ) : (
-              /* Signed-out User */
+              /* Signed-out User or Admin */
               <button
                 type="button"
                 onClick={() => {
-                  setSignedOutEvent(ev);
+                  if (isAdmin) {
+                    setAdminNoticeEvent(ev);
+                  } else {
+                    setSignedOutEvent(ev);
+                  }
                 }}
                 style={{
                   width: "100%",
@@ -929,6 +985,17 @@ export default function EventDetailPage() {
       )}
 
 
+
+      {/* Admin Notice Modal */}
+      {adminNoticeEvent && (
+        <AdminBookingNoticeModal
+          event={adminNoticeEvent}
+          adminEmail={session?.user?.email}
+          lang={lang}
+          onClose={() => setAdminNoticeEvent(null)}
+          returnUrl={`/events/${ev?.slug || ev?.id}`}
+        />
+      )}
 
       {/* State 13: Signed out — pressed the member button */}
       {signedOutEvent && (

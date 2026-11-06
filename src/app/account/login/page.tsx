@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
@@ -67,28 +67,31 @@ function LoginForm() {
     }
   }, [resendCooldown]);
 
+  const role = (session?.user as any)?.role;
+  const isAdmin =
+    role === "owner" ||
+    role === "manager" ||
+    role === "host" ||
+    role === "super_admin";
+
   // Handle authenticated redirects
   useEffect(() => {
     if (status === "authenticated" && session?.user) {
-      const role = (session.user as any)?.role;
-      const isAdmin =
-        role === "owner" ||
-        role === "manager" ||
-        role === "host" ||
-        role === "super_admin";
       const callbackUrl = searchParams?.get("callbackUrl") || searchParams?.get("next");
 
-      if (isAdmin) {
-        window.location.href = callbackUrl || "/admin";
-      } else {
+      // For regular members, redirect them to callbackUrl or /account
+      if (!isAdmin) {
         const memberTarget =
           callbackUrl && !callbackUrl.startsWith("/admin")
             ? callbackUrl
             : "/account";
         window.location.href = memberTarget;
+      } else if (!callbackUrl || callbackUrl.startsWith("/admin")) {
+        // Only redirect admins if they didn't arrive via a public callback (like an event page they wanted to book)
+        window.location.href = callbackUrl || "/admin";
       }
     }
-  }, [status, session, searchParams]);
+  }, [status, session, searchParams, isAdmin]);
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,38 +110,53 @@ function LoginForm() {
 
     const callbackUrl = searchParams?.get("callbackUrl") || searchParams?.get("next");
 
-    // 1. Try Member Credentials first
-    let res = await signIn("member-credentials", {
-      email: email.trim(),
-      password,
-      redirect: false,
-    });
+    try {
+      // If currently signed in as admin, cleanly terminate the admin session first so the new member session takes over
+      if (isAdmin) {
+        await signOut({ redirect: false });
+      }
 
-    let targetRoute =
-      callbackUrl && !callbackUrl.startsWith("/admin")
-        ? callbackUrl
-        : "/account";
-
-    // 2. If member sign in failed, automatically try Admin Credentials
-    if (res?.error) {
-      res = await signIn("admin-credentials", {
+      // 1. Try Member Credentials first
+      let res = await signIn("member-credentials", {
         email: email.trim(),
         password,
         redirect: false,
       });
-      targetRoute = callbackUrl || "/admin";
-    }
 
-    setLoading(false);
+      let targetRoute =
+        callbackUrl && !callbackUrl.startsWith("/admin")
+          ? callbackUrl
+          : "/account";
 
-    if (res?.error) {
+      // 2. If member sign in failed, automatically try Admin Credentials
+      if (res?.error) {
+        res = await signIn("admin-credentials", {
+          email: email.trim(),
+          password,
+          redirect: false,
+        });
+        targetRoute = callbackUrl || "/admin";
+      }
+
+      setLoading(false);
+
+      if (res?.error) {
+        setErrorMsg(
+          lang === "en"
+            ? "Invalid email or password. Please check your credentials and try again."
+            : "Correo o contraseña incorrectos. Por favor compruébalos e inténtalo de nuevo."
+        );
+      } else {
+        window.location.href = targetRoute;
+      }
+    } catch (err: any) {
+      setLoading(false);
       setErrorMsg(
-        lang === "en"
-          ? "Invalid email or password. Please check your credentials and try again."
-          : "Correo o contraseña incorrectos. Por favor compruébalos e inténtalo de nuevo."
+        err?.message ||
+        (lang === "en"
+          ? "Sign in failed. Please check your credentials and try again."
+          : "Error al iniciar sesión. Por favor compruébalo e inténtalo de nuevo.")
       );
-    } else {
-      window.location.href = targetRoute;
     }
   };
 
@@ -579,6 +597,73 @@ function LoginForm() {
               >
                 {lang === "en" ? "Sign in" : "Iniciar sesión"}
               </h2>
+
+              {/* Admin Notice Banner if already logged in as Admin */}
+              {status === "authenticated" && isAdmin && (
+                <div
+                  style={{
+                    backgroundColor: "rgba(123, 31, 44, 0.05)",
+                    border: "1px solid rgba(123, 31, 44, 0.22)",
+                    borderRadius: "6px",
+                    padding: "14px 16px",
+                    marginBottom: "20px",
+                    fontSize: "13.5px",
+                    lineHeight: 1.55,
+                    color: "#39292a",
+                  }}
+                >
+                  <div style={{ fontWeight: 600, color: "#7b1f2c", marginBottom: "4px" }}>
+                    {lang === "fr"
+                      ? "Vous êtes actuellement connectée en tant qu'administratrice"
+                      : lang === "es"
+                      ? "Has iniciado sesión como Administradora"
+                      : "You are currently signed in as an Admin"} ({session?.user?.email})
+                  </div>
+                  <div style={{ color: "rgba(57, 41, 42, 0.8)", marginBottom: "10px", fontSize: "13px" }}>
+                    {lang === "fr"
+                      ? "Les comptes administrateurs ne peuvent pas réserver de rencontres. Pour réserver un événement, connectez-vous avec votre compte membre ci-dessous."
+                      : lang === "es"
+                      ? "Las cuentas de administración no pueden reservar encuentros. Para reservar un evento, inicia sesión con tu cuenta de socia abajo."
+                      : "Admin accounts manage the club and cannot book member gatherings. To book an event, please sign in with your member account below."}
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                    <a
+                      href="/admin"
+                      style={{
+                        display: "inline-block",
+                        backgroundColor: "#ffffff",
+                        border: "1px solid rgba(57, 41, 42, 0.25)",
+                        color: "#39292a",
+                        padding: "5px 12px",
+                        borderRadius: "4px",
+                        fontSize: "12.5px",
+                        textDecoration: "none",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {lang === "fr" ? "Tableau de bord Admin →" : lang === "es" ? "Panel Admin →" : "Admin Dashboard →"}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await signOut({ redirect: false });
+                        window.location.reload();
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#7b1f2c",
+                        fontSize: "12.5px",
+                        textDecoration: "underline",
+                        cursor: "pointer",
+                        padding: 0,
+                      }}
+                    >
+                      {lang === "fr" ? "Déconnexion de l'admin" : lang === "es" ? "Cerrar sesión de admin" : "Sign out of Admin"}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Error message */}
               {errorMsg && (

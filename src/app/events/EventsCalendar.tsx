@@ -552,6 +552,125 @@ export function SignedOutMemberModal({
   );
 }
 
+// ─── AdminBookingNoticeModal ───────────────────────────────────────────────
+
+export function AdminBookingNoticeModal({
+  event: ev,
+  adminEmail,
+  lang,
+  onClose,
+  returnUrl,
+}: {
+  event: PublicEvent | null;
+  adminEmail?: string | null;
+  lang: Lang;
+  onClose: () => void;
+  returnUrl?: string;
+}) {
+  if (!ev) return null;
+
+  const targetCallback = returnUrl || (typeof window !== "undefined"
+    ? (window.location.pathname.startsWith("/events/") ? window.location.pathname : `/events`)
+    : `/events`);
+
+  const handleSwitchAccount = async () => {
+    try {
+      const { signOut } = await import("next-auth/react");
+      await signOut({ redirect: false });
+    } catch {}
+    window.location.href = `/account/login?callbackUrl=${encodeURIComponent(targetCallback)}`;
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        backgroundColor: "rgba(57, 41, 42, 0.45)",
+        backdropFilter: "blur(3px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "20px", overflowY: "auto",
+      }}
+    >
+      <div
+        style={{
+          position: "relative", width: "100%", maxWidth: "480px", margin: "auto",
+          border: "1px solid rgba(57,41,42,0.14)", borderRadius: "8px",
+          padding: "clamp(28px, 5vw, 36px)", backgroundColor: "#FEFDF9",
+          boxShadow: "0 20px 50px rgba(45,43,43,0.16)", textAlign: "center",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: "absolute", top: "16px", right: "16px",
+            border: "none", background: "transparent", cursor: "pointer",
+            color: "rgba(57,41,42,0.5)", width: "30px", height: "30px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        </button>
+
+        {/* Shield / Admin Icon */}
+        <div style={{ color: "#7b1f2c", marginBottom: "16px" }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" width="36" height="36" style={{ margin: "0 auto", display: "block" }}>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+        </div>
+
+        <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "22px", margin: "0 0 12px", color: "#39292a" }}>
+          {lang === "fr"
+            ? "Connectée en tant qu'administratrice"
+            : lang === "es"
+            ? "Has iniciado sesión como Administradora"
+            : "Signed in as Administrator"}
+        </h2>
+        <p style={{ fontSize: "14.5px", lineHeight: "1.65", color: "rgba(57,41,42,0.76)", margin: "0 0 24px" }}>
+          {lang === "fr"
+            ? `Vous êtes actuellement connectée avec le compte admin (${adminEmail || "admin"}). Les comptes administrateurs servent à gérer la plateforme et ne peuvent pas réserver de rencontres en tant que participante. Pour réserver, veuillez utiliser votre compte membre.`
+            : lang === "es"
+            ? `Actualmente has iniciado sesión con la cuenta de administradora (${adminEmail || "admin"}). Las cuentas de administración gestionan el club y no pueden reservar encuentros. Para reservar, por favor utiliza tu cuenta de socia.`
+            : `You are currently logged in with your administrator account (${adminEmail || "admin"}). Admin accounts manage the platform and cannot book member gatherings. To book this event, please switch to your member account.`}
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={handleSwitchAccount}
+            style={{
+              width: "100%",
+              border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#fdfaf5",
+              padding: "11px 24px", borderRadius: "4px", fontFamily: "var(--font-heading)",
+              fontWeight: 600, fontSize: "15px", cursor: "pointer",
+            }}
+          >
+            {lang === "fr"
+              ? "Changer pour un compte membre"
+              : lang === "es"
+              ? "Cambiar a cuenta de socia"
+              : "Switch to Member Account"}
+          </button>
+          <a
+            href="/admin"
+            style={{
+              fontSize: "13.5px", color: "rgba(57,41,42,0.75)", textDecoration: "underline",
+              padding: "4px",
+            }}
+          >
+            {lang === "fr"
+              ? "Aller au panneau d'administration"
+              : lang === "es"
+              ? "Ir al panel de administración"
+              : "Go to Admin Dashboard"}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── WaitlistModal (State 04: Full — joins the waitlist) ──────────────────────
 
 export function WaitlistModal({
@@ -1149,6 +1268,8 @@ interface EventCardProps {
   onMemberWaitlist: (ev: PublicEvent) => void;
   isBooking?: boolean;
   isMember: boolean;
+  isAdmin?: boolean;
+  onOpenAdminNotice?: (ev: PublicEvent) => void;
   creditBalance?: number;
 }
 
@@ -1227,6 +1348,8 @@ function EventCard({
   onMemberWaitlist,
   isBooking = false,
   isMember,
+  isAdmin = false,
+  onOpenAdminNotice,
   creditBalance = 0,
 }: EventCardProps) {
   const isCancelled = ev.status === "cancelled";
@@ -1241,6 +1364,11 @@ function EventCard({
   const isViewerFree = viewerCost === 0 || (ev.isFreeWalk && isMember);
 
   const handleBookClick = () => {
+    if (isAdmin) {
+      if (onOpenAdminNotice) onOpenAdminNotice(ev);
+      return;
+    }
+
     if (!isMember) {
       onOpenSignedOut(ev);
       return;
@@ -1765,6 +1893,7 @@ function EventCard({
 export function EventsCalendar({ events, categories, creditBalance = 0 }: Props) {
   const { data: session } = useSession();
   const isMember = (session?.user as any)?.role === "member" && !!(session?.user as any)?.memberId;
+  const isAdmin = ["owner", "manager", "super_admin", "host"].includes((session?.user as any)?.role);
 
   const { language: lang } = useLanguage();
   const [eventsList, setEventsList] = useState<PublicEvent[]>(events);
@@ -1774,6 +1903,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const [bookingSuccessEvent, setBookingSuccessEvent] = useState<PublicEvent | null>(null);
   const [waitlistSuccess, setWaitlistSuccess] = useState<{ event: PublicEvent; position: number } | null>(null);
   const [signedOutEvent, setSignedOutEvent] = useState<PublicEvent | null>(null);
+  const [adminNoticeEvent, setAdminNoticeEvent] = useState<PublicEvent | null>(null);
   const [topUpEvent, setTopUpEvent] = useState<PublicEvent | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(false);
@@ -2991,6 +3121,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
                 onMemberWaitlist={handleMemberWaitlist}
                 isBooking={bookingLoadingId === ev.id}
                 isMember={isMember}
+                isAdmin={isAdmin}
+                onOpenAdminNotice={setAdminNoticeEvent}
                 creditBalance={currentCreditBalance}
               />
             ))}
@@ -3020,6 +3152,15 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
         />
       )}
 
+      {/* Admin Account Notice Modal */}
+      {adminNoticeEvent && (
+        <AdminBookingNoticeModal
+          event={adminNoticeEvent}
+          adminEmail={session?.user?.email}
+          lang={lang}
+          onClose={() => setAdminNoticeEvent(null)}
+        />
+      )}
 
       {/* State 13: Signed out — pressed the member button */}
       {signedOutEvent && (
