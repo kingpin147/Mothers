@@ -18,6 +18,10 @@ describe('Error Sanitization and Timeout Utilities', () => {
 
     const sqlSyntaxError = new Error('syntax error at or near "SELECT" at line 1');
     expect(sanitizeErrorMessage(sqlSyntaxError)).toBe('An unexpected error occurred. Please try again.');
+
+    const timeoutError = new Error('write CONNECT_TIMEOUT aws-0-eu-west-2.pooler.supabase.com:6543');
+    expect(sanitizeErrorMessage(timeoutError)).toBe('Unable to connect to the server right now. Please wait a moment and try again.');
+    expect(sanitizeErrorMessage(timeoutError, 'Failed to reset password')).toBe('Failed to reset password');
   });
 
   it('withTimeout should resolve before timeout', async () => {

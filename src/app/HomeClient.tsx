@@ -638,7 +638,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
                         <rect x="3" y="4" width="18" height="18" rx="2" />
                         <path d="M16 2v4M8 2v4M3 10h18" />
                       </svg>
-                      <span>{formatCardDate(ev.startsAt, lang as any)}</span>
+                      <span>{formatCardDate(ev.startsAt, lang as any, ev.endsAt)}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flexShrink: 0 }}>

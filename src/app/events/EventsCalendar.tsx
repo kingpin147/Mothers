@@ -417,7 +417,7 @@ export function formatDecideByDate(startsAt: string | Date, lang: Lang, decision
   return targetDate.toLocaleDateString(locale, { day: "numeric", month: "long", timeZone: "Europe/Madrid" });
 }
 
-export function formatEventDate(startsAt: string | Date, lang: Lang): string {
+export function formatEventDate(startsAt: string | Date, lang: Lang, endsAt?: string | Date | null): string {
   const d = new Date(startsAt);
   const locale = lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB";
   const weekday = d.toLocaleDateString(locale, { weekday: "short", timeZone: "Europe/Madrid" });
@@ -425,11 +425,27 @@ export function formatEventDate(startsAt: string | Date, lang: Lang): string {
   const day = d.toLocaleDateString("en-GB", { day: "numeric", timeZone: "Europe/Madrid" });
   const month = d.toLocaleDateString(locale, { month: "short", timeZone: "Europe/Madrid" });
   const year = d.toLocaleDateString("en-GB", { year: "numeric", timeZone: "Europe/Madrid" });
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
-  return `${capWeekday} ${day} ${month} ${year} · ${time}`;
+  const startTime = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
+
+  if (endsAt) {
+    const end = new Date(endsAt);
+    if (!isNaN(end.getTime())) {
+      const endTime = end.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
+      const diffMins = Math.round((end.getTime() - d.getTime()) / 60000);
+      let durationStr = "";
+      if (diffMins > 0 && diffMins < 24 * 60) {
+        const hours = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+        durationStr = hours > 0 && mins > 0 ? ` (${hours}h ${mins}m)` : hours > 0 ? ` (${hours}h)` : ` (${mins}m)`;
+      }
+      return `${capWeekday} ${day} ${month} ${year} · ${startTime} – ${endTime}${durationStr}`;
+    }
+  }
+
+  return `${capWeekday} ${day} ${month} ${year} · ${startTime}`;
 }
 
-export function formatCardDate(startsAt: string | Date, lang: Lang): string {
+export function formatCardDate(startsAt: string | Date, lang: Lang, endsAt?: string | Date | null): string {
   const d = new Date(startsAt);
   if (isNaN(d.getTime())) return "";
   const locale = lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB";
@@ -438,8 +454,24 @@ export function formatCardDate(startsAt: string | Date, lang: Lang): string {
   const day = d.toLocaleDateString("en-GB", { day: "numeric", timeZone: "Europe/Madrid" });
   const month = d.toLocaleDateString(locale, { month: "long", timeZone: "Europe/Madrid" });
   const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
-  return `${capWeekday} ${day} ${capMonth} · ${time}`;
+  const startTime = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
+
+  if (endsAt) {
+    const end = new Date(endsAt);
+    if (!isNaN(end.getTime())) {
+      const endTime = end.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
+      const diffMins = Math.round((end.getTime() - d.getTime()) / 60000);
+      let durationStr = "";
+      if (diffMins > 0 && diffMins < 24 * 60) {
+        const hours = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+        durationStr = hours > 0 && mins > 0 ? ` (${hours}h ${mins}m)` : hours > 0 ? ` (${hours}h)` : ` (${mins}m)`;
+      }
+      return `${capWeekday} ${day} ${capMonth} · ${startTime} – ${endTime}${durationStr}`;
+    }
+  }
+
+  return `${capWeekday} ${day} ${capMonth} · ${startTime}`;
 }
 
 const modalInputStyle: React.CSSProperties = {
@@ -471,7 +503,7 @@ export function SignedOutMemberModal({
 }) {
   if (!ev) return null;
 
-  const formattedDate = formatEventDate(ev.startsAt, lang);
+  const formattedDate = formatEventDate(ev.startsAt, lang, ev.endsAt);
   const targetCallback = returnUrl || (typeof window !== "undefined"
     ? (window.location.pathname.startsWith("/events/") ? window.location.pathname : `/events`)
     : `/events`);
@@ -957,7 +989,7 @@ export function BookingSuccessModal({
   onClose: () => void;
 }) {
   const displayTitle = getEventDisplayTitle(ev, lang);
-  const formattedDate = formatEventDate(ev.startsAt, lang);
+  const formattedDate = formatEventDate(ev.startsAt, lang, ev.endsAt);
   const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
   const isFreeWalk = viewerCost === 0 || (ev.isFreeWalk && isMember);
 
@@ -1586,7 +1618,7 @@ function EventCard({
             <rect x="3" y="4" width="18" height="18" rx="2" />
             <path d="M16 2v4M8 2v4M3 10h18" />
           </svg>
-          <span>{formatCardDate(ev.startsAt, lang)}</span>
+          <span>{formatCardDate(ev.startsAt, lang, ev.endsAt)}</span>
         </div>
 
         {/* 2. Location */}

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { person, memberCredential, auditLog } from "@/db/schema";
+import { person, memberCredential, auditLog, adminUser } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { queueAndSendEmail } from "@/lib/brevo";
 import bcrypt from "bcryptjs";
@@ -10,6 +10,7 @@ import { getAppUrl } from "@/lib/urls";
 import { z } from "zod";
 import { checkPasswordResetRequestRateLimit, checkPasswordResetCompleteRateLimit, getClientIp } from "@/lib/rate-limit";
 import { captureException } from "@/lib/error-monitoring";
+import { sanitizeErrorMessage } from "@/lib/errors";
 
 const requestResetSchema = z.object({
   email: z.string().trim().email().toLowerCase(),
@@ -45,12 +46,31 @@ export async function requestPasswordReset(rawEmail: string, rawLocale: "en" | "
   }
 
   try {
-
-    const personRecord = await db.query.person.findFirst({
+    let personRecord = await db.query.person.findFirst({
       where: eq(person.email, cleanEmail),
     });
 
-    // If person doesn't exist, return success anyway to prevent email enumeration
+    const adminRecord = await db.query.adminUser.findFirst({
+      where: eq(adminUser.email, cleanEmail),
+    });
+
+    // If neither person nor adminUser exists, return success to prevent email enumeration
+    if (!personRecord && !adminRecord) {
+      return { success: true };
+    }
+
+    // If admin exists but person record is missing, create a placeholder person so the standard reset token flow works
+    if (!personRecord && adminRecord) {
+      const [newPerson] = await db.insert(person).values({
+        email: cleanEmail,
+        firstName: "Admin",
+        lastName: "",
+        locale,
+        profileDone: true,
+      }).returning();
+      personRecord = newPerson;
+    }
+
     if (!personRecord) {
       return { success: true };
     }
@@ -227,7 +247,11 @@ If you did not ask for it, no action is needed.
     return { success: true };
   } catch (error: any) {
     console.error("requestPasswordReset error:", error);
-    return { success: false, error: error?.message || "REQUEST_FAILED" };
+    await captureException(error, { source: "passwordReset", action: "requestPasswordReset" });
+    return {
+      success: false,
+      error: sanitizeErrorMessage(error, "Unable to send reset email right now. Please wait a moment and try again."),
+    };
   }
 }
 
@@ -264,7 +288,8 @@ export async function verifyResetToken(rawToken: string) {
       firstName: personRecord?.firstName || "Member",
     };
   } catch (error: any) {
-    return { valid: false, error: error?.message || "VERIFICATION_FAILED" };
+    console.error("verifyResetToken error:", error);
+    return { valid: false, error: sanitizeErrorMessage(error, "TOKEN_EXPIRED_OR_INVALID") };
   }
 }
 
@@ -301,6 +326,10 @@ export async function completePasswordReset(rawToken: string, rawNewPassword: st
       return { success: false, error: "TOKEN_EXPIRED_OR_INVALID" };
     }
 
+    const personRecord = await db.query.person.findFirst({
+      where: eq(person.id, cred.personId),
+    });
+
     const newHash = await bcrypt.hash(newPassword, 12);
 
     await db
@@ -314,6 +343,17 @@ export async function completePasswordReset(rawToken: string, rawNewPassword: st
       })
       .where(eq(memberCredential.id, cred.id));
 
+    // If an adminUser exists with this email, synchronize the admin passwordHash too
+    if (personRecord?.email) {
+      await db
+        .update(adminUser)
+        .set({
+          passwordHash: newHash,
+          updatedAt: new Date(),
+        })
+        .where(eq(adminUser.email, personRecord.email.toLowerCase().trim()));
+    }
+
     // Audit log
     await db.insert(auditLog).values({
       actorId: cred.personId,
@@ -325,7 +365,11 @@ export async function completePasswordReset(rawToken: string, rawNewPassword: st
 
     return { success: true };
   } catch (error: any) {
+    console.error("completePasswordReset error:", error);
     await captureException(error, { source: "passwordReset", action: "completePasswordReset" });
-    return { success: false, error: error?.message || "RESET_FAILED" };
+    return {
+      success: false,
+      error: sanitizeErrorMessage(error, "Unable to reset password right now. Please wait a moment and try again."),
+    };
   }
 }

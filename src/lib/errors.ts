@@ -23,12 +23,42 @@ const RAW_DB_LEAK_PATTERNS = [
   /duplicate key value/i,
   /foreign key/i,
   /connection.*refused/i,
+  /connection.*reset/i,
+  /connection.*timeout/i,
   /pg_/i,
   /drizzle/i,
   /postgres/i,
+  /supabase/i,
+  /pooler/i,
+  /aws-/i,
   /ECONNREFUSED/i,
+  /ECONNRESET/i,
   /ETIMEDOUT/i,
+  /CONNECT_TIMEOUT/i,
+  /TIMEOUT/i,
+  /ENOTFOUND/i,
+  /EAI_AGAIN/i,
+  /EHOSTUNREACH/i,
+  /ENETUNREACH/i,
+  /getaddrinfo/i,
+  /socket/i,
+  /:\d{4,5}/,
+  /database/i,
+  /ssl.*error/i,
+  /handshake/i,
+  /write /i,
+  /read /i,
 ];
+
+/**
+ * Checks whether an error looks like a network or database connection/timeout error.
+ */
+export function isConnectionOrTimeoutError(err: unknown): boolean {
+  if (!err) return false;
+  const raw = typeof err === "string" ? err : (err as any)?.message;
+  if (!raw || typeof raw !== "string") return false;
+  return /timeout|connect|pooler|supabase|econn|etimedout|socket|network|enotfound|eai_again/i.test(raw);
+}
 
 /**
  * Sanitizes an error so that raw SQL/database or internal driver stack details
@@ -56,6 +86,9 @@ export function sanitizeErrorMessage(
   // Check if it contains any DB / internal leakage patterns
   for (const pattern of RAW_DB_LEAK_PATTERNS) {
     if (pattern.test(trimmed)) {
+      if (fallbackMessage === "An unexpected error occurred. Please try again." && isConnectionOrTimeoutError(trimmed)) {
+        return "Unable to connect to the server right now. Please wait a moment and try again.";
+      }
       return fallbackMessage;
     }
   }

@@ -184,6 +184,16 @@ export async function getPublicEvents() {
         minute: "2-digit",
       }) : "";
 
+      let durationStr = "";
+      if (ends && !isNaN(ends.getTime())) {
+        const diffMins = Math.round((ends.getTime() - starts.getTime()) / 60000);
+        if (diffMins > 0 && diffMins < 24 * 60) {
+          const hours = Math.floor(diffMins / 60);
+          const mins = diffMins % 60;
+          durationStr = hours > 0 && mins > 0 ? ` (${hours}h ${mins}m)` : hours > 0 ? ` (${hours}h)` : ` (${mins}m)`;
+        }
+      }
+
       const bookedMember = memberBookingsMap.get(ev.id) || 0;
       const bookedGuest = nonMemberBookingsMap.get(ev.id) || 0;
       const placesTaken = bookedMember + bookedGuest;
@@ -224,7 +234,7 @@ export async function getPublicEvents() {
         category: ev.categoryName || null,
         stage: ev.stage || null,
         dateStr,
-        timeStr: ends ? `${startTimeStr} – ${endTimeStr}` : startTimeStr,
+        timeStr: ends ? `${startTimeStr} – ${endTimeStr}${durationStr}` : startTimeStr,
         placesTaken,
         bookedMember,
         bookedGuest,
@@ -438,7 +448,16 @@ export async function getPublicEventById(rawId: string) {
     const dateStr = starts.toLocaleDateString("en-GB", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
-    const timeStr = `${starts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} – ${ends.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`;
+    let durationStr = "";
+    if (ends && !isNaN(ends.getTime())) {
+      const diffMins = Math.round((ends.getTime() - starts.getTime()) / 60000);
+      if (diffMins > 0 && diffMins < 24 * 60) {
+        const hours = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+        durationStr = hours > 0 && mins > 0 ? ` (${hours}h ${mins}m)` : hours > 0 ? ` (${hours}h)` : ` (${mins}m)`;
+      }
+    }
+    const timeStr = `${starts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} – ${ends.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}${durationStr}`;
 
     // Count active bookings for this event (single capacity field: capacityMember)
     const activeBookingsCount = await db

@@ -492,7 +492,14 @@ export default function EventDetailPage() {
                 {lang === "fr" ? "Quand" : lang === "es" ? "Cuándo" : "When"}
               </div>
               <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
-                {ev.dateStr || new Date(ev.startsAt).toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", { weekday: "long", day: "numeric", month: "short", timeZone: "Europe/Madrid" })}
+                <div style={{ fontWeight: 600, color: "#39292a" }}>
+                  {ev.dateStr || new Date(ev.startsAt).toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", { weekday: "long", day: "numeric", month: "short", timeZone: "Europe/Madrid" })}
+                </div>
+                {ev.timeStr && (
+                  <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.72)", marginTop: "2px" }}>
+                    {ev.timeStr}
+                  </div>
+                )}
               </div>
             </div>
 

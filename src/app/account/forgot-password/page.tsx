@@ -34,7 +34,16 @@ export default function ForgotPasswordPage() {
     if (res.success) {
       setSubmitted(true);
     } else {
-      setErrorMsg(res.error || "Unable to send reset email. Please try again.");
+      const fallback =
+        lang === "en"
+          ? "Unable to send reset email right now. Please wait a moment and try again."
+          : "No se pudo enviar el correo de recuperación en este momento. Por favor inténtalo de nuevo en unos minutos.";
+      const raw = res.error || "";
+      if (!raw || /timeout|pooler|supabase|connect|request_failed|driver|socket|sql|error/i.test(raw)) {
+        setErrorMsg(fallback);
+      } else {
+        setErrorMsg(raw);
+      }
     }
   };
 

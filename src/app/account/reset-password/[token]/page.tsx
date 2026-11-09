@@ -67,7 +67,20 @@ export default function ResetPasswordPage() {
     if (res.success) {
       setSuccess(true);
     } else {
-      setErrorMsg(res.error || "Failed to update password. Link may have expired.");
+      const fallback =
+        lang === "en"
+          ? "Failed to update password. Link may have expired or server was unavailable."
+          : "Error al actualizar la contraseña. El enlace puede haber caducado o el servidor no responde.";
+      const raw = res.error || "";
+      if (raw === "PASSWORD_TOO_SHORT") {
+        setErrorMsg(lang === "en" ? "Password must be at least 8 characters long." : "La contraseña debe tener al menos 8 caracteres.");
+      } else if (raw === "TOKEN_EXPIRED_OR_INVALID") {
+        setErrorMsg(lang === "en" ? "This reset link has expired. Please request a new one." : "Este enlace ha caducado. Por favor solicita uno nuevo.");
+      } else if (!raw || /timeout|pooler|supabase|connect|reset_failed|driver|socket|sql|error/i.test(raw)) {
+        setErrorMsg(fallback);
+      } else {
+        setErrorMsg(raw);
+      }
     }
   };
 

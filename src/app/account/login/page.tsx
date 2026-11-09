@@ -151,12 +151,16 @@ function LoginForm() {
       }
     } catch (err: any) {
       setLoading(false);
-      setErrorMsg(
-        err?.message ||
-        (lang === "en"
+      const fallback =
+        lang === "en"
           ? "Sign in failed. Please check your credentials and try again."
-          : "Error al iniciar sesión. Por favor compruébalo e inténtalo de nuevo.")
-      );
+          : "Error al iniciar sesión. Por favor compruébalo e inténtalo de nuevo.";
+      const raw = err?.message || "";
+      if (!raw || /timeout|pooler|supabase|connect|driver|socket|sql|fetch/i.test(raw)) {
+        setErrorMsg(fallback);
+      } else {
+        setErrorMsg(raw);
+      }
     }
   };
 
