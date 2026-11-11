@@ -828,6 +828,7 @@ export const gazettePost = pgTable(
   "circle_post",
   {
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    slug: text("slug").unique(),
     personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
     isAnonymous: boolean("is_anonymous").default(false).notNull(),
     anonymousArea: text("anonymous_area"),

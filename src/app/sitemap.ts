@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { db } from "@/db";
-import { event, journalPost } from "@/db/schema";
+import { event, journalPost, circlePost } from "@/db/schema";
 import { inArray, eq } from "drizzle-orm";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -70,7 +70,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const [publishedEvents, publishedArticles] = await Promise.all([
+    const [publishedEvents, publishedArticles, visiblePosts] = await Promise.all([
       db
         .select({ id: event.id, updatedAt: event.updatedAt })
         .from(event)
@@ -79,6 +79,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select({ slug: journalPost.slug, publishedAt: journalPost.publishedAt })
         .from(journalPost)
         .where(eq(journalPost.status, "published")),
+      db
+        .select({
+          slug: circlePost.slug,
+          updatedAt: circlePost.updatedAt,
+          createdAt: circlePost.createdAt,
+        })
+        .from(circlePost)
+        .where(eq(circlePost.status, "visible")),
     ]);
 
     const eventRoutes: MetadataRoute.Sitemap = publishedEvents.map((ev) => ({
@@ -95,7 +103,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-    return [...staticRoutes, ...eventRoutes, ...articleRoutes];
+    const gazetteRoutes: MetadataRoute.Sitemap = visiblePosts
+      .filter((post) => Boolean(post.slug))
+      .map((post) => ({
+        url: `${baseUrl}/lagazette/${post.slug}`,
+        lastModified: post.updatedAt || post.createdAt || new Date(),
+        changeFrequency: "weekly",
+        priority: 0.8,
+      }));
+
+    return [...staticRoutes, ...eventRoutes, ...articleRoutes, ...gazetteRoutes];
   } catch {
     return staticRoutes;
   }

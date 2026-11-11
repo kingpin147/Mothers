@@ -294,7 +294,7 @@ export function GazetteFeedClient({
 
   const handleSharePost = async (post: PostItem) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "https://themothers.cc";
-    const shareUrl = `${origin}/lagazette?post=${post.id}`;
+    const shareUrl = `${origin}/lagazette/${post.slug || post.id}`;
     const shareTitle = `${post.author} on La Gazette — The Mothers`;
     const shareSnippet = post.body.length > 120 ? `${post.body.slice(0, 117)}...` : post.body;
 
@@ -2062,7 +2062,7 @@ export function GazetteFeedClient({
             {/* WhatsApp Share Button (Primary) */}
             <a
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                `${shareModalPost.author} in La Gazette:\n"${shareModalPost.body.slice(0, 110)}..."\n\n${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette?post=${shareModalPost.id}`
+                `${shareModalPost.author} in La Gazette:\n"${shareModalPost.body.slice(0, 110)}..."\n\n${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette/${shareModalPost.slug || shareModalPost.id}`
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -2092,7 +2092,7 @@ export function GazetteFeedClient({
               <input
                 type="text"
                 readOnly
-                value={`${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette?post=${shareModalPost.id}`}
+                value={`${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette/${shareModalPost.slug || shareModalPost.id}`}
                 onClick={(e) => (e.target as HTMLInputElement).select()}
                 style={{
                   flex: 1,
@@ -2109,7 +2109,7 @@ export function GazetteFeedClient({
               <button
                 type="button"
                 onClick={async () => {
-                  const url = `${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette?post=${shareModalPost.id}`;
+                  const url = `${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette/${shareModalPost.slug || shareModalPost.id}`;
                   if (typeof navigator !== "undefined" && navigator.clipboard) {
                     await navigator.clipboard.writeText(url);
                   }

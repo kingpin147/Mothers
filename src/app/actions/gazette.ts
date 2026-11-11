@@ -10,6 +10,7 @@ import { captureException } from "@/lib/error-monitoring";
 
 export interface PostItem {
   id: string;
+  slug: string;
   author: string;
   isAnonymous: boolean;
   anonymousArea: string | null;
@@ -204,6 +205,44 @@ function resolveNeighbourhood(personRecord?: any, memberRecord?: any): string {
   return str;
 }
 
+export function slugify(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function generatePostSlug(body: string, fallbackId?: string): string {
+  const cleaned = body.replace(/\r\n/g, "\n").trim();
+  const lines = cleaned.split("\n").map((l) => l.trim()).filter(Boolean);
+
+  // Filter out standalone greetings
+  const greetingRegex = /^(hello|hi|hey|hola|bonjour|salut|dear)\b.*[,!.]?$/i;
+  let chosenText = lines.find((l) => !greetingRegex.test(l) && l.length > 5);
+
+  if (!chosenText) {
+    chosenText = lines[0] || body;
+  }
+
+  const words = chosenText.split(/\s+/).slice(0, 8).join(" ");
+  let slug = slugify(words);
+
+  if (slug.length > 60) {
+    slug = slug.slice(0, 60).replace(/-[^-]*$/, "");
+  }
+
+  if (!slug && fallbackId) {
+    slug = `post-${fallbackId.slice(0, 8)}`;
+  }
+
+  return slug || "post";
+}
+
 export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | "trending" = "recent"): Promise<PostItem[]> {
   const session = await auth();
   const currentUserId = session?.user?.id ? ((session.user as any).personId || session.user.id) : null;
@@ -258,11 +297,25 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
 }
 
 export async function getCirclePostById(postId: string): Promise<PostItem | null> {
+  return getCirclePostBySlugOrId(postId);
+}
+
+export async function getCirclePostBySlugOrId(identifier: string): Promise<PostItem | null> {
   const session = await auth();
   const currentUserId = session?.user?.id ? ((session.user as any).personId || session.user.id) : null;
-  const post = await db.query.circlePost.findFirst({
-    where: and(eq(circlePost.id, postId), sql`${circlePost.status} IN ('visible', 'hidden')`),
+
+  // 1. Try finding by slug first
+  let post = await db.query.circlePost.findFirst({
+    where: and(eq(circlePost.slug, identifier), sql`${circlePost.status} IN ('visible', 'hidden')`),
   });
+
+  // 2. If not found, try by ID (e.g. UUID)
+  if (!post) {
+    post = await db.query.circlePost.findFirst({
+      where: and(eq(circlePost.id, identifier), sql`${circlePost.status} IN ('visible', 'hidden')`),
+    });
+  }
+
   if (!post) return null;
   const formatted = await formatCirclePosts([post], currentUserId);
   return formatted[0] || null;
@@ -404,6 +457,7 @@ async function formatCirclePosts(
 
     result.push({
       id: p.id,
+      slug: p.slug || generatePostSlug(p.body, p.id),
       author: authorName,
       isAnonymous: p.isAnonymous,
       anonymousArea: p.anonymousArea,
@@ -536,10 +590,21 @@ export async function createCirclePost(data: {
   });
   const realArea = authorMember?.neighbourhood || data.anonymousArea || "Barcelona";
 
+  // Generate unique readable slug
+  const baseSlug = generatePostSlug(data.body);
+  let finalSlug = baseSlug;
+  const existingSlug = await db.query.circlePost.findFirst({
+    where: eq(circlePost.slug, finalSlug),
+  });
+  if (existingSlug) {
+    finalSlug = `${baseSlug}-${crypto.randomBytes(3).toString("hex")}`;
+  }
+
   const [newPost] = await db
     .insert(circlePost)
     .values({
       personId,
+      slug: finalSlug,
       topic: data.topic || "postpartum",
       body: data.body.trim(),
       photos,
@@ -562,6 +627,7 @@ export async function createCirclePost(data: {
 
   const formattedPost: PostItem = {
     id: newPost.id,
+    slug: newPost.slug || finalSlug,
     author: authorName,
     isAnonymous: isAnon,
     anonymousArea: realArea,
