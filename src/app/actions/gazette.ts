@@ -205,7 +205,7 @@ function resolveNeighbourhood(personRecord?: any, memberRecord?: any): string {
   return str;
 }
 
-export function slugify(text: string): string {
+function slugify(text: string): string {
   return text
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -217,7 +217,7 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function generatePostSlug(body: string, fallbackId?: string): string {
+function generatePostSlug(body: string, fallbackId?: string): string {
   const cleaned = body.replace(/\r\n/g, "\n").trim();
   const lines = cleaned.split("\n").map((l) => l.trim()).filter(Boolean);
 
