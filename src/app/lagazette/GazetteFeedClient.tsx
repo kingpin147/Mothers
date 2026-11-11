@@ -54,16 +54,38 @@ const REPORT_REASONS = [
   { id: "child_photo_no_consent", labelEn: "Child photo without consent", labelEs: "Foto de menor sin consentimiento", labelFr: "Photo d'enfant sans consentement" },
 ];
 
+function WhatsAppIcon({ size = 18, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill={color} style={{ flexShrink: 0 }}>
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2ZM12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.16 12.04 20.16C10.66 20.16 9.3 19.8 8.1 19.09L7.81 18.92L4.69 19.74L5.52 16.7L5.33 16.39C4.55 15.16 4.13 13.56 4.13 11.91C4.13 7.37 7.84 3.67 12.05 3.67ZM9.53 7.34C9.36 7.34 9.09 7.4 8.87 7.65C8.65 7.89 8.02 8.48 8.02 9.68C8.02 10.89 8.9 12.05 9.02 12.22C9.14 12.38 10.73 14.85 13.18 15.91C15.22 16.79 15.63 16.61 16.08 16.57C16.53 16.53 17.53 15.97 17.74 15.39C17.94 14.8 17.94 14.3 17.88 14.2C17.82 14.09 17.65 14.03 17.39 13.9C17.13 13.77 15.86 13.14 15.62 13.06C15.39 12.97 15.22 12.93 15.05 13.18C14.88 13.43 14.39 14.03 14.25 14.2C14.1 14.36 13.95 14.38 13.7 14.26C13.44 14.13 12.37 13.78 11.11 12.65C10.12 11.78 9.46 10.7 9.33 10.49C9.21 10.27 9.32 10.16 9.45 10.03C9.57 9.91 9.71 9.72 9.84 9.57C9.97 9.43 10.02 9.32 10.1 9.15C10.19 8.99 10.14 8.85 10.08 8.72C10.02 8.6 9.53 7.42 9.53 7.34Z" />
+    </svg>
+  );
+}
+
+function ShareIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </svg>
+  );
+}
+
 export function GazetteFeedClient({
   initialPosts,
   currentUser,
   eligibility,
   trendingTopics = [],
+  highlightedPostId,
 }: {
   initialPosts: PostItem[];
   currentUser: any;
   eligibility: { canPost: boolean; reason?: string; totalBookings?: number };
   trendingTopics?: { topic: string; label: string; score: number; postCount: number }[];
+  highlightedPostId?: string | null;
 }) {
   const { language: lang } = useLanguage();
   const searchParams = useSearchParams();
@@ -74,6 +96,30 @@ export function GazetteFeedClient({
   });
   const [customTagFilter, setCustomTagFilter] = useState<string | null>(null);
   const [loadingFilter, setLoadingFilter] = useState(false);
+
+  // Share & Deep Linking States
+  const [shareModalPost, setShareModalPost] = useState<PostItem | null>(null);
+  const [copiedPostId, setCopiedPostId] = useState<string | null>(null);
+  const [justCreatedPost, setJustCreatedPost] = useState<PostItem | null>(null);
+
+  // Auto-scroll and highlight if linked directly to a post
+  useEffect(() => {
+    const targetId = searchParams?.get("post") || highlightedPostId;
+    if (targetId) {
+      const matched = posts.find((p) => p.id === targetId);
+      if (matched && selectedFilter !== "all" && selectedFilter !== matched.topic) {
+        setSelectedFilter("all");
+      }
+
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`post-${targetId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, highlightedPostId, posts, selectedFilter]);
 
   useEffect(() => {
     const f = searchParams?.get("filter") || searchParams?.get("topic");
@@ -231,17 +277,54 @@ export function GazetteFeedClient({
         setDraft("");
         setDraftPhotos([]);
         setIsAnon(false);
+        const newPost = res.post;
+        setJustCreatedPost(newPost);
         setNotice({
-          text: lang === "fr" ? "Publié dans La Gazette." : lang === "es" ? "Publicado en La Gazette." : "Posted to La Gazette.",
+          text: lang === "fr" ? "Publié dans La Gazette !" : lang === "es" ? "¡Publicado en La Gazette!" : "Posted to La Gazette!",
           color: "#3b5e04",
         });
-        setTimeout(() => setNotice(null), 4000);
+        setTimeout(() => setNotice(null), 6000);
       }
     } catch (err: any) {
       setNotice({ text: err.message || "Failed to post.", color: "#993842" });
     } finally {
       setPosting(false);
     }
+  };
+
+  const handleSharePost = async (post: PostItem) => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://themothers.cc";
+    const shareUrl = `${origin}/lagazette?post=${post.id}`;
+    const shareTitle = `${post.author} on La Gazette — The Mothers`;
+    const shareSnippet = post.body.length > 120 ? `${post.body.slice(0, 117)}...` : post.body;
+
+    // 1. Try native Web Share on mobile devices (e.g. phones opening native WhatsApp/Instagram/Messages sheet)
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: `${post.author}: "${shareSnippet}"`,
+          url: shareUrl,
+        });
+        return;
+      } catch (err: any) {
+        if (err?.name === "AbortError") return;
+      }
+    }
+
+    // 2. Desktop or unsupported: Copy link to clipboard immediately with visual feedback
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopiedPostId(post.id);
+        setTimeout(() => setCopiedPostId((prev) => (prev === post.id ? null : prev)), 3000);
+      }
+    } catch {
+      // Ignore clipboard error
+    }
+
+    // 3. Open Share Modal for quick 1-click WhatsApp or Copy Link
+    setShareModalPost(post);
   };
 
   const handleToggleHeart = async (postId: string) => {
@@ -833,6 +916,55 @@ export function GazetteFeedClient({
                       : "Anyone can read. Open a free account to post, and sign sensitive posts anonymously if you need to."
                   )}
                 </div>
+
+                {justCreatedPost && (
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      padding: "11px 14px",
+                      backgroundColor: "rgba(123, 31, 44, 0.06)",
+                      border: "1px solid rgba(123, 31, 44, 0.22)",
+                      borderRadius: "6px",
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      fontSize: "13px",
+                    }}
+                  >
+                    <span style={{ color: "#39292a" }}>
+                      {lang === "fr"
+                        ? "Votre publication est en ligne ! Partagez-la avec d'autres mamans :"
+                        : lang === "es"
+                        ? "¡Tu publicación está lista! Compártela con otras madres:"
+                        : "Your publication is live! Share it with other mothers:"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleSharePost(justCreatedPost)}
+                      style={{
+                        backgroundColor: "#7b1f2c",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "20px",
+                        padding: "6px 14px",
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        whiteSpace: "nowrap",
+                        fontFamily: "'Lora', Georgia, serif",
+                        boxShadow: "0 2px 6px rgba(123, 31, 44, 0.2)",
+                      }}
+                    >
+                      <ShareIcon size={13} color="#ffffff" />
+                      <span>{lang === "fr" ? "Partager" : lang === "es" ? "Compartir" : "Share"}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1015,69 +1147,151 @@ export function GazetteFeedClient({
                 const isReported = reportedPostIds.has(post.id);
                 const isReportOpen = openReportPostId === post.id;
                 const isReplyOpen = openReplyPostId === post.id;
+                const isHighlighted = (searchParams?.get("post") || highlightedPostId) === post.id;
 
                 return (
                   <article
                     key={post.id}
+                    id={`post-${post.id}`}
                     style={{
-                      border: "1px solid rgba(57, 41, 42, 0.18)",
+                      border: isHighlighted ? "2px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.18)",
                       borderRadius: "8px",
-                      backgroundColor: "#ffffff",
+                      backgroundColor: isHighlighted ? "#fffdfa" : "#ffffff",
+                      boxShadow: isHighlighted ? "0 4px 20px rgba(123, 31, 44, 0.14)" : "none",
                       padding: "22px 24px",
                       display: "flex",
                       flexDirection: "column",
                       gap: "14px",
+                      transition: "border 0.25s ease, box-shadow 0.25s ease",
                     }}
                   >
-                    {/* Post Header */}
-                    <div style={{ display: "flex", gap: "13px", alignItems: "flex-start" }}>
+                    {/* Highlighted Banner */}
+                    {isHighlighted && (
                       <div
                         style={{
-                          flex: "none",
-                          width: "40px",
-                          height: "40px",
-                          borderRadius: "50%",
-                          backgroundColor: post.isAnonymous ? "rgba(57, 41, 42, 0.08)" : "rgba(123, 31, 44, 0.08)",
-                          border: "1px solid rgba(57, 41, 42, 0.2)",
+                          backgroundColor: "rgba(123, 31, 44, 0.08)",
+                          border: "1px solid rgba(123, 31, 44, 0.2)",
+                          borderRadius: "4px",
+                          padding: "6px 12px",
+                          fontSize: "12.5px",
+                          color: "#7b1f2c",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
-                          fontFamily: "'Cormorant Garamond', Georgia, serif",
-                          fontWeight: 600,
-                          fontSize: "16px",
-                          color: post.isAnonymous ? "rgba(57, 41, 42, 0.75)" : "#7b1f2c",
+                          justifyContent: "space-between",
+                          fontFamily: "'Lora', Georgia, serif",
                         }}
                       >
-                        {post.initial}
-                      </div>
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline" }}>
-                          <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "16.5px" }}>
-                            {post.author}
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                          <span>✦</span>
+                          <span style={{ fontWeight: 600 }}>
+                            {lang === "fr"
+                              ? "Publication partagée"
+                              : lang === "es"
+                              ? "Publicación compartida"
+                              : "Shared publication"}
                           </span>
-                          {post.isExpert && (
-                            <span
-                              style={{
-                                fontSize: "10.5px",
-                                letterSpacing: "0.08em",
-                                textTransform: "uppercase",
-                                color: "#5c4708",
-                                border: "1px solid rgba(201, 162, 39, 0.55)",
-                                borderRadius: "10px",
-                                padding: "2px 8px",
-                              }}
-                            >
-                              Partner expert
-                            </span>
-                          )}
-                          <span style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.65)" }}>{post.meta}</span>
+                        </span>
+                        <Link
+                          href="/lagazette"
+                          style={{
+                            fontSize: "12px",
+                            color: "rgba(57, 41, 42, 0.7)",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          {lang === "fr" ? "Voir tout le fil" : lang === "es" ? "Ver todo el muro" : "View all posts"}
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* Post Header */}
+                    <div style={{ display: "flex", gap: "13px", alignItems: "flex-start", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", gap: "13px", alignItems: "flex-start", flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            flex: "none",
+                            width: "40px",
+                            height: "40px",
+                            borderRadius: "50%",
+                            backgroundColor: post.isAnonymous ? "rgba(57, 41, 42, 0.08)" : "rgba(123, 31, 44, 0.08)",
+                            border: "1px solid rgba(57, 41, 42, 0.2)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: "'Cormorant Garamond', Georgia, serif",
+                            fontWeight: 600,
+                            fontSize: "16px",
+                            color: post.isAnonymous ? "rgba(57, 41, 42, 0.75)" : "#7b1f2c",
+                          }}
+                        >
+                          {post.initial}
                         </div>
 
-                        <div style={{ fontSize: "12px", letterSpacing: "0.06em", textTransform: "uppercase", color: "#7b1f2c", marginTop: "4px" }}>
-                          {getTopicLabel(post.topic)}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline" }}>
+                            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "16.5px" }}>
+                              {post.author}
+                            </span>
+                            {post.isExpert && (
+                              <span
+                                style={{
+                                  fontSize: "10.5px",
+                                  letterSpacing: "0.08em",
+                                  textTransform: "uppercase",
+                                  color: "#5c4708",
+                                  border: "1px solid rgba(201, 162, 39, 0.55)",
+                                  borderRadius: "10px",
+                                  padding: "2px 8px",
+                                }}
+                              >
+                                Partner expert
+                              </span>
+                            )}
+                            <span style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.65)" }}>{post.meta}</span>
+                          </div>
+
+                          <div style={{ fontSize: "12px", letterSpacing: "0.06em", textTransform: "uppercase", color: "#7b1f2c", marginTop: "4px" }}>
+                            {getTopicLabel(post.topic)}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Top-Right Quick Share Button (Requested by client) */}
+                      <button
+                        type="button"
+                        onClick={() => handleSharePost(post)}
+                        aria-label={lang === "fr" ? "Partager la publication" : lang === "es" ? "Compartir publicación" : "Share publication"}
+                        title={lang === "fr" ? "Partager la publication" : lang === "es" ? "Compartir publicación" : "Share publication"}
+                        style={{
+                          flex: "none",
+                          border: "1px solid rgba(57, 41, 42, 0.16)",
+                          backgroundColor: copiedPostId === post.id ? "rgba(123, 31, 44, 0.08)" : "#fdfbf8",
+                          color: copiedPostId === post.id ? "#7b1f2c" : "rgba(57, 41, 42, 0.75)",
+                          borderRadius: "20px",
+                          padding: "5px 12px",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          fontSize: "12.5px",
+                          fontFamily: "'Lora', Georgia, serif",
+                          transition: "all 0.18s ease",
+                        }}
+                      >
+                        {copiedPostId === post.id ? (
+                          <>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="13" height="13">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span style={{ fontWeight: 600 }}>{lang === "fr" ? "Copié !" : lang === "es" ? "¡Copiado!" : "Copied!"}</span>
+                          </>
+                        ) : (
+                          <>
+                            <ShareIcon size={13} color="currentColor" />
+                            <span>{lang === "fr" ? "Partager" : lang === "es" ? "Compartir" : "Share"}</span>
+                          </>
+                        )}
+                      </button>
                     </div>
 
                     {/* Post Body */}
@@ -1214,6 +1428,41 @@ export function GazetteFeedClient({
                             ? (lang === "fr" ? "Enregistré" : lang === "es" ? "Guardado" : "Saved")
                             : (lang === "fr" ? "Enregistrer" : lang === "es" ? "Guardar" : "Save")}
                         </span>
+                      </button>
+
+                      {/* Share Button (Action Footer) */}
+                      <button
+                        type="button"
+                        onClick={() => handleSharePost(post)}
+                        style={{
+                          border: "none",
+                          backgroundColor: "transparent",
+                          padding: 0,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          fontFamily: "'Lora', Georgia, serif",
+                          fontSize: "13.5px",
+                          color: copiedPostId === post.id ? "#7b1f2c" : "rgba(57, 41, 42, 0.72)",
+                          transition: "color 0.15s ease",
+                        }}
+                      >
+                        {copiedPostId === post.id ? (
+                          <>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="2.2" width="16" height="16">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span style={{ color: "#7b1f2c", fontWeight: 600 }}>
+                              {lang === "fr" ? "Lien copié !" : lang === "es" ? "¡Copiado!" : "Copied!"}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <ShareIcon size={16} color="currentColor" />
+                            <span>{lang === "fr" ? "Partager" : lang === "es" ? "Compartir" : "Share"}</span>
+                          </>
+                        )}
                       </button>
 
                       <span style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.6)", marginLeft: "auto" }}>
@@ -1695,6 +1944,210 @@ export function GazetteFeedClient({
           </div>
         </aside>
       </section>
+
+      {/* Share Modal Dialog */}
+      {shareModalPost && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setShareModalPost(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(57, 41, 42, 0.48)",
+            backdropFilter: "blur(3px)",
+            WebkitBackdropFilter: "blur(3px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid rgba(57, 41, 42, 0.16)",
+              borderRadius: "12px",
+              maxWidth: "460px",
+              width: "100%",
+              padding: "28px 28px",
+              boxShadow: "0 18px 45px rgba(57, 41, 42, 0.22)",
+              position: "relative",
+            }}
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setShareModalPost(null)}
+              aria-label="Close"
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                border: "none",
+                backgroundColor: "transparent",
+                cursor: "pointer",
+                color: "rgba(57, 41, 42, 0.6)",
+                padding: "6px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {/* Header */}
+            <div style={{ marginBottom: "18px" }}>
+              <h3
+                style={{
+                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                  fontSize: "24px",
+                  color: "#39292a",
+                  margin: "0 0 4px 0",
+                  fontWeight: 600,
+                }}
+              >
+                {lang === "fr" ? "Partager la publication" : lang === "es" ? "Compartir publicación" : "Share Publication"}
+              </h3>
+              <p style={{ margin: 0, fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", lineHeight: 1.5 }}>
+                {lang === "fr"
+                  ? "Partagez ce fil directement avec d'autres mamans ou dans vos groupes WhatsApp."
+                  : lang === "es"
+                  ? "Comparte este post directamente con otras madres o en tus grupos de WhatsApp."
+                  : "Share this conversation directly with other mothers or in your WhatsApp groups."}
+              </p>
+            </div>
+
+            {/* Post Snippet Preview */}
+            <div
+              style={{
+                backgroundColor: "#fdfbf8",
+                border: "1px solid rgba(57, 41, 42, 0.12)",
+                borderRadius: "8px",
+                padding: "14px 16px",
+                marginBottom: "20px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "15px", color: "#7b1f2c" }}>
+                  {shareModalPost.author}
+                </span>
+                <span style={{ fontSize: "11.5px", letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.6)" }}>
+                  · {getTopicLabel(shareModalPost.topic)}
+                </span>
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "13.5px",
+                  lineHeight: 1.5,
+                  color: "#39292a",
+                  overflow: "hidden",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                }}
+              >
+                {shareModalPost.body}
+              </p>
+            </div>
+
+            {/* WhatsApp Share Button (Primary) */}
+            <a
+              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                `${shareModalPost.author} in La Gazette:\n"${shareModalPost.body.slice(0, 110)}..."\n\n${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette?post=${shareModalPost.id}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                backgroundColor: "#25D366",
+                color: "#ffffff",
+                textDecoration: "none",
+                fontWeight: 600,
+                fontSize: "14.5px",
+                padding: "13px 18px",
+                borderRadius: "6px",
+                marginBottom: "14px",
+                fontFamily: "'Lora', Georgia, serif",
+                boxShadow: "0 2px 8px rgba(37, 211, 102, 0.28)",
+              }}
+            >
+              <WhatsAppIcon size={20} color="#ffffff" />
+              <span>{lang === "fr" ? "Partager sur WhatsApp" : lang === "es" ? "Compartir en WhatsApp" : "Share on WhatsApp"}</span>
+            </a>
+
+            {/* Direct Link Row */}
+            <div style={{ display: "flex", gap: "8px" }}>
+              <input
+                type="text"
+                readOnly
+                value={`${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette?post=${shareModalPost.id}`}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  fontSize: "13px",
+                  borderRadius: "6px",
+                  border: "1px solid rgba(57, 41, 42, 0.2)",
+                  backgroundColor: "#fdfbf8",
+                  color: "rgba(57, 41, 42, 0.8)",
+                  outline: "none",
+                  fontFamily: "monospace",
+                }}
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const url = `${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette?post=${shareModalPost.id}`;
+                  if (typeof navigator !== "undefined" && navigator.clipboard) {
+                    await navigator.clipboard.writeText(url);
+                  }
+                  setCopiedPostId(shareModalPost.id);
+                }}
+                style={{
+                  border: "none",
+                  backgroundColor: copiedPostId === shareModalPost.id ? "#3b5e04" : "#7b1f2c",
+                  color: "#ffffff",
+                  padding: "10px 16px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "13.5px",
+                  fontFamily: "'Lora', Georgia, serif",
+                  whiteSpace: "nowrap",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {copiedPostId === shareModalPost.id ? (
+                  <>✓ {lang === "fr" ? "Copié !" : lang === "es" ? "¡Copiado!" : "Copied!"}</>
+                ) : (
+                  <>{lang === "fr" ? "Copier le lien" : lang === "es" ? "Copiar enlace" : "Copy link"}</>
+                )}
+              </button>
+            </div>
+
+            {copiedPostId === shareModalPost.id && (
+              <div style={{ marginTop: "10px", textAlign: "center", fontSize: "12.5px", color: "#3b5e04", fontWeight: 500 }}>
+                ✓ {lang === "fr" ? "Lien copié dans le presse-papiers !" : lang === "es" ? "¡Enlace copiado al portapapeles!" : "Link copied to clipboard!"}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

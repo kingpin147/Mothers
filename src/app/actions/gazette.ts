@@ -254,6 +254,27 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
     });
   }
 
+  return formatCirclePosts(posts, currentUserId, userSavedPostIds, sortBy, selectedTopic);
+}
+
+export async function getCirclePostById(postId: string): Promise<PostItem | null> {
+  const session = await auth();
+  const currentUserId = session?.user?.id ? ((session.user as any).personId || session.user.id) : null;
+  const post = await db.query.circlePost.findFirst({
+    where: and(eq(circlePost.id, postId), sql`${circlePost.status} IN ('visible', 'hidden')`),
+  });
+  if (!post) return null;
+  const formatted = await formatCirclePosts([post], currentUserId);
+  return formatted[0] || null;
+}
+
+async function formatCirclePosts(
+  posts: any[],
+  currentUserId: string | null,
+  userSavedPostIds?: Set<string>,
+  sortBy: "recent" | "trending" = "recent",
+  selectedTopic?: string
+): Promise<PostItem[]> {
   if (!posts.length) return [];
 
   const postIds = posts.map((p) => p.id);
@@ -296,6 +317,18 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
       if (h.postId) userHeartedPostIds.add(h.postId);
       if (h.replyId) userHeartedReplyIds.add(h.replyId);
     });
+  }
+
+  // 5. Batch saved posts for current user if not passed
+  let savedSet = userSavedPostIds;
+  if (!savedSet && currentUserId) {
+    savedSet = new Set<string>();
+    try {
+      const userSaved = await db.query.circleSavedPost.findMany({
+        where: eq(circleSavedPost.personId, currentUserId),
+      });
+      userSaved.forEach((s) => savedSet!.add(s.postId));
+    } catch {}
   }
 
   // Group replies by postId
@@ -383,7 +416,7 @@ export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | 
       photoGrid,
       heartsCount: p.heartsCount,
       isHearted: userHeartedPostIds.has(p.id),
-      isSaved: userSavedPostIds.has(p.id),
+      isSaved: savedSet ? savedSet.has(p.id) : false,
       repliesCount: replies.length,
       createdAt: p.createdAt.toISOString(),
       meta: formatTimeAgo(new Date(p.createdAt)),
