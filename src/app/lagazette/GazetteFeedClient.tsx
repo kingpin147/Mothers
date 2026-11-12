@@ -106,13 +106,14 @@ export function GazetteFeedClient({
   useEffect(() => {
     const targetId = searchParams?.get("post") || highlightedPostId;
     if (targetId) {
-      const matched = posts.find((p) => p.id === targetId);
+      const matched = posts.find((p) => p.id === targetId || p.slug === targetId);
       if (matched && selectedFilter !== "all" && selectedFilter !== matched.topic) {
         setSelectedFilter("all");
       }
 
       const timer = setTimeout(() => {
-        const el = document.getElementById(`post-${targetId}`);
+        const postDomId = matched ? matched.id : targetId;
+        const el = document.getElementById(`post-${postDomId}`);
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "center" });
         }
@@ -1147,7 +1148,8 @@ export function GazetteFeedClient({
                 const isReported = reportedPostIds.has(post.id);
                 const isReportOpen = openReportPostId === post.id;
                 const isReplyOpen = openReplyPostId === post.id;
-                const isHighlighted = (searchParams?.get("post") || highlightedPostId) === post.id;
+                const targetPostQuery = searchParams?.get("post");
+                const isHighlighted = (highlightedPostId === post.id) || (targetPostQuery === post.id) || (targetPostQuery === post.slug);
 
                 return (
                   <article

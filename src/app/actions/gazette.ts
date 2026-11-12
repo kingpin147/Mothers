@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "crypto";
 import { db } from "@/db";
 import { circlePost, circleReply, circleHeart, circleReport, circleSavedPost, person, member, setting, auditLog } from "@/db/schema";
 import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
@@ -243,6 +244,30 @@ function generatePostSlug(body: string, fallbackId?: string): string {
   return slug || "post";
 }
 
+export async function ensurePostSlug(post: any): Promise<string> {
+  if (post.slug && typeof post.slug === "string" && post.slug.trim()) {
+    return post.slug;
+  }
+  const baseSlug = generatePostSlug(post.body || "", post.id);
+  let finalSlug = baseSlug;
+
+  try {
+    const existing = await db.query.circlePost.findFirst({
+      where: and(eq(circlePost.slug, finalSlug), sql`${circlePost.id} != ${post.id}`),
+    });
+    if (existing) {
+      finalSlug = `${baseSlug}-${post.id ? post.id.slice(0, 6) : crypto.randomBytes(3).toString("hex")}`;
+    }
+
+    await db.update(circlePost).set({ slug: finalSlug }).where(eq(circlePost.id, post.id));
+    post.slug = finalSlug;
+  } catch (err) {
+    console.warn("Failed to persist slug for post:", post.id, err);
+  }
+
+  return finalSlug;
+}
+
 export async function getCirclePosts(selectedTopic?: string, sortBy: "recent" | "trending" = "recent"): Promise<PostItem[]> {
   const session = await auth();
   const currentUserId = session?.user?.id ? ((session.user as any).personId || session.user.id) : null;
@@ -314,6 +339,26 @@ export async function getCirclePostBySlugOrId(identifier: string): Promise<PostI
     post = await db.query.circlePost.findFirst({
       where: and(eq(circlePost.id, identifier), sql`${circlePost.status} IN ('visible', 'hidden')`),
     });
+    if (post) {
+      await ensurePostSlug(post);
+    }
+  }
+
+  // 3. Fallback: If identifier matches an in-memory generated slug for an unslugged post
+  if (!post) {
+    try {
+      const unsluggedPosts = await db.query.circlePost.findMany({
+        where: and(sql`(${circlePost.slug} IS NULL OR ${circlePost.slug} = '')`, sql`${circlePost.status} IN ('visible', 'hidden')`),
+        limit: 100,
+      });
+      for (const p of unsluggedPosts) {
+        const generated = await ensurePostSlug(p);
+        if (generated === identifier) {
+          post = p;
+          break;
+        }
+      }
+    } catch {}
   }
 
   if (!post) return null;
@@ -454,6 +499,10 @@ async function formatCirclePosts(
         : photoCount === 3
         ? "1fr 1fr 1fr"
         : "1fr 1fr";
+
+    if (!p.slug) {
+      ensurePostSlug(p).catch(() => {});
+    }
 
     result.push({
       id: p.id,
