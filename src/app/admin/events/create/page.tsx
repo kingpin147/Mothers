@@ -32,6 +32,8 @@ export default function AdminCreateEventPage() {
   const [memberCredits, setMemberCredits] = useState("");
   const [nonMemberCredits, setNonMemberCredits] = useState("");
   const [cancellationWindowHours, setCancellationWindowHours] = useState("24");
+  const [bookingCutoffHours, setBookingCutoffHours] = useState("3");
+  const [planOnly, setPlanOnly] = useState(false);
   const [isCustomCancel, setIsCustomCancel] = useState(false);
   const CANCEL_PRESETS = ["0", "12", "24", "48", "72", "96", "120", "168", "336"];
   const [isMembershipLive, setIsMembershipLive] = useState(false);
@@ -353,6 +355,8 @@ export default function AdminCreateEventPage() {
         memberCredits: parsedMemberCredits,
         nonMemberCredits: parsedNonMemberCredits,
         cancellationWindowHours: parseInt(cancellationWindowHours) || 0,
+        bookingCutoffHours: parseInt(bookingCutoffHours, 10) || 3,
+        planOnly: isMembershipLive ? planOnly : false,
         childcare,
         needsHost,
         // 0 = uncapped (no ceiling). When noCeiling is checked, store 0 explicitly.
@@ -756,6 +760,23 @@ export default function AdminCreateEventPage() {
                 )}
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>Window before start for free cancellation and host penalties.</div>
               </div>
+              <div style={{ flex: 1, minWidth: "240px" }}>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Same-day booking cut-off</label>
+                <select
+                  value={bookingCutoffHours}
+                  onChange={(e) => setBookingCutoffHours(e.target.value)}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: "#fff" }}
+                >
+                  <option value="0">At the start (0 h)</option>
+                  <option value="1">1 hour before</option>
+                  <option value="3">3 hours before (default)</option>
+                  <option value="6">6 hours before</option>
+                  <option value="12">12 hours before</option>
+                  <option value="24">24 hours before</option>
+                  <option value="48">48 hours before</option>
+                </select>
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>Bookings and waitlist claims are refused after start − cut-off.</div>
+              </div>
             </div>
             {/* Checkboxes row */}
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "14px" }}>
@@ -787,6 +808,17 @@ export default function AdminCreateEventPage() {
                 <input type="checkbox" checked={freeEvent} onChange={(e) => setFreeEvent(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }} />
                 <span>Free event — 0 credits for everyone (member and non-member)</span>
               </label>
+              {isMembershipLive && (
+                <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={planOnly}
+                    onChange={(e) => setPlanOnly(e.target.checked)}
+                    style={{ width: "17px", height: "17px", accentColor: "#7b1f2c", flexShrink: 0 }}
+                  />
+                  <span>Plan members only <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.6)" }}>(shown only when monthly plan is active)</span></span>
+                </label>
+              )}
             </div>
 
             {/* Capacity Summary & Validation */}

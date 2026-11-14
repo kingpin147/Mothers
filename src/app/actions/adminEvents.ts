@@ -190,6 +190,8 @@ export async function createAdminEvent(data: {
   childcare?: string;
   needsHost?: boolean;
   nonMemberOpensAt?: Date | null;
+  bookingCutoffHours?: number;
+  planOnly?: boolean;
   imageId?: string | null;
   hostPersonId?: string | null;
 }) {
@@ -254,6 +256,8 @@ export async function createAdminEvent(data: {
         memberCredits: memberCost,
         nonMemberCredits: nonMemberCost,
         cancellationWindowHours: data.cancellationWindowHours !== undefined ? data.cancellationWindowHours : 24,
+        bookingCutoffHours: data.bookingCutoffHours !== undefined ? data.bookingCutoffHours : 3,
+        planOnly: !!data.planOnly,
         childcare: data.childcare || "adults_only",
         capacityMember: data.capacityMember,
         minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 0,
@@ -341,6 +345,8 @@ export async function updateAdminEvent(eventId: string, data: {
   nonMemberCreditCost?: number;
   needsHost?: boolean;
   nonMemberOpensAt?: Date | null;
+  bookingCutoffHours?: number;
+  planOnly?: boolean;
   imageId?: string | null;
   hostPersonId?: string | null;
   status?: "draft" | "published_pending" | "confirmed" | "completed" | "cancelled";
@@ -412,6 +418,8 @@ export async function updateAdminEvent(eventId: string, data: {
         nonMemberCredits: updatedNonMemberCost,
       }),
       ...(data.cancellationWindowHours !== undefined && { cancellationWindowHours: data.cancellationWindowHours }),
+      ...(data.bookingCutoffHours !== undefined && { bookingCutoffHours: data.bookingCutoffHours }),
+      ...(data.planOnly !== undefined && { planOnly: data.planOnly }),
       ...(data.capacityMember !== undefined && { capacityMember: data.capacityMember }),
       ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
       ...(data.needsHost !== undefined && { needsHost: data.needsHost }),

@@ -1391,6 +1391,17 @@ function EventCard({
   const isFull = ev.isFull || false;
   const isOpenList = !ev.capacityTotal || ev.capacityTotal === 0;
 
+  const nowMs = Date.now();
+  const startMs = new Date(ev.startsAt).getTime();
+  const endMs = ev.endsAt ? new Date(ev.endsAt).getTime() : startMs + 2 * 3600 * 1000;
+  const cutoffHours = (ev as any).bookingCutoffHours ?? 3;
+  const cutoffMs = startMs - cutoffHours * 3600 * 1000;
+
+  const isHappeningNow = nowMs >= startMs && nowMs < endMs;
+  const isClosed = nowMs >= cutoffMs && nowMs < startMs;
+  const isToday = new Date().toDateString() === new Date(ev.startsAt).toDateString();
+  const closesAtStr = new Date(cutoffMs).toLocaleTimeString(lang === "es" ? "es-ES" : lang === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+
   const catInfo = getCategoryInfo(ev, lang);
   const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
   const isViewerFree = viewerCost === 0 || (ev.isFreeWalk && isMember);
@@ -1460,7 +1471,7 @@ function EventCard({
         </Link>
 
         {/* Status badges overlay on top-left of image if booked / cancelled / signature */}
-        {(ev.userStatus?.isBooked || isCancelled || (ev.isSignature && !isCancelled)) && (
+        {(ev.userStatus?.isBooked || isCancelled || isHappeningNow || isToday || (ev as any).planOnly || (ev.isSignature && !isCancelled)) && (
           <div
             style={{
               position: "absolute",
@@ -1493,6 +1504,40 @@ function EventCard({
                   : (lang === "en" ? "Booked" : "Reservada")}
               </span>
             )}
+            {isHappeningNow && !isCancelled && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.04em",
+                  color: "#fdfaf5",
+                  background: "#7b1f2c",
+                  border: "1px solid #7b1f2c",
+                  borderRadius: "10px",
+                  padding: "3px 9px",
+                  whiteSpace: "nowrap",
+                  fontWeight: 600,
+                }}
+              >
+                {lang === "fr" ? "En ce moment" : lang === "es" ? "En curso" : "Now"}
+              </span>
+            )}
+            {isToday && !isPast && !isHappeningNow && !isCancelled && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.04em",
+                  color: "#39292a",
+                  background: "#fdf8f2",
+                  border: "1px solid rgba(57,41,42,0.3)",
+                  borderRadius: "10px",
+                  padding: "3px 9px",
+                  whiteSpace: "nowrap",
+                  fontWeight: 600,
+                }}
+              >
+                {lang === "fr" ? "Aujourd'hui" : lang === "es" ? "Hoy" : "Today"}
+              </span>
+            )}
             {isCancelled && (
               <span
                 style={{
@@ -1511,7 +1556,24 @@ function EventCard({
                 {lang === "en" ? "Cancelled" : "Cancelado"}
               </span>
             )}
-            {ev.membersOnly && !isCancelled && (
+            {(ev as any).planOnly && !isCancelled && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.04em",
+                  color: "#fdfaf5",
+                  border: "1px solid #7b1f2c",
+                  background: "#7b1f2c",
+                  borderRadius: "10px",
+                  padding: "3px 9px",
+                  whiteSpace: "nowrap",
+                  fontWeight: 500,
+                }}
+              >
+                {lang === "fr" ? "Membres seulement" : lang === "es" ? "Solo socias" : "Members only"}
+              </span>
+            )}
+            {ev.membersOnly && !(ev as any).planOnly && !isCancelled && (
               <span
                 style={{
                   fontSize: "11px",
@@ -1843,6 +1905,61 @@ function EventCard({
             >
               {lang === "fr" ? "Réservée" : lang === "es" ? "Reservada" : "Booked"}
             </span>
+          ) : isHappeningNow ? (
+            <button
+              disabled
+              style={{
+                border: "1px solid #7b1f2c",
+                backgroundColor: "#7b1f2c",
+                color: "#f8efe2",
+                padding: "8px 18px",
+                borderRadius: "4px",
+                fontFamily: "var(--font-heading)",
+                fontWeight: 600,
+                fontSize: "14px",
+                cursor: "default",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {lang === "fr" ? "En ce moment" : lang === "es" ? "En curso" : "Happening now"}
+            </button>
+          ) : isClosed ? (
+            <button
+              disabled
+              style={{
+                border: "1px solid rgba(57,41,42,0.2)",
+                backgroundColor: "#e8e5e0",
+                color: "rgba(57,41,42,0.5)",
+                padding: "8px 18px",
+                borderRadius: "4px",
+                fontFamily: "var(--font-heading)",
+                fontWeight: 600,
+                fontSize: "13.5px",
+                cursor: "not-allowed",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {lang === "fr" ? "Inscriptions closes" : lang === "es" ? "Inscripción cerrada" : "Booking closed"}
+            </button>
+          ) : (ev as any).planOnly && !isMember ? (
+            <Link
+              href="/membership"
+              style={{
+                border: "1px solid #7b1f2c",
+                backgroundColor: "transparent",
+                color: "#7b1f2c",
+                padding: "8px 16px",
+                borderRadius: "4px",
+                fontFamily: "var(--font-heading)",
+                fontWeight: 600,
+                fontSize: "13px",
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+                display: "inline-block",
+              }}
+            >
+              {lang === "fr" ? "Membres · rejoindre le club" : lang === "es" ? "Solo socias · únete al plan" : "Members only · join the plan"}
+            </Link>
           ) : ev.userStatus?.isWaitlisted ? (
             <Link
               href={`/events/${ev.id}`}
@@ -1860,59 +1977,70 @@ function EventCard({
                 display: "inline-block",
               }}
             >
-              {lang === "fr" ? "Sur liste d'attente" : lang === "es" ? "En espera" : "Waitlisted"}
+              {lang === "fr"
+                ? `Sur liste d'attente · #${ev.userStatus.waitlistPosition || 1}`
+                : lang === "es"
+                ? `En lista · #${ev.userStatus.waitlistPosition || 1}`
+                : `On the waitlist · #${ev.userStatus.waitlistPosition || 1}`}
             </Link>
           ) : isFull ? (
-            isMember ? (
-              <button
-                type="button"
-                onClick={handleBookClick}
-                disabled={isBooking}
-                style={{
-                  border: "1px solid #7b1f2c",
-                  backgroundColor: "transparent",
-                  color: "#7b1f2c",
-                  padding: "8px 16px",
-                  borderRadius: "4px",
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 600,
-                  fontSize: "13.5px",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {isBooking
-                  ? (lang === "fr" ? "Inscription..." : lang === "es" ? "Uniéndome..." : "Joining...")
-                  : (lang === "fr" ? "Liste d'attente" : lang === "es" ? "Lista" : "Waitlist")}
-              </button>
-            ) : null
-          ) : (
             <button
               type="button"
               onClick={handleBookClick}
               disabled={isBooking}
               style={{
                 border: "1px solid #7b1f2c",
-                backgroundColor: "#7b1f2c",
-                color: "#f8efe2",
-                padding: "8px 22px",
+                backgroundColor: "transparent",
+                color: "#7b1f2c",
+                padding: "8px 16px",
                 borderRadius: "4px",
                 fontFamily: "var(--font-heading)",
                 fontWeight: 600,
-                fontSize: "14px",
+                fontSize: "13.5px",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
-                transition: "background-color 0.15s ease",
               }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "#621823")}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "#7b1f2c")}
             >
               {isBooking
-                ? (lang === "fr" ? "Réservation..." : lang === "es" ? "Reservando..." : "Booking...")
-                : isViewerFree
-                ? (lang === "fr" ? "Rejoindre — gratuit" : lang === "es" ? "Unirme — gratis" : "Join — free")
-                : (lang === "fr" ? "Réserver" : lang === "es" ? "Reservar" : "Book")}
+                ? (lang === "fr" ? "Inscription..." : lang === "es" ? "Uniéndome..." : "Joining...")
+                : (lang === "fr" ? "Rejoindre la liste d'attente" : lang === "es" ? "Unirme a la lista" : "Join the waitlist")}
             </button>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+              <button
+                type="button"
+                onClick={handleBookClick}
+                disabled={isBooking}
+                style={{
+                  border: "1px solid #7b1f2c",
+                  backgroundColor: "#7b1f2c",
+                  color: "#f8efe2",
+                  padding: "8px 22px",
+                  borderRadius: "4px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "background-color 0.15s ease",
+                }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "#621823")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.backgroundColor = "#7b1f2c")}
+              >
+                {isBooking
+                  ? (lang === "fr" ? "Réservation..." : lang === "es" ? "Reservando..." : "Booking...")
+                  : isToday
+                  ? (lang === "fr" ? `Réserver · ferme à ${closesAtStr}` : lang === "es" ? `Reservar · cierra ${closesAtStr}` : `Book · closes ${closesAtStr}`)
+                  : isViewerFree
+                  ? (lang === "fr" ? "Rejoindre — gratuit" : lang === "es" ? "Unirme — gratis" : "Join — free")
+                  : (lang === "fr" ? "Réserver" : lang === "es" ? "Reservar" : "Book")}
+              </button>
+              {isToday && (
+                <span style={{ fontSize: "11px", color: "#993842", fontWeight: 500 }}>
+                  {lang === "fr" ? "Aujourd'hui · sans remboursement" : lang === "es" ? "Hoy · sin reembolso tras reservar" : "Today · no refund once booked"}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>

@@ -94,6 +94,11 @@ export const person = pgTable(
     lateHostCancellations: integer("late_host_cancellations").default(0).notNull(),
     lateHostCancelledAt: timestamp("late_host_cancelled_at", { withTimezone: true }),
     godmotherRewardedAt: timestamp("godmother_rewarded_at", { withTimezone: true }),
+    inviteCode: text("invite_code").unique(),
+    badges: text("badges").array(),
+    notifyMessages: boolean("notify_messages").default(true).notNull(),
+    notifyReplies: boolean("notify_replies").default(true).notNull(),
+    communities: text("communities").array(),
     profileData: jsonb("profile_data").$type<{
       stages?: string[];
       neighbourhood?: string;
@@ -276,6 +281,11 @@ export const event = pgTable(
     ranAt: timestamp("ran_at", { withTimezone: true }),
     cancellationWindowHours: integer("cancellation_window_hours").default(24).notNull(),
     cancellationRefundPercent: integer("cancellation_refund_percent").default(100).notNull(),
+    bookingCutoffHours: integer("booking_cutoff_hours").default(3).notNull(),
+    planOnly: boolean("plan_only").default(false).notNull(),
+    communityId: text("community_id"),
+    isCommunityOnly: boolean("is_community_only").default(false).notNull(),
+    priceCents: integer("price_cents").default(0).notNull(),
     partnerId: text("partner_id"),
     hostAdminId: text("host_admin_id").references(() => adminUser.id),
     imageId: text("image_id"),
@@ -832,7 +842,9 @@ export const gazettePost = pgTable(
     personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
     isAnonymous: boolean("is_anonymous").default(false).notNull(),
     anonymousArea: text("anonymous_area"),
-    topic: text("topic").notNull(), // 'pregnancy_birth', 'feeding', 'sleep', 'postpartum', 'nurseries', 'work_money', 'life_bcn', 'meetups', 'recommendations'
+    topic: text("topic").notNull(), // 'pregnancy_birth', 'feeding', 'sleep', 'postpartum', 'nurseries', 'work_money', 'life_bcn', 'meetups', 'recommendations', 'for_sale', 'gear_swap'
+    topics: text("topics").array(), // up to 3 topics/tags
+    seenCount: integer("seen_count").default(0).notNull(),
     body: text("body").notNull(),
     photos: jsonb("photos").$type<string[]>().default([]).notNull(),
     photoConsent: boolean("photo_consent").default(true).notNull(),
@@ -929,6 +941,141 @@ export const circleHeart = gazetteHeart;
 export const circleReport = gazetteReport;
 export const circleBookmark = gazetteBookmark;
 export const circleSavedPost = gazetteBookmark;
+
+// ─── GAZETTE ENHANCEMENTS ───────────────────────────────────────────────────
+
+export const gazetteFollow = pgTable(
+  "gazette_follow",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    postId: text("post_id").notNull().references(() => gazettePost.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_unique_person_post_follow").on(table.personId, table.postId),
+    index("idx_gazette_follow_person").on(table.personId),
+  ]
+);
+
+export const gazetteView = pgTable(
+  "gazette_view",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    postId: text("post_id").notNull().references(() => gazettePost.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_unique_person_post_view").on(table.personId, table.postId),
+    index("idx_gazette_view_post").on(table.postId),
+  ]
+);
+
+// ─── PRIVATE MESSAGING ──────────────────────────────────────────────────────
+
+export const conversation = pgTable(
+  "conversation",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    personOneId: text("person_one_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    personTwoId: text("person_two_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    lastMessageAt: timestamp("last_message_at", { withTimezone: true }).defaultNow().notNull(),
+    lastMessageText: text("last_message_text"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_unique_conversation_pair").on(table.personOneId, table.personTwoId),
+    index("idx_conversation_last_message").on(table.lastMessageAt),
+  ]
+);
+
+export const directMessage = pgTable(
+  "direct_message",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    conversationId: text("conversation_id").notNull().references(() => conversation.id, { onDelete: "cascade" }),
+    senderId: text("sender_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    recipientId: text("recipient_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    hiddenByAdmin: boolean("hidden_by_admin").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_direct_message_conversation").on(table.conversationId, table.createdAt),
+    index("idx_direct_message_recipient_read").on(table.recipientId, table.readAt),
+  ]
+);
+
+export const messageBlock = pgTable(
+  "message_block",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    blockerPersonId: text("blocker_person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    blockedPersonId: text("blocked_person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_unique_message_block").on(table.blockerPersonId, table.blockedPersonId),
+  ]
+);
+
+export const messageReport = pgTable(
+  "message_report",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    conversationId: text("conversation_id").notNull().references(() => conversation.id, { onDelete: "cascade" }),
+    reporterPersonId: text("reporter_person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    reportedPersonId: text("reported_person_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    reason: text("reason").notNull(),
+    status: text("status").default("pending").notNull(), // 'pending', 'resolved_nothing', 'resolved_hidden', 'resolved_suspended'
+    reviewedByAdminId: text("reviewed_by_admin_id").references(() => adminUser.id),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_message_report_status").on(table.status),
+    index("idx_message_report_conversation").on(table.conversationId),
+  ]
+);
+
+// ─── COMMUNITIES & WORKSHOPS ────────────────────────────────────────────────
+
+export const community = pgTable(
+  "community",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    type: text("type").notNull(), // 'community' | 'workshop'
+    description: text("description"),
+    contactPersonId: text("contact_person_id").references(() => person.id),
+    contactEmail: text("contact_email").notNull(),
+    contactPhone: text("contact_phone"),
+    legalName: text("legal_name"),
+    taxId: text("tax_id"),
+    hasInsurance: boolean("has_insurance").default(false).notNull(),
+    commissionRatePercent: integer("commission_rate_percent").default(15).notNull(),
+    stripeAccountId: text("stripe_account_id"),
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeCardOnFile: boolean("stripe_card_on_file").default(false).notNull(),
+    inviteCode: text("invite_code").notNull().unique(), // e.g. "GRACIA" -> /join/GRACIA
+    approved: boolean("approved").default(false).notNull(),
+    publishesWithoutReview: boolean("publishes_without_review").default(false).notNull(),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    approvedByAdminId: text("approved_by_admin_id").references(() => adminUser.id),
+    freeEventsThisMonth: integer("free_events_this_month").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_community_slug").on(table.slug),
+    uniqueIndex("idx_community_invite_code").on(table.inviteCode),
+    index("idx_community_approved").on(table.approved),
+  ]
+);
+
 
 
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { bookEvent, joinEventWaitlist, releaseBooking } from "@/app/actions/booking";
+import { bookEvent, joinEventWaitlist, leaveEventWaitlist, releaseBooking } from "@/app/actions/booking";
 import { getPublicEventById } from "@/app/actions/events";
 import { getAccountData } from "@/app/actions/memberAccount";
 import ThemeLoader from "@/components/ThemeLoader";
@@ -294,6 +294,24 @@ export default function EventDetailPage() {
       } else {
         setBookingError(err?.message || (lang === "en" ? "Something went wrong." : "Algo falló."));
       }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleLeaveWaitlist = async (targetEv: PublicEvent) => {
+    setActionLoading(true);
+    setBookingError(null);
+    try {
+      const res = await leaveEventWaitlist(targetEv.id);
+      if (res.success) {
+        setIsAlreadyWaitlisted(false);
+        setUserWaitlistPos(null);
+      } else {
+        setBookingError(res.error || (lang === "en" ? "Could not leave waitlist." : "No se pudo salir de la lista de espera."));
+      }
+    } catch {
+      setBookingError(lang === "en" ? "Something went wrong." : "Algo falló.");
     } finally {
       setActionLoading(false);
     }
@@ -723,85 +741,231 @@ export default function EventDetailPage() {
             </div>
 
             {/* Main Booking Button */}
-            {isMember ? (
-              isAlreadyBooked ? (
-                <Link
-                  href="/account"
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    boxSizing: "border-box",
-                    textAlign: "center",
-                    border: "1px solid rgba(86, 139, 5, 0.4)",
-                    backgroundColor: "rgba(86, 139, 5, 0.1)",
-                    color: "#456f04",
-                    borderRadius: "4px",
-                    padding: "13px 16px",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "15.5px",
-                    textDecoration: "none",
-                  }}
-                >
-                  {isOpenList
-                    ? (lang === "fr" ? "Vous êtes sur la liste — voir mon compte" : lang === "es" ? "Estás en la lista — ver mi cuenta" : "You're on the list — see your account")
-                    : (lang === "fr" ? "Réservée — voir mon compte" : lang === "es" ? "Reservada — ver mi cuenta" : "Booked — see your account")}
-                </Link>
-              ) : isAlreadyWaitlisted ? (
+            {(() => {
+              const nowMs = Date.now();
+              const startMs = ev ? new Date(ev.startsAt).getTime() : 0;
+              const endMs = ev?.endsAt ? new Date(ev.endsAt).getTime() : startMs + 2 * 3600 * 1000;
+              const cutoffHours = ev ? ((ev as any).bookingCutoffHours ?? 3) : 3;
+              const cutoffMs = startMs - cutoffHours * 3600 * 1000;
+
+              const isHappeningNow = nowMs >= startMs && nowMs < endMs;
+              const isClosed = nowMs >= cutoffMs && nowMs < startMs;
+              const isToday = ev ? (new Date().toDateString() === new Date(ev.startsAt).toDateString()) : false;
+              const closesAtStr = new Date(cutoffMs).toLocaleTimeString(lang === "es" ? "es-ES" : lang === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+
+              if (isMember) {
+                if (isAlreadyBooked) {
+                  return (
+                    <Link
+                      href="/account"
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        textAlign: "center",
+                        border: "1px solid rgba(86, 139, 5, 0.4)",
+                        backgroundColor: "rgba(86, 139, 5, 0.1)",
+                        color: "#456f04",
+                        borderRadius: "4px",
+                        padding: "13px 16px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15.5px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      {isOpenList
+                        ? (lang === "fr" ? "Vous êtes sur la liste — voir mon compte" : lang === "es" ? "Estás en la lista — ver mi cuenta" : "You're on the list — see your account")
+                        : (lang === "fr" ? "Réservée — voir mon compte" : lang === "es" ? "Reservada — ver mi cuenta" : "Booked — see your account")}
+                    </Link>
+                  );
+                }
+
+                if (isHappeningNow) {
+                  return (
+                    <button
+                      type="button"
+                      disabled
+                      style={{
+                        width: "100%",
+                        border: "1px solid #7b1f2c",
+                        backgroundColor: "#7b1f2c",
+                        color: "#fdf8f2",
+                        borderRadius: "4px",
+                        padding: "13px 16px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15.5px",
+                        cursor: "default",
+                      }}
+                    >
+                      {lang === "fr" ? "En ce moment" : lang === "es" ? "En curso" : "Happening now"}
+                    </button>
+                  );
+                }
+
+                if (isClosed) {
+                  return (
+                    <button
+                      type="button"
+                      disabled
+                      style={{
+                        width: "100%",
+                        border: "1px solid rgba(57, 41, 42, 0.2)",
+                        backgroundColor: "#e8e5e0",
+                        color: "rgba(57, 41, 42, 0.5)",
+                        borderRadius: "4px",
+                        padding: "13px 16px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15.5px",
+                        cursor: "not-allowed",
+                      }}
+                    >
+                      {lang === "fr" ? "Inscriptions closes" : lang === "es" ? "Inscripción cerrada" : "Booking closed"}
+                    </button>
+                  );
+                }
+
+                if ((ev as any).planOnly && !isMember) {
+                  return (
+                    <Link
+                      href="/membership"
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        textAlign: "center",
+                        border: "1px solid #7b1f2c",
+                        backgroundColor: "#7b1f2c",
+                        color: "#fdf8f2",
+                        borderRadius: "4px",
+                        padding: "13px 16px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15.5px",
+                        textDecoration: "none",
+                      }}
+                    >
+                      {lang === "fr" ? "Membres seulement — rejoindre le club pour réserver" : lang === "es" ? "Solo socias — únete al plan para reservar" : "Members only — join the plan to book"}
+                    </Link>
+                  );
+                }
+
+                if (isAlreadyWaitlisted) {
+                  return (
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={() => handleLeaveWaitlist(ev)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid rgba(138, 97, 22, 0.4)",
+                        backgroundColor: "#fbf3e4",
+                        color: "#8a6116",
+                        borderRadius: "4px",
+                        padding: "13px 16px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15.5px",
+                        cursor: actionLoading ? "wait" : "pointer",
+                      }}
+                      title={lang === "fr" ? "Cliquer pour quitter la liste d'attente" : lang === "es" ? "Haz clic para salir de la lista" : "Click to leave waitlist"}
+                    >
+                      {actionLoading
+                        ? (lang === "fr" ? "Sortie..." : lang === "es" ? "Saliendo..." : "Leaving…")
+                        : (lang === "fr"
+                        ? `Sur liste d'attente · #${userWaitlistPos ?? 1} — quitter`
+                        : lang === "es"
+                        ? `En lista de espera · #${userWaitlistPos ?? 1} — salir`
+                        : `On the waitlist · #${userWaitlistPos ?? 1} — leave`)}
+                    </button>
+                  );
+                }
+
+                if (isFull) {
+                  return (
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={() => handleMemberWaitlist(ev)}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #7b1f2c",
+                        background: "transparent",
+                        color: "#7b1f2c",
+                        borderRadius: "4px",
+                        padding: "13px 16px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15.5px",
+                        cursor: actionLoading ? "wait" : "pointer",
+                      }}
+                    >
+                      {actionLoading
+                        ? (lang === "fr" ? "Inscription..." : lang === "es" ? "Uniéndome…" : "Joining…")
+                        : (lang === "fr" ? "Rejoindre la liste d'attente" : lang === "es" ? "Unirme a la lista" : "Join the waitlist")}
+                    </button>
+                  );
+                }
+
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={() => {
+                        if (!isFree && currentCreditBalance < viewerCost) {
+                          setTopUpEvent(ev);
+                        } else {
+                          handleMemberBook(ev);
+                        }
+                      }}
+                      style={{
+                        width: "100%",
+                        border: "1px solid #7b1f2c",
+                        background: "#7b1f2c",
+                        color: "#fdf8f2",
+                        borderRadius: "4px",
+                        padding: "13px 16px",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        fontWeight: 600,
+                        fontSize: "15.5px",
+                        cursor: actionLoading ? "wait" : "pointer",
+                      }}
+                    >
+                      {actionLoading
+                        ? (lang === "fr" ? "Réservation en cours..." : lang === "es" ? "Reservando…" : "Booking…")
+                        : isToday
+                        ? (lang === "fr" ? `Réserver · ferme à ${closesAtStr}` : lang === "es" ? `Reservar · cierra ${closesAtStr}` : `Book · closes ${closesAtStr}`)
+                        : (!isFree && currentCreditBalance < viewerCost)
+                        ? (lang === "fr" ? "Recharger pour réserver" : lang === "es" ? "Recargar para reservar" : "Top up to book")
+                        : isFree
+                        ? (lang === "fr" ? "Rejoindre — gratuit" : lang === "es" ? "Unirme — gratis" : "Join — free")
+                        : (lang === "fr" ? "Réserver" : lang === "es" ? "Reservar" : "Book")}
+                    </button>
+                    {isToday && (
+                      <div style={{ fontSize: "12px", color: "#993842", fontWeight: 500, lineHeight: 1.4, textAlign: "center" }}>
+                        {lang === "fr"
+                          ? "Aujourd'hui : la période d'annulation est passée, aucun crédit ne sera remboursé."
+                          : lang === "es"
+                          ? "Hoy: el plazo de cancelación ha pasado, no se reembolsarán créditos tras reservar."
+                          : "Today: the cancellation window has passed, no refund once booked."}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              // Signed out / Non-member CTA
+              return (
                 <button
                   type="button"
-                  disabled
-                  style={{
-                    width: "100%",
-                    border: "1px solid rgba(138, 97, 22, 0.4)",
-                    backgroundColor: "#fbf3e4",
-                    color: "#8a6116",
-                    borderRadius: "4px",
-                    padding: "13px 16px",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "15.5px",
-                    cursor: "default",
-                  }}
-                >
-                  {lang === "fr"
-                    ? `Sur liste d'attente (position ${userWaitlistPos ?? 1})`
-                    : lang === "es"
-                    ? `En lista de espera (${userWaitlistPos ?? 1})`
-                    : `On waitlist (position ${userWaitlistPos ?? 1})`}
-                </button>
-              ) : isFull ? (
-                <button
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={() => handleMemberWaitlist(ev)}
-                  style={{
-                    width: "100%",
-                    border: "1px solid #7b1f2c",
-                    background: "transparent",
-                    color: "#7b1f2c",
-                    borderRadius: "4px",
-                    padding: "13px 16px",
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "15.5px",
-                    cursor: actionLoading ? "wait" : "pointer",
-                  }}
-                >
-                  {actionLoading
-                    ? (lang === "fr" ? "Inscription..." : lang === "es" ? "Uniéndome…" : "Joining…")
-                    : (lang === "fr" ? "Rejoindre la liste d'attente" : lang === "es" ? "Unirme a la lista" : "Join waitlist")}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={actionLoading}
                   onClick={() => {
-                    // If insufficient credits, go directly to top-up instead of attempting book
-                    if (!isFree && currentCreditBalance < viewerCost) {
-                      setTopUpEvent(ev);
+                    if (isAdmin) {
+                      setAdminNoticeEvent(ev);
                     } else {
-                      handleMemberBook(ev);
+                      setSignedOutEvent(ev);
                     }
                   }}
                   style={{
@@ -814,47 +978,17 @@ export default function EventDetailPage() {
                     fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 600,
                     fontSize: "15.5px",
-                    cursor: actionLoading ? "wait" : "pointer",
+                    cursor: "pointer",
                   }}
                 >
-                  {actionLoading
-                    ? (lang === "fr" ? "Réservation..." : lang === "es" ? "Reservando…" : "Booking…")
-                    : (!isFree && currentCreditBalance < viewerCost)
-                    ? (lang === "fr" ? "Recharger pour réserver" : lang === "es" ? "Recargar para reservar" : "Top up to book")
-                    : isFree
-                    ? (lang === "fr" ? "Rejoindre — gratuit" : lang === "es" ? "Unirme — gratis" : "Join — free")
-                    : (lang === "fr" ? "Réserver" : lang === "es" ? "Reservar" : "Book")}
+                  {isFull
+                    ? (lang === "fr" ? "Rejoindre la liste d'attente" : lang === "es" ? "Unirme a la lista" : "Join the waitlist")
+                    : isToday
+                    ? (lang === "fr" ? `Réserver · ferme à ${closesAtStr}` : lang === "es" ? `Reservar · cierra ${closesAtStr}` : `Book · closes ${closesAtStr}`)
+                    : (lang === "fr" ? "Réserver votre place" : lang === "es" ? "Reservar tu plaza" : "Book your place")}
                 </button>
-              )
-            ) : (
-              /* Signed-out User or Admin */
-              <button
-                type="button"
-                onClick={() => {
-                  if (isAdmin) {
-                    setAdminNoticeEvent(ev);
-                  } else {
-                    setSignedOutEvent(ev);
-                  }
-                }}
-                style={{
-                  width: "100%",
-                  border: "1px solid #7b1f2c",
-                  background: "#7b1f2c",
-                  color: "#fdf8f2",
-                  borderRadius: "4px",
-                  padding: "13px 16px",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "15.5px",
-                  cursor: "pointer",
-                }}
-              >
-                {isFree
-                  ? (lang === "fr" ? "Rejoindre — gratuit" : lang === "es" ? "Unirme — gratis" : "Join — free")
-                  : (lang === "fr" ? "Réserver" : lang === "es" ? "Reservar" : "Book")}
-              </button>
-            )}
+              );
+            })()}
 
             {!session?.user ? (
               <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "rgba(57, 41, 42, 0.72)", marginTop: "12px" }}>
@@ -1074,8 +1208,24 @@ export default function EventDetailPage() {
                 ? (lang === "en" ? "Your account profile could not be found (Admins cannot book events). Please contact support." : "No se encontró tu perfil de cuenta (Los administradores no pueden reservar eventos). Por favor, contacta con soporte.")
                 : bookingError === "ACCOUNT_SUSPENDED"
                 ? (lang === "en" ? "Your account is currently suspended." : "Tu cuenta está suspendida actualmente.")
-                : bookingError === "EVENT_FULL"
-                ? (lang === "en" ? "This event is fully booked." : "Este evento está completo.")
+                : bookingError === "EVENT_FULL" || bookingError === "FILLED_WHILE_PAYING"
+                ? (lang === "fr"
+                    ? "La dernière place a été prise pendant votre paiement — vos crédits restent en sécurité dans votre portefeuille."
+                    : lang === "es"
+                    ? "La última plaza se ocupó mientras pagabas — tus créditos permanecen en tu monedero."
+                    : "The last place went while you were paying — your credits are in your wallet.")
+                : bookingError === "BOOKING_CLOSED" || bookingError === "closed"
+                ? (lang === "fr"
+                    ? "Les inscriptions pour cet événement sont désormais closes."
+                    : lang === "es"
+                    ? "Las reservas para este encuentro han cerrado por plazo límite."
+                    : "Booking for this gathering is closed because the cut-off deadline has passed.")
+                : bookingError === "PLAN_MEMBERS_ONLY" || bookingError === "plan"
+                ? (lang === "fr"
+                    ? "Cet événement est réservé aux membres du club mensuel."
+                    : lang === "es"
+                    ? "Este encuentro es exclusivo para socias del plan mensual."
+                    : "This event is exclusive to plan members. Join the plan to book.")
                 : bookingError === "MEMBERS_ONLY_WINDOW"
                 ? (lang === "en" ? "This event is currently only open to members." : "Este evento actualmente solo está abierto para socias.")
                 : bookingError === "NOT_OPEN_YET"

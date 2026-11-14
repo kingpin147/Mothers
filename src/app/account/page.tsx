@@ -14,8 +14,9 @@ import { formatEventDate } from "@/app/events/EventsCalendar";
 import ThemeLoader from "@/components/ThemeLoader";
 import { ForwardArrow } from "@/components/Icons";
 import CountryPhoneInput from "@/components/CountryPhoneInput";
+import MessagesInbox from "@/components/account/MessagesInbox";
 
-type AccountTab = "overview" | "credits" | "hosting" | "perks" | "membership";
+type AccountTab = "overview" | "messages" | "credits" | "rewards" | "hosting" | "perks" | "membership";
 
 interface PerkItem {
   id: string;
@@ -93,6 +94,13 @@ function AccountPageContent() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["overview", "messages", "credits", "rewards", "hosting", "perks", "membership"].includes(tabParam)) {
+      setActiveTab(tabParam as AccountTab);
+    }
+  }, [searchParams]);
 
   // Extra credits purchase confirmation banner state (Image 2)
   const [purchaseConfirmed, setPurchaseConfirmed] = useState(false);
@@ -467,7 +475,9 @@ function AccountPageContent() {
 
   const TABS: { id: AccountTab; labelEn: string; labelEs: string }[] = [
     { id: "overview", labelEn: "Overview", labelEs: "Resumen" },
+    { id: "messages", labelEn: "Messages", labelEs: "Mensajes" },
     { id: "credits", labelEn: "Credits", labelEs: "Créditos" },
+    { id: "rewards", labelEn: "Your rewards", labelEs: "Tus recompensas" },
     { id: "hosting", labelEn: "Hosting", labelEs: "Anfitriona" },
     { id: "perks", labelEn: "Perks", labelEs: "Ventajas" },
     { id: "membership", labelEn: "Membership", labelEs: "Membresía" },
@@ -1078,6 +1088,16 @@ function AccountPageContent() {
                   : "Todavía nadie ha usado tu código. Dáselo a la madre que siempre pregunta dónde encontraste a tu gente."}
               </p>
             </div>
+          </div>
+        )}
+
+        {/* ─── TAB: MESSAGES (MAILBOX) (§12 / DM-01..07) ─── */}
+        {activeTab === "messages" && (
+          <div style={{ marginTop: "12px" }}>
+            <MessagesInbox
+              lang={lang}
+              initialTargetUserId={searchParams.get("user") || searchParams.get("targetUser")}
+            />
           </div>
         )}
 

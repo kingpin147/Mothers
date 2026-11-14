@@ -15,11 +15,17 @@ import {
   toggleCircleReplyHeart,
   toggleCircleSavedPost,
   reportCirclePost,
+  recordPostViewAction,
+  toggleFollowPostAction,
+  updatePostTopicsAction,
 } from "@/app/actions/gazette";
 import { compressImageClient } from "@/lib/imageCompression";
 
 const TOPICS = [
   { id: "all", labelEn: "Everything", labelEs: "Todo", labelFr: "Tout" },
+  { id: "saved", labelEn: "Saved publications", labelEs: "Publicaciones guardadas", labelFr: "Publications enregistrées" },
+  { id: "for_sale", labelEn: "For sale", labelEs: "En venta", labelFr: "À vendre" },
+  { id: "gear", labelEn: "Gear & swap", labelEs: "Cosas y trueque", labelFr: "Affaires & troc" },
   { id: "pregnancy", labelEn: "Pregnancy & birth", labelEs: "Embarazo y parto", labelFr: "Grossesse & accouchement" },
   { id: "feeding", labelEn: "Feeding", labelEs: "Lactancia y comida", labelFr: "Alimentation" },
   { id: "sleep", labelEn: "Sleep", labelEs: "Sueño", labelFr: "Sommeil" },
@@ -29,7 +35,6 @@ const TOPICS = [
   { id: "bcn", labelEn: "Life in Barcelona", labelEs: "Vida en Barcelona", labelFr: "Vie à Barcelone" },
   { id: "friends", labelEn: "Meetups & friends", labelEs: "Quedadas y amigas", labelFr: "Rencontres & amies" },
   { id: "recs", labelEn: "Recommendations", labelEs: "Recomendaciones", labelFr: "Recommandations" },
-  { id: "gear", labelEn: "Gear & Swap", labelEs: "Cosas y trueque", labelFr: "Affaires & troc" },
   { id: "other", labelEn: "Other", labelEs: "Otros", labelFr: "Autre" },
 ];
 
@@ -44,6 +49,7 @@ const COMPOSER_TOPIC_IDS = [
   "friends",
   "recs",
   "gear",
+  "for_sale",
   "other",
 ];
 
@@ -163,6 +169,56 @@ export function GazetteFeedClient({
   const [openReportPostId, setOpenReportPostId] = useState<string | null>(null);
   const [reportedPostIds, setReportedPostIds] = useState<Set<string>>(new Set());
   const [loginPrompt, setLoginPrompt] = useState<{ postId: string; action: "like" | "save" } | null>(null);
+
+  // Lightbox State (§12 / GZ-04)
+  const [lightbox, setLightbox] = useState<{ photos: string[]; index: number } | null>(null);
+
+  // Post Menu State (§12 / GZ-01)
+  const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
+
+  // Topics Modal State (§12 / GZ-03)
+  const [topicsModalPost, setTopicsModalPost] = useState<PostItem | null>(null);
+  const [topicsSelection, setTopicsSelection] = useState<string[]>([]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setLightbox(null);
+        setOpenMenuPostId(null);
+        setTopicsModalPost(null);
+      } else if (lightbox) {
+        if (e.key === "ArrowLeft") {
+          setLightbox((prev) => (prev ? { ...prev, index: (prev.index - 1 + prev.photos.length) % prev.photos.length } : null));
+        } else if (e.key === "ArrowRight") {
+          setLightbox((prev) => (prev ? { ...prev, index: (prev.index + 1) % prev.photos.length } : null));
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightbox]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const seenSet = new Set<string>();
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const postId = entry.target.getAttribute("data-post-id");
+          if (postId && !seenSet.has(postId)) {
+            seenSet.add(postId);
+            recordPostViewAction(postId).catch(() => {});
+          }
+        }
+      });
+    }, { threshold: 0.5 });
+
+    const postEls = document.querySelectorAll("[data-post-id]");
+    postEls.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [posts, currentUser]);
 
   const [, startTransition] = useTransition();
 
@@ -794,6 +850,16 @@ export function GazetteFeedClient({
                 )}
 
                 {/* Unified Composer Action Bar */}
+                {composerTopic === "for_sale" && (
+                  <div style={{ background: "#fffdf9", border: "1px dashed rgba(123, 31, 44, 0.35)", borderRadius: "6px", padding: "10px 14px", fontSize: "12.5px", color: "rgba(57, 41, 42, 0.8)", marginTop: "12px", width: "100%", boxSizing: "border-box", lineHeight: 1.5 }}>
+                    <strong>{lang === "fr" ? "Conseils pour la vente :" : lang === "es" ? "Pistas para publicar :" : "What to include in a For Sale post:"}</strong>{" "}
+                    {lang === "fr"
+                      ? "Nom de l'article, état, prix, photos et votre lien Vinted ou invitez les mamans à vous envoyer un message privé. (Vente d'articles personnels de famille uniquement — aucune promotion commerciale)."
+                      : lang === "es"
+                      ? "Qué vendes, estado, precio, fotos y tu enlace de Vinted o indica que te escriban por mensaje privado. (Solo venta de cosas familiares — sin anuncios comerciales)."
+                      : "What it is, condition, price, photos, and your Vinted link or invite mothers to message you. (Mothers selling personal family items only — no business promotions)."}
+                  </div>
+                )}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "flex-end", justifyContent: "space-between", marginTop: "12px", width: "100%" }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", flex: "1 1 200px", minWidth: 0 }}>
                     <label

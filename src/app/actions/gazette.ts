@@ -2,7 +2,7 @@
 
 import crypto from "crypto";
 import { db } from "@/db";
-import { circlePost, circleReply, circleHeart, circleReport, circleSavedPost, person, member, setting, auditLog } from "@/db/schema";
+import { circlePost, circleReply, circleHeart, circleReport, circleSavedPost, gazetteFollow, gazetteView, person, member, setting, auditLog } from "@/db/schema";
 import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -13,11 +13,16 @@ export interface PostItem {
   id: string;
   slug: string;
   author: string;
+  authorPersonId?: string;
+  authorBadges?: string[];
   isAnonymous: boolean;
   anonymousArea: string | null;
   initial: string;
   topic: string;
   topicLabel: string;
+  topics?: string[];
+  seenCount?: number;
+  isFollowing?: boolean;
   body: string;
   photos: string[];
   hasPhotos: boolean;
@@ -58,7 +63,10 @@ const TOPIC_LABELS: Record<string, string> = {
   bcn: "Life in Barcelona",
   friends: "Meetups & friends",
   recs: "Recommendations",
-  gear: "Gear & Swap",
+  gear: "Gear & swap",
+  gear_swap: "Gear & swap",
+  for_sale: "For sale",
+  saved: "Saved publications",
   other: "Other",
 };
 
@@ -429,6 +437,17 @@ async function formatCirclePosts(
     } catch {}
   }
 
+  // 6. Batch followed posts for current user
+  let userFollowedPostIds = new Set<string>();
+  if (currentUserId) {
+    try {
+      const userFollows = await db.query.gazetteFollow.findMany({
+        where: eq(gazetteFollow.personId, currentUserId),
+      });
+      userFollows.forEach((f) => userFollowedPostIds.add(f.postId));
+    } catch {}
+  }
+
   // Group replies by postId
   const repliesByPostId = new Map<string, typeof rawReplies>();
   for (const r of rawReplies) {
@@ -508,11 +527,16 @@ async function formatCirclePosts(
       id: p.id,
       slug: p.slug || generatePostSlug(p.body, p.id),
       author: authorName,
+      authorPersonId: p.personId,
+      authorBadges: authorPerson?.badges || [],
       isAnonymous: p.isAnonymous,
       anonymousArea: p.anonymousArea,
       initial,
       topic: p.topic,
       topicLabel: TOPIC_LABELS[p.topic] || p.topic,
+      topics: p.topics || [],
+      seenCount: p.seenCount || 0,
+      isFollowing: userFollowedPostIds.has(p.id),
       body: isPostHidden ? "This post was removed for moderation." : p.body,
       photos: isPostHidden ? [] : ((p.photos as string[]) || []),
       hasPhotos: !isPostHidden && photoCount > 0,
@@ -1233,6 +1257,74 @@ export async function getAllGazettePublicationsAdmin() {
       };
     }),
   };
+}
+
+// ─── RECORD POST VIEW (SEEN BY N MOTHERS) (§12 / GZ-05) ─────────────────────
+
+export async function recordPostViewAction(postId: string) {
+  const session = await auth();
+  if (!session?.user) return { success: false };
+  const personId = (session.user as any).personId || session.user.id;
+
+  try {
+    const existing = await db.query.gazetteView.findFirst({
+      where: and(eq(gazetteView.personId, personId), eq(gazetteView.postId, postId)),
+    });
+    if (!existing) {
+      await db.insert(gazetteView).values({ personId, postId });
+      await db
+        .update(circlePost)
+        .set({ seenCount: sql`${circlePost.seenCount} + 1` })
+        .where(eq(circlePost.id, postId));
+    }
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
+// ─── TOGGLE FOLLOW POST IN INBOX (§12 / GZ-02) ──────────────────────────────
+
+export async function toggleFollowPostAction(postId: string) {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+  const personId = (session.user as any).personId || session.user.id;
+
+  try {
+    const existing = await db.query.gazetteFollow.findFirst({
+      where: and(eq(gazetteFollow.personId, personId), eq(gazetteFollow.postId, postId)),
+    });
+    if (existing) {
+      await db.delete(gazetteFollow).where(eq(gazetteFollow.id, existing.id));
+      return { success: true, isFollowing: false };
+    } else {
+      await db.insert(gazetteFollow).values({ personId, postId });
+      return { success: true, isFollowing: true };
+    }
+  } catch {
+    return { success: false, error: "FOLLOW_FAILED" };
+  }
+}
+
+// ─── ADD / UPDATE TOPICS (AUTHOR ONLY, MAX 3) (§12 / GZ-03) ─────────────────
+
+export async function updatePostTopicsAction(postId: string, topics: string[]) {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+  const personId = (session.user as any).personId || session.user.id;
+
+  try {
+    const post = await db.query.circlePost.findFirst({ where: eq(circlePost.id, postId) });
+    if (!post || post.personId !== personId) return { success: false, error: "UNAUTHORIZED" };
+
+    // Max 3 topics (§12 / GZ-03)
+    const cleanTopics = topics.slice(0, 3).map((t) => t.trim().replace(/^#/, "")).filter(Boolean);
+    await db.update(circlePost).set({ topics: cleanTopics }).where(eq(circlePost.id, postId));
+    revalidatePath("/lagazette");
+    return { success: true, topics: cleanTopics };
+  } catch {
+    return { success: false, error: "UPDATE_FAILED" };
+  }
 }
 
 // Named Aliases

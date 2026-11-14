@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getMyCredits } from "@/app/actions/memberAccount";
+import { getUnreadMessagesCountAction } from "@/app/actions/messages";
 import { StickyCountdownBanner } from "@/components/StickyCountdownBanner";
 import { AdminModeBanner } from "@/components/AdminModeBanner";
 
@@ -15,6 +16,7 @@ export function Navigation() {
   const { language: lang, setLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [memberCredits, setMemberCredits] = useState<number | null>(null);
+  const [unreadMessages, setUnreadMessages] = useState<number>(0);
   const [joinedList, setJoinedList] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [leadEmail, setLeadEmail] = useState("");
@@ -61,16 +63,20 @@ export function Navigation() {
     if (saved === "true") setJoinedList(true);
   }, []);
 
-  // Fetch credit balance for logged-in members
+  // Fetch credit balance & unread messages for logged-in members
   useEffect(() => {
     const role = (session?.user as any)?.role;
     const isAdminUser = role === "owner" || role === "manager" || role === "host" || role === "super_admin";
     if (session?.user && !isAdminUser) {
       getMyCredits().then(({ balance }) => setMemberCredits(balance)).catch(() => { });
+      getUnreadMessagesCountAction().then((res) => {
+        if (res.success) setUnreadMessages(res.count || 0);
+      }).catch(() => {});
     } else {
       setMemberCredits(null);
+      setUnreadMessages(0);
     }
-  }, [session?.user?.id, (session?.user as any)?.role]);
+  }, [session?.user?.id, (session?.user as any)?.role, pathname]);
 
   const switchLang = (newLang: "en" | "es" | "fr") => {
     setLanguage(newLang);
@@ -313,6 +319,45 @@ export function Navigation() {
             {/* Login / Members Area CTA */}
             {session?.user ? (
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {!((session.user as any)?.role && ["owner", "manager", "host", "super_admin"].includes((session.user as any).role)) && (
+                  <Link
+                    href="/account?tab=messages"
+                    title={lang === "fr" ? "Messages" : lang === "es" ? "Mensajes" : "Messages"}
+                    style={{
+                      position: "relative",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#7b1f2c",
+                      padding: "6px",
+                      textDecoration: "none",
+                    }}
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="4" width="20" height="16" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                    {unreadMessages > 0 && (
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: "0px",
+                          right: "-2px",
+                          background: "#7b1f2c",
+                          color: "#fff",
+                          fontSize: "10.5px",
+                          fontWeight: 700,
+                          borderRadius: "10px",
+                          padding: "1px 5px",
+                          lineHeight: 1,
+                          border: "1.5px solid #fdf8f2",
+                        }}
+                      >
+                        {unreadMessages}
+                      </span>
+                    )}
+                  </Link>
+                )}
                 {(() => {
                   const role = (session.user as any)?.role;
                   const isAdminUser = role === "owner" || role === "manager" || role === "host" || role === "super_admin";

@@ -93,6 +93,18 @@ export async function bookEvent(eventId: string) {
 
       const isMember = !!memberId;
 
+      // 2.5 Same-Day Booking Cut-Off (§15 / CO-01, CO-02)
+      const cutoffHours = (ev as any).bookingCutoffHours ?? 3;
+      const cutoffTime = new Date(ev.startsAt.getTime() - cutoffHours * 3600 * 1000);
+      if (new Date() >= cutoffTime) {
+        throw new Error("BOOKING_CLOSED");
+      }
+
+      // 2.6 Members-Only / Plan-Only Check (§15 / MO-01, MO-02)
+      if ((ev as any).planOnly && (!clubSettings.membershipLive || !isMember)) {
+        throw new Error("PLAN_MEMBERS_ONLY");
+      }
+
       // 3. Members-First Window check (§7.1) - only active when membership is live
       if (
         clubSettings.membershipLive &&
@@ -585,7 +597,10 @@ export async function releaseBooking(bookingId: string) {
 
       const notifyWaitlistPersonIds: string[] = [];
 
-      if (allWaitlist.length > 0) {
+      const cutoffHours = (ev as any).bookingCutoffHours ?? 3;
+      const isAfterCutoff = new Date().getTime() >= new Date(ev.startsAt).getTime() - cutoffHours * 3600 * 1000;
+
+      if (!isAfterCutoff && allWaitlist.length > 0) {
         if (hoursUntilEvent > 24) {
           const topWaitlist = allWaitlist[0];
           const offerExpiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 hours
@@ -809,6 +824,13 @@ export async function joinEventWaitlist(eventId: string) {
       });
       if (!ev) throw new Error("EVENT_NOT_FOUND");
 
+      // Check cut-off: waitlist is refused after cut-off (§15 / CO-02)
+      const cutoffHours = (ev as any).bookingCutoffHours ?? 3;
+      const cutoffTime = new Date(ev.startsAt.getTime() - cutoffHours * 3600 * 1000);
+      if (new Date() >= cutoffTime) {
+        throw new Error("BOOKING_CLOSED");
+      }
+
       // 2. Check if already booked (F-22)
       const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
       const existingBooking = await tx.query.booking.findFirst({
@@ -928,6 +950,12 @@ export async function claimWaitlistOffer(waitlistId: string) {
 
       if (!ev) throw new Error("EVENT_NOT_FOUND");
 
+      const cutoffHours = (ev as any).bookingCutoffHours ?? 3;
+      const cutoffTime = new Date(ev.startsAt.getTime() - cutoffHours * 3600 * 1000);
+      if (new Date() >= cutoffTime) {
+        throw new Error("BOOKING_CLOSED");
+      }
+
       // 3. Capacity check (First to claim wins! §B-08)
       const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
       const activeBookingsCount = await tx
@@ -1003,6 +1031,60 @@ export async function claimWaitlistOffer(waitlistId: string) {
   } catch (error: any) {
     console.error("claimWaitlistOffer error:", error);
     return { success: false, error: sanitizeErrorMessage(error, "CLAIM_FAILED") };
+  }
+}
+
+// ─── 7. LEAVE WAITLIST (§15 / WL-01) ────────────────────────────────────────
+
+export async function leaveEventWaitlist(eventId: string) {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+  const personId = (session.user as any).personId || session.user.id;
+
+  try {
+    await db.transaction(async (tx) => {
+      const existing = await tx.query.eventWaitlist.findFirst({
+        where: and(
+          eq(eventWaitlist.eventId, eventId),
+          eq(eventWaitlist.personId, personId),
+          sql`accepted_at IS NULL`
+        ),
+      });
+
+      if (!existing) {
+        return;
+      }
+
+      await tx.delete(eventWaitlist).where(eq(eventWaitlist.id, existing.id));
+
+      // Re-order remaining waitlist entries
+      const remaining = await tx
+        .select()
+        .from(eventWaitlist)
+        .where(
+          and(
+            eq(eventWaitlist.eventId, eventId),
+            sql`accepted_at IS NULL`
+          )
+        )
+        .orderBy(asc(eventWaitlist.position));
+
+      for (let i = 0; i < remaining.length; i++) {
+        await tx
+          .update(eventWaitlist)
+          .set({ position: i + 1 })
+          .where(eq(eventWaitlist.id, remaining[i].id));
+      }
+    });
+
+    revalidatePath("/events");
+    revalidatePath(`/events/${eventId}`);
+    revalidatePath("/account");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("leaveEventWaitlist error:", error);
+    return { success: false, error: sanitizeErrorMessage(error, "WAITLIST_LEAVE_FAILED") };
   }
 }
 

@@ -6,27 +6,45 @@ import { useSearchParams } from "next/navigation";
 import { decideHostRequest, markEventAsRun } from "@/app/actions/host";
 import { updateReportStatus, moderatePost } from "@/app/actions/adminReports";
 import { saveGazetteTopics, adjustAccountCreditsAdmin } from "@/app/actions/adminPreLaunch";
+import { getAdminReportedMessagesAction, resolveMessageReportAction } from "@/app/actions/messages";
 
 interface PreLaunchDeskProps {
   initialData: any;
-  defaultTab?: "hosts" | "attendance" | "circle" | "accounts";
+  defaultTab?: "hosts" | "attendance" | "circle" | "messages" | "accounts";
 }
 
 export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskProps) {
   const searchParams = useSearchParams();
   const urlTab = searchParams.get("tab") as any;
   
-  const [activeTab, setActiveTab] = useState<"hosts" | "attendance" | "circle" | "accounts">(
-    urlTab && ["hosts", "attendance", "circle", "accounts"].includes(urlTab)
+  const [activeTab, setActiveTab] = useState<"hosts" | "attendance" | "circle" | "messages" | "accounts">(
+    urlTab && ["hosts", "attendance", "circle", "messages", "accounts"].includes(urlTab)
       ? urlTab
       : (defaultTab || "hosts")
   );
 
   useEffect(() => {
-    if (urlTab && ["hosts", "attendance", "circle", "accounts"].includes(urlTab)) {
+    if (urlTab && ["hosts", "attendance", "circle", "messages", "accounts"].includes(urlTab)) {
       setActiveTab(urlTab);
     }
   }, [urlTab]);
+
+  const [messageReports, setMessageReports] = useState<any[]>([]);
+  const [loadingMessagesDesk, setLoadingMessagesDesk] = useState(false);
+
+  const loadMessageReports = () => {
+    setLoadingMessagesDesk(true);
+    getAdminReportedMessagesAction().then((res) => {
+      setLoadingMessagesDesk(false);
+      if (res.success && res.reports) {
+        setMessageReports(res.reports);
+      }
+    });
+  };
+
+  useEffect(() => {
+    loadMessageReports();
+  }, []);
 
   const [hostTab, setHostTab] = useState<"pending" | "confirmed" | "declined">("pending");
 
@@ -357,6 +375,7 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
             { id: "hosts", label: `Host requests (${pendingHostsCount})` },
             { id: "attendance", label: "Attendance & host credits" },
             { id: "circle", label: `La Gazette (${openReportsCount})` },
+            { id: "messages", label: `Messages (${messageReports.length})` },
             { id: "accounts", label: "Accounts & list" },
           ].map((t) => {
             const isActive = activeTab === t.id;
@@ -797,6 +816,138 @@ export function PreLaunchDeskClient({ initialData, defaultTab }: PreLaunchDeskPr
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ─── TAB: MESSAGES MODERATION DESK (§12 / DM-05) ─── */}
+        {activeTab === "messages" && (
+          <div>
+            <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.72)", margin: "0 0 16px", maxWidth: "72ch" }}>
+              Reported private conversations between members. Only reported conversations are visible here. Decisions: <strong>Nothing wrong</strong> (dismiss report), <strong>Hide last message</strong> (removes the reported message), or <strong>Suspend</strong> (suspends the offending mother&apos;s account).
+            </p>
+
+            {loadingMessagesDesk ? (
+              <div style={{ padding: "40px", textAlign: "center" }}>Loading reported messages...</div>
+            ) : messageReports.length === 0 ? (
+              <div style={{ padding: "32px", textAlign: "center", border: "1px dashed rgba(57, 41, 42, 0.2)", borderRadius: "8px", color: "rgba(57, 41, 42, 0.6)", fontSize: "14px" }}>
+                ✓ No reported messages in the moderation queue.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {messageReports.map((rep) => (
+                  <div
+                    key={rep.id}
+                    style={{
+                      border: "1px solid rgba(153, 56, 66, 0.3)",
+                      borderRadius: "8px",
+                      background: "#ffffff",
+                      padding: "18px 20px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
+                      <div>
+                        <div style={{ fontSize: "12.5px", textTransform: "uppercase", letterSpacing: "0.08em", color: "#993842", fontWeight: 700, marginBottom: "4px" }}>
+                          Reported by: {rep.reporterName} ({rep.reporterEmail})
+                        </div>
+                        <div style={{ fontSize: "15px", color: "#39292a" }}>
+                          Reported mother: <strong>{rep.reportedName}</strong> ({rep.reportedEmail})
+                          {rep.reportedIsSuspended && (
+                            <span style={{ marginLeft: "8px", background: "#fdf2f2", color: "#993842", border: "1px solid #993842", borderRadius: "10px", padding: "1px 8px", fontSize: "11px", fontWeight: 700 }}>
+                              SUSPENDED
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.8)", marginTop: "4px" }}>
+                          Reason: <em>&ldquo;{rep.reason}&rdquo;</em> · {new Date(rep.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {/* Moderation Actions */}
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await resolveMessageReportAction(rep.id, "nothing");
+                            loadMessageReports();
+                          }}
+                          style={{
+                            border: "1px solid rgba(57, 41, 42, 0.25)",
+                            background: "transparent",
+                            color: "#39292a",
+                            padding: "6px 14px",
+                            borderRadius: "4px",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Nothing wrong
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await resolveMessageReportAction(rep.id, "hide");
+                            loadMessageReports();
+                          }}
+                          style={{
+                            border: "1px solid rgba(164, 118, 31, 0.4)",
+                            background: "rgba(164, 118, 31, 0.08)",
+                            color: "#8a6116",
+                            padding: "6px 14px",
+                            borderRadius: "4px",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Hide last message
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm(`Suspend ${rep.reportedName}'s account? She will be notified and barred from booking or messaging.`)) return;
+                            await resolveMessageReportAction(rep.id, "suspend");
+                            loadMessageReports();
+                          }}
+                          style={{
+                            border: "1px solid #993842",
+                            background: "#993842",
+                            color: "#ffffff",
+                            padding: "6px 14px",
+                            borderRadius: "4px",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Suspend account
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Messages in Thread */}
+                    <div style={{ background: "#fbf8f3", border: "1px solid rgba(57, 41, 42, 0.1)", borderRadius: "6px", padding: "12px 16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ fontSize: "11.5px", textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(57, 41, 42, 0.5)", fontWeight: 700 }}>
+                        Thread preview (last messages):
+                      </div>
+                      {rep.messages && rep.messages.length > 0 ? (
+                        rep.messages.map((m: any) => (
+                          <div key={m.id} style={{ fontSize: "13.5px", padding: "4px 0", borderBottom: "1px dotted rgba(57, 41, 42, 0.1)" }}>
+                            <strong style={{ color: m.isReportedUser ? "#993842" : "#39292a" }}>{m.senderName}:</strong>{" "}
+                            {m.hiddenByAdmin ? <span style={{ color: "rgba(57, 41, 42, 0.4)", fontStyle: "italic" }}>[Hidden by moderation]</span> : m.content}
+                            <span style={{ fontSize: "11px", color: "rgba(57, 41, 42, 0.45)", marginLeft: "8px" }}>
+                              {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.5)" }}>No messages found.</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

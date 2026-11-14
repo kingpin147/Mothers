@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Cormorant_Garamond, Lora } from "next/font/google";
 import "./globals.css";
 import { SessionProviderWrapper } from "@/components/SessionProviderWrapper";
@@ -150,6 +151,19 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${cormorant.variable} ${lora.variable}`} suppressHydrationWarning>
       <head>
+        {/* Google Tag Manager / Google Tag (GTM-P6R76JD6) */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtm.js?id=GTM-P6R76JD6"
+          strategy="afterInteractive"
+        />
+        <Script id="google-tag-manager" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+          `}
+        </Script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -162,6 +176,14 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-P6R76JD6"
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
         <SessionProviderWrapper>
           <LanguageProvider>
             <ConditionalShell>{children}</ConditionalShell>
