@@ -25,6 +25,7 @@ import {
 } from "@/lib/ledger";
 import {
   queueAndSendEmail,
+  renderEmailTemplate,
   generateBookingConfirmedEmailHtml,
 } from "@/lib/brevo";
 import { generateIcsString } from "@/lib/ics";
@@ -262,11 +263,28 @@ export async function bookEvent(eventId: string) {
         { hour: "2-digit", minute: "2-digit" }
       );
 
+      const currentBalance = await getPersonWalletBalance(personId);
+      const renderedBooking = renderEmailTemplate(
+        "Email - Booking Confirmation",
+        {
+          first_name: personRecord.firstName || "Friend",
+          event_title: result.eventTitle,
+          event_date: eventDateFormatted,
+          event_time: eventTimeFormatted,
+          meeting_point: result.meetingPoint || result.venueName || "Barcelona",
+          credits: String(result.creditsCharged ?? 0),
+          balance: String(currentBalance),
+          release_deadline: eventDateFormatted,
+          event_url: `${origin}/events/${eventId}`,
+        },
+        personRecord.locale
+      );
+
       const subject = isEs
         ? `Tu plaza está reservada — ${result.eventTitle}, ${eventDateFormatted}`
         : `You're booked — ${result.eventTitle}, ${eventDateFormatted}`;
 
-      const htmlContent = generateBookingConfirmedEmailHtml({
+      const htmlContent = renderedBooking.html || generateBookingConfirmedEmailHtml({
         firstName: personRecord.firstName || "Friend",
         eventTitle: result.eventTitle,
         eventDateFormatted,
@@ -619,6 +637,8 @@ export async function releaseBooking(bookingId: string) {
         eventDateStr: new Date(ev.startsAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }),
         returnedCredits,
         notifyWaitlistPersonIds,
+        hoursUntilEvent,
+        creditCost: ev.creditCost || 0,
         hostDroppedOut: !!(ev.hostPersonId && ev.hostPersonId === b.personId),
       };
     });
@@ -644,20 +664,31 @@ export async function releaseBooking(bookingId: string) {
       }).catch((err) => console.error("Error sending host release team alert:", err));
     }
 
-    // Notify waitlist users using Place Still Open approved template (B-08 / E-01)
+    // Notify waitlist users using Email - Waitlist Place Open template (B-08 / E-01)
     if (result.notifyWaitlistPersonIds && result.notifyWaitlistPersonIds.length > 0) {
-      const { sendPlaceStillOpenEmail } = await import("@/lib/brevo");
-      for (const pId of result.notifyWaitlistPersonIds) {
+      const { sendWaitlistPlaceOpenEmail } = await import("@/lib/brevo");
+      const isFirstInLine = (result.hoursUntilEvent ?? 25) > 24;
+      const offerUntilStr = new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      const bookingClosesStr = result.eventDateStr;
+
+      for (let i = 0; i < result.notifyWaitlistPersonIds.length; i++) {
+        const pId = result.notifyWaitlistPersonIds[i];
         const waitingPerson = await db.query.person.findFirst({
           where: eq(person.id, pId),
         });
         if (waitingPerson) {
-          await sendPlaceStillOpenEmail({
+          await sendWaitlistPlaceOpenEmail({
             personId: waitingPerson.id,
             email: waitingPerson.email,
             firstName: waitingPerson.firstName || "Friend",
             eventTitle: result.eventTitle,
             eventId: result.eventId,
+            eventDate: result.eventDateStr,
+            credits: result.creditCost || 0,
+            firstInLine: isFirstInLine && i === 0,
+            offerUntil: offerUntilStr,
+            bookingCloses: bookingClosesStr,
+            locale: waitingPerson.locale,
           }).catch((err) => console.error("Error sending waitlist offer email:", err));
         }
       }

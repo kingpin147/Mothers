@@ -336,6 +336,7 @@ export async function runCreditExpiryWorker() {
           creditsExpiring: b.remaining,
           expiryDateFormatted: formattedDate,
           daysLeft: daysLeft <= 7 ? 7 : 30,
+          locale: personRecord.locale,
         });
         warningsSent++;
       }

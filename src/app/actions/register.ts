@@ -94,6 +94,7 @@ export async function sendSignupVerificationOtp(rawData: {
       email,
       firstName,
       code,
+      locale: rawData.locale || existingPerson?.locale,
     });
 
     return {
@@ -288,6 +289,7 @@ export async function verifyOtpAndCreateAccount(rawData: {
       email,
       firstName,
       planName: "Free Account (Pre-launch)",
+      locale,
     }).catch((e) => console.warn("Failed to send welcome email:", e));
 
     return { success: true as const };

@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { event, booking, person, auditLog, eventCategory, eventStage, stage, member, mediaAsset } from "@/db/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { refundPersonCredits, refundBookingCredits } from "@/lib/ledger";
+import { refundPersonCredits, refundBookingCredits, getPersonWalletBalance } from "@/lib/ledger";
 
 export async function publishAdminEvent(eventId: string) {
   try {
@@ -486,6 +486,7 @@ export async function updateAdminEvent(eventId: string, data: {
           email: person.email,
           firstName: person.firstName,
           lastName: person.lastName,
+          locale: person.locale,
         })
         .from(booking)
         .leftJoin(person, eq(booking.personId, person.id))
@@ -497,27 +498,24 @@ export async function updateAdminEvent(eventId: string, data: {
         );
 
       const { queueAndSendEmail } = await import("@/lib/brevo");
+      const { renderEmailTemplate } = await import("@/lib/email-renderer");
       const eventTitle = data.title || existing.title;
       const newStartsAt = data.startsAt ? new Date(data.startsAt) : new Date(existing.startsAt);
       const dateFormatted = newStartsAt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
       const timeFormatted = newStartsAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-      const fs = await import("fs/promises");
-      const path = await import("path");
-      const templatePath = path.join(process.cwd(), "public", "emails", "Email - Location Confirmed.html");
-      const htmlTemplate = await fs.readFile(templatePath, "utf-8");
-
       for (const b of activeBookings) {
         if (!b.email || !b.personId) continue;
         
-        const personalizedHtml = htmlTemplate
-          .replace(/{{first_name}}/g, b.firstName || "Member")
-          .replace(/{{event_title}}/g, eventTitle)
-          .replace(/{{neighbourhood}}/g, data.neighbourhood || existing.neighbourhood || "")
-          .replace(/{{event_date}}/g, dateFormatted)
-          .replace(/{{event_time}}/g, timeFormatted)
-          .replace(/{{meeting_point}}/g, data.meetingPoint || existing.meetingPoint || "")
-          .replace(/{{account_url}}/g, "https://themothers.cc/account");
+        const rendered = renderEmailTemplate("Email - Location Confirmed", {
+          first_name: b.firstName || "Member",
+          event_title: eventTitle,
+          neighbourhood: data.neighbourhood || existing.neighbourhood || "",
+          event_date: dateFormatted,
+          event_time: timeFormatted,
+          meeting_point: data.meetingPoint || existing.meetingPoint || "",
+          account_url: "https://themothers.cc/account",
+        }, b.locale);
 
         await queueAndSendEmail({
           personId: b.personId,
@@ -525,8 +523,8 @@ export async function updateAdminEvent(eventId: string, data: {
           toName: `${b.firstName || "Member"} ${b.lastName || ""}`.trim(),
           templateKey: "location_confirmed",
           dedupeKey: `location_confirmed_${eventId}_${b.bookingId}_${Date.now().toString().slice(0, 8)}`,
-          subject: `${eventTitle} will be in ${data.neighbourhood || existing.neighbourhood}`,
-          htmlContent: personalizedHtml,
+          subject: rendered.subject || `${eventTitle} will be in ${data.neighbourhood || existing.neighbourhood}`,
+          htmlContent: rendered.html,
           isTransactional: true,
         });
       }
@@ -704,6 +702,17 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
 
       if (p && p.email) {
         const { queueAndSendEmail } = await import("@/lib/brevo");
+        const { renderEmailTemplate } = await import("@/lib/email-renderer");
+
+        const balance = await getPersonWalletBalance(p.id, tx);
+        const rendered = renderEmailTemplate("Email - Event Cancelled", {
+          first_name: p.firstName || "Member",
+          event_title: ev.title,
+          cancel_reason: "we would rather cancel than seat you at an under-capacity table",
+          credits: String(b.creditsCharged ?? 0),
+          balance: String(balance),
+          events_url: "https://themothers.cc/events",
+        }, p.locale);
         
         await queueAndSendEmail({
           personId: p.id,
@@ -711,29 +720,8 @@ export async function cancelEventDecision(eventId: string, cancelReason?: string
           toName: p.firstName || "Member",
           templateKey: "event_cancelled",
           dedupeKey: `event_cancel_${eventId}_${b.id}_${Date.now().toString().slice(0, 8)}`,
-          subject: `Update regarding ${ev.title}`,
-          htmlContent: `
-<!DOCTYPE html>
-<html lang="en">
-<body style="margin:0;padding:0;background-color:#efeae1;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#efeae1;">
-<tr>
-<td align="center" style="padding:32px 12px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:600px;background-color:#faf7f1;border:1px solid #ddd4c6;">
-<tr>
-<td class="px" style="padding:22px 48px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;mso-line-height-rule:exactly;color:#2A1E20;">
-<p style="margin:0 0 16px;">Hello <span style="color:#7b1f2c;">${p.firstName || 'Member'}</span>,</p>
-<p style="margin:0 0 16px;">We're sorry — <strong style="font-weight:normal;color:#7b1f2c;">${ev.title}</strong> will not run. We would rather cancel than seat you at a table of three that was meant to hold ten.</p>
-<p style="margin:0;">You do not need to do anything. Your credits have been returned to your account.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
-</body>
-</html>
-          `,
+          subject: rendered.subject || `Update regarding ${ev.title}`,
+          htmlContent: rendered.html,
           isTransactional: true,
         });
       }

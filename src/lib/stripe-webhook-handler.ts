@@ -20,6 +20,8 @@ import {
 } from "@/lib/ledger";
 import {
   queueAndSendEmail,
+  renderEmailTemplate,
+  sendGodmotherCreditedEmail,
   generateSubscriptionConfirmationEmailHtml,
   generateBookingConfirmedEmailHtml,
   generatePaymentReceiptEmailHtml,
@@ -275,7 +277,23 @@ async function handleTopUpCheckout({
     ? `Recibo de compra — ${creditAmount} créditos`
     : `Your receipt — ${creditAmount} credits`;
 
-  const htmlContent = generatePaymentReceiptEmailHtml({
+  const currentWalletBal = await getPersonWalletBalance(personRecord.id);
+  const renderedReceipt = renderEmailTemplate(
+    "Email - Receipt",
+    {
+      credits: creditAmount,
+      amount: amountEur.toFixed(2),
+      date: new Date().toLocaleDateString(personRecord.locale === "es" ? "es-ES" : "en-GB", { day: "numeric", month: "short", year: "numeric" }),
+      card_brand: "Card",
+      last4: "····",
+      receipt_id: orderId,
+      balance: String(currentWalletBal),
+      account_url: `${origin}/account`,
+    },
+    personRecord.locale
+  );
+
+  const htmlContent = renderedReceipt.html || generatePaymentReceiptEmailHtml({
     firstName: personRecord.firstName || "Friend",
     orderId,
     amountEur,
@@ -470,11 +488,28 @@ async function handleTopUpCheckout({
           { hour: "2-digit", minute: "2-digit" }
         );
 
+        const postBookingBalance = await getPersonWalletBalance(personRecord.id);
+        const renderedBooking = renderEmailTemplate(
+          "Email - Booking Confirmation",
+          {
+            first_name: personRecord.firstName || "Friend",
+            event_title: bookingConfirmedResult.eventTitle,
+            event_date: eventDateFormatted,
+            event_time: eventTimeFormatted,
+            meeting_point: bookingConfirmedResult.meetingPoint || bookingConfirmedResult.venueName || "Barcelona",
+            credits: String(bookingConfirmedResult.creditsCharged ?? 0),
+            balance: String(postBookingBalance),
+            release_deadline: eventDateFormatted,
+            event_url: `${origin}/events/${bookingConfirmedResult.eventId}`,
+          },
+          personRecord.locale
+        );
+
         const bookingSubject = isEs
           ? `Tu plaza está reservada — ${bookingConfirmedResult.eventTitle}, ${eventDateFormatted}`
           : `You're booked — ${bookingConfirmedResult.eventTitle}, ${eventDateFormatted}`;
 
-        const bookingHtml = generateBookingConfirmedEmailHtml({
+        const bookingHtml = renderedBooking.html || generateBookingConfirmedEmailHtml({
           firstName: personRecord.firstName || "Friend",
           eventTitle: bookingConfirmedResult.eventTitle,
           eventDateFormatted,
@@ -654,31 +689,39 @@ async function handleMembershipCheckout({
       });
 
       if (godmother) {
-        const isEsGm = godmother.locale === "es";
-
-        await queueAndSendEmail({
+        await sendGodmotherCreditedEmail({
           personId: godmother.id,
-          toEmail: godmother.email,
-          toName: `${godmother.firstName || ""} ${godmother.lastName || ""}`.trim() || "Godmother",
-          templateKey: "godmother_credited",
-          dedupeKey: `godmother_reward_${mem.personId}`,
-          subject: isEsGm ? `+${bonusCredits} créditos por tu recomendación — The Mothers` : `+${bonusCredits} credits for your referral — The Mothers`,
-          htmlContent: `
-            <div style="font-family: Georgia, serif; color: #39292a; max-width: 560px; margin: 0 auto; padding: 24px; background: #fdf8f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px;">
-              <h2 style="color: #7b1f2c; margin-top: 0;">${isEsGm ? "¡Gracias por compartir The Mothers!" : "Thank you for sharing The Mothers!"}</h2>
-              <p>${isEsGm ? `Tu amiga ${personRecord.firstName} se ha unido. Hemos añadido <strong>${bonusCredits} créditos</strong> a tu cuenta.` : `Your friend ${personRecord.firstName} has joined. We've added <strong>${bonusCredits} credits</strong> to your wallet.`}</p>
-              <p style="margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
-            </div>
-          `,
-          isTransactional: true,
-        });
+          email: godmother.email,
+          firstName: godmother.firstName || "Godmother",
+          friendFirstName: personRecord.firstName || "Friend",
+          locale: godmother.locale,
+        }).catch((err) => console.error("Error sending godmother email:", err));
       }
     }
 
     // 6. Send Welcome / Subscription Confirmation Email
     const appUrl = getAppUrl();
-    const planName = isQuarterly ? `Quarterly Membership (€${defaultQuarterlyPrice / 100} / 3 months)` : `Monthly Membership (€${defaultMonthlyPrice / 100} / month)`;
     const isEs = personRecord.locale === "es";
+    const isFr = personRecord.locale === "fr";
+    const planName = isQuarterly
+      ? (isEs ? `Membresía Trimestral (€${defaultQuarterlyPrice / 100} / 3 meses)` : isFr ? `Adhésion trimestrielle (${defaultQuarterlyPrice / 100} € / 3 mois)` : `Quarterly Membership (€${defaultQuarterlyPrice / 100} / 3 months)`)
+      : (isEs ? `Membresía Mensual (€${defaultMonthlyPrice / 100} / mes)` : isFr ? `Adhésion mensuelle (${defaultMonthlyPrice / 100} € / mois)` : `Monthly Membership (€${defaultMonthlyPrice / 100} / month)`);
+    const priceStr = String(isQuarterly ? defaultQuarterlyPrice / 100 : defaultMonthlyPrice / 100);
+    const firstPaymentStr = String(session?.amount_total ? session.amount_total / 100 : priceStr);
+
+    const renderedWelcome = renderEmailTemplate(
+      "Email - Welcome To Membership",
+      {
+        first_name: personRecord.firstName || "Member",
+        plan: planName,
+        price: priceStr,
+        first_payment: firstPaymentStr,
+        credits: String(initialCredits),
+        next_date: isQuarterly ? "3 months" : "1 month",
+        events_url: `${appUrl}/events`,
+      },
+      personRecord.locale
+    );
 
     await queueAndSendEmail({
       personId: mem.personId,
@@ -686,8 +729,8 @@ async function handleMembershipCheckout({
       toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Member",
       templateKey: "welcome_confirmation",
       dedupeKey: `member_welcome_${memberId}`,
-      subject: isEs ? "Bienvenida a The Mothers — tu membresía está confirmada" : "Welcome to The Mothers — your membership is confirmed",
-      htmlContent: generateSubscriptionConfirmationEmailHtml({
+      subject: renderedWelcome.subject && renderedWelcome.subject !== "The Mothers" ? renderedWelcome.subject : (isEs ? "Bienvenida a The Mothers — tu membresía está confirmada" : "Welcome to The Mothers — your membership is confirmed"),
+      htmlContent: renderedWelcome.html || generateSubscriptionConfirmationEmailHtml({
         firstName: personRecord.firstName,
         planName,
         creditsGranted: initialCredits,

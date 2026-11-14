@@ -12,24 +12,16 @@ import { withTimeout } from "./errors";
 import fs from "fs";
 import path from "path";
 
+import { renderEmailTemplate } from "./email-renderer";
+export { renderEmailTemplate } from "./email-renderer";
+
 export function renderPublicEmailTemplate(
   templateFilename: string,
-  variables: Record<string, string | number | undefined | null>
+  variables: Record<string, string | number | undefined | null | boolean>,
+  locale?: string | null
 ): string {
-  try {
-    const templatePath = path.join(process.cwd(), "public", "emails", templateFilename);
-    if (fs.existsSync(templatePath)) {
-      let content = fs.readFileSync(templatePath, "utf8");
-      for (const [key, value] of Object.entries(variables)) {
-        const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
-        content = content.replace(regex, String(value ?? ""));
-      }
-      return content;
-    }
-  } catch (err) {
-    console.error(`Error loading email template ${templateFilename}:`, err);
-  }
-  return "";
+  const result = renderEmailTemplate(templateFilename, variables, locale);
+  return result.html;
 }
 
 export const BREVO_TEMPLATES = {
@@ -62,6 +54,10 @@ export const BREVO_TEMPLATES = {
   PLACE_STILL_OPEN: "place_still_open",
   HOST_CANCELLED: "host_cancelled",
   HOST_THANK_YOU: "host_thank_you",
+  WAITLIST_PLACE_OPEN: "waitlist_place_open",
+  GAZETTE_NEW_REPLY: "gazette_new_reply",
+  NEW_PRIVATE_MESSAGE: "new_private_message",
+  ACCOUNT_DELETED: "account_deleted_confirmation",
 } as const;
 
 // ─── 1. JOURNAL POST EMAIL ──────────────────────────────────────────────────
@@ -1190,13 +1186,14 @@ export async function sendAccountSuspendedEmail(params: {
   email: string;
   firstName?: string;
   reason?: string;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "Friend";
   const reason = params.reason || "a house rules review";
-  const htmlContent = renderPublicEmailTemplate("Email - Account Suspended.html", {
+  const rendered = renderEmailTemplate("Email - Account Suspended", {
     first_name: firstName,
     reason,
-  }) || `<p>Your account is paused, ${firstName}. Following ${reason}, bookings and credits are frozen. Write to hello@themothers.cc for questions.</p>`;
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1204,8 +1201,8 @@ export async function sendAccountSuspendedEmail(params: {
     toName: firstName,
     templateKey: "account_suspended",
     dedupeKey: `account_suspended_${params.personId}_${Date.now()}`,
-    subject: `Your account with The Mothers`,
-    htmlContent,
+    subject: rendered.subject || `Your account with The Mothers`,
+    htmlContent: rendered.html || `<p>Your account is paused, ${firstName}. Following ${reason}, bookings and credits are frozen. Write to hello@themothers.cc for questions.</p>`,
     isTransactional: true,
   });
 }
@@ -1214,11 +1211,12 @@ export async function sendAccountReinstatedEmail(params: {
   personId: string;
   email: string;
   firstName?: string;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "Friend";
-  const htmlContent = renderPublicEmailTemplate("Email - Account Reinstated.html", {
+  const rendered = renderEmailTemplate("Email - Account Reinstated", {
     first_name: firstName,
-  }) || `<p>Your account is active again, ${firstName}. You can now book events and participate in La Gazette.</p>`;
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1226,8 +1224,8 @@ export async function sendAccountReinstatedEmail(params: {
     toName: firstName,
     templateKey: "account_reinstated",
     dedupeKey: `account_reinstated_${params.personId}_${Date.now()}`,
-    subject: `Your account is active again — The Mothers`,
-    htmlContent,
+    subject: rendered.subject || `Your account is active again — The Mothers`,
+    htmlContent: rendered.html || `<p>Your account is active again, ${firstName}. You can now book events and participate in La Gazette.</p>`,
     isTransactional: true,
   });
 }
@@ -1236,11 +1234,12 @@ export async function sendMembershipIsOpenEmail(params: {
   personId: string;
   email: string;
   firstName?: string;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "Friend";
-  const htmlContent = renderPublicEmailTemplate("Email - Membership Is Open.html", {
+  const rendered = renderEmailTemplate("Email - Membership Is Open", {
     first_name: firstName,
-  }) || `<p>Membership is now open, ${firstName}. You can subscribe from your account with your early adopter joining fee waiver.</p>`;
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1248,8 +1247,8 @@ export async function sendMembershipIsOpenEmail(params: {
     toName: firstName,
     templateKey: "membership_is_open",
     dedupeKey: `membership_open_${params.personId}`,
-    subject: `Membership is open — The Mothers Barcelona`,
-    htmlContent,
+    subject: rendered.subject || `Membership is open — The Mothers Barcelona`,
+    htmlContent: rendered.html || `<p>Membership is now open, ${firstName}. You can subscribe from your account with your early adopter joining fee waiver.</p>`,
     isTransactional: true,
   });
 }
@@ -1259,13 +1258,14 @@ export async function sendGodmotherCreditedEmail(params: {
   email: string;
   firstName?: string;
   friendFirstName?: string;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "Godmother";
   const friendName = params.friendFirstName || "Your friend";
-  const htmlContent = renderPublicEmailTemplate("Email - Godmother Credited.html", {
+  const rendered = renderEmailTemplate("Email - Godmother Credited", {
     first_name: firstName,
     friend_first_name: friendName,
-  }) || `<p>Thank you ${firstName}! ${friendName} has joined The Mothers. We've added +5 credits to your wallet.</p>`;
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1273,8 +1273,8 @@ export async function sendGodmotherCreditedEmail(params: {
     toName: firstName,
     templateKey: "godmother_credited",
     dedupeKey: `godmother_credited_${params.personId}_${friendName}_${Date.now()}`,
-    subject: `+5 credits added — Godmother reward from The Mothers`,
-    htmlContent,
+    subject: rendered.subject || `+5 credits added — Godmother reward from The Mothers`,
+    htmlContent: rendered.html || `<p>Thank you ${firstName}! ${friendName} has joined The Mothers. We've added +5 credits to your wallet.</p>`,
     isTransactional: true,
   });
 }
@@ -1284,12 +1284,13 @@ export async function sendHostCancelledEmail(params: {
   email: string;
   firstName?: string;
   eventTitle: string;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "Member";
-  const htmlContent = renderPublicEmailTemplate("Email - Host Cancelled.html", {
+  const rendered = renderEmailTemplate("Email - Host Cancelled", {
     first_name: firstName,
     event_title: params.eventTitle,
-  }) || `<p>Hi ${firstName}, we've received your host cancellation for ${params.eventTitle}.</p>`;
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1297,8 +1298,8 @@ export async function sendHostCancelledEmail(params: {
     toName: firstName,
     templateKey: "host_cancelled",
     dedupeKey: `host_cancelled_${params.personId}_${Date.now()}`,
-    subject: `Host status update — ${params.eventTitle}`,
-    htmlContent,
+    subject: rendered.subject || `Host status update — ${params.eventTitle}`,
+    htmlContent: rendered.html || `<p>Hi ${firstName}, we've received your host cancellation for ${params.eventTitle}.</p>`,
     isTransactional: true,
   });
 }
@@ -1309,13 +1310,14 @@ export async function sendMinimumNotReachedEmail(params: {
   eventDate: string;
   activeBookings: number;
   minRequired: number;
+  locale?: string | null;
 }) {
-  const htmlContent = renderPublicEmailTemplate("Email - Minimum Not Reached.html", {
+  const rendered = renderEmailTemplate("Email - Minimum Not Reached", {
     event_title: params.eventTitle,
     event_date: params.eventDate,
     active_bookings: params.activeBookings,
     min_required: params.minRequired,
-  }) || `<p>Gathering decision alert: ${params.eventTitle} on ${params.eventDate} has ${params.activeBookings}/${params.minRequired} bookings.</p>`;
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: null,
@@ -1323,8 +1325,8 @@ export async function sendMinimumNotReachedEmail(params: {
     toName: "The Mothers Team",
     templateKey: "minimum_not_reached",
     dedupeKey: `min_not_reached_${params.eventTitle}_${Date.now()}`,
-    subject: `Decision needed: Minimum not reached for ${params.eventTitle}`,
-    htmlContent,
+    subject: rendered.subject || `Decision needed: Minimum not reached for ${params.eventTitle}`,
+    htmlContent: rendered.html || `<p>Gathering decision alert: ${params.eventTitle} on ${params.eventDate} has ${params.activeBookings}/${params.minRequired} bookings.</p>`,
     isTransactional: true,
   });
 }
@@ -1336,14 +1338,15 @@ export async function sendCreditsExpiringEmail(params: {
   creditsExpiring: number;
   expiryDateFormatted: string;
   daysLeft: number;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "Friend";
-  const htmlContent = renderPublicEmailTemplate("Email - Credits Expiring.html", {
+  const rendered = renderEmailTemplate("Email - Credits Expiring", {
     first_name: firstName,
     credits_expiring: params.creditsExpiring,
     expiry_date: params.expiryDateFormatted,
     days_left: params.daysLeft,
-  }) || `<p>Hi ${firstName}, you have ${params.creditsExpiring} credits expiring on ${params.expiryDateFormatted} (${params.daysLeft} days left).</p>`;
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1351,8 +1354,8 @@ export async function sendCreditsExpiringEmail(params: {
     toName: firstName,
     templateKey: `credits_expiring_${params.daysLeft}d`,
     dedupeKey: `credits_expiring_${params.personId}_${params.daysLeft}d_${Date.now().toString().slice(0, 7)}`,
-    subject: `Your credits expire in ${params.daysLeft} days — The Mothers`,
-    htmlContent,
+    subject: rendered.subject || `Your credits expire in ${params.daysLeft} days — The Mothers`,
+    htmlContent: rendered.html || `<p>Hi ${firstName}, you have ${params.creditsExpiring} credits expiring on ${params.expiryDateFormatted} (${params.daysLeft} days left).</p>`,
     isTransactional: true,
   });
 }
@@ -1363,13 +1366,14 @@ export async function sendPlaceStillOpenEmail(params: {
   firstName?: string;
   eventTitle: string;
   eventId: string;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "Friend";
-  const htmlContent = renderPublicEmailTemplate("Email - Place Still Open.html", {
+  const rendered = renderEmailTemplate("Email - Place Still Open", {
     first_name: firstName,
     event_title: params.eventTitle,
     event_id: params.eventId,
-  }) || `<p>Hi ${firstName}, a place is still waiting for you for ${params.eventTitle}.</p>`;
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1377,8 +1381,8 @@ export async function sendPlaceStillOpenEmail(params: {
     toName: firstName,
     templateKey: "place_still_open",
     dedupeKey: `place_still_open_${params.personId}_${params.eventId}_${Date.now().toString().slice(0, 7)}`,
-    subject: `A place is open for you — ${params.eventTitle}`,
-    htmlContent,
+    subject: rendered.subject || `A place is open for you — ${params.eventTitle}`,
+    htmlContent: rendered.html || `<p>Hi ${firstName}, a place is still waiting for you for ${params.eventTitle}.</p>`,
     isTransactional: true,
   });
 }
@@ -1388,12 +1392,13 @@ export async function sendAfterFirstEventEmail(params: {
   email: string;
   firstName?: string;
   eventTitle: string;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "Friend";
-  const htmlContent = renderPublicEmailTemplate("Email - After Your First Event.html", {
+  const rendered = renderEmailTemplate("Email - After Your First Event", {
     first_name: firstName,
     event_title: params.eventTitle,
-  }) || `<p>Hi ${firstName}, we loved having you at ${params.eventTitle} yesterday. You can now post in La Gazette and explore more gatherings.</p>`;
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1401,8 +1406,8 @@ export async function sendAfterFirstEventEmail(params: {
     toName: firstName,
     templateKey: "after_first_event",
     dedupeKey: `after_first_event_${params.personId}`,
-    subject: `How was your first gathering? — The Mothers`,
-    htmlContent,
+    subject: rendered.subject || `How was your first gathering? — The Mothers`,
+    htmlContent: rendered.html || `<p>Hi ${firstName}, we loved having you at ${params.eventTitle} yesterday. You can now post in La Gazette and explore more gatherings.</p>`,
     isTransactional: true,
   });
 }
@@ -1460,45 +1465,26 @@ export async function sendAccountDeletionConfirmationEmail(params: {
   releasedBookingTitles?: string[];
   remainingCredits?: number;
   hadActiveSub?: boolean;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "there";
   const now = new Date();
   const deletedDate = now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   const deletedTime = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
-  const bulletLines: string[] = [];
-  if (params.releasedBookingTitles && params.releasedBookingTitles.length > 0) {
-    const titles = params.releasedBookingTitles.join(", ");
-    bulletLines.push(`&bull; Your places on ${titles} were released for other mothers.<br>`);
-  }
-  if (params.remainingCredits && params.remainingCredits > 0) {
-    bulletLines.push(`&bull; Your ${params.remainingCredits} remaining credit${params.remainingCredits > 1 ? "s were" : " was"} removed.<br>`);
-  }
-  if (params.hadActiveSub) {
-    bulletLines.push(`&bull; Your membership was cancelled. You won't be charged again.<br>`);
-  }
-  bulletLines.push(`&bull; Your name, email, phone and profile answers are gone.<br>`);
-  bulletLines.push(`&bull; Your posts in La Gazette stay, signed \u201cA mother in Barcelona\u201d.<br>`);
-  bulletLines.push(`&bull; Payment records are kept for tax, as the law requires.`);
+  const releasedPlacesStr =
+    params.releasedBookingTitles && params.releasedBookingTitles.length > 0
+      ? params.releasedBookingTitles.join(", ")
+      : "";
 
-  const htmlContent = `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8efe2;">
-      <tr><td align="center" style="padding:32px 16px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#fffdfa;border:1px solid #e3d6c9;border-radius:8px;">
-          <tr><td style="padding:28px 36px 8px;font-family:Georgia,'Times New Roman',serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#7b1f2c;">The Mothers</td></tr>
-          <tr><td style="padding:8px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.2;color:#39292a;">Your account is deleted, ${firstName}</td></tr>
-          <tr><td style="padding:16px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#5a4a4b;">You deleted your The Mothers account on ${deletedDate} at ${deletedTime}. Here is what that means:</td></tr>
-          <tr><td style="padding:14px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.7;color:#5a4a4b;">
-            ${bulletLines.join("\n            ")}
-          </td></tr>
-          <tr><td style="padding:18px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#5a4a4b;">You\u2019re always welcome back \u2014 just open a new account.</td></tr>
-          <tr><td style="padding:22px 36px 0;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.6;color:#5a4a4b;">Didn\u2019t do this? Write to us straight away.</td></tr>
-          <tr><td style="padding:14px 36px 0;"><a href="mailto:hello@themothers.cc" style="display:inline-block;background:#7b1f2c;color:#ffffff;text-decoration:none;font-family:Georgia,serif;font-size:16px;padding:13px 26px;border-radius:4px;">Write to us</a></td></tr>
-          <tr><td style="padding:28px 36px 30px;font-family:Georgia,serif;font-size:13px;line-height:1.6;color:#8a7b7c;">Sent once, when a mother deletes her account from My Account, to the email she had just before it was removed. The Mothers &middot; Barcelona &middot; <a href="mailto:hello@themothers.cc" style="color:#7b1f2c;">hello@themothers.cc</a></td></tr>
-        </table>
-      </td></tr>
-    </table>
-  `;
+  const rendered = renderEmailTemplate("Email - Account Deleted", {
+    first_name: firstName,
+    deleted_date: deletedDate,
+    deleted_time: deletedTime,
+    released_places: releasedPlacesStr,
+    credits_removed: params.remainingCredits && params.remainingCredits > 0 ? String(params.remainingCredits) : "",
+    membership_cancelled: params.hadActiveSub ? "yes" : "",
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1506,8 +1492,8 @@ export async function sendAccountDeletionConfirmationEmail(params: {
     toName: firstName,
     templateKey: "account_deleted_confirmation",
     dedupeKey: `account_deleted_${params.personId}`,
-    subject: `Your The Mothers account is deleted`,
-    htmlContent,
+    subject: rendered.subject || `Your The Mothers account is deleted`,
+    htmlContent: rendered.html,
     isTransactional: true,
   });
 }
@@ -1516,14 +1502,13 @@ export async function sendVerificationCodeEmail(params: {
   email: string;
   firstName: string;
   code: string;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "there";
-  const htmlContent =
-    renderPublicEmailTemplate("Email - Verify Your Email.html", {
-      first_name: firstName,
-      code: params.code,
-    }) ||
-    `<p>Confirm it’s you, ${firstName}. Enter this code to confirm your email: <strong>${params.code}</strong>. Valid for 15 minutes.</p>`;
+  const rendered = renderEmailTemplate("Email - Verify Your Email", {
+    first_name: firstName,
+    code: params.code,
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: null,
@@ -1531,8 +1516,8 @@ export async function sendVerificationCodeEmail(params: {
     toName: firstName,
     templateKey: "verify_email",
     dedupeKey: `verify_email_${params.email}_${Date.now()}`,
-    subject: `Confirm it’s you, ${firstName}`,
-    htmlContent,
+    subject: rendered.subject || `Confirm it’s you, ${firstName}`,
+    htmlContent: rendered.html || `<p>Confirm it’s you, ${firstName}. Enter this code to confirm your email: <strong>${params.code}</strong>. Valid for 15 minutes.</p>`,
     isTransactional: true,
   });
 }
@@ -1544,19 +1529,18 @@ export async function sendAccountWelcomeEmail(params: {
   planName?: string;
   price?: number;
   credits?: number;
+  locale?: string | null;
 }) {
   const firstName = params.firstName || "Member";
-  const htmlContent =
-    renderPublicEmailTemplate("Email - Welcome To Membership.html", {
-      first_name: firstName,
-      plan: params.planName || "Free Account",
-      price: params.price ? String(params.price) : "0",
-      first_payment: "0",
-      credits: params.credits ? String(params.credits) : "0",
-      next_date: "—",
-      events_url: "https://themothers.cc/events",
-    }) ||
-    `<p>Welcome to The Mothers, ${firstName}! Your account is open.</p>`;
+  const rendered = renderEmailTemplate("Email - Welcome To Membership", {
+    first_name: firstName,
+    plan: params.planName || "Free Account",
+    price: params.price ? String(params.price) : "0",
+    first_payment: "0",
+    credits: params.credits ? String(params.credits) : "0",
+    next_date: "—",
+    events_url: "https://themothers.cc/events",
+  }, params.locale);
 
   return queueAndSendEmail({
     personId: params.personId,
@@ -1564,8 +1548,110 @@ export async function sendAccountWelcomeEmail(params: {
     toName: firstName,
     templateKey: "welcome_confirmation",
     dedupeKey: `welcome_${params.personId}_${Date.now()}`,
-    subject: `Welcome to the club, ${firstName}`,
-    htmlContent,
+    subject: rendered.subject || `Welcome to the club, ${firstName}`,
+    htmlContent: rendered.html || `<p>Welcome to The Mothers, ${firstName}! Your account is open.</p>`,
+    isTransactional: true,
+  });
+}
+
+export async function sendWaitlistPlaceOpenEmail(params: {
+  personId: string;
+  email: string;
+  firstName?: string;
+  eventTitle: string;
+  eventId: string;
+  eventDate: string;
+  credits: number;
+  firstInLine: boolean;
+  offerUntil?: string;
+  bookingCloses?: string;
+  locale?: string | null;
+}) {
+  const firstName = params.firstName || "Friend";
+  const rendered = renderEmailTemplate("Email - Waitlist Place Open", {
+    first_in_line: params.firstInLine,
+    first_name: firstName,
+    event_title: params.eventTitle,
+    offer_until: params.offerUntil || "12 hours",
+    booking_closes: params.bookingCloses || "when booking closes",
+    event_date: params.eventDate,
+    credits: String(params.credits),
+    event_url: `https://themothers.cc/events/${params.eventId}`,
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "waitlist_place_open",
+    dedupeKey: `waitlist_place_open_${params.personId}_${params.eventId}_${Date.now()}`,
+    subject: rendered.subject || `Waitlist place open — The Mothers`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendGazetteNewReplyEmail(params: {
+  personId: string;
+  email: string;
+  recipientName?: string;
+  replierName: string;
+  postTitle: string;
+  postId: string;
+  replyPreview: string;
+  replyCount: number;
+  isAuthor?: boolean;
+  locale?: string | null;
+}) {
+  const recipientName = params.recipientName || "Mother";
+  const rendered = renderEmailTemplate("Email - New Reply", {
+    is_author: params.isAuthor ?? true,
+    first_name: recipientName,
+    replier_name: params.replierName,
+    post_title: params.postTitle,
+    reply_preview: params.replyPreview,
+    reply_count: String(params.replyCount),
+    post_url: `https://themothers.cc/lagazette?post=${params.postId}`,
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: recipientName,
+    templateKey: "gazette_new_reply",
+    dedupeKey: `gazette_reply_${params.personId}_${params.postId}_${Date.now()}`,
+    subject: rendered.subject || `New reply on your post — The Mothers`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendNewPrivateMessageEmail(params: {
+  personId: string;
+  email: string;
+  recipientName?: string;
+  senderFirstName: string;
+  messagePreview: string;
+  threadUrl: string;
+  sentTime?: string;
+  locale?: string | null;
+}) {
+  const recipientName = params.recipientName || "Mother";
+  const rendered = renderEmailTemplate("Email - New Message", {
+    sender_first_name: params.senderFirstName,
+    message_preview: params.messagePreview,
+    sent_time: params.sentTime || new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+    thread_url: params.threadUrl,
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: recipientName,
+    templateKey: "new_private_message",
+    dedupeKey: `new_pm_${params.personId}_${Date.now()}`,
+    subject: rendered.subject || `New message from ${params.senderFirstName} — The Mothers`,
+    htmlContent: rendered.html,
     isTransactional: true,
   });
 }

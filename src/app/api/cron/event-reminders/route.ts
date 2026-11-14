@@ -147,42 +147,34 @@ export async function GET(req: NextRequest) {
               ? `Demain : ${ev.title} — Point de rencontre — The Mothers`
               : `Tomorrow: ${ev.title} — Meeting Point — The Mothers`);
 
-        const heading = isToday
-          ? (isEs ? "¡Nos vemos hoy!" : isFr ? "À tout à l'heure !" : "See you today!")
-          : (isEs ? "¡Nos vemos mañana!" : isFr ? "À demain !" : "See you tomorrow!");
+        const eventDateStr = new Date(ev.startsAt).toLocaleDateString(
+          isEs ? "es-ES" : isFr ? "fr-FR" : "en-GB",
+          { weekday: "long", day: "numeric", month: "long" }
+        );
+        const eventTimeStr = new Date(ev.startsAt).toLocaleTimeString(
+          isEs ? "es-ES" : "en-GB",
+          { hour: "2-digit", minute: "2-digit" }
+        );
+        const hostLine = ev.hostPersonId
+          ? (isEs ? "Tu anfitriona te estará esperando." : isFr ? "Votre hôte vous attendra." : "Your host is waiting for you.")
+          : "";
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ev.meetingPoint || ev.venueName}, Barcelona`)}`;
 
-        const introText = isToday
-          ? (isEs
-              ? `Hola ${attendee.firstName}, aquí tienes los detalles para <strong>${ev.title}</strong> hoy.`
-              : isFr
-              ? `Bonjour ${attendee.firstName}, voici les détails pour <strong>${ev.title}</strong> aujourd'hui.`
-              : `Hi ${attendee.firstName}, here are the details for <strong>${ev.title}</strong> today.`)
-          : (isEs
-              ? `Hola ${attendee.firstName}, aquí tienes los detalles para <strong>${ev.title}</strong>.`
-              : isFr
-              ? `Bonjour ${attendee.firstName}, voici les détails pour <strong>${ev.title}</strong>.`
-              : `Hi ${attendee.firstName}, here are the details for <strong>${ev.title}</strong>.`);
-
-        const htmlContent = `
-          <div style="font-family: 'Lora', Georgia, serif; color: #39292a; max-width: 600px; margin: 0 auto; padding: 32px; background: #fdf9f2; border: 1px solid rgba(57,41,42,0.16); border-radius: 8px;">
-            <h2 style="font-family: 'Cormorant Garamond', Georgia, serif; color: #7b1f2c; font-size: 24px;">
-              ${heading}
-            </h2>
-            <p style="font-size: 15px; line-height: 1.6;">
-              ${introText}
-            </p>
-            <div style="background: #E8F1E9; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px; padding: 16px; margin: 20px 0; font-size: 14px;">
-              <div>📅 <strong>${new Date(ev.startsAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })} · ${new Date(ev.startsAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</strong></div>
-              <div>📍 <strong>${ev.venueName}</strong></div>
-              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(57,41,42,0.16);">
-                🗺️ <strong>${isEs ? "Punto de encuentro" : isFr ? "Point de rencontre" : "Meeting Point"}:</strong> ${ev.meetingPoint}
-              </div>
-            </div>
-            <p style="font-size: 13px; color: rgba(57,41,42,0.6);">
-              The Mothers · Barcelona · hello@themothers.cc
-            </p>
-          </div>
-        `;
+        const { renderEmailTemplate } = await import("@/lib/email-renderer");
+        const rendered = renderEmailTemplate(
+          "Email - Meeting-Point Reminder",
+          {
+            first_name: attendee.firstName || "Friend",
+            event_title: ev.title,
+            host_line: hostLine,
+            event_date: eventDateStr,
+            event_time: eventTimeStr,
+            meeting_point: ev.meetingPoint || ev.venueName || "Barcelona",
+            attendee_count: attendees.length,
+            maps_url: mapsUrl,
+          },
+          attendee.locale
+        );
 
         await queueAndSendEmail({
           personId: attendee.personId,
@@ -190,8 +182,8 @@ export async function GET(req: NextRequest) {
           toName: `${attendee.firstName} ${attendee.lastName}`,
           templateKey: "event_reminder_t1",
           dedupeKey: `reminder_t1_${ev.id}_${attendee.personId}`,
-          subject,
-          htmlContent,
+          subject: rendered.subject && rendered.subject !== "The Mothers" ? rendered.subject : subject,
+          htmlContent: rendered.html,
           isTransactional: true,
         });
 

@@ -799,6 +799,36 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
     neighbourhood: realArea,
   };
 
+  // Notify post author if different from replier (Email - New Reply)
+  try {
+    const parentPost = await db.query.circlePost.findFirst({
+      where: eq(circlePost.id, postId),
+    });
+    if (parentPost && parentPost.personId && parentPost.personId !== personId) {
+      const authorPerson = await db.query.person.findFirst({
+        where: eq(person.id, parentPost.personId),
+      });
+      if (authorPerson?.email) {
+        const { sendGazetteNewReplyEmail } = await import("@/lib/brevo");
+        const replyPreview = body.trim().length > 120 ? `${body.trim().slice(0, 117)}...` : body.trim();
+        await sendGazetteNewReplyEmail({
+          personId: authorPerson.id,
+          email: authorPerson.email,
+          recipientName: authorPerson.firstName || "Mother",
+          replierName: rAuthor,
+          postTitle: parentPost.body.length > 60 ? `${parentPost.body.slice(0, 57)}...` : parentPost.body,
+          postId: parentPost.id,
+          replyPreview,
+          replyCount: (parentPost.repliesCount || 0) + 1,
+          isAuthor: true,
+          locale: authorPerson.locale,
+        }).catch((err) => console.error("Error sending gazette reply email:", err));
+      }
+    }
+  } catch (notifyErr) {
+    console.error("Error checking post author for notification:", notifyErr);
+  }
+
   revalidatePath("/lagazette");
   revalidatePath("/gazette");
   return { success: true, reply: formattedReply };

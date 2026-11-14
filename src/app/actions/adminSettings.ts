@@ -246,6 +246,7 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
             id: person.id,
             email: person.email,
             firstName: person.firstName,
+            locale: person.locale,
           })
           .from(person)
           .where(sql`${person.deletedAt} IS NULL`),
@@ -257,7 +258,7 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
           .from(leadEntry),
       ]);
 
-      const recipientMap = new Map<string, { id: string; email: string; firstName?: string }>();
+      const recipientMap = new Map<string, { id: string; email: string; firstName?: string; locale?: string | null }>();
 
       // 1. Add all registered accounts
       for (const p of allPersons) {
@@ -266,6 +267,7 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
             id: p.id,
             email: p.email.trim(),
             firstName: p.firstName || undefined,
+            locale: p.locale,
           });
         }
       }
@@ -279,6 +281,7 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
               id: l.id,
               email: l.email.trim(),
               firstName: undefined,
+              locale: "en",
             });
           }
         }
@@ -292,6 +295,7 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
               personId: recipient.id,
               email: recipient.email,
               firstName: recipient.firstName,
+              locale: recipient.locale,
             });
             emailsSent++;
           } catch (sendErr) {

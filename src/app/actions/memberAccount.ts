@@ -961,6 +961,7 @@ export async function deleteMyAccountGDPR() {
         releasedBookingTitles: futureBookings.map((fb) => fb.eventTitle || "Event"),
         remainingCredits: totalRemainingCredits,
         hadActiveSub,
+        locale: personRecord?.locale,
       });
     } catch (emailErr) {
       console.warn("[GDPR Delete] Confirmation email to member warning:", emailErr);
