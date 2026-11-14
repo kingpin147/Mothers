@@ -1221,6 +1221,7 @@ export function GazetteFeedClient({
                   <article
                     key={post.id}
                     id={`post-${post.id}`}
+                    data-post-id={post.id}
                     style={{
                       border: isHighlighted ? "2px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.18)",
                       borderRadius: "8px",
@@ -1231,6 +1232,7 @@ export function GazetteFeedClient({
                       flexDirection: "column",
                       gap: "14px",
                       transition: "border 0.25s ease, box-shadow 0.25s ease",
+                      position: "relative",
                     }}
                   >
                     {/* Highlighted Banner */}
@@ -1297,9 +1299,52 @@ export function GazetteFeedClient({
 
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline" }}>
-                            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "16.5px" }}>
-                              {post.author}
-                            </span>
+                            {post.isAnonymous ? (
+                              <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "16.5px" }}>
+                                {post.author}
+                              </span>
+                            ) : (
+                              <Link
+                                href={currentUser && post.authorPersonId && currentUser.id !== post.authorPersonId ? `/account?tab=messages&user=${post.authorPersonId}` : "#"}
+                                onClick={(e) => {
+                                  if (!currentUser || !post.authorPersonId || currentUser.id === post.authorPersonId) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                style={{
+                                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                                  fontWeight: 600,
+                                  fontSize: "16.5px",
+                                  color: "#39292a",
+                                  textDecoration: currentUser && post.authorPersonId && currentUser.id !== post.authorPersonId ? "underline" : "none",
+                                  cursor: currentUser && post.authorPersonId && currentUser.id !== post.authorPersonId ? "pointer" : "default",
+                                }}
+                                title={currentUser && post.authorPersonId && currentUser.id !== post.authorPersonId ? (lang === "fr" ? "Envoyer un message privé" : lang === "es" ? "Enviar mensaje privado" : "Send private message") : undefined}
+                              >
+                                {post.author}
+                              </Link>
+                            )}
+
+                            {/* Author Badges */}
+                            {post.authorBadges && post.authorBadges.map((badge, bIdx) => (
+                              <span
+                                key={bIdx}
+                                style={{
+                                  fontSize: "10px",
+                                  letterSpacing: "0.05em",
+                                  textTransform: "uppercase",
+                                  color: "#7b1f2c",
+                                  backgroundColor: "rgba(123, 31, 44, 0.08)",
+                                  border: "1px solid rgba(123, 31, 44, 0.25)",
+                                  borderRadius: "10px",
+                                  padding: "1px 7px",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {badge}
+                              </span>
+                            ))}
+
                             {post.isExpert && (
                               <span
                                 style={{
@@ -1318,48 +1363,244 @@ export function GazetteFeedClient({
                             <span style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.65)" }}>{post.meta}</span>
                           </div>
 
-                          <div style={{ fontSize: "12px", letterSpacing: "0.06em", textTransform: "uppercase", color: "#7b1f2c", marginTop: "4px" }}>
-                            {getTopicLabel(post.topic)}
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginTop: "4px" }}>
+                            {(post.topics && post.topics.length > 0 ? post.topics : [post.topic]).map((tId) => (
+                              <span
+                                key={tId}
+                                style={{
+                                  fontSize: "11px",
+                                  letterSpacing: "0.06em",
+                                  textTransform: "uppercase",
+                                  color: tId === "for_sale" ? "#7b1f2c" : "rgba(57, 41, 42, 0.75)",
+                                  backgroundColor: tId === "for_sale" ? "rgba(123, 31, 44, 0.07)" : "rgba(57, 41, 42, 0.05)",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  fontWeight: tId === "for_sale" ? 600 : 500,
+                                }}
+                              >
+                                {getTopicLabel(tId)}
+                              </span>
+                            ))}
                           </div>
                         </div>
                       </div>
 
-                      {/* Top-Right Quick Share Button (Requested by client) */}
-                      <button
-                        type="button"
-                        onClick={() => handleSharePost(post)}
-                        aria-label={lang === "fr" ? "Partager la publication" : lang === "es" ? "Compartir publicación" : "Share publication"}
-                        title={lang === "fr" ? "Partager la publication" : lang === "es" ? "Compartir publicación" : "Share publication"}
-                        style={{
-                          flex: "none",
-                          border: "1px solid rgba(57, 41, 42, 0.16)",
-                          backgroundColor: copiedPostId === post.id ? "rgba(123, 31, 44, 0.08)" : "#fdfbf8",
-                          color: copiedPostId === post.id ? "#7b1f2c" : "rgba(57, 41, 42, 0.75)",
-                          borderRadius: "20px",
-                          padding: "5px 12px",
-                          cursor: "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          fontSize: "12.5px",
-                          fontFamily: "'Lora', Georgia, serif",
-                          transition: "all 0.18s ease",
-                        }}
-                      >
-                        {copiedPostId === post.id ? (
-                          <>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="13" height="13">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            <span style={{ fontWeight: 600 }}>{lang === "fr" ? "Copié !" : lang === "es" ? "¡Copiado!" : "Copied!"}</span>
-                          </>
-                        ) : (
-                          <>
-                            <ShareIcon size={13} color="currentColor" />
-                            <span>{lang === "fr" ? "Partager" : lang === "es" ? "Compartir" : "Share"}</span>
-                          </>
-                        )}
-                      </button>
+                      {/* Header Actions: Share & ⋯ Menu */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", position: "relative" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleSharePost(post)}
+                          aria-label={lang === "fr" ? "Partager la publication" : lang === "es" ? "Compartir publicación" : "Share publication"}
+                          title={lang === "fr" ? "Partager la publication" : lang === "es" ? "Compartir publicación" : "Share publication"}
+                          style={{
+                            flex: "none",
+                            border: "1px solid rgba(57, 41, 42, 0.16)",
+                            backgroundColor: copiedPostId === post.id ? "rgba(123, 31, 44, 0.08)" : "#fdfbf8",
+                            color: copiedPostId === post.id ? "#7b1f2c" : "rgba(57, 41, 42, 0.75)",
+                            borderRadius: "20px",
+                            padding: "5px 10px",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            fontSize: "12px",
+                            fontFamily: "'Lora', Georgia, serif",
+                            transition: "all 0.18s ease",
+                          }}
+                        >
+                          {copiedPostId === post.id ? (
+                            <>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" width="12" height="12">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              <span style={{ fontWeight: 600 }}>{lang === "fr" ? "Copié !" : lang === "es" ? "¡Copiado!" : "Copied!"}</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShareIcon size={12} color="currentColor" />
+                              <span>{lang === "fr" ? "Partager" : lang === "es" ? "Compartir" : "Share"}</span>
+                            </>
+                          )}
+                        </button>
+
+                        {/* Post ⋯ Menu Button (§12 / GZ-01) */}
+                        <div style={{ position: "relative" }}>
+                          <button
+                            type="button"
+                            onClick={() => setOpenMenuPostId(openMenuPostId === post.id ? null : post.id)}
+                            aria-label="More options"
+                            style={{
+                              width: "30px",
+                              height: "30px",
+                              borderRadius: "50%",
+                              border: "1px solid rgba(57, 41, 42, 0.16)",
+                              backgroundColor: openMenuPostId === post.id ? "rgba(57, 41, 42, 0.08)" : "#fdfbf8",
+                              color: "#39292a",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "16px",
+                              fontWeight: "bold",
+                              lineHeight: 1,
+                            }}
+                          >
+                            ⋯
+                          </button>
+
+                          {/* Dropdown Menu */}
+                          {openMenuPostId === post.id && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                right: 0,
+                                top: "36px",
+                                width: "210px",
+                                backgroundColor: "#ffffff",
+                                borderRadius: "8px",
+                                boxShadow: "0 6px 24px rgba(57, 41, 42, 0.18)",
+                                border: "1px solid rgba(57, 41, 42, 0.12)",
+                                padding: "6px 0",
+                                zIndex: 50,
+                                display: "flex",
+                                flexDirection: "column",
+                              }}
+                            >
+                              {/* Send private message */}
+                              {currentUser && !post.isAnonymous && post.authorPersonId && currentUser.id !== post.authorPersonId && (
+                                <Link
+                                  href={`/account?tab=messages&user=${post.authorPersonId}`}
+                                  onClick={() => setOpenMenuPostId(null)}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    padding: "8px 14px",
+                                    fontSize: "13px",
+                                    color: "#39292a",
+                                    textDecoration: "none",
+                                    borderBottom: "1px solid rgba(57, 41, 42, 0.06)",
+                                  }}
+                                >
+                                  ✉️ {lang === "fr" ? "Envoyer un message privé" : lang === "es" ? "Enviar mensaje privado" : "Send private message"}
+                                </Link>
+                              )}
+
+                              {/* Save / Unsave */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleToggleSave(post.id);
+                                  setOpenMenuPostId(null);
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  padding: "8px 14px",
+                                  fontSize: "13px",
+                                  color: "#39292a",
+                                  border: "none",
+                                  backgroundColor: "transparent",
+                                  cursor: "pointer",
+                                  textAlign: "left",
+                                  width: "100%",
+                                }}
+                              >
+                                🔖 {post.isSaved
+                                  ? (lang === "fr" ? "Retirer des enregistrés" : lang === "es" ? "Quitar de guardados" : "Remove from saved")
+                                  : (lang === "fr" ? "Enregistrer la publication" : lang === "es" ? "Guardar publicación" : "Save publication")}
+                              </button>
+
+                              {/* Follow / Unfollow replies */}
+                              {currentUser && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setOpenMenuPostId(null);
+                                    await toggleFollowPostAction(post.id);
+                                    setPosts((prev) =>
+                                      prev.map((p) => (p.id === post.id ? { ...p, isFollowing: !p.isFollowing } : p))
+                                    );
+                                  }}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    padding: "8px 14px",
+                                    fontSize: "13px",
+                                    color: "#39292a",
+                                    border: "none",
+                                    backgroundColor: "transparent",
+                                    cursor: "pointer",
+                                    textAlign: "left",
+                                    width: "100%",
+                                  }}
+                                >
+                                  🔔 {post.isFollowing
+                                    ? (lang === "fr" ? "Ne plus suivre les réponses" : lang === "es" ? "Dejar de seguir respuestas" : "Unfollow replies")
+                                    : (lang === "fr" ? "Suivre les réponses" : lang === "es" ? "Seguir respuestas" : "Follow replies")}
+                                </button>
+                              )}
+
+                              {/* Change topics (Author or Admin) */}
+                              {(currentUser && (currentUser.id === post.authorPersonId || currentUser.role === "admin")) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuPostId(null);
+                                    setTopicsModalPost(post);
+                                    setTopicsSelection(post.topics && post.topics.length > 0 ? [...post.topics] : [post.topic]);
+                                  }}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    padding: "8px 14px",
+                                    fontSize: "13px",
+                                    color: "#39292a",
+                                    border: "none",
+                                    backgroundColor: "transparent",
+                                    cursor: "pointer",
+                                    textAlign: "left",
+                                    width: "100%",
+                                    borderTop: "1px solid rgba(57, 41, 42, 0.06)",
+                                  }}
+                                >
+                                  🏷️ {lang === "fr" ? "Changer les thèmes" : lang === "es" ? "Cambiar temas" : "Change topics"}
+                                </button>
+                              )}
+
+                              {/* Report */}
+                              {currentUser && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuPostId(null);
+                                    setOpenReportPostId(post.id);
+                                  }}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    padding: "8px 14px",
+                                    fontSize: "13px",
+                                    color: "#a12c2c",
+                                    border: "none",
+                                    backgroundColor: "transparent",
+                                    cursor: "pointer",
+                                    textAlign: "left",
+                                    width: "100%",
+                                    borderTop: "1px solid rgba(57, 41, 42, 0.06)",
+                                  }}
+                                >
+                                  ⚠️ {lang === "fr" ? "Signaler la publication" : lang === "es" ? "Denunciar publicación" : "Report publication"}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Post Body */}
@@ -1367,7 +1608,35 @@ export function GazetteFeedClient({
                       {post.body}
                     </p>
 
-                    {/* Photos */}
+                    {/* For Sale Banner (§13 / FS-01) */}
+                    {(post.topic === "for_sale" || (post.topics && post.topics.includes("for_sale"))) && (
+                      <div
+                        style={{
+                          backgroundColor: "#fcf8f2",
+                          border: "1px dashed rgba(123, 31, 44, 0.3)",
+                          borderRadius: "6px",
+                          padding: "8px 12px",
+                          fontSize: "12.5px",
+                          color: "#7b1f2c",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          fontFamily: "'Lora', Georgia, serif",
+                        }}
+                      >
+                        <span>🏷️</span>
+                        <span>
+                          <strong>{lang === "fr" ? "À vendre :" : lang === "es" ? "En venta :" : "For sale:"}</strong>{" "}
+                          {lang === "fr"
+                            ? "Envoyez-lui un message privé ou suivez son lien Vinted."
+                            : lang === "es"
+                            ? "Escríbele por mensaje privado o sigue su enlace de Vinted."
+                            : "Message her or follow her Vinted link."}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Photos (with Lightbox click handler §12 / GZ-04) */}
                     {post.hasPhotos && (
                       <div
                         style={{
@@ -1381,6 +1650,10 @@ export function GazetteFeedClient({
                         {post.photos.map((url, pIdx) => (
                           <div
                             key={pIdx}
+                            onClick={() => setLightbox({ photos: post.photos, index: pIdx })}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`View photo ${pIdx + 1} of ${post.photos.length}`}
                             style={{
                               width: "100%",
                               height: post.photos.length === 1 ? "240px" : "160px",
@@ -1389,6 +1662,8 @@ export function GazetteFeedClient({
                               backgroundPosition: "center",
                               borderRadius: "4px",
                               border: "1px solid rgba(57, 41, 42, 0.12)",
+                              cursor: "zoom-in",
+                              transition: "transform 0.15s ease",
                             }}
                           />
                         ))}
@@ -1533,9 +1808,14 @@ export function GazetteFeedClient({
                         )}
                       </button>
 
-                      <span style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.6)", marginLeft: "auto" }}>
-                        {post.neighbourhood}
-                      </span>
+                      <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.6)", marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
+                        {post.seenCount !== undefined && post.seenCount > 0 && (
+                          <span title={lang === "fr" ? `Vu par ${post.seenCount} membre(s)` : lang === "es" ? `Visto por ${post.seenCount} miembro(s)` : `Seen by ${post.seenCount} member(s)`}>
+                            👁️ {post.seenCount}
+                          </span>
+                        )}
+                        <span>{post.neighbourhood}</span>
+                      </div>
 
                       {/* Report Toggle (Only shown when signed in) */}
                       {!isReported && currentUser && (
@@ -2213,6 +2493,272 @@ export function GazetteFeedClient({
                 ✓ {lang === "fr" ? "Lien copié dans le presse-papiers !" : lang === "es" ? "¡Enlace copiado al portapapeles!" : "Link copied to clipboard!"}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal (§12 / GZ-04) */}
+      {lightbox && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo viewer"
+          onClick={() => setLightbox(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(18, 14, 15, 0.94)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* Top Bar with Counter & Close */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "absolute",
+              top: "20px",
+              left: "20px",
+              right: "20px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              color: "#ffffff",
+              zIndex: 10,
+            }}
+          >
+            <span style={{ fontFamily: "'Lora', Georgia, serif", fontSize: "14px", opacity: 0.85 }}>
+              {lightbox.index + 1} / {lightbox.photos.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => setLightbox(null)}
+              aria-label="Close photo viewer"
+              style={{
+                border: "none",
+                background: "rgba(255, 255, 255, 0.15)",
+                color: "#ffffff",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                cursor: "pointer",
+                fontSize: "18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background 0.15s ease",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Left Arrow */}
+          {lightbox.photos.length > 1 && (
+            <button
+              type="button"
+              aria-label="Previous photo"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightbox((prev) => (prev ? { ...prev, index: (prev.index - 1 + prev.photos.length) % prev.photos.length } : null));
+              }}
+              style={{
+                position: "absolute",
+                left: "24px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                border: "none",
+                background: "rgba(255, 255, 255, 0.2)",
+                color: "#ffffff",
+                width: "44px",
+                height: "44px",
+                borderRadius: "50%",
+                cursor: "pointer",
+                fontSize: "24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10,
+              }}
+            >
+              ‹
+            </button>
+          )}
+
+          {/* Current Photo */}
+          <img
+            src={lightbox.photos[lightbox.index]}
+            alt={`Photo ${lightbox.index + 1}`}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "90vw",
+              maxHeight: "82vh",
+              objectFit: "contain",
+              borderRadius: "6px",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.6)",
+              userSelect: "none",
+            }}
+          />
+
+          {/* Right Arrow */}
+          {lightbox.photos.length > 1 && (
+            <button
+              type="button"
+              aria-label="Next photo"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightbox((prev) => (prev ? { ...prev, index: (prev.index + 1) % prev.photos.length } : null));
+              }}
+              style={{
+                position: "absolute",
+                right: "24px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                border: "none",
+                background: "rgba(255, 255, 255, 0.2)",
+                color: "#ffffff",
+                width: "44px",
+                height: "44px",
+                borderRadius: "50%",
+                cursor: "pointer",
+                fontSize: "24px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10,
+              }}
+            >
+              ›
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Topics Modal (§12 / GZ-03) */}
+      {topicsModalPost && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setTopicsModalPost(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(57, 41, 42, 0.45)",
+            zIndex: 999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "10px",
+              maxWidth: "460px",
+              width: "100%",
+              padding: "24px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+            }}
+          >
+            <div>
+              <h3 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "20px", fontWeight: 600, margin: "0 0 6px 0", color: "#39292a" }}>
+                {lang === "fr" ? "Modifier les thèmes" : lang === "es" ? "Cambiar temas" : "Change topics"}
+              </h3>
+              <p style={{ margin: 0, fontSize: "13px", color: "rgba(57, 41, 42, 0.7)" }}>
+                {lang === "fr"
+                  ? "Choisissez jusqu'à 3 thèmes pertinents pour votre publication."
+                  : lang === "es"
+                  ? "Elige hasta 3 temas relevantes para tu publicación."
+                  : "Choose up to 3 relevant topics for your post."}
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", maxHeight: "240px", overflowY: "auto", padding: "4px 0" }}>
+              {TOPICS.filter((t) => t.id !== "all" && t.id !== "saved").map((topic) => {
+                const isSelected = topicsSelection.includes(topic.id);
+                return (
+                  <button
+                    key={topic.id}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setTopicsSelection((prev) => prev.filter((id) => id !== topic.id));
+                      } else {
+                        if (topicsSelection.length < 3) {
+                          setTopicsSelection((prev) => [...prev, topic.id]);
+                        }
+                      }
+                    }}
+                    style={{
+                      border: isSelected ? "1.5px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.2)",
+                      backgroundColor: isSelected ? "rgba(123, 31, 44, 0.08)" : "#ffffff",
+                      color: isSelected ? "#7b1f2c" : "#39292a",
+                      fontWeight: isSelected ? 600 : 400,
+                      borderRadius: "20px",
+                      padding: "6px 12px",
+                      fontSize: "12.5px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {isSelected ? "✓ " : ""}{topic[lang === "fr" ? "labelFr" : lang === "es" ? "labelEs" : "labelEn"]}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+              <button
+                type="button"
+                onClick={() => setTopicsModalPost(null)}
+                style={{
+                  border: "1px solid rgba(57, 41, 42, 0.2)",
+                  backgroundColor: "#ffffff",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  cursor: "pointer",
+                  color: "#39292a",
+                }}
+              >
+                {lang === "fr" ? "Annuler" : lang === "es" ? "Cancelar" : "Cancel"}
+              </button>
+              <button
+                type="button"
+                disabled={topicsSelection.length === 0}
+                onClick={async () => {
+                  if (topicsSelection.length === 0) return;
+                  await updatePostTopicsAction(topicsModalPost.id, topicsSelection);
+                  setPosts((prev) =>
+                    prev.map((p) =>
+                      p.id === topicsModalPost.id ? { ...p, topic: topicsSelection[0], topics: topicsSelection } : p
+                    )
+                  );
+                  setTopicsModalPost(null);
+                }}
+                style={{
+                  border: "none",
+                  backgroundColor: topicsSelection.length > 0 ? "#7b1f2c" : "rgba(123, 31, 44, 0.4)",
+                  color: "#ffffff",
+                  padding: "8px 18px",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: topicsSelection.length > 0 ? "pointer" : "not-allowed",
+                }}
+              >
+                {lang === "fr" ? "Enregistrer" : lang === "es" ? "Guardar" : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       )}
