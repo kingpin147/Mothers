@@ -39,10 +39,14 @@ export default function ForgotPasswordPage() {
           ? "Unable to send reset email right now. Please wait a moment and try again."
           : "No se pudo enviar el correo de recuperación en este momento. Por favor inténtalo de nuevo en unos minutos.";
       const raw = res.error || "";
-      if (!raw || /timeout|pooler|supabase|connect|request_failed|driver|socket|sql|error/i.test(raw)) {
-        setErrorMsg(fallback);
+      if (raw && raw.toLowerCase().includes("too many")) {
+        setErrorMsg(
+          lang === "en"
+            ? "Too many password reset requests. Please wait a few minutes before trying again."
+            : "Demasiadas solicitudes de recuperación. Por favor espera unos minutos antes de volver a intentarlo."
+        );
       } else {
-        setErrorMsg(raw);
+        setErrorMsg(fallback);
       }
     }
   };

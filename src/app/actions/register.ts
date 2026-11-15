@@ -246,6 +246,13 @@ export async function verifyOtpAndCreateAccount(rawData: {
     } else {
       const passwordHash = await bcrypt.hash(password, 10);
 
+      const rawFirst = (firstName || "MEMBER").trim().replace(/[^a-zA-Z]/g, "").toUpperCase();
+      const prefix = rawFirst.slice(0, 8) || "MEMBER";
+      const randomHex = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const generatedInviteCode = `${prefix}-${randomHex}`;
+      const isPreLaunch = !clubSettings.membershipLive;
+      const initialBadges = isPreLaunch ? ["founding_mother"] : [];
+
       const [newPerson] = await db
         .insert(person)
         .values({
@@ -255,7 +262,9 @@ export async function verifyOtpAndCreateAccount(rawData: {
           locale: locale || "en",
           source: "signup",
           marketingOptIn: letter,
-          createdBeforeLaunch: !clubSettings.membershipLive,
+          createdBeforeLaunch: isPreLaunch,
+          inviteCode: generatedInviteCode,
+          badges: initialBadges,
           profileDone: false,
         })
         .returning();

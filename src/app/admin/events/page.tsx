@@ -7,6 +7,7 @@ import { getAdminEvents, confirmEventDecision, cancelEventDecision, duplicateAdm
 import { deleteEvent } from "@/app/actions/events";
 import { getEventAttendees, adminMarkAttendance, adminManualBookMember, adminCancelMemberBooking } from "@/app/actions/adminEventsControl";
 import { getAdminMembers } from "@/app/actions/adminCms";
+import { sanitizeErrorMessage } from "@/lib/errors";
 import { BackArrow, ForwardArrow } from "@/components/Icons";
 import ThemeLoader from "@/components/ThemeLoader";
 
@@ -84,7 +85,7 @@ export default function AdminEventsPage() {
         setEvents(eventsRes.events);
       } else if (eventsRes?.error) {
         console.warn("getAdminEvents returned error:", eventsRes.error);
-        setErrorMsg(eventsRes.error);
+        setErrorMsg(sanitizeErrorMessage(eventsRes.error, "Unable to load events right now. Please retry."));
       }
 
       if (membersRes?.success && membersRes.members) {
@@ -95,7 +96,7 @@ export default function AdminEventsPage() {
       }
     } catch (err: any) {
       console.error("loadData error:", err);
-      setErrorMsg(err?.message || "An unexpected error occurred while loading events.");
+      setErrorMsg(sanitizeErrorMessage(err, "An unexpected error occurred while loading events."));
     } finally {
       setLoading(false);
     }

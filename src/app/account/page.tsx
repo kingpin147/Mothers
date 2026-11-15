@@ -393,7 +393,8 @@ function AccountPageContent() {
 
   const user = session.user as any;
   const memberData = accountData?.member;
-  const referralCode = accountData?.member?.godmotherCode || "";
+  const referralCode = accountData?.member?.inviteCode || accountData?.member?.godmotherCode || "";
+  const memberBadges: string[] = accountData?.member?.badges || (accountData?.member?.createdBeforeLaunch ? ["founding_mother"] : []);
   const availableCredits = accountData?.credits?.available ?? 0;
 
   const copyText = (text: string, type: string) => {
@@ -525,6 +526,40 @@ function AccountPageContent() {
                 ? (lang === "en" ? `Welcome, ${detailsForm.firstName}.` : `Bienvenida, ${detailsForm.firstName}.`)
                 : (lang === "en" ? "Welcome." : "Bienvenida.")}
             </h1>
+            {memberBadges.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", margin: "6px 0 10px 0" }}>
+                {memberBadges.map((b, idx) => {
+                  const label =
+                    b === "founding_mother"
+                      ? (lang === "fr" ? "Mère fondatrice" : lang === "es" ? "Madre fundadora" : "Founding mother")
+                      : b === "trusted_host"
+                      ? (lang === "fr" ? "Hôte de confiance" : lang === "es" ? "Anfitriona de confianza" : "Trusted host")
+                      : b === "community_host"
+                      ? (lang === "fr" ? "Hôte de communauté" : lang === "es" ? "Anfitriona de comunidad" : "Community host")
+                      : b === "godmother"
+                      ? (lang === "fr" ? "Marraine" : lang === "es" ? "Madrina" : "Godmother")
+                      : b.replace(/_/g, " ");
+                  return (
+                    <span
+                      key={idx}
+                      style={{
+                        fontSize: "11px",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        color: "#7b1f2c",
+                        backgroundColor: "rgba(123, 31, 44, 0.08)",
+                        border: "1px solid rgba(123, 31, 44, 0.25)",
+                        borderRadius: "12px",
+                        padding: "2px 10px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
             <p style={{ fontSize: "16px", color: "rgba(57, 41, 42, 0.72)", margin: 0 }}>
               {lang === "fr"
                 ? "Vos crédits et vos réservations, tout au même endroit."

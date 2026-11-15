@@ -5,6 +5,7 @@ import { event, booking, person, auditLog, eventCategory, eventStage, stage, mem
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { refundPersonCredits, refundBookingCredits, getPersonWalletBalance } from "@/lib/ledger";
+import { sanitizeErrorMessage } from "@/lib/errors";
 
 export async function publishAdminEvent(eventId: string) {
   try {
@@ -74,7 +75,7 @@ export async function publishAdminEvent(eventId: string) {
     return { success: true, status: targetStatus };
   } catch (err: any) {
     console.error("publishAdminEvent error:", err);
-    return { success: false, error: err?.message || "Failed to publish event" };
+    return { success: false, error: sanitizeErrorMessage(err, "Failed to publish event") };
   }
 }
 
@@ -153,7 +154,7 @@ export async function getAdminEvents() {
     return { success: true, events };
   } catch (err: any) {
     console.error("getAdminEvents error:", err?.message || err);
-    return { success: false, error: err?.message || "Failed to load admin events", events: [] };
+    return { success: false, error: sanitizeErrorMessage(err, "Failed to load events. Please try again."), events: [] };
   }
 }
 
@@ -310,7 +311,7 @@ export async function createAdminEvent(data: {
   return { success: true, eventId: newEventId };
   } catch (err: any) {
     console.error("createAdminEvent error:", err);
-    return { success: false, error: err?.message || "Failed to create event" };
+    return { success: false, error: sanitizeErrorMessage(err, "Failed to create event") };
   }
 }
 
@@ -602,7 +603,7 @@ export async function updateAdminEvent(eventId: string, data: {
   return { success: true };
   } catch (err: any) {
     console.error("updateAdminEvent error:", err);
-    return { success: false, error: err?.message || "Failed to update event" };
+    return { success: false, error: sanitizeErrorMessage(err, "Failed to update event") };
   }
 }
 

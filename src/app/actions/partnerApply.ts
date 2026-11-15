@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { community, person } from "@/db/schema";
 import { eq, or } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { sanitizeErrorMessage } from "@/lib/errors";
 
 export interface PartnerApplyInput {
   type: "community" | "workshop";
@@ -31,7 +32,7 @@ export interface PartnerApplyResult {
  * Returns true if empty (since fields are optional) or valid format.
  * Returns false if a value was entered but is malformed.
  */
-export function validateSpanishTaxId(rawTaxId?: string): boolean {
+function validateSpanishTaxId(rawTaxId?: string): boolean {
   if (!rawTaxId || !rawTaxId.trim()) {
     return true; // Optional: empty is accepted (§14 / CM-02)
   }
@@ -154,6 +155,6 @@ export async function submitPartnerApplicationAction(
     return { success: true, communityId: inserted.id };
   } catch (err: any) {
     console.error("submitPartnerApplicationAction error:", err);
-    return { success: false, error: err?.message || "INTERNAL_ERROR" };
+    return { success: false, error: sanitizeErrorMessage(err, "Failed to submit application. Please try again.") };
   }
 }

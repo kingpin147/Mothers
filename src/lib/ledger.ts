@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { creditBatch, person, member, booking, auditLog, event as eventTable, setting } from "@/db/schema";
-import { eq, and, sql, asc, desc, gt, lte } from "drizzle-orm";
+import { eq, and, sql, asc, desc, gt, lte, gte, inArray } from "drizzle-orm";
 import { queueAndSendEmail } from "@/lib/brevo";
 import { getAppUrl } from "@/lib/urls";
 
@@ -556,4 +556,50 @@ export async function returnCredits(
   const amount = typeof amountOrSpendId === "number" ? amountOrSpendId : 1;
   const result = await refundPersonCredits(mem.personId, amount, expiry, tx);
   return { returnEntryId: result.batchId };
+}
+
+// ─── 8. REWARD CREDITS WITH MONTHLY CAP (§14) ───────────────────────────────
+
+export async function grantRewardCreditsWithCap(
+  personId: string,
+  requestedAmount: number,
+  rewardSource: "godmother" | "host_reward" | "first_steps" | "regular",
+  txOrDb: any = db
+): Promise<{ granted: number; capped: boolean; batchId?: string }> {
+  if (requestedAmount <= 0) return { granted: 0, capped: false };
+
+  // Calculate start of current month
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Sum reward credits earned this month
+  const [earned] = await txOrDb
+    .select({
+      total: sql<number>`coalesce(sum(${creditBatch.amount}), 0)::int`,
+    })
+    .from(creditBatch)
+    .where(
+      and(
+        eq(creditBatch.personId, personId),
+        inArray(creditBatch.source, ["godmother", "host_reward", "first_steps", "regular"]),
+        gte(creditBatch.createdAt, startOfMonth)
+      )
+    );
+
+  const currentEarned = earned?.total || 0;
+  const MONTHLY_CAP = 6;
+  const remainingAllowance = Math.max(0, MONTHLY_CAP - currentEarned);
+
+  if (remainingAllowance <= 0) {
+    return { granted: 0, capped: true };
+  }
+
+  const toGrant = Math.min(requestedAmount, remainingAllowance);
+  const result = await grantCreditsToPerson(personId, toGrant, rewardSource as any, 6, txOrDb);
+
+  return {
+    granted: toGrant,
+    capped: toGrant < requestedAmount,
+    batchId: result.batchId,
+  };
 }

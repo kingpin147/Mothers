@@ -291,6 +291,8 @@ export async function getAccountData(targetMemberId?: string) {
             currentPeriodEnd: memberRecord.currentPeriodEnd ? new Date(memberRecord.currentPeriodEnd).toISOString() : null,
             createdBeforeLaunch: !!personRecord?.createdBeforeLaunch,
             godmotherCode: finalGodmotherCode,
+            inviteCode: personRecord?.inviteCode || finalGodmotherCode,
+            badges: personRecord?.badges || (personRecord?.createdBeforeLaunch ? ["founding_mother"] : []),
             hasActiveSubscription: !!memberRecord.stripeSubscriptionId && memberRecord.status === "active",
           }
         : {
@@ -309,6 +311,8 @@ export async function getAccountData(targetMemberId?: string) {
             currentPeriodEnd: null,
             createdBeforeLaunch: !!personRecord?.createdBeforeLaunch,
             godmotherCode: finalGodmotherCode,
+            inviteCode: personRecord?.inviteCode || finalGodmotherCode,
+            badges: personRecord?.badges || (personRecord?.createdBeforeLaunch ? ["founding_mother"] : []),
             hasActiveSubscription: false,
           },
       credits: {

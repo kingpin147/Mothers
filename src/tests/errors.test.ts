@@ -16,6 +16,12 @@ describe('Error Sanitization and Timeout Utilities', () => {
     const relationError = new Error('relation "event_waitlist" does not exist at character 15');
     expect(sanitizeErrorMessage(relationError)).toBe('An unexpected error occurred. Please try again.');
 
+    const columnError1 = new Error('column "invite_code" does not exist');
+    expect(sanitizeErrorMessage(columnError1, 'Unable to send reset email.')).toBe('Unable to send reset email.');
+
+    const columnError2 = new Error('column event.booking_cutoff_hours does not exist');
+    expect(sanitizeErrorMessage(columnError2, 'Failed to load events.')).toBe('Failed to load events.');
+
     const sqlSyntaxError = new Error('syntax error at or near "SELECT" at line 1');
     expect(sanitizeErrorMessage(sqlSyntaxError)).toBe('An unexpected error occurred. Please try again.');
 
