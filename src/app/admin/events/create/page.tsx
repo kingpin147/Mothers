@@ -535,13 +535,13 @@ export default function AdminCreateEventPage() {
 
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>
-                  Google Maps link <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.6)" }}>— optional</span>
+                  📍 Google Maps link <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.6)" }}>(optional)</span>
                 </label>
                 <input
                   type="url"
                   value={googleMapsUrl}
                   onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                  placeholder="https://maps.app.goo.gl/... or https://goo.gl/maps/..."
+                  placeholder="https://maps.app.goo.gl/..."
                   style={{
                     width: "100%",
                     boxSizing: "border-box",
@@ -555,7 +555,7 @@ export default function AdminCreateEventPage() {
                   }}
                 />
                 <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
-                  Add a direct Google Maps pin for the venue or meeting point. When mothers click the location, this link opens directly.
+                  In Google Maps: Share → Copy link. Mothers see an &ldquo;Open in Google Maps&rdquo; link once booked.
                 </div>
               </div>
 

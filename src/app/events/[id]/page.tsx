@@ -529,9 +529,9 @@ export default function EventDetailPage() {
                 <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
                   {ev.venueName && ev.venueName !== "To be confirmed" ? (
                     <div>
-                      {!ev.isOnline ? (
+                      {!ev.isOnline && ev.googleMapsUrl ? (
                         <a
-                          href={ev.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ev.venueName, ev.venueAddress, ev.neighbourhood, "Barcelona"].filter(Boolean).join(", "))}`}
+                          href={ev.googleMapsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           title={lang === "fr" ? "Ouvrir dans Google Maps" : lang === "es" ? "Abrir en Google Maps" : "Open in Google Maps"}
@@ -596,6 +596,33 @@ export default function EventDetailPage() {
                 </div>
               </div>
             ) : null}
+
+            {!ev.isOnline && ev.googleMapsUrl ? (
+              <div>
+                <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "6px" }}>
+                  {lang === "fr" ? "Carte" : lang === "es" ? "Mapa" : "Map"}
+                </div>
+                <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
+                  <a
+                    href={ev.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={lang === "fr" ? "Ouvrir dans Google Maps" : lang === "es" ? "Abrir en Google Maps" : "Open in Google Maps"}
+                    style={{
+                      color: "#7b1f2c",
+                      fontWeight: 600,
+                      textDecoration: "underline",
+                      textUnderlineOffset: "3px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <span>📍</span> {lang === "fr" ? "Ouvrir dans Google Maps" : lang === "es" ? "Abrir en Google Maps" : "Open in Google Maps"}
+                  </a>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* Meeting Point Section */}
@@ -617,9 +644,9 @@ export default function EventDetailPage() {
                   <div style={{ fontWeight: 600, color: "#39292a", marginBottom: "4px" }}>
                     {ev.meetingPoint || ev.meetingPointNote || ev.venueAddress || ev.venueName || (lang === "fr" ? "Les détails du point de rendez-vous seront envoyés par e-mail." : lang === "es" ? "Los detalles del punto de encuentro se enviarán por email." : "Meeting point details will be sent via email.")}
                   </div>
-                  {!ev.isOnline && (ev.googleMapsUrl || ev.venueName) && (
+                  {!ev.isOnline && ev.googleMapsUrl && (
                     <a
-                      href={ev.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ev.meetingPoint || ev.venueName, ev.venueAddress, ev.neighbourhood, "Barcelona"].filter(Boolean).join(", "))}`}
+                      href={ev.googleMapsUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{

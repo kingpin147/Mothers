@@ -22,6 +22,7 @@ export default function PartnerPortalPage() {
   const [capacity, setCapacity] = useState(12);
   const [locationName, setLocationName] = useState("");
   const [locationAddress, setLocationAddress] = useState("");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
   const [priceEuros, setPriceEuros] = useState<string>("0");
   const [isCommunityOnly, setIsCommunityOnly] = useState(false);
   const [bookingCutoffHours, setBookingCutoffHours] = useState(3);
@@ -90,6 +91,7 @@ export default function PartnerPortalPage() {
         capacity,
         locationName,
         locationAddress,
+        googleMapsUrl: googleMapsUrl.trim() || undefined,
         priceCents,
         isCommunityOnly,
         bookingCutoffHours,
@@ -344,6 +346,22 @@ export default function PartnerPortalPage() {
                     placeholder="e.g. By the main fountain"
                     style={{ width: "100%", padding: "8px 12px", borderRadius: "4px", border: "1px solid rgba(57, 41, 42, 0.2)", boxSizing: "border-box" }}
                   />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "4px" }}>
+                    📍 Google Maps link <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.6)" }}>(optional)</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={googleMapsUrl}
+                    onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                    placeholder="https://maps.app.goo.gl/..."
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: "4px", border: "1px solid rgba(57, 41, 42, 0.2)", boxSizing: "border-box" }}
+                  />
+                  <div style={{ fontSize: "11.5px", color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
+                    In Google Maps: Share → Copy link. Mothers see an &ldquo;Open in Google Maps&rdquo; link once booked.
+                  </div>
                 </div>
               </div>
 

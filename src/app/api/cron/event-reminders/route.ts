@@ -158,7 +158,7 @@ export async function GET(req: NextRequest) {
         const hostLine = ev.hostPersonId
           ? (isEs ? "Tu anfitriona te estará esperando." : isFr ? "Votre hôte vous attendra." : "Your host is waiting for you.")
           : "";
-        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ev.meetingPoint || ev.venueName}, Barcelona`)}`;
+        const mapsUrl = ev.googleMapsUrl || "";
 
         const { renderEmailTemplate } = await import("@/lib/email-renderer");
         const rendered = renderEmailTemplate(

@@ -13,6 +13,7 @@ export interface CommunityEventInput {
   capacity: number;
   locationName: string;
   locationAddress: string;
+  googleMapsUrl?: string;
   priceCents: number; // 0 for free, or > 0 in cents (e.g. 2400 for €24)
   isCommunityOnly: boolean;
   bookingCutoffHours: number;
@@ -124,6 +125,7 @@ export async function createCommunityEventAction(input: CommunityEventInput) {
       endsAt: endDate,
       venueName: input.locationName,
       meetingPoint: input.locationAddress,
+      googleMapsUrl: input.googleMapsUrl?.trim() || null,
       neighbourhood: comm.name,
       capacityMember: input.capacity || 12,
       minToConfirm: 2,
