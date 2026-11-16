@@ -46,6 +46,7 @@ export interface PublicEvent {
   venueName?: string | null;
   venueAddress?: string | null;
   meetingPoint?: string | null;
+  googleMapsUrl?: string | null;
   neighbourhood?: string | null;
   partnerName?: string | null;
   partnerSlug?: string | null;
@@ -1691,7 +1692,7 @@ function EventCard({
           </svg>
           {ev.venueName && ev.venueName !== "To be confirmed" && !ev.isOnline ? (
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ev.venueName, ev.venueAddress, ev.neighbourhood, "Barcelona"].filter(Boolean).join(", "))}`}
+              href={ev.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ev.venueName, ev.venueAddress, ev.neighbourhood, "Barcelona"].filter(Boolean).join(", "))}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}

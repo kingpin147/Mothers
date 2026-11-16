@@ -264,6 +264,7 @@ export const event = pgTable(
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
     venueName: text("venue_name").notNull(),
     meetingPoint: text("meeting_point").notNull(), // withheld from non-booked/pending
+    googleMapsUrl: text("google_maps_url"), // direct Google Maps link for venue / meeting point
     neighbourhood: text("neighbourhood").notNull(),
     capacityMember: integer("capacity_member").notNull(),
     minToConfirm: integer("min_to_confirm").default(0).notNull(),

@@ -20,6 +20,7 @@ export default function AdminCreateEventPage() {
   const [neighbourhood, setNeighbourhood] = useState("Ciutat Vella");
   const [venueName, setVenueName] = useState("");
   const [meetingPoint, setMeetingPoint] = useState("");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
   const [host, setHost] = useState("");
   const [assignedHostPersonId, setAssignedHostPersonId] = useState("");
   const [allMothers, setAllMothers] = useState<any[]>([]);
@@ -349,6 +350,7 @@ export default function AdminCreateEventPage() {
         neighbourhood,
         venueName: venueName.trim() || (isTbc ? "To be confirmed" : ""),
         meetingPoint: meetingPoint.trim() || (isTbc ? "To be confirmed" : ""),
+        googleMapsUrl: googleMapsUrl.trim() || undefined,
         startsAt: start,
         endsAt: new Date(endsAt),
         creditCost: parsedMemberCredits,
@@ -530,6 +532,33 @@ export default function AdminCreateEventPage() {
                   </div>
                 </div>
               </div>
+
+              <div>
+                <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>
+                  Google Maps link <span style={{ fontWeight: 400, color: "rgba(57,41,42,0.6)" }}>— optional</span>
+                </label>
+                <input
+                  type="url"
+                  value={googleMapsUrl}
+                  onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                  placeholder="https://maps.app.goo.gl/... or https://goo.gl/maps/..."
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    border: "1px solid rgba(57,41,42,0.25)",
+                    borderRadius: "4px",
+                    padding: "11px 13px",
+                    fontFamily: "'Lora', Georgia, serif",
+                    fontSize: "14.5px",
+                    color: "#39292a",
+                    background: "#fff",
+                  }}
+                />
+                <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "4px" }}>
+                  Add a direct Google Maps pin for the venue or meeting point. When mothers click the location, this link opens directly.
+                </div>
+              </div>
+
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Assign a host mother</label>

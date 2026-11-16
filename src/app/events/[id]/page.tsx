@@ -531,7 +531,7 @@ export default function EventDetailPage() {
                     <div>
                       {!ev.isOnline ? (
                         <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ev.venueName, ev.venueAddress, ev.neighbourhood, "Barcelona"].filter(Boolean).join(", "))}`}
+                          href={ev.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ev.venueName, ev.venueAddress, ev.neighbourhood, "Barcelona"].filter(Boolean).join(", "))}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           title={lang === "fr" ? "Ouvrir dans Google Maps" : lang === "es" ? "Abrir en Google Maps" : "Open in Google Maps"}
@@ -603,17 +603,51 @@ export default function EventDetailPage() {
             <div style={{ fontSize: "11.5px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "8px" }}>
               {lang === "fr" ? "Point de rendez-vous" : lang === "es" ? "Punto de encuentro" : "Meeting point"}
             </div>
-            <p style={{ fontSize: "15px", lineHeight: 1.6, color: isAlreadyBooked ? "#39292a" : "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "60ch" }}>
-              {ev.neighbourhood === "To be confirmed"
-                ? (lang === "es" ? "Estamos confirmando el lugar. Todas las inscritas recibirán un email con la zona y el punto de encuentro en cuanto se defina." : lang === "fr" ? "Nous confirmons le lieu. Toutes les inscrites recevront un email avec la zone et le point de rendez-vous dès qu'il sera défini." : "We are confirming the location. Everyone booked gets an email with the area and the meeting point as soon as it is set.")
-                : isAlreadyBooked
-                ? (ev.meetingPoint || ev.meetingPointNote || ev.venueAddress || ev.venueName || (lang === "fr" ? "Les détails du point de rendez-vous seront envoyés par e-mail." : lang === "es" ? "Los detalles del punto de encuentro se enviarán por email." : "Meeting point details will be sent via email."))
-                : (lang === "fr"
+            <div style={{ fontSize: "15px", lineHeight: 1.6, color: isAlreadyBooked ? "#39292a" : "rgba(57, 41, 42, 0.72)", margin: 0, maxWidth: "60ch" }}>
+              {ev.neighbourhood === "To be confirmed" ? (
+                <p style={{ margin: 0 }}>
+                  {lang === "es"
+                    ? "Estamos confirmando el lugar. Todas las inscritas recibirán un email con la zona y el punto de encuentro en cuanto se defina."
+                    : lang === "fr"
+                    ? "Nous confirmons le lieu. Toutes les inscrites recevront un email avec la zone et le point de rendez-vous dès qu'il sera défini."
+                    : "We are confirming the location. Everyone booked gets an email with the area and the meeting point as soon as it is set."}
+                </p>
+              ) : isAlreadyBooked ? (
+                <div>
+                  <div style={{ fontWeight: 600, color: "#39292a", marginBottom: "4px" }}>
+                    {ev.meetingPoint || ev.meetingPointNote || ev.venueAddress || ev.venueName || (lang === "fr" ? "Les détails du point de rendez-vous seront envoyés par e-mail." : lang === "es" ? "Los detalles del punto de encuentro se enviarán por email." : "Meeting point details will be sent via email.")}
+                  </div>
+                  {!ev.isOnline && (ev.googleMapsUrl || ev.venueName) && (
+                    <a
+                      href={ev.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ev.meetingPoint || ev.venueName, ev.venueAddress, ev.neighbourhood, "Barcelona"].filter(Boolean).join(", "))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        fontSize: "13.5px",
+                        color: "#7b1f2c",
+                        textDecoration: "underline",
+                        textUnderlineOffset: "3px",
+                        fontWeight: 600,
+                        marginTop: "4px",
+                      }}
+                    >
+                      {lang === "fr" ? "Ouvrir dans Google Maps ↗" : lang === "es" ? "Abrir en Google Maps ↗" : "Open in Google Maps ↗"}
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <p style={{ margin: 0 }}>
+                  {lang === "fr"
                     ? `L'adresse exacte est envoyée lors de la réservation.${ev.neighbourhood ? ` ${ev.neighbourhood}, près des transports en commun.` : ""}`
                     : lang === "es"
                     ? `La dirección exacta se envía al reservar.${ev.neighbourhood ? ` ${ev.neighbourhood}, cerca del transporte público.` : ""}`
-                    : `The exact address is sent when you book.${ev.neighbourhood ? ` ${ev.neighbourhood}, near public transport.` : ""}`)}
-            </p>
+                    : `The exact address is sent when you book.${ev.neighbourhood ? ` ${ev.neighbourhood}, near public transport.` : ""}`}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Before You Book Section */}

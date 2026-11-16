@@ -172,6 +172,7 @@ export async function createAdminEvent(data: {
   neighbourhood: string;
   venueName?: string;
   meetingPoint?: string;
+  googleMapsUrl?: string;
   startsAt: Date;
   endsAt: Date;
   creditCost: number;
@@ -251,6 +252,7 @@ export async function createAdminEvent(data: {
         neighbourhood: data.neighbourhood || "Barcelona",
         venueName: venue,
         meetingPoint: meeting,
+        googleMapsUrl: data.googleMapsUrl?.trim() || null,
         startsAt: data.startsAt,
         endsAt: data.endsAt,
         creditCost: memberCost,
@@ -329,6 +331,7 @@ export async function updateAdminEvent(eventId: string, data: {
   neighbourhood?: string;
   venueName?: string;
   meetingPoint?: string;
+  googleMapsUrl?: string | null;
   startsAt?: Date;
   endsAt?: Date;
   creditCost?: number;
@@ -408,6 +411,7 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.neighbourhood !== undefined && { neighbourhood: data.neighbourhood }),
       ...(data.venueName !== undefined && { venueName: data.venueName }),
       ...(data.meetingPoint !== undefined && { meetingPoint: data.meetingPoint }),
+      ...(data.googleMapsUrl !== undefined && { googleMapsUrl: data.googleMapsUrl?.trim() || null }),
       ...(data.startsAt !== undefined && { startsAt: data.startsAt }),
       ...(data.endsAt !== undefined && { endsAt: data.endsAt }),
       ...(updatedMemberCost !== undefined && {
