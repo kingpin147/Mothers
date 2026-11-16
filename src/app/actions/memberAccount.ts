@@ -89,7 +89,7 @@ export async function getAccountData(targetMemberId?: string) {
     }
 
     // Parallelize independent sub-queries for maximum performance
-    const [allBatches, bookingSpends, upcomingBookings, godmotherBatches, activePartners, creditBatches, activeWaitlists] = await Promise.all([
+    const [allBatches, bookingSpends, upcomingBookings, godmotherBatches, activePartners, creditBatches, activeWaitlists, memberEvents, userGazettePosts, userGazetteReplies] = await Promise.all([
       personId
         ? db
             .select()
@@ -202,6 +202,36 @@ export async function getAccountData(targetMemberId?: string) {
             )
             .orderBy(asc(event.startsAt))
         : Promise.resolve([]),
+      personId
+        ? db
+            .select({
+              id: booking.id,
+              status: booking.status,
+              startsAt: event.startsAt,
+              title: event.title,
+            })
+            .from(booking)
+            .innerJoin(event, eq(booking.eventId, event.id))
+            .where(
+              and(
+                eq(booking.personId, personId),
+                sql`${booking.status} IN ('confirmed', 'attended')`
+              )
+            )
+            .orderBy(desc(event.startsAt))
+        : Promise.resolve([]),
+      personId
+        ? db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(circlePost)
+            .where(eq(circlePost.personId, personId))
+        : Promise.resolve([{ count: 0 }]),
+      personId
+        ? db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(circleReply)
+            .where(eq(circleReply.personId, personId))
+        : Promise.resolve([{ count: 0 }]),
     ]);
 
     const currentBalance = (creditBatches || []).reduce((acc: number, b: any) => acc + (Number(b.remaining) || 0), 0);
@@ -271,6 +301,72 @@ export async function getAccountData(targetMemberId?: string) {
       }
     }
 
+    // Rewards & Gamification statistics
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const earnedThisMonth = Math.min(
+      6,
+      (allBatches || [])
+        .filter((b: any) => {
+          const isReward = ["godmother", "reward_godmother", "reward_regular", "reward_first_steps", "host_reward"].includes(b.source);
+          const created = b.createdAt || b.purchasedAt ? new Date(b.createdAt || b.purchasedAt) : null;
+          return isReward && created && created >= startOfMonth;
+        })
+        .reduce((sum: number, b: any) => sum + (Number(b.amount) || 0), 0)
+    );
+
+    const pastOrConfirmedEvents = (memberEvents || []).map((e: any) => ({
+      ...e,
+      startsAt: e.startsAt ? new Date(e.startsAt) : null,
+    }));
+
+    const eventsThisMonth = pastOrConfirmedEvents.filter((e: any) => {
+      const d = e.startsAt;
+      return d && d >= startOfMonth && d <= now;
+    }).length;
+
+    const hasProfile = !!(
+      personRecord?.profileData?.neighbourhood ||
+      (personRecord?.profileData?.stages && personRecord.profileData.stages.length > 0) ||
+      memberRecord?.neighbourhood ||
+      memberRecord?.stage
+    );
+
+    const attendedFirstEvent = pastOrConfirmedEvents.some(
+      (e: any) => e.status === "attended" || (e.startsAt && e.startsAt < now)
+    );
+
+    const hasGazettePost =
+      (Number(userGazettePosts?.[0]?.count) || 0) > 0 ||
+      (Number(userGazetteReplies?.[0]?.count) || 0) > 0;
+
+    const firstStepsCompleted = Boolean(hasProfile && attendedFirstEvent && hasGazettePost);
+    const godmotherCount = (allBatches || []).filter((b: any) => b.source === "godmother" || b.source === "reward_godmother").length;
+    const lastEventTitle = pastOrConfirmedEvents[0]?.title || null;
+
+    const rewards = {
+      person: {
+        id: personRecord?.id || personId || "",
+        firstName: personRecord?.firstName || "",
+        lastName: personRecord?.lastName || "",
+        inviteCode: personRecord?.inviteCode || finalGodmotherCode,
+        badges: personRecord?.badges || (personRecord?.createdBeforeLaunch ? ["founding_mother"] : []),
+        profileDone: hasProfile,
+        createdBeforeLaunch: !!personRecord?.createdBeforeLaunch,
+      },
+      stats: {
+        firstStepsCompleted,
+        hasProfile,
+        attendedFirstEvent,
+        hasGazettePost,
+        eventsThisMonth,
+        earnedThisMonth,
+        godmotherCount,
+        lastEventTitle,
+      },
+    };
+
     return {
       success: true,
       settings,
@@ -326,6 +422,7 @@ export async function getAccountData(targetMemberId?: string) {
       godmother: {
         totalCreditsEarned: Number(godmotherBatches[0]?.totalCreditsEarned || 0),
       },
+      rewards,
       partners: activePartners || [],
     };
   } catch (error: any) {

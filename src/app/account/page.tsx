@@ -15,6 +15,7 @@ import ThemeLoader from "@/components/ThemeLoader";
 import { ForwardArrow } from "@/components/Icons";
 import CountryPhoneInput from "@/components/CountryPhoneInput";
 import MessagesInbox from "@/components/account/MessagesInbox";
+import { RewardsTab } from "@/components/account/RewardsTab";
 
 type AccountTab = "overview" | "messages" | "credits" | "rewards" | "hosting" | "perks" | "membership";
 
@@ -1724,6 +1725,36 @@ function AccountPageContent() {
             </div>
           );
         })()}
+
+        {/* ─── TAB: REWARDS ─── */}
+        {activeTab === "rewards" && (
+          <RewardsTab
+            lang={lang}
+            person={
+              accountData?.rewards?.person || {
+                id: accountData?.member?.id || "",
+                firstName: accountData?.member?.firstName || "",
+                lastName: accountData?.member?.lastName || "",
+                inviteCode: accountData?.member?.inviteCode || accountData?.member?.godmotherCode,
+                badges: accountData?.member?.badges || [],
+                profileDone: Boolean(accountData?.member?.neighbourhood || accountData?.member?.stage),
+                createdBeforeLaunch: Boolean(accountData?.member?.createdBeforeLaunch),
+              }
+            }
+            stats={
+              accountData?.rewards?.stats || {
+                firstStepsCompleted: false,
+                hasProfile: false,
+                attendedFirstEvent: false,
+                hasGazettePost: false,
+                eventsThisMonth: 0,
+                earnedThisMonth: 0,
+                godmotherCount: 0,
+                lastEventTitle: null,
+              }
+            }
+          />
+        )}
 
         {/* ─── TAB: HOSTING ─── */}
         {activeTab === "hosting" && (

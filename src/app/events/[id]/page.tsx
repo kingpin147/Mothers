@@ -529,7 +529,37 @@ export default function EventDetailPage() {
                 <div style={{ fontSize: "15px", lineHeight: 1.5 }}>
                   {ev.venueName && ev.venueName !== "To be confirmed" ? (
                     <div>
-                      <div style={{ fontWeight: 600, color: "#39292a" }}>{ev.venueName}</div>
+                      {!ev.isOnline ? (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ev.venueName, ev.venueAddress, ev.neighbourhood, "Barcelona"].filter(Boolean).join(", "))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={lang === "fr" ? "Ouvrir dans Google Maps" : lang === "es" ? "Abrir en Google Maps" : "Open in Google Maps"}
+                          style={{
+                            fontWeight: 600,
+                            color: "#39292a",
+                            textDecoration: "underline",
+                            textDecorationColor: "rgba(57, 41, 42, 0.4)",
+                            textUnderlineOffset: "3px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            transition: "color 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "#7b1f2c";
+                            e.currentTarget.style.textDecorationColor = "#7b1f2c";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "#39292a";
+                            e.currentTarget.style.textDecorationColor = "rgba(57, 41, 42, 0.4)";
+                          }}
+                        >
+                          {ev.venueName} ↗
+                        </a>
+                      ) : (
+                        <div style={{ fontWeight: 600, color: "#39292a" }}>{ev.venueName}</div>
+                      )}
                       {ev.neighbourhood && ev.neighbourhood !== "To be confirmed" && (
                         <div style={{ fontSize: "13.5px", color: "rgba(57, 41, 42, 0.7)", marginTop: "2px" }}>
                           {ev.neighbourhood}

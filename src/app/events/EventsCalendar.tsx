@@ -1689,13 +1689,38 @@ function EventCard({
             <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
-          <span title={ev.neighbourhood && ev.neighbourhood !== "To be confirmed" ? `${ev.venueName || ""} (${ev.neighbourhood})` : ev.venueName || ""}>
-            {ev.venueName && ev.venueName !== "To be confirmed"
-              ? ev.venueName
-              : (ev.neighbourhood === "To be confirmed" || ev.venueName === "To be confirmed")
-              ? (lang === "es" ? "Lugar por confirmar" : lang === "fr" ? "Lieu à confirmer" : "Location to be confirmed")
-              : (ev.neighbourhood || (ev.isOnline ? (lang === "en" ? "Online" : lang === "fr" ? "En ligne" : "En línea") : ""))}
-          </span>
+          {ev.venueName && ev.venueName !== "To be confirmed" && !ev.isOnline ? (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([ev.venueName, ev.venueAddress, ev.neighbourhood, "Barcelona"].filter(Boolean).join(", "))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title={lang === "fr" ? "Ouvrir dans Google Maps" : lang === "es" ? "Abrir en Google Maps" : "Open in Google Maps"}
+              style={{
+                color: "inherit",
+                textDecoration: "underline",
+                textDecorationColor: "rgba(57, 41, 42, 0.35)",
+                textUnderlineOffset: "3px",
+                transition: "color 0.15s ease, text-decoration-color 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#7b1f2c";
+                e.currentTarget.style.textDecorationColor = "#7b1f2c";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "inherit";
+                e.currentTarget.style.textDecorationColor = "rgba(57, 41, 42, 0.35)";
+              }}
+            >
+              {ev.venueName}
+            </a>
+          ) : (
+            <span title={ev.neighbourhood && ev.neighbourhood !== "To be confirmed" ? `${ev.venueName || ""} (${ev.neighbourhood})` : ev.venueName || ""}>
+              {(ev.neighbourhood === "To be confirmed" || ev.venueName === "To be confirmed")
+                ? (lang === "es" ? "Lugar por confirmar" : lang === "fr" ? "Lieu à confirmer" : "Location to be confirmed")
+                : (ev.neighbourhood || (ev.isOnline ? (lang === "en" ? "Online" : lang === "fr" ? "En ligne" : "En línea") : ""))}
+            </span>
+          )}
         </div>
 
         {/* Host / Partner */}
