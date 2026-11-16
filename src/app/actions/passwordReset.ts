@@ -14,7 +14,7 @@ import { sanitizeErrorMessage } from "@/lib/errors";
 
 const requestResetSchema = z.object({
   email: z.string().trim().email().toLowerCase(),
-  locale: z.enum(["en", "es"]).default("en"),
+  locale: z.enum(["en", "es", "fr"]).default("en"),
 });
 
 const resetTokenSchema = z.string().trim().min(1, "TOKEN_EXPIRED_OR_INVALID");
@@ -26,9 +26,10 @@ const completeResetSchema = z.object({
 
 // ─── 1. REQUEST PASSWORD RESET (PREVENTS ENUMERATION) ───────────────────────
 
-export async function requestPasswordReset(rawEmail: string, rawLocale: "en" | "es" = "en") {
+export async function requestPasswordReset(rawEmail: string, rawLocale: string = "en") {
   const ip = await getClientIp();
-  const parsed = requestResetSchema.safeParse({ email: rawEmail, locale: rawLocale });
+  const normalizedLocale = (rawLocale === "es" || rawLocale === "fr") ? rawLocale : "en";
+  const parsed = requestResetSchema.safeParse({ email: rawEmail, locale: normalizedLocale });
   // If invalid email format, still return success to prevent timing/format enumeration
   if (!parsed.success) {
     return { success: true };
@@ -47,11 +48,11 @@ export async function requestPasswordReset(rawEmail: string, rawLocale: "en" | "
 
   try {
     let personRecord = await db.query.person.findFirst({
-      where: eq(person.email, cleanEmail),
+      where: sql`lower(${person.email}) = ${cleanEmail}`,
     });
 
     const adminRecord = await db.query.adminUser.findFirst({
-      where: eq(adminUser.email, cleanEmail),
+      where: sql`lower(${adminUser.email}) = ${cleanEmail}`,
     });
 
     // If neither person nor adminUser exists, return success to prevent email enumeration
@@ -115,13 +116,21 @@ export async function requestPasswordReset(rawEmail: string, rawLocale: "en" | "
       userLocale
     );
 
+    const emailSubject = rendered.subject || (
+      userLocale === "es"
+        ? "Restablecer tu contraseña — The Mothers"
+        : userLocale === "fr"
+        ? "Réinitialiser votre mot de passe — The Mothers"
+        : "Reset your password — The Mothers"
+    );
+
     await queueAndSendEmail({
       personId: personRecord.id,
       toEmail: personRecord.email,
       toName: `${personRecord.firstName} ${personRecord.lastName}`.trim(),
       templateKey: "password_reset",
       dedupeKey: `pwd_reset_${rawToken.slice(0, 16)}`,
-      subject: rendered.subject || (userLocale === "es" ? "Restablecer tu contraseña — The Mothers" : "Reset your password — The Mothers"),
+      subject: emailSubject,
       htmlContent: rendered.html,
       isTransactional: true,
     });
@@ -233,7 +242,7 @@ export async function completePasswordReset(rawToken: string, rawNewPassword: st
           passwordHash: newHash,
           updatedAt: new Date(),
         })
-        .where(eq(adminUser.email, personRecord.email.toLowerCase().trim()));
+        .where(sql`lower(${adminUser.email}) = lower(${personRecord.email})`);
     }
 
     // Audit log

@@ -3,7 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/db";
 import { person, memberCredential, member, adminUser } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { checkSignInRateLimit } from "@/lib/rate-limit";
 import { captureException } from "@/lib/error-monitoring";
@@ -31,9 +31,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("RATE_LIMIT_EXCEEDED");
         }
 
-        // Find person
+        // Find person (case-insensitive)
         const personRecord = await db.query.person.findFirst({
-          where: eq(person.email, email),
+          where: sql`lower(${person.email}) = ${email}`,
         });
 
         if (!personRecord) return null;
@@ -87,7 +87,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         const admin = await db.query.adminUser.findFirst({
-          where: eq(adminUser.email, email),
+          where: sql`lower(${adminUser.email}) = ${email}`,
         });
 
         if (!admin || admin.disabledAt) return null;

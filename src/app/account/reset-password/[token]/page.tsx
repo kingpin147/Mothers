@@ -6,11 +6,14 @@ import Link from "next/link";
 import { verifyResetToken, completePasswordReset } from "@/app/actions/passwordReset";
 import { ForwardArrow } from "@/components/Icons";
 import { Eye, EyeOff } from "lucide-react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function ResetPasswordPage() {
   const params = useParams();
   const token = params?.token as string;
   const router = useRouter();
+  const { language } = useLanguage();
+  const lang: "en" | "es" | "fr" = (language === "es" || language === "fr") ? language : "en";
 
   const [loading, setLoading] = useState(true);
   const [tokenValid, setTokenValid] = useState(false);
@@ -22,12 +25,6 @@ export default function ResetPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [lang, setLang] = useState<"en" | "es">("en");
-
-  useEffect(() => {
-    const saved = localStorage.getItem("tm_lang");
-    if (saved === "es" || saved === "en") setLang(saved);
-  }, []);
 
   useEffect(() => {
     async function checkToken() {

@@ -141,11 +141,23 @@ function LoginForm() {
       setLoading(false);
 
       if (res?.error) {
-        setErrorMsg(
-          lang === "en"
-            ? "Invalid email or password. Please check your credentials and try again."
-            : "Correo o contraseña incorrectos. Por favor compruébalos e inténtalo de nuevo."
-        );
+        if (res.error === "RATE_LIMIT_EXCEEDED" || (typeof res.error === "string" && res.error.toLowerCase().includes("rate"))) {
+          setErrorMsg(
+            lang === "en"
+              ? "Too many sign-in attempts. Please wait a minute before trying again."
+              : lang === "fr"
+              ? "Trop de tentatives de connexion. Veuillez patienter une minute avant de réessayer."
+              : "Demasiados intentos de inicio de sesión. Por favor espera un minuto antes de volver a intentarlo."
+          );
+        } else {
+          setErrorMsg(
+            lang === "en"
+              ? "Invalid email or password. Please check your credentials and try again."
+              : lang === "fr"
+              ? "Email ou mot de passe incorrect. Veuillez vérifier vos identifiants et réessayer."
+              : "Correo o contraseña incorrectos. Por favor compruébalos e inténtalo de nuevo."
+          );
+        }
       } else {
         window.location.href = targetRoute;
       }

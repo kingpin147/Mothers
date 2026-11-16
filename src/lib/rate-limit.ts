@@ -163,9 +163,9 @@ export function checkSignUpRateLimit(ip: string): RateLimitResult {
  */
 export function checkPasswordResetRequestRateLimit(identifier: string): RateLimitResult {
   return checkRateLimit(`pwd_reset_req:${identifier}`, {
-    limit: 3,
+    limit: 10,
     windowMs: 15 * 60 * 1000,
-    blockDurationMs: 15 * 60 * 1000,
+    blockDurationMs: 10 * 60 * 1000,
   });
 }
 
