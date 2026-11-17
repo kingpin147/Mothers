@@ -414,6 +414,21 @@ export async function holdBookingForTopUp(eventId: string) {
 
       const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
 
+      // Clean up any expired holds for this user on this event
+      await tx
+        .update(booking)
+        .set({ status: "released", releaseReason: "hold_expired", releasedAt: new Date() })
+        .where(
+          and(
+            eq(booking.eventId, eventId),
+            eq(booking.personId, personId),
+            eq(booking.status, "held"),
+            sql`held_until IS NOT NULL AND held_until <= NOW()`
+          )
+        );
+
+      const heldUntil = new Date(Date.now() + 10 * 60 * 1000); // 10-minute hold window
+
       // 4. Check existing booking for this user
       const existingBooking = await tx.query.booking.findFirst({
         where: and(
@@ -424,6 +439,12 @@ export async function holdBookingForTopUp(eventId: string) {
       });
 
       if (existingBooking) {
+        if (existingBooking.heldUntil) {
+          await tx
+            .update(booking)
+            .set({ heldUntil, updatedAt: new Date() })
+            .where(eq(booking.id, existingBooking.id));
+        }
         return { bookingId: existingBooking.id };
       }
 
@@ -448,8 +469,6 @@ export async function holdBookingForTopUp(eventId: string) {
       } else {
         requiredCredits = ev.nonMemberCredits ?? ev.creditCost ?? 0;
       }
-
-      const heldUntil = new Date(Date.now() + 10 * 60 * 1000); // 10-minute hold window
 
       const [inserted] = await tx
         .insert(booking)
@@ -785,7 +804,7 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
         ? `${origin}/events/${eventId}?topup_success=true&credits=${amount}`
         : `${origin}/account?credits_purchased=true&amount=${amount}`,
       cancel_url: eventId
-        ? `${origin}/events/${eventId}`
+        ? `${origin}/events/${eventId}?checkout_cancelled=true`
         : `${origin}/account`,
     });
 
@@ -793,6 +812,35 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
   } catch (error: any) {
     console.error("buyExtraCredits error:", error);
     return { success: false, error: sanitizeErrorMessage(error, "CHECKOUT_FAILED") };
+  }
+}
+
+export async function cancelCheckoutHold(eventId: string) {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "AUTH_REQUIRED" };
+  const personId = (session.user as any).personId || session.user.id;
+
+  try {
+    await db
+      .update(booking)
+      .set({
+        status: "released",
+        releaseReason: "checkout_cancelled",
+        releasedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(booking.eventId, eventId),
+          eq(booking.personId, personId),
+          eq(booking.status, "held"),
+          sql`${booking.heldUntil} IS NOT NULL`
+        )
+      );
+    return { success: true };
+  } catch (err: any) {
+    console.error("cancelCheckoutHold error:", err);
+    return { success: false, error: "FAILED" };
   }
 }
 

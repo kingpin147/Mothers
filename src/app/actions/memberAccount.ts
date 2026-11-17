@@ -134,7 +134,7 @@ export async function getAccountData(targetMemberId?: string) {
           categoryName: eventCategory.name,
           categorySlug: eventCategory.slug,
           creditsCharged: booking.creditsCharged,
-          confirmedCount: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b2 WHERE b2.event_id = ${event.id} AND b2.status IN ('held', 'confirmed'))`.as('confirmed_count'),
+          confirmedCount: sql<number>`(SELECT COUNT(*)::int FROM ${booking} b2 WHERE b2.event_id = ${event.id} AND (b2.status = 'confirmed' OR (b2.status = 'held' AND (b2.held_until IS NULL OR b2.held_until > NOW()))))`.as('confirmed_count'),
         })
         .from(booking)
         .innerJoin(event, eq(booking.eventId, event.id))
@@ -143,7 +143,7 @@ export async function getAccountData(targetMemberId?: string) {
           and(
             memberId ? eq(booking.memberId, memberId) : eq(booking.personId, personId!),
             sql`${event.startsAt} > NOW()`,
-            sql`${booking.status} IN ('held', 'confirmed')`
+            sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND ${booking.heldUntil} IS NULL))`
           )
         )
         .orderBy(asc(event.startsAt))

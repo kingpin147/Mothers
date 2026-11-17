@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useSession, signIn } from "next-auth/react";
-import { buyExtraCredits, bookEvent, joinEventWaitlist, checkBookingEmailStatus, BookingEmailCheckResult } from "@/app/actions/booking";
+import { buyExtraCredits, bookEvent, joinEventWaitlist, checkBookingEmailStatus, BookingEmailCheckResult, cancelCheckoutHold } from "@/app/actions/booking";
 import { useLanguage } from "@/components/LanguageProvider";
 import { tStr } from "@/lib/i18nEngine";
 import { ForwardArrow } from "@/components/Icons";
@@ -831,6 +831,13 @@ export function TopUpModal({
     }
   };
 
+  const handleClose = () => {
+    if (ev?.id) {
+      cancelCheckoutHold(ev.id).catch(() => {});
+    }
+    onClose();
+  };
+
   const isGathering = ev.status === "published_pending" || ev.status === "pending";
 
   return (
@@ -853,7 +860,7 @@ export function TopUpModal({
       >
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="Close"
           style={{
             position: "absolute", top: "16px", right: "16px",

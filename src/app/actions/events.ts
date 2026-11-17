@@ -91,13 +91,14 @@ export async function getPublicEvents() {
           count: sql<number>`count(*)::int`,
         })
         .from(booking)
-        .where(sql`${booking.status} IN ('held', 'confirmed')`)
+        .where(sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`)
         .groupBy(booking.eventId, booking.kind),
       personId
         ? db
             .select({
               eventId: booking.eventId,
               status: booking.status,
+              heldUntil: booking.heldUntil,
               createdAt: booking.createdAt,
               updatedAt: booking.updatedAt,
               creditsCharged: booking.creditsCharged,
@@ -210,8 +211,13 @@ export async function getPublicEvents() {
         const ub = userBookingsMap.get(ev.id);
         const uw = userWaitlistMap.get(ev.id);
         if (ub) {
+          // A booking is officially booked if confirmed, or held pending quorum without a checkout timer.
+          // Temporary top-up checkout holds (heldUntil !== null) do NOT count as booked.
+          const isConfirmedOrQuorumHeld =
+            ub.status === "confirmed" || (ub.status === "held" && !ub.heldUntil);
           userStatus = {
-            isBooked: ub.status === "held" || ub.status === "confirmed",
+            isBooked: isConfirmedOrQuorumHeld,
+            isHeldPendingCheckout: ub.status === "held" && !!ub.heldUntil && new Date(ub.heldUntil) > new Date(),
             isRefunded: ub.status === "released",
             bookedAt: ub.createdAt,
             refundedAt: ub.status === "released" ? ub.updatedAt : null,
@@ -463,7 +469,7 @@ export async function getPublicEventById(rawId: string) {
     const activeBookingsCount = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(booking)
-      .where(and(eq(booking.eventId, ev.id), sql`${booking.status} IN ('held','confirmed')`));
+      .where(and(eq(booking.eventId, ev.id), sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`));
 
     const placesTaken = Number(activeBookingsCount[0]?.count || 0);
     const bookedMember = placesTaken;

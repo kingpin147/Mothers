@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { bookEvent, joinEventWaitlist, leaveEventWaitlist, releaseBooking } from "@/app/actions/booking";
+import { bookEvent, joinEventWaitlist, leaveEventWaitlist, releaseBooking, cancelCheckoutHold } from "@/app/actions/booking";
 import { getPublicEventById } from "@/app/actions/events";
 import { getAccountData } from "@/app/actions/memberAccount";
 import ThemeLoader from "@/components/ThemeLoader";
@@ -133,6 +133,12 @@ export default function EventDetailPage() {
           const query = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
           const isTopUpSuccess = query?.get("topup_success") === "true";
           const isBookingSuccess = query?.get("booking_success") === "true";
+          const isCheckoutCancelled = query?.get("checkout_cancelled") === "true";
+
+          if (isCheckoutCancelled) {
+            cancelCheckoutHold(ev.id);
+            window.history.replaceState({}, "", `/events/${eventId}`);
+          }
 
           if (isBookingSuccess || (isTopUpSuccess && booked)) {
             setTopUpEvent(null);
