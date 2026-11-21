@@ -4,6 +4,7 @@ import { event, booking, person, jobRun } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { queueAndSendEmail } from "@/lib/brevo";
+import { formatEventDate, formatEventTime } from "@/lib/date-utils";
 
 /**
  * Event Reminders Cron (§8)
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
               }
             </p>
             <div style="background: #fff; border: 1px solid rgba(57,41,42,0.16); border-radius: 6px; padding: 16px; margin: 20px 0; font-size: 14px;">
-              <div>📅 <strong>${new Date(ev.startsAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</strong></div>
+              <div>📅 <strong>${formatEventDate(ev.startsAt, attendee.locale, { weekday: "long", day: "numeric", month: "long" })} · ${formatEventTime(ev.startsAt, attendee.locale)}</strong></div>
               <div>📍 <strong>${ev.venueName}</strong>, ${ev.neighbourhood}</div>
             </div>
             <p style="font-size: 13px; color: rgba(57,41,42,0.6);">
@@ -147,14 +148,8 @@ export async function GET(req: NextRequest) {
               ? `Demain : ${ev.title} — Point de rencontre — The Mothers`
               : `Tomorrow: ${ev.title} — Meeting Point — The Mothers`);
 
-        const eventDateStr = new Date(ev.startsAt).toLocaleDateString(
-          isEs ? "es-ES" : isFr ? "fr-FR" : "en-GB",
-          { weekday: "long", day: "numeric", month: "long" }
-        );
-        const eventTimeStr = new Date(ev.startsAt).toLocaleTimeString(
-          isEs ? "es-ES" : "en-GB",
-          { hour: "2-digit", minute: "2-digit" }
-        );
+        const eventDateStr = formatEventDate(ev.startsAt, attendee.locale, { weekday: "long", day: "numeric", month: "long" });
+        const eventTimeStr = formatEventTime(ev.startsAt, attendee.locale);
         const hostLine = ev.hostPersonId
           ? (isEs ? "Tu anfitriona te estará esperando." : isFr ? "Votre hôte vous attendra." : "Your host is waiting for you.")
           : "";

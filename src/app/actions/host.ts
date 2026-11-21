@@ -379,15 +379,13 @@ export async function decideHostRequest(params: {
         .map((a) => (a.firstName ? `${a.firstName} ${a.lastName ? a.lastName[0] + "." : ""}`.trim() : "Member"))
         .join(", ") || "Attendees will appear as they book";
 
-      const eventDate = new Date(ev.startsAt).toLocaleDateString(isEs ? "es-ES" : "en-US", {
+      const { formatEventDate, formatEventTime } = await import("@/lib/date-utils");
+      const eventDate = formatEventDate(ev.startsAt, applicant.locale, {
         weekday: "short",
         month: "short",
         day: "numeric",
       });
-      const eventTime = new Date(ev.startsAt).toLocaleTimeString(isEs ? "es-ES" : "en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      const eventTime = formatEventTime(ev.startsAt, applicant.locale);
 
       const htmlContent = renderPublicEmailTemplate("Email - Host Request Accepted.html", {
         first_name: applicant.firstName || "Mother",

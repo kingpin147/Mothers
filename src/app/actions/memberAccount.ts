@@ -1131,7 +1131,7 @@ export async function deleteMyAccountGDPR() {
       const formattedBookings = futureBookings.map((fb) => ({
         title: fb.eventTitle || "Event",
         date: fb.startsAt
-          ? new Date(fb.startsAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+          ? new Date(fb.startsAt).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Madrid" })
           : "",
       }));
 

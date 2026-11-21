@@ -266,14 +266,13 @@ export async function bookEvent(eventId: string) {
     if (personRecord) {
       const origin = getAppUrl();
       const isEs = personRecord.locale === "es";
-      const eventDateFormatted = new Date(result.startsAt).toLocaleDateString(
-        isEs ? "es-ES" : "en-US",
+      const { formatEventDate, formatEventTime } = await import("@/lib/date-utils");
+      const eventDateFormatted = formatEventDate(
+        result.startsAt,
+        personRecord.locale,
         { weekday: "short", month: "short", day: "numeric", year: "numeric" }
       );
-      const eventTimeFormatted = new Date(result.startsAt).toLocaleTimeString(
-        isEs ? "es-ES" : "en-GB",
-        { hour: "2-digit", minute: "2-digit" }
-      );
+      const eventTimeFormatted = formatEventTime(result.startsAt, personRecord.locale);
 
       const currentBalance = await getPersonWalletBalance(personId);
       const renderedBooking = renderEmailTemplate(
@@ -665,10 +664,11 @@ export async function releaseBooking(bookingId: string) {
         after: { status: "released", returnedCredits, waitlistNotified: notifyWaitlistPersonIds.length },
       });
 
+      const { formatEventDate } = await import("@/lib/date-utils");
       return {
         eventId: b.eventId,
         eventTitle: ev.title,
-        eventDateStr: new Date(ev.startsAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }),
+        eventDateStr: formatEventDate(ev.startsAt, "en-GB", { weekday: "long", day: "numeric", month: "short" }),
         returnedCredits,
         notifyWaitlistPersonIds,
         hoursUntilEvent,
@@ -701,8 +701,9 @@ export async function releaseBooking(bookingId: string) {
     // Notify waitlist users using Email - Waitlist Place Open template (B-08 / E-01)
     if (result.notifyWaitlistPersonIds && result.notifyWaitlistPersonIds.length > 0) {
       const { sendWaitlistPlaceOpenEmail } = await import("@/lib/brevo");
+      const { formatEventTime } = await import("@/lib/date-utils");
       const isFirstInLine = (result.hoursUntilEvent ?? 25) > 24;
-      const offerUntilStr = new Date(Date.now() + 12 * 60 * 60 * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      const offerUntilStr = formatEventTime(new Date(Date.now() + 12 * 60 * 60 * 1000), "en-GB");
       const bookingClosesStr = result.eventDateStr;
 
       for (let i = 0; i < result.notifyWaitlistPersonIds.length; i++) {

@@ -512,14 +512,16 @@ export async function updateAdminEvent(eventId: string, data: {
 
       const { queueAndSendEmail } = await import("@/lib/brevo");
       const { renderEmailTemplate } = await import("@/lib/email-renderer");
+      const { formatEventDate, formatEventTime, formatEventDateTime } = await import("@/lib/date-utils");
       const eventTitle = data.title || existing.title;
       const newStartsAt = data.startsAt ? new Date(data.startsAt) : new Date(existing.startsAt);
-      const dateFormatted = newStartsAt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
-      const timeFormatted = newStartsAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
       for (const b of activeBookings) {
         if (!b.email || !b.personId) continue;
         
+        const dateFormatted = formatEventDate(newStartsAt, b.locale, { weekday: "long", day: "numeric", month: "short" });
+        const timeFormatted = formatEventTime(newStartsAt, b.locale);
+
         const rendered = renderEmailTemplate("Email - Location Confirmed", {
           first_name: b.firstName || "Member",
           event_title: eventTitle,
@@ -553,6 +555,7 @@ export async function updateAdminEvent(eventId: string, data: {
           email: person.email,
           firstName: person.firstName,
           lastName: person.lastName,
+          locale: person.locale,
         })
         .from(booking)
         .leftJoin(person, eq(booking.personId, person.id))
@@ -564,12 +567,14 @@ export async function updateAdminEvent(eventId: string, data: {
         );
 
       const { queueAndSendEmail } = await import("@/lib/brevo");
+      const { formatEventDateTime } = await import("@/lib/date-utils");
       const eventTitle = data.title || existing.title;
       const newStartsAt = data.startsAt ? new Date(data.startsAt) : new Date(existing.startsAt);
-      const dateFormatted = newStartsAt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+      const newEndsAt = data.endsAt ? new Date(data.endsAt) : (existing.endsAt ? new Date(existing.endsAt) : null);
 
       for (const b of activeBookings) {
         if (!b.email || !b.personId) continue;
+        const dateTimeFormatted = formatEventDateTime(newStartsAt, newEndsAt, b.locale);
         await queueAndSendEmail({
           personId: b.personId,
           toEmail: b.email,
@@ -584,7 +589,7 @@ export async function updateAdminEvent(eventId: string, data: {
               <p style="font-size: 15px; line-height: 1.6;">We have updated the schedule or location details for this gathering:</p>
               ${data.changeNote ? `<p style="font-size: 14.5px; line-height: 1.5; font-style: italic; background: rgba(123,31,44,0.06); padding: 10px 14px; border-left: 2px solid #7b1f2c;">"${data.changeNote}"</p>` : ''}
               <div style="background: #ffffff; padding: 16px; border-radius: 4px; border-left: 3px solid #7b1f2c; margin: 16px 0;">
-                <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>New Date & Time:</strong> ${dateFormatted}</p>
+                <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>New Date & Time:</strong> ${dateTimeFormatted}</p>
                 <p style="margin: 0 0 6px 0; font-size: 14px;"><strong>Venue:</strong> ${data.venueName || existing.venueName}</p>
                 <p style="margin: 0; font-size: 14px;"><strong>Meeting Point:</strong> ${data.meetingPoint || existing.meetingPoint}</p>
               </div>

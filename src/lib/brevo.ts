@@ -1469,8 +1469,8 @@ export async function sendAccountDeletionConfirmationEmail(params: {
 }) {
   const firstName = params.firstName || "there";
   const now = new Date();
-  const deletedDate = now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  const deletedTime = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const deletedDate = now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Madrid" });
+  const deletedTime = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" });
 
   const releasedPlacesStr =
     params.releasedBookingTitles && params.releasedBookingTitles.length > 0
@@ -1640,7 +1640,7 @@ export async function sendNewPrivateMessageEmail(params: {
   const rendered = renderEmailTemplate("Email - New Message", {
     sender_first_name: params.senderFirstName,
     message_preview: params.messagePreview,
-    sent_time: params.sentTime || new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+    sent_time: params.sentTime || new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }),
     thread_url: params.threadUrl,
   }, params.locale);
 

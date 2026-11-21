@@ -53,13 +53,8 @@ export async function GET(req: NextRequest) {
 
       if (currentBookings < minRequired) {
         const origin = getAppUrl();
-        const eventDateFormatted = new Date(ev.startsAt).toLocaleDateString("en-GB", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+        const { formatEventDateTime } = await import("@/lib/date-utils");
+        const eventDateFormatted = formatEventDateTime(ev.startsAt, ev.endsAt, "en-GB");
 
         for (const adminEmail of adminEmails) {
           await sendMinimumNotReachedEmail({

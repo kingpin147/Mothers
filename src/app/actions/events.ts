@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { event, eventCategory, booking, auditLog, eventWaitlist, member, partner, person, eventChangeLog, eventStage, stage, mediaAsset } from "@/db/schema";
 import { eq, desc, asc, and, or, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { formatEventDate, formatEventTime } from "@/lib/date-utils";
 import { z } from "zod";
 
 const createCategorySchema = z.object({
@@ -169,21 +170,15 @@ export async function getPublicEvents() {
       const starts = new Date(ev.startsAt);
       const ends = ev.endsAt ? new Date(ev.endsAt) : null;
 
-      const dateStr = starts.toLocaleDateString("en-GB", {
+      const dateStr = formatEventDate(starts, "en-GB", {
         weekday: "long",
         day: "numeric",
         month: "short",
         year: "numeric",
       });
 
-      const startTimeStr = starts.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      const endTimeStr = ends ? ends.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }) : "";
+      const startTimeStr = formatEventTime(starts, "en-GB");
+      const endTimeStr = ends ? formatEventTime(ends, "en-GB") : "";
 
       let durationStr = "";
       if (ends && !isNaN(ends.getTime())) {
@@ -451,7 +446,7 @@ export async function getPublicEventById(rawId: string) {
     const starts = new Date(ev.startsAt);
     const ends = new Date(ev.endsAt);
 
-    const dateStr = starts.toLocaleDateString("en-GB", {
+    const dateStr = formatEventDate(starts, "en-GB", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
     let durationStr = "";
@@ -463,7 +458,7 @@ export async function getPublicEventById(rawId: string) {
         durationStr = hours > 0 && mins > 0 ? ` (${hours}h ${mins}m)` : hours > 0 ? ` (${hours}h)` : ` (${mins}m)`;
       }
     }
-    const timeStr = `${starts.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} – ${ends.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}${durationStr}`;
+    const timeStr = `${formatEventTime(starts, "en-GB")} – ${formatEventTime(ends, "en-GB")}${durationStr}`;
 
     // Count active bookings for this event (single capacity field: capacityMember)
     const activeBookingsCount = await db

@@ -479,14 +479,13 @@ async function handleTopUpCheckout({
 
       // 4. Send Booking Confirmation Email if auto-booking succeeded (§N-03)
       if (bookingConfirmedResult) {
-        const eventDateFormatted = new Date(bookingConfirmedResult.startsAt).toLocaleDateString(
-          isEs ? "es-ES" : "en-US",
+        const { formatEventDate, formatEventTime } = await import("@/lib/date-utils");
+        const eventDateFormatted = formatEventDate(
+          bookingConfirmedResult.startsAt,
+          personRecord.locale,
           { weekday: "short", month: "short", day: "numeric", year: "numeric" }
         );
-        const eventTimeFormatted = new Date(bookingConfirmedResult.startsAt).toLocaleTimeString(
-          isEs ? "es-ES" : "en-GB",
-          { hour: "2-digit", minute: "2-digit" }
-        );
+        const eventTimeFormatted = formatEventTime(bookingConfirmedResult.startsAt, personRecord.locale);
 
         const postBookingBalance = await getPersonWalletBalance(personRecord.id);
         const renderedBooking = renderEmailTemplate(
