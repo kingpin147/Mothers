@@ -7,7 +7,7 @@ import { tStr } from "@/lib/i18nEngine";
 import { submitPartnerApplication } from "@/app/actions/publicWindow";
 
 const UMBRELLAS = [
-  { id: "all", labelEn: "All partners", labelEs: "Todos los partners", noteEn: "One exclusive partner per specialty, across five umbrellas — so a body need, an expert need, a child need, a place and a shop all sit inside the network.", noteEs: "Un partner exclusivo por especialidad, en cinco grandes áreas — para que el cuerpo, la experta, el peque, el lugar y la tienda estén todos dentro de la red." },
+  { id: "all", labelEn: "All partners", labelEs: "Todos los partners", noteEn: "Trusted professionals and services recommended by mothers, across wellness, expert care, children, places, and brands.", noteEs: "Profesionales de confianza recomendadas por madres, en bienestar, cuidado experto, infancia, lugares y marcas." },
   { id: "wellness", labelEn: "Wellness & Movement", labelEs: "Bienestar y movimiento", noteEn: "Body-focused, recurring — for you.", noteEs: "Para tu cuerpo, con continuidad." },
   { id: "expert", labelEn: "Expert Care & Support", labelEs: "Cuidado experto", noteEn: "Qualified professionals, workshop-led.", noteEs: "Profesionales cualificadas, con talleres." },
   { id: "child", labelEn: "Baby & Child Activities", labelEs: "Actividades para el bebé", noteEn: "Built around the child being present.", noteEs: "Pensadas para venir con peque." },

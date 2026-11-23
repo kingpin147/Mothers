@@ -205,8 +205,8 @@ export default function AdminMembersPage() {
 
           <select value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>
             <option value="all">All plans</option>
-            <option value="39">€39 monthly</option>
-            <option value="99">€99 quarterly</option>
+            <option value="monthly">€6.99 monthly</option>
+            <option value="annual">€69 annual</option>
           </select>
 
           <select value={sortFilter} onChange={(e) => setSortFilter(e.target.value)} style={{ border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }}>

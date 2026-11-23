@@ -105,28 +105,13 @@ export async function bookEvent(eventId: string) {
         throw new Error("PLAN_MEMBERS_ONLY");
       }
 
-      // 3. Members-First Window check (§7.1) - only active when membership is live
-      if (
-        clubSettings.membershipLive &&
-        !isMember &&
-        ev.nonMemberOpensAt &&
-        new Date() < new Date(ev.nonMemberOpensAt)
-      ) {
-        throw new Error("MEMBERS_FIRST_WINDOW_ACTIVE");
+      // 3. Plan-only check (membershipLive + planOnly)
+      if (ev.planOnly && (!isMember || !clubSettings.membershipLive)) {
+        throw new Error("PLAN_MEMBERS_ONLY");
       }
 
-      // 4. Calculate required credits (F-18 / Audit 18 & 19: one price before launch, member + non-member after)
-      let requiredCredits = 0;
-      if (ev.isFreeWalk && (isMember || !clubSettings.membershipLive)) {
-        requiredCredits = 0;
-      } else if (!clubSettings.membershipLive) {
-        // Pre-launch mode: single base price for everyone
-        requiredCredits = ev.creditCost ?? 0;
-      } else if (isMember) {
-        requiredCredits = ev.memberCredits ?? ev.creditCost ?? 0;
-      } else {
-        requiredCredits = ev.nonMemberCredits ?? ev.creditCost ?? 0;
-      }
+      // 4. Tech Brief §17 / §21: One single price for everyone (creditCost)
+      const requiredCredits = ev.isFreeWalk ? 0 : (ev.creditCost ?? 0);
 
       // 5. Count existing active bookings for this person & on this event (excluding expired holds)
       const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
@@ -401,14 +386,9 @@ export async function holdBookingForTopUp(eventId: string) {
 
       const isMember = !!memberId;
 
-      // 3. Members-First Window check (§7.1)
-      if (
-        clubSettings.membershipLive &&
-        !isMember &&
-        ev.nonMemberOpensAt &&
-        new Date() < new Date(ev.nonMemberOpensAt)
-      ) {
-        throw new Error("MEMBERS_FIRST_WINDOW_ACTIVE");
+      // 3. Plan-only check
+      if (ev.planOnly && (!isMember || !clubSettings.membershipLive)) {
+        throw new Error("PLAN_MEMBERS_ONLY");
       }
 
       const activeBookingCondition = sql`(${booking.status} = 'confirmed' OR (${booking.status} = 'held' AND (${booking.heldUntil} IS NULL OR ${booking.heldUntil} > NOW())))`;
@@ -458,16 +438,8 @@ export async function holdBookingForTopUp(eventId: string) {
         throw new Error("EVENT_FULL");
       }
 
-      let requiredCredits = 0;
-      if (ev.isFreeWalk && (isMember || !clubSettings.membershipLive)) {
-        requiredCredits = 0;
-      } else if (!clubSettings.membershipLive) {
-        requiredCredits = ev.creditCost ?? 0;
-      } else if (isMember) {
-        requiredCredits = ev.memberCredits ?? ev.creditCost ?? 0;
-      } else {
-        requiredCredits = ev.nonMemberCredits ?? ev.creditCost ?? 0;
-      }
+      // Tech Brief §17 / §21: One single price for everyone (creditCost)
+      const requiredCredits = ev.isFreeWalk ? 0 : (ev.creditCost ?? 0);
 
       const [inserted] = await tx
         .insert(booking)
@@ -1023,15 +995,8 @@ export async function claimWaitlistOffer(waitlistId: string) {
         throw new Error("EVENT_FULL");
       }
 
-      // 4. Calculate cost based on membership status & live switch (§B-03 / F-18)
-      let cost = 0;
-      if (!clubSettings.membershipLive) {
-        cost = ev.nonMemberCredits ?? ev.creditCost;
-      } else if (isMember) {
-        cost = ev.memberCredits ?? ev.creditCost;
-      } else {
-        cost = ev.nonMemberCredits ?? ev.creditCost;
-      }
+      // 4. Tech Brief §17 / §21: One single price for everyone (creditCost)
+      const cost = ev.isFreeWalk ? 0 : (ev.creditCost ?? 0);
 
       let creditDeductions: Array<{ batchId: string; deducted: number; expiresAt: string }> = [];
       if (cost > 0) {

@@ -541,8 +541,8 @@ function LoginForm() {
               }}
             >
               {lang === "en"
-                ? "Open a free account to post in La Gazette, save events and book your place in one tap."
-                : "Abre una cuenta gratuita para participar en La Gazette, guardar eventos y reservar tu plaza en un toque."}
+                ? "Open a free account to post in The Forum, save events and book your place in one tap."
+                : "Abre una cuenta gratuita para participar en El Foro, guardar eventos y reservar tu plaza en un toque."}
             </p>
 
             <div
@@ -906,8 +906,8 @@ function LoginForm() {
                 }}
               >
                 {lang === "en"
-                  ? "Post in La Gazette, keep your credits and book in one tap. No joining fee if you join before launch."
-                  : "Publica en La Gazette, conserva tus créditos y reserva en un toque. Sin cuota de alta si te unes antes del lanzamiento."}
+                  ? "Post in The Forum, keep your credits and book in one tap."
+                  : "Publica en El Foro, conserva tus créditos y reserva en un toque."}
               </p>
 
               {/* Error message */}

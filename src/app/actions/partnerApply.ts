@@ -7,7 +7,7 @@ import { auth } from "@/lib/auth";
 import { sanitizeErrorMessage } from "@/lib/errors";
 
 export interface PartnerApplyInput {
-  type: "community" | "workshop";
+  type: "community" | "workshop" | "one_to_one";
   name: string;
   city: string;
   description?: string;
@@ -15,6 +15,12 @@ export interface PartnerApplyInput {
   contactName: string;
   contactEmail: string;
   contactPhone?: string;
+  // One-to-one service fields (§21 / B-03)
+  serviceOffered?: string;
+  usualPrice?: string;
+  offerForMembers?: string;
+  bookingUrl?: string;
+  billingModel?: "monthly_19" | "commission_12" | "none";
   // Optional legal/tax fields (§14 / CM-02)
   legalName?: string;
   taxId?: string;

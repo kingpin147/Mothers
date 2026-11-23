@@ -594,7 +594,7 @@ export async function updateAdminEvent(eventId: string, data: {
                 <p style="margin: 0; font-size: 14px;"><strong>Meeting Point:</strong> ${data.meetingPoint || existing.meetingPoint}</p>
               </div>
               <p style="font-size: 14px; line-height: 1.5; color: rgba(57,41,42,0.8);">If the new schedule no longer works for you, you can release your place anytime from your account without penalty, and all credits will be returned to your balance.</p>
-              <p style="font-size: 14px; margin-top: 24px;">Warmly,<br/><strong>The Mothers Barcelona</strong></p>
+              <p style="font-size: 14px; margin-top: 24px;">Warmly,<br/><strong>The Mothers</strong></p>
             </div>
           `,
           isTransactional: true,

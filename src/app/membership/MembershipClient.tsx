@@ -413,7 +413,7 @@ export default function MembershipClient({
               wordBreak: "break-word",
             }}
           >
-            {tStr("No joining fee if you join us before launch", lang).toUpperCase()}
+            {isLive ? (lang === "fr" ? "ADHÉSION OUVERTE" : lang === "es" ? "MEMBRESÍA ABIERTA" : "MEMBERSHIP OPEN") : (lang === "fr" ? "ADHÉSION · BIENTÔT DISPONIBLE" : lang === "es" ? "MEMBRESÍA · PRÓXIMAMENTE" : "MEMBERSHIP · COMING LATER")}
           </div>
 
           {/* Pricing Row */}
@@ -429,10 +429,10 @@ export default function MembershipClient({
                   color: "#fffdf9",
                 }}
               >
-                €39
+                €6.99
               </span>
               <span style={{ fontSize: "14px", color: "rgba(248,239,226,0.85)" }}>
-                {lang === "fr" ? "/ mois · ou 99 € tous les trois mois" : lang === "es" ? "/ mes · o 99€ cada tres meses" : "/ month · or €99 every three months"}
+                {lang === "fr" ? "/ mois · ou 69 € / an (+10 crédits)" : lang === "es" ? "/ mes · o 69€ / año (+10 créditos)" : "/ month · or €69 / year (+10 credits)"}
               </span>
             </div>
           </div>

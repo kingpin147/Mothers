@@ -290,6 +290,10 @@ export const event = pgTable(
     partnerId: text("partner_id"),
     hostAdminId: text("host_admin_id").references(() => adminUser.id),
     imageId: text("image_id"),
+    isGathering: boolean("is_gathering").default(false).notNull(),
+    gatheringHostPersonId: text("gathering_host_person_id").references(() => person.id),
+    featured: boolean("featured").default(false).notNull(),
+    featuredMonth: text("featured_month"),
     status: eventStatusEnum("status").default("draft").notNull(),
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
@@ -454,6 +458,16 @@ export const partner = pgTable(
     links: jsonb("links").default({}),
     logoImageId: text("logo_image_id"),
     status: text("status").default("active").notNull(),
+    tier: text("tier").default("free").notNull(), // 'free' | 'partner'
+    isOneToOne: boolean("is_one_to_one").default(false).notNull(), // 'one-to-one service'
+    billingModel: text("billing_model").default("none").notNull(), // 'monthly_19' | 'commission_12' | 'none'
+    bookingUrl: text("booking_url"),
+    serviceOffered: text("service_offered"),
+    usualPrice: text("usual_price"),
+    codeCopyCount: integer("code_copy_count").default(0).notNull(),
+    linkClickCount: integer("link_click_count").default(0).notNull(),
+    recommendationCount: integer("recommendation_count").default(0).notNull(),
+    notForMeCount: integer("not_for_me_count").default(0).notNull(),
     exclusiveFrom: timestamp("exclusive_from", { withTimezone: true }),
     exclusiveUntil: timestamp("exclusive_until", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -1076,6 +1090,59 @@ export const community = pgTable(
     index("idx_community_approved").on(table.approved),
   ]
 );
+
+export const proReview = pgTable(
+  "pro_review",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    proId: text("pro_id").notNull().references(() => partner.id, { onDelete: "cascade" }),
+    accountId: text("account_id").notNull().references(() => person.id, { onDelete: "cascade" }),
+    vote: text("vote").notNull(), // 'yes' | 'no'
+    tags: text("tags").array().default(sql`'{}'::text[]`),
+    text: text("text"), // <= 300 chars
+    anon: boolean("anon").default(false).notNull(),
+    hidden: boolean("hidden").default(false).notNull(),
+    reports: integer("reports").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_unique_pro_account").on(table.proId, table.accountId),
+    index("idx_pro_review_pro_id").on(table.proId),
+  ]
+);
+
+export const homeMedia = pgTable(
+  "home_media",
+  {
+    id: text("id").primaryKey(), // 'hero', 'card_1', 'card_2', 'card_3', 'band', 'moment_1'..'moment_6', 'quote_1'..'quote_3'
+    imageUrl: text("image_url"),
+    focalPoint: text("focal_point").default("center").notNull(),
+    altText: text("alt_text").default("").notNull(),
+    parentConsentConfirmed: boolean("parent_consent_confirmed").default(false).notNull(),
+    quoteText: text("quote_text"),
+    quoteWho: text("quote_who"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  }
+);
+
+export const sponsor = pgTable(
+  "sponsor",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name").notNull(),
+    line: text("line"),
+    perk: text("perk"),
+    url: text("url"),
+    month: text("month").notNull(), // YYYY-MM
+    feeCents: integer("fee_cents").default(0).notNull(),
+    status: text("status").default("paused").notNull(), // 'live' | 'paused'
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_sponsor_month_status").on(table.month, table.status),
+  ]
+);
+
 
 
 

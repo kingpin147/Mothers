@@ -260,7 +260,7 @@ export function GazetteFeedClient({
 
   const handleCreatePost = async () => {
     if (!currentUser) {
-      window.location.href = "/account/login?redirect=/lagazette&mode=register";
+      window.location.href = "/account/login?redirect=/forum&mode=register";
       return;
     }
 
@@ -268,10 +268,10 @@ export function GazetteFeedClient({
       if (eligibility.reason === "membership_required") {
         setNotice({
           text: lang === "fr"
-            ? "Vous avez atteint la limite de 3 publications pour les non-membres. Devenez membre pour un accès illimité à La Gazette."
+            ? "Vous avez utilisé vos 3 publications et réponses gratuites. Devenez membre pour publier en illimité."
             : lang === "es"
-            ? "Has alcanzado el límite de 3 aportaciones para no socias. Hazte socia para acceso ilimitado a La Gazette."
-            : "You have reached the 3-post limit for non-members. Become a member for unlimited conversations in La Gazette.",
+            ? "Has usado tus 3 publicaciones y respuestas gratuitas. Hazte socia para publicar de forma ilimitada."
+            : "You have used your 3 free posts and replies. Become a member for unlimited posting.",
           color: "#7b1f2c",
         });
       } else if (eligibility.reason === "booking_required") {
@@ -337,7 +337,7 @@ export function GazetteFeedClient({
         const newPost = res.post;
         setJustCreatedPost(newPost);
         setNotice({
-          text: lang === "fr" ? "Publié dans La Gazette !" : lang === "es" ? "¡Publicado en La Gazette!" : "Posted to La Gazette!",
+          text: lang === "fr" ? "Publié dans Le Forum !" : lang === "es" ? "¡Publicado en El Foro!" : "Posted to The Forum!",
           color: "#3b5e04",
         });
         setTimeout(() => setNotice(null), 6000);
@@ -351,8 +351,8 @@ export function GazetteFeedClient({
 
   const handleSharePost = async (post: PostItem) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "https://themothers.cc";
-    const shareUrl = `${origin}/lagazette/${post.slug || post.id}`;
-    const shareTitle = `${post.author} on La Gazette — The Mothers`;
+    const shareUrl = `${origin}/forum/${post.slug || post.id}`;
+    const shareTitle = `${post.author} on The Forum — The Mothers`;
     const shareSnippet = post.body.length > 120 ? `${post.body.slice(0, 117)}...` : post.body;
 
     // 1. Try native Web Share on mobile devices (e.g. phones opening native WhatsApp/Instagram/Messages sheet)
@@ -528,7 +528,7 @@ export function GazetteFeedClient({
     if (!text) return;
 
     if (!currentUser) {
-      window.location.href = "/account/login?redirect=/lagazette&mode=register";
+      window.location.href = "/account/login?redirect=/forum&mode=register";
       return;
     }
 
@@ -677,7 +677,7 @@ export function GazetteFeedClient({
             marginBottom: "10px",
           }}
         >
-          La Gazette
+          {lang === "fr" ? "Le Forum" : lang === "es" ? "El Foro" : "The Forum"}
         </div>
         <h1
           style={{
@@ -1262,7 +1262,7 @@ export function GazetteFeedClient({
                           </span>
                         </span>
                         <Link
-                          href="/lagazette"
+                          href="/forum"
                           style={{
                             fontSize: "12px",
                             color: "rgba(57, 41, 42, 0.7)",
@@ -1881,8 +1881,8 @@ export function GazetteFeedClient({
                           <Link
                             href={
                               loginPrompt.action === "save"
-                                ? "/account/login?redirect=/lagazette&mode=register"
-                                : "/account/login?redirect=/lagazette"
+                                ? "/account/login?redirect=/forum&mode=register"
+                                : "/account/login?redirect=/forum"
                             }
                             style={{
                               fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -2208,7 +2208,7 @@ export function GazetteFeedClient({
                     : "Open a free account to post and reply, or book an event and meet the mothers you are talking to.")}
             </p>
             <Link
-              href={isUserSignedIn ? "/events" : "/account/login?redirect=/lagazette&mode=register"}
+              href={isUserSignedIn ? "/events" : "/account/login?redirect=/forum&mode=register"}
               style={{
                 border: "1px solid #7b1f2c",
                 color: "#7b1f2c",
@@ -2410,7 +2410,7 @@ export function GazetteFeedClient({
             {/* WhatsApp Share Button (Primary) */}
             <a
               href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                `${shareModalPost.author} in La Gazette:\n"${shareModalPost.body.slice(0, 110)}..."\n\n${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette/${shareModalPost.slug || shareModalPost.id}`
+                `${shareModalPost.author} in The Forum:\n"${shareModalPost.body.slice(0, 110)}..."\n\n${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/forum/${shareModalPost.slug || shareModalPost.id}`
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -2440,7 +2440,7 @@ export function GazetteFeedClient({
               <input
                 type="text"
                 readOnly
-                value={`${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette/${shareModalPost.slug || shareModalPost.id}`}
+                value={`${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/forum/${shareModalPost.slug || shareModalPost.id}`}
                 onClick={(e) => (e.target as HTMLInputElement).select()}
                 style={{
                   flex: 1,
@@ -2457,7 +2457,7 @@ export function GazetteFeedClient({
               <button
                 type="button"
                 onClick={async () => {
-                  const url = `${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/lagazette/${shareModalPost.slug || shareModalPost.id}`;
+                  const url = `${typeof window !== "undefined" ? window.location.origin : "https://themothers.cc"}/forum/${shareModalPost.slug || shareModalPost.id}`;
                   if (typeof navigator !== "undefined" && navigator.clipboard) {
                     await navigator.clipboard.writeText(url);
                   }

@@ -131,11 +131,11 @@ export async function POST(req: Request) {
         );
       }
 
-      const isQuarterly = plan === "quarterly" || memberRecord?.billingFrequency === "quarterly";
+      const isAnnual = plan === "annual" || memberRecord?.billingFrequency === "annual";
 
-      const defaultMonthlyPrice = clubSettings.monthlyFeeCents ?? 3900;
-      const defaultQuarterlyPrice = clubSettings.quarterlyFeeCents ?? 9900;
-      const defaultJoiningFee = clubSettings.joiningFeeCents ?? 1900;
+      // Tech Brief §17: Monthly €6.99 (699 cents), Annual €69.00 (6900 cents)
+      const monthlyPrice = (clubSettings as any).memberMonthly ?? clubSettings.monthlyFeeCents ?? 699;
+      const annualPrice = (clubSettings as any).memberAnnual ?? clubSettings.quarterlyFeeCents ?? 6900;
 
       if (!memberRecord) {
         const [newMem] = await db
@@ -143,101 +143,47 @@ export async function POST(req: Request) {
           .values({
             personId,
             status: "applicant",
-            billingFrequency: isQuarterly ? "quarterly" : "monthly",
-            priceCents: isQuarterly ? defaultQuarterlyPrice : defaultMonthlyPrice,
-            monthlyPriceCents: defaultMonthlyPrice,
+            billingFrequency: isAnnual ? "annual" : "monthly",
+            priceCents: isAnnual ? annualPrice : monthlyPrice,
+            monthlyPriceCents: monthlyPrice,
           })
           .returning();
         memberRecord = newMem;
         memberId = newMem.id;
       } else {
         memberId = memberRecord.id;
-        if (plan && (plan === "monthly" || plan === "quarterly")) {
+        if (plan && (plan === "monthly" || plan === "annual")) {
           await db
             .update(member)
             .set({
-              billingFrequency: isQuarterly ? "quarterly" : "monthly",
-              priceCents: isQuarterly ? defaultQuarterlyPrice : defaultMonthlyPrice,
+              billingFrequency: isAnnual ? "annual" : "monthly",
+              priceCents: isAnnual ? annualPrice : monthlyPrice,
             })
             .where(eq(member.id, memberRecord.id));
         }
       }
 
-      // Check joining fee waiver:
-      // Waived permanently if createdBeforeLaunch === true (§6.1, Pre-Membership Rule)
-      const isFeeWaived = personRecord?.createdBeforeLaunch === true;
-
-      // P2-16: Always use Settings price for new checkout session
-      const unitAmount = isQuarterly ? defaultQuarterlyPrice : defaultMonthlyPrice;
-
-      // Check wallet credit discount on first payment (§M-07 / §5) using Settings credit rate (F-06 / F-19)
-      const creditRate = clubSettings.topUpPriceCents ?? 200;
-      const walletBalance = await getPersonWalletBalance(personId);
-      const creditDiscountCents = Math.min(walletBalance * creditRate, unitAmount);
-      const creditsToConsume = Math.floor(creditDiscountCents / creditRate);
-
-      let creditDeductionsStr = "";
-      if (creditsToConsume > 0) {
-        const { db } = await import("@/db");
-        const { spendPersonCreditsFIFO } = await import("@/lib/ledger");
-        const spendResult = await spendPersonCreditsFIFO(personId, creditsToConsume, db);
-        const mapped = spendResult.batchesDeducted.map((b) => ({
-          batchId: b.batchId,
-          deducted: b.deducted,
-          expiresAt: new Date(b.expiresAt).toISOString(),
-        }));
-        creditDeductionsStr = JSON.stringify(mapped);
-      }
-
-      // Create one-off Stripe coupon if wallet discount applies (M-07)
-      let discounts: any[] | undefined = undefined;
-      let couponId: string | undefined = undefined;
-      if (creditDiscountCents > 0) {
-        const coupon = await stripe.coupons.create({
-          amount_off: creditDiscountCents,
-          currency: "eur",
-          duration: "once",
-          name: `Credits Discount (${creditsToConsume} credits)`,
-          max_redemptions: 1,
-        });
-        couponId = coupon.id;
-        discounts = [{ coupon: coupon.id }];
-      }
+      // Tech Brief §17: No joining fee for anyone, no wallet discount on membership. First payment = plan price.
+      const unitAmount = isAnnual ? annualPrice : monthlyPrice;
 
       const lineItems: any[] = [
         {
           price_data: {
             currency: "eur",
             product_data: {
-              name: isQuarterly ? "THE Mothers — Quarterly Membership" : "THE Mothers — Monthly Membership",
-              description: isQuarterly
-                ? `Quarterly membership access including ${clubSettings.quarterlyGrantCredits ?? 60} event credits · THE Mothers Barcelona`
-                : `Full membership access including ${clubSettings.monthlyGrantCredits ?? 20} monthly event credits · THE Mothers Barcelona`,
+              name: isAnnual ? "The Mothers — Annual Membership" : "The Mothers — Monthly Membership",
+              description: isAnnual
+                ? `Annual membership with ${(clubSettings as any).annualCredits ?? 10} event credits, partner perks and unlimited Forum access · The Mothers`
+                : `Monthly membership with partner perks and unlimited Forum access · The Mothers`,
             },
             unit_amount: unitAmount,
-            recurring: {
-              interval: "month",
-              interval_count: isQuarterly ? 3 : 1,
-            },
+            recurring: isAnnual
+              ? { interval: "year" }
+              : { interval: "month", interval_count: 1 },
           },
           quantity: 1,
         }
       ];
-
-      // Add €19 joining fee if NOT waived
-      if (!isFeeWaived && defaultJoiningFee > 0) {
-        lineItems.push({
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: "THE Mothers — Joining Fee (One-time)",
-              description: "Club onboarding & registration fee · THE Mothers Barcelona",
-            },
-            unit_amount: defaultJoiningFee,
-          },
-          quantity: 1,
-        });
-      }
 
       // Ensure customer in Stripe
       let customerId = memberRecord.stripeCustomerId;
@@ -256,14 +202,11 @@ export async function POST(req: Request) {
         mode: "subscription",
         customer: customerId,
         line_items: lineItems,
-        discounts,
         subscription_data: {
           metadata: {
             memberId,
             personId,
-            isQuarterly: String(isQuarterly),
-            creditsToConsume: String(creditsToConsume),
-            creditDeductions: creditDeductionsStr,
+            plan: isAnnual ? "annual" : "monthly",
             company: "THE Mothers",
           }
         },
@@ -271,16 +214,12 @@ export async function POST(req: Request) {
           type: "membership",
           memberId,
           personId,
-          isQuarterly: String(isQuarterly),
-          feeWaived: String(isFeeWaived),
-          creditsToConsume: String(creditsToConsume),
-          creditDeductions: creditDeductionsStr,
-          couponId: couponId || "",
+          plan: isAnnual ? "annual" : "monthly",
           company: "THE Mothers",
         },
         custom_text: {
           submit: {
-            message: "Official checkout for THE Mothers Barcelona.",
+            message: "Official checkout for The Mothers.",
           },
         },
         success_url: `${origin}/account?membership_success=true`,

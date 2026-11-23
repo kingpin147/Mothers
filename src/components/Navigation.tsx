@@ -153,7 +153,7 @@ export function Navigation() {
   const navLinks = [
     { href: "/membership", labelEn: "Membership", labelEs: "Membresía", labelFr: "Adhésion" },
     { href: "/events", labelEn: "Events", labelEs: "Eventos", labelFr: "Événements" },
-    { href: "/lagazette", labelEn: "La Gazette", labelEs: "La Gazette", labelFr: "La Gazette" },
+    { href: "/forum", labelEn: "The Forum", labelEs: "El Foro", labelFr: "Le Forum" },
   ];
 
   const isEventsPage = pathname?.startsWith("/events");
@@ -166,6 +166,8 @@ export function Navigation() {
           position: "sticky",
           top: 0,
           zIndex: 1000,
+          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+          transition: "transform 0.25s ease",
         }}
       >
         <header
@@ -491,7 +493,7 @@ export function Navigation() {
             {[
               { href: "/membership", label: lang === "fr" ? "Adhésion" : lang === "es" ? "Membresía" : "Membership" },
               { href: "/events", label: lang === "fr" ? "Événements" : lang === "es" ? "Eventos" : "Events" },
-              { href: "/lagazette", label: "La Gazette" },
+              { href: "/forum", label: lang === "fr" ? "Le Forum" : lang === "es" ? "El Foro" : "The Forum" },
               session?.user
                 ? { href: "/account", label: lang === "fr" ? "Mon Compte" : lang === "es" ? "Mi Cuenta" : "My Account" }
                 : { href: "/account/login", label: lang === "fr" ? "Connexion" : lang === "es" ? "Acceder" : "Login" },

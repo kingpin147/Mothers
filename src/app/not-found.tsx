@@ -80,7 +80,7 @@ export default function NotFound() {
         </Link>
 
         <Link
-          href="/lagazette"
+          href="/forum"
           style={{
             border: "1px solid #7b1f2c",
             backgroundColor: "transparent",
@@ -93,7 +93,7 @@ export default function NotFound() {
             textDecoration: "none",
           }}
         >
-          La Gazette
+          The Forum
         </Link>
 
         <Link

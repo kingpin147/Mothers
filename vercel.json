@@ -21,10 +21,6 @@
       "schedule": "0 9 * * *"
     },
     {
-      "path": "/api/cron/quarterly-tranche",
-      "schedule": "0 2 * * *"
-    },
-    {
       "path": "/api/cron/reset-pause-allowance",
       "schedule": "0 0 1 1 *"
     },
