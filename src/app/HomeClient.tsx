@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -75,15 +75,16 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
   };
 
   const heroImage = cmsMedia["hero"]?.imageUrl || "/assets/home-hero.webp";
-  const part1Image = cmsMedia["card_1"]?.imageUrl || "/assets/part-1.jpg";
-  const part2Image = cmsMedia["card_2"]?.imageUrl || "/assets/part-2.jpg";
-  const part3Image = cmsMedia["card_3"]?.imageUrl || "/assets/part-3.jpg";
-  const bandImage = cmsMedia["band"]?.imageUrl || "/assets/band.jpg";
+  const part1Image = cmsMedia["card_1"]?.imageUrl || null;
+  const part2Image = cmsMedia["card_2"]?.imageUrl || null;
+  const part3Image = cmsMedia["card_3"]?.imageUrl || null;
+  const bandImage = cmsMedia["band"]?.imageUrl || null;
 
-  const moments = [1, 2, 3, 4, 5, 6].map((i) => ({
+  const moments = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => ({
     id: `moment_${i}`,
+    index: i,
     url: cmsMedia[`moment_${i}`]?.imageUrl || null,
-    alt: cmsMedia[`moment_${i}`]?.altText || `Moment ${i}`,
+    alt: cmsMedia[`moment_${i}`]?.altText || (lang === "fr" ? `Moment ${i}` : lang === "es" ? `Momento ${i}` : `Moment ${i}`),
   }));
 
   const quotes = [1, 2, 3].map((i) => ({
@@ -91,6 +92,68 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
     text: cmsMedia[`quote_${i}`]?.quoteText || (i === 1 ? "The first time in months I felt like myself again, not just a feeding schedule." : i === 2 ? "I moved here knowing no one. Three weeks later I had a group of mothers I see every Tuesday." : "Honest, calm, and zero pressure. Exactly what new mothers need."),
     who: cmsMedia[`quote_${i}`]?.quoteWho || (i === 1 ? "Elena, Gràcia" : i === 2 ? "Sophie, Eixample" : "Camille, Poblenou"),
   }));
+
+  // Gallery interactive scroll & drag handlers
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftPos, setScrollLeftPos] = useState(0);
+
+  const checkScroll = () => {
+    if (galleryRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = galleryRef.current;
+      setCanScrollLeft(scrollLeft > 4);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 4);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const el = galleryRef.current;
+    if (el) {
+      el.addEventListener("scroll", checkScroll, { passive: true });
+      window.addEventListener("resize", checkScroll, { passive: true });
+    }
+    return () => {
+      if (el) el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, []);
+
+  const handleScrollPrev = () => {
+    if (galleryRef.current) {
+      const shift = galleryRef.current.clientWidth * 0.75;
+      galleryRef.current.scrollBy({ left: -shift, behavior: "smooth" });
+    }
+  };
+
+  const handleScrollNext = () => {
+    if (galleryRef.current) {
+      const shift = galleryRef.current.clientWidth * 0.75;
+      galleryRef.current.scrollBy({ left: shift, behavior: "smooth" });
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!galleryRef.current) return;
+    setIsMouseDown(true);
+    setStartX(e.pageX - galleryRef.current.offsetLeft);
+    setScrollLeftPos(galleryRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isMouseDown || !galleryRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - galleryRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    galleryRef.current.scrollLeft = scrollLeftPos - walk;
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsMouseDown(false);
+  };
 
   return (
     <div style={{ background: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
@@ -150,8 +213,18 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
         </h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: "clamp(18px, 2.4vw, 30px)" }}>
           <Link href="/events" style={{ display: "flex", flexDirection: "column", gap: "14px", color: "#39292a", textDecoration: "none" }}>
-            <div style={{ aspectRatio: "1/1", borderRadius: "8px", overflow: "hidden", background: "#f5ece1" }}>
-              {part1Image ? <img src={part1Image} alt="Meet local mothers" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}
+            <div style={{ aspectRatio: "1/1", borderRadius: "8px", overflow: "hidden", background: "#f5ece1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {part1Image ? (
+                <img src={part1Image} alt={cmsMedia["card_1"]?.altText || "Meet local mothers"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "rgba(57, 41, 42, 0.3)", gap: "8px" }}>
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                </div>
+              )}
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "21px", textAlign: "center" }}>
               {lang === "fr" ? "Rencontrer des mamans près de chez vous" : lang === "es" ? "Conocer a madres de tu zona" : "Meet local mothers"}
@@ -159,8 +232,18 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
           </Link>
 
           <Link href="/forum" style={{ display: "flex", flexDirection: "column", gap: "14px", color: "#39292a", textDecoration: "none" }}>
-            <div style={{ aspectRatio: "1/1", borderRadius: "8px", overflow: "hidden", background: "#f5ece1" }}>
-              {part2Image ? <img src={part2Image} alt="The Forum" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}
+            <div style={{ aspectRatio: "1/1", borderRadius: "8px", overflow: "hidden", background: "#f5ece1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {part2Image ? (
+                <img src={part2Image} alt={cmsMedia["card_2"]?.altText || "Talk in The Forum"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "rgba(57, 41, 42, 0.3)", gap: "8px" }}>
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                </div>
+              )}
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "21px", textAlign: "center" }}>
               {lang === "fr" ? "Échanger dans Le Forum" : lang === "es" ? "Hablar en El Foro" : "Talk in The Forum"}
@@ -168,8 +251,18 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
           </Link>
 
           <Link href="/partner-apply" style={{ display: "flex", flexDirection: "column", gap: "14px", color: "#39292a", textDecoration: "none" }}>
-            <div style={{ aspectRatio: "1/1", borderRadius: "8px", overflow: "hidden", background: "#f5ece1" }}>
-              {part3Image ? <img src={part3Image} alt="Bring your community" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : null}
+            <div style={{ aspectRatio: "1/1", borderRadius: "8px", overflow: "hidden", background: "#f5ece1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {part3Image ? (
+                <img src={part3Image} alt={cmsMedia["card_3"]?.altText || "Bring your community"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "rgba(57, 41, 42, 0.3)", gap: "8px" }}>
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                </div>
+              )}
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "21px", textAlign: "center" }}>
               {lang === "fr" ? "Proposer votre communauté" : lang === "es" ? "Trae tu comunidad o taller" : "Bring your community"}
@@ -183,7 +276,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
         {bandImage && (
           <img
             src={bandImage}
-            alt="Not everything has to be about the baby"
+            alt={cmsMedia["band"]?.altText || "Not everything has to be about the baby"}
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.35 }}
           />
         )}
@@ -204,21 +297,140 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
         </div>
       </section>
 
-      {/* 5. Moments From Our Events */}
-      <section style={{ padding: "clamp(44px, 6vw, 70px) 0 0" }}>
-        <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(28px, 3.4vw, 40px)", textAlign: "center", margin: "0 0 6px" }}>
-          {lang === "fr" ? "Moments de nos rencontres" : lang === "es" ? "Momentos de nuestros encuentros" : "Moments from our events"}
-        </h2>
-        <p style={{ textAlign: "center", fontSize: "14px", color: "rgba(57, 41, 42, 0.7)", margin: "0 0 24px" }}>
-          {lang === "fr" ? "De vraies mères, de vrais après-midis. Partagés avec leur accord." : lang === "es" ? "Madres reales, tardes auténticas. Compartido con su permiso." : "Real mothers, real afternoons. Shared with their permission."}
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: "4px" }}>
+      {/* 5. Moments From Our Events (Interactive Scrollable Gallery: 12 uploadable, 6 in viewport) */}
+      <section style={{ padding: "clamp(44px, 6vw, 70px) 0 0", position: "relative" }}>
+        <div style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "20px" }}>
+          <div>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(28px, 3.4vw, 40px)", margin: "0 0 6px" }}>
+              {lang === "fr" ? "Moments de nos rencontres" : lang === "es" ? "Momentos de nuestros encuentros" : "Moments from our events"}
+            </h2>
+            <p style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.7)", margin: 0 }}>
+              {lang === "fr" ? "De vraies mères, de vrais après-midis. Partagés avec leur accord." : lang === "es" ? "Madres reales, tardes auténticas. Compartido con su permiso." : "Real mothers, real afternoons. Shared with their permission."}
+            </p>
+          </div>
+
+          {/* Left / Right Navigation Arrows */}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={handleScrollPrev}
+              disabled={!canScrollLeft}
+              aria-label="Previous moments"
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                border: "1px solid rgba(57, 41, 42, 0.2)",
+                background: canScrollLeft ? "#ffffff" : "rgba(255, 255, 255, 0.5)",
+                color: canScrollLeft ? "#7b1f2c" : "rgba(57, 41, 42, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: canScrollLeft ? "pointer" : "default",
+                boxShadow: canScrollLeft ? "0 2px 6px rgba(57, 41, 42, 0.08)" : "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleScrollNext}
+              disabled={!canScrollRight}
+              aria-label="Next moments"
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                border: "1px solid rgba(57, 41, 42, 0.2)",
+                background: canScrollRight ? "#ffffff" : "rgba(255, 255, 255, 0.5)",
+                color: canScrollRight ? "#7b1f2c" : "rgba(57, 41, 42, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: canScrollRight ? "pointer" : "default",
+                boxShadow: canScrollRight ? "0 2px 6px rgba(57, 41, 42, 0.08)" : "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Gallery Track */}
+        <div
+          ref={galleryRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          style={{
+            display: "flex",
+            gap: "6px",
+            overflowX: "auto",
+            scrollSnapType: isMouseDown ? "none" : "x mandatory",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            cursor: isMouseDown ? "grabbing" : "grab",
+            userSelect: isMouseDown ? "none" : "auto",
+            padding: "0 clamp(16px, 3vw, 32px)",
+          }}
+        >
           {moments.map((m) => (
-            <div key={m.id} style={{ aspectRatio: "4/5", background: "#ebdcd0", overflow: "hidden" }}>
+            <div
+              key={m.id}
+              style={{
+                flex: "0 0 calc((100% - 30px) / 6)",
+                minWidth: "160px",
+                aspectRatio: "4/5",
+                background: "#ebdcd0",
+                overflow: "hidden",
+                borderRadius: "4px",
+                scrollSnapAlign: "start",
+                position: "relative",
+              }}
+            >
               {m.url ? (
-                <img src={m.url} alt={m.alt} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img
+                  src={m.url}
+                  alt={m.alt}
+                  draggable={false}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    pointerEvents: "none",
+                    display: "block",
+                  }}
+                />
               ) : (
-                <div style={{ width: "100%", height: "100%", background: "#f5ece1" }} />
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    background: "#ebdcd0",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    color: "rgba(57, 41, 42, 0.35)",
+                  }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                  <span style={{ fontSize: "11px", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    Moment {m.index}
+                  </span>
+                </div>
               )}
             </div>
           ))}

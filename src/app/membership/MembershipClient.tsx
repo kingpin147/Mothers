@@ -2,22 +2,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
-import { tStr } from "@/lib/i18nEngine";
 import { useSession } from "next-auth/react";
-import { ListButton } from "@/components/ListButton";
-
-function calculateTimeLeft(targetMs: number) {
-  const now = new Date().getTime();
-  const diff = Math.max(0, targetMs - now);
-
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-  return { days, hours, minutes, seconds };
-}
+import { getPublicClubSettings } from "@/app/actions/adminSettings";
 
 interface MembershipClientProps {
   initialWindowOpen?: boolean;
@@ -28,72 +16,24 @@ interface MembershipClientProps {
 }
 
 export default function MembershipClient({
-  initialWindowOpen,
-  initialSpotsRemaining,
-  nextWindowDate,
-  autoOpenApply = false,
   publicSettings,
 }: MembershipClientProps = {}) {
+  const router = useRouter();
   const { language: lang } = useLanguage();
-  const isEn = lang === "en";
-
-  const [targetDateMs, setTargetDateMs] = useState<number>(() => {
-    if (publicSettings?.expectedLaunch) {
-      return new Date(publicSettings.expectedLaunch).getTime();
-    }
-    return new Date("2027-01-06T00:00:00+01:00").getTime();
-  });
-
-  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>(() => calculateTimeLeft(targetDateMs));
-  const [mounted, setMounted] = useState(false);
-  const [waitlisted, setWaitlisted] = useState(false);
-  const [modalOpen, setModalOpen] = useState(autoOpenApply);
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [subSuccess, setSubSuccess] = useState(false);
-  const [inlineJoinOpen, setInlineJoinOpen] = useState(false);
   const { data: session } = useSession();
+  const waysRailRef = useRef<HTMLDivElement>(null);
 
-  const [waysRailRef] = [useRef<HTMLDivElement>(null)];
-  const [isLive, setIsLive] = useState<boolean>(() => Boolean(publicSettings?.membershipLive));
-
-  const launchDate = new Date(targetDateMs);
-  const launchFormatted = !isNaN(launchDate.getTime())
-    ? launchDate.toLocaleDateString(lang === "fr" ? "fr-FR" : lang === "es" ? "es-ES" : "en-GB", {
-        month: "long",
-        year: "numeric",
-      })
-    : (lang === "fr" ? "janvier 2027" : lang === "es" ? "enero 2027" : "January 2027");
+  const [membershipLive, setMembershipLive] = useState<boolean>(true); // Membership is open now
+  const [waitlisted, setWaitlisted] = useState<boolean>(false);
 
   useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem("tm_pre_joined_list");
-    if (saved) setWaitlisted(true);
-
-    import("@/app/actions/adminSettings").then(({ getPublicClubSettings }) => {
-      getPublicClubSettings().then((s) => {
-        if (s.membershipLive) setIsLive(true);
-        if (s.expectedLaunch) {
-          const ms = new Date(s.expectedLaunch).getTime();
-          if (!isNaN(ms)) {
-            setTargetDateMs(ms);
-          }
-        }
-      }).catch(() => {});
-    });
+    getPublicClubSettings().then((s) => {
+      // If setting explicitly exists in database, respect it, otherwise default to true (open)
+      if (typeof s?.membershipLive === "boolean") {
+        setMembershipLive(s.membershipLive);
+      }
+    }).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    const updateCountdown = () => {
-      setTimeLeft(calculateTimeLeft(targetDateMs));
-    };
-
-    updateCountdown();
-    const timer = setInterval(updateCountdown, 1000);
-    return () => clearInterval(timer);
-  }, [targetDateMs]);
 
   const handlePrevWay = () => {
     if (waysRailRef.current) {
@@ -107,170 +47,102 @@ export default function MembershipClient({
     }
   };
 
-  const handleJoinListSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !email.includes("@")) {
-      setErrorMsg(isEn ? "Please enter a valid email." : "Introduce un correo válido.");
+  const handleJoinPlan = (plan: "annual" | "monthly" | "free") => {
+    if (plan === "free") {
+      if (session?.user) {
+        router.push("/account");
+      } else {
+        router.push("/account/login?mode=register");
+      }
       return;
     }
-    setLoading(true);
-    setErrorMsg("");
 
-    try {
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, source: "membership_page_waitlist" }),
-      });
-      if (!res.ok) throw new Error("Failed");
-      setWaitlisted(true);
-      setSubSuccess(true);
-      localStorage.setItem("tm_pre_joined_list", "true");
-      setTimeout(() => {
-        setModalOpen(false);
-      }, 1500);
-    } catch {
-      setErrorMsg(isEn ? "Something went wrong. Please try again." : "Algo ha fallado. Inténtalo de nuevo.");
-    } finally {
-      setLoading(false);
+    if (session?.user) {
+      router.push(`/account?tab=membership&plan=${plan}`);
+    } else {
+      router.push(`/account/login?mode=register&next=${encodeURIComponent(`/account?tab=membership&plan=${plan}`)}`);
     }
   };
 
-  const countdownItems = [
-    { label: lang === "fr" ? "JOURS" : lang === "es" ? "DÍAS" : "DAYS", value: String(timeLeft.days).padStart(2, "0") },
-    { label: lang === "fr" ? "HEURES" : lang === "es" ? "HORAS" : "HOURS", value: String(timeLeft.hours).padStart(2, "0") },
-    { label: lang === "fr" ? "MINS" : lang === "es" ? "MINS" : "MINS", value: String(timeLeft.minutes).padStart(2, "0") },
-    { label: lang === "fr" ? "SECS" : lang === "es" ? "SEGS" : "SECS", value: String(timeLeft.seconds).padStart(2, "0") },
+  // Translations
+  const t = {
+    kicker: lang === "fr" ? "Adhésion · ouverte maintenant" : lang === "es" ? "Membresía · abierta ahora" : "Membership · open now",
+    title: lang === "fr" ? "Choisissez votre formule." : lang === "es" ? "Elige cómo unirte." : "Choose how you join.",
+    intro: lang === "fr"
+      ? "Chaque événement reste ouvert à chaque mère. L'adhésion ajoute des avantages, des événements réservés aux membres et des échanges illimités dans Le Forum — dès 6,99 € par mois."
+      : lang === "es"
+      ? "Cada evento permanece abierto a todas las madres. La membresía añade ventajas, eventos exclusivos y publicaciones ilimitadas en El Foro — desde 6,99 € al mes."
+      : "Every event stays open to every mother. Membership adds perks, members-only events and unlimited posting in The Forum — from €6.99 a month.",
+    noFeeNote: lang === "fr"
+      ? "Sans frais d'inscription. Résiliable à tout moment depuis votre compte. Les membres mensuelles peuvent mettre leur abonnement en pause jusqu'à 2 mois par an. Les événements sont toujours payés séparément, avec des crédits (2 € l'unité) — le même tarif pour toutes."
+      : lang === "es"
+      ? "Sin cuota de alta. Cancela en cualquier momento desde tu cuenta. Las socias mensuales pueden pausar hasta 2 meses al año. Los eventos se pagan siempre aparte con créditos (2 € cada uno) — el mismo precio para todas."
+      : "No joining fee. Cancel any time, from your account. Monthly members can pause for up to two months a year. Events are always paid separately, with credits (€2 each) — the same price for everyone.",
+    fiveWaysKicker: lang === "fr" ? "Ce qui est inclus" : lang === "es" ? "Qué incluye" : "What's included",
+    fiveWaysTitle: lang === "fr" ? "Cinq façons de se retrouver." : lang === "es" ? "Cinco formas de conectar." : "Five ways to connect.",
+    fiveWaysIntro: lang === "fr"
+      ? "Les essentiels inclus vous donnent un point de départ. Les crédits débloquent le reste — chaque événement indique son tarif en crédits dans le calendrier."
+      : lang === "es"
+      ? "Los esenciales incluidos te dan un punto de partida. Los créditos desbloquean el resto — cada evento muestra su precio en créditos en el calendario."
+      : "Included essentials give you a place to start. Credits unlock everything else — each event shows its own credit price on the calendar.",
+    forumKicker: lang === "fr" ? "Le Forum" : lang === "es" ? "El Foro" : "The Forum",
+    forumTitle: lang === "fr" ? "Entre deux rencontres, la conversation continue." : lang === "es" ? "Entre evento y evento, la conversación continúa." : "Between events, the conversation keeps going.",
+    forumDesc: lang === "fr"
+      ? "Demander un conseil à 3h du matin, partager une victoire, trouver une mère dans votre rue. Le Forum est ouvert à la lecture dès aujourd'hui."
+      : lang === "es"
+      ? "Pide consejo a las 3:00 de la madrugada, comparte un logro, encuentra a una madre de tu misma calle. El Foro está abierto para leer hoy."
+      : "Ask for advice at 3:00 AM, share a win, find the mother down the street. The Forum is open to read today.",
+    visitForum: lang === "fr" ? "Accéder au Forum" : lang === "es" ? "Visitar El Foro" : "Visit The Forum",
+  };
+
+  const ways = [
+    {
+      tag: lang === "fr" ? "Généralement inclus" : lang === "es" ? "Mayormente incluido" : "Mostly included",
+      tagColor: "#3b5e04",
+      tagBorder: "rgba(86,139,5,0.45)",
+      tagBg: "rgba(86,139,5,0.08)",
+      title: "Easy connection",
+      body: lang === "fr" ? "Promenades, rencontres au parc & rendez-vous avec hôtesse." : lang === "es" ? "Paseos, encuentros en el parque y quedadas con anfitriona." : "Walks, park socials & hosted meetups.",
+    },
+    {
+      tag: lang === "fr" ? "Crédits" : lang === "es" ? "Créditos" : "Credits",
+      tagColor: "#7b1f2c",
+      tagBorder: "rgba(123,31,44,0.35)",
+      tagBg: "transparent",
+      title: "Play date",
+      body: lang === "fr" ? "Yoga, massage, musique — votre enfant juste à vos côtés." : lang === "es" ? "Yoga, masaje, música — tu peque justo a tu lado." : "Yoga, massage, music — your child right beside you.",
+    },
+    {
+      tag: lang === "fr" ? "Crédits" : lang === "es" ? "Créditos" : "Credits",
+      tagColor: "#7b1f2c",
+      tagBorder: "rgba(123,31,44,0.35)",
+      tagBg: "transparent",
+      title: "Mother's date",
+      body: lang === "fr" ? "Dîners, bien-être, culture — une femme avant tout." : lang === "es" ? "Cenas, bienestar, cultura — una mujer en primer lugar." : "Dinners, wellness, culture — a woman first.",
+    },
+    {
+      tag: lang === "fr" ? "Crédits" : lang === "es" ? "Créditos" : "Credits",
+      tagColor: "#7b1f2c",
+      tagBorder: "rgba(123,31,44,0.35)",
+      tagBg: "transparent",
+      title: "Learn & Grow",
+      body: lang === "fr" ? "Rencontres d'expertes, ateliers et masterclasses." : lang === "es" ? "Charlas con expertas, talleres y masterclasses." : "Expert talks, workshops, and masterclasses.",
+    },
+    {
+      tag: lang === "fr" ? "Crédits" : lang === "es" ? "Créditos" : "Credits",
+      tagColor: "#7b1f2c",
+      tagBorder: "rgba(123,31,44,0.35)",
+      tagBg: "transparent",
+      title: "Signature moments",
+      body: lang === "fr" ? "Moments de saison et séances individuelles avec expertes." : lang === "es" ? "Momentos especiales y sesiones 1:1 con expertas." : "Seasonal moments and 1:1 expert sessions.",
+    },
   ];
-
-  const col1Items = isEn
-    ? [
-        "A circle of mothers at your stage",
-        "20 credits a month, rolling over",
-        "Partner perks",
-        "Priority booking on everything",
-      ]
-    : [
-        "Un círculo de madres en tu misma etapa",
-        "20 créditos al mes, acumulables",
-        "Ventajas con partners",
-        "Prioridad de reserva en todo",
-      ];
-
-  const col2Items = isEn
-    ? [
-        "Stage groups by trimester, age and neighbourhood",
-        "Access to all events",
-        "Access to La Gazette forum, including the members' room",
-      ]
-    : [
-        "Grupos por trimestre, edad y barrio",
-        "Acceso a todos los eventos",
-        "Acceso al foro La Gazette, incluida la sala de socias",
-      ];
-
-  const ways = isEn
-    ? [
-        {
-          tag: "Mostly included",
-          tagColor: "#3b5e04",
-          tagBorder: "rgba(86,139,5,0.45)",
-          tagBg: "rgba(86,139,5,0.08)",
-          title: "Easy connection",
-          body: "Walks, park socials & hosted meetups.",
-        },
-        {
-          tag: "Credits",
-          tagColor: "#7b1f2c",
-          tagBorder: "rgba(123,31,44,0.35)",
-          tagBg: "transparent",
-          title: "Play date",
-          body: "Yoga, massage, music — your child right beside you.",
-        },
-        {
-          tag: "Credits",
-          tagColor: "#7b1f2c",
-          tagBorder: "rgba(123,31,44,0.35)",
-          tagBg: "transparent",
-          title: "Mother's date",
-          body: "Dinners, wellness, culture — a woman first.",
-        },
-        {
-          tag: "Credits",
-          tagColor: "#7b1f2c",
-          tagBorder: "rgba(123,31,44,0.35)",
-          tagBg: "transparent",
-          title: "Learn & Grow",
-          body: "Expert talks, workshops, and masterclasses.",
-        },
-        {
-          tag: "Credits",
-          tagColor: "#7b1f2c",
-          tagBorder: "rgba(123,31,44,0.35)",
-          tagBg: "transparent",
-          title: "Signature moments",
-          body: "Seasonal moments and 1:1 expert sessions.",
-        },
-      ]
-    : [
-        {
-          tag: "Mayormente incluido",
-          tagColor: "#3b5e04",
-          tagBorder: "rgba(86,139,5,0.45)",
-          tagBg: "rgba(86,139,5,0.08)",
-          title: "Easy connection",
-          body: "Paseos, encuentros en el parque y quedadas con anfitriona.",
-        },
-        {
-          tag: "Créditos",
-          tagColor: "#7b1f2c",
-          tagBorder: "rgba(123,31,44,0.35)",
-          tagBg: "transparent",
-          title: "Play date",
-          body: "Yoga, masaje, música — tu peque justo a tu lado.",
-        },
-        {
-          tag: "Créditos",
-          tagColor: "#7b1f2c",
-          tagBorder: "rgba(123,31,44,0.35)",
-          tagBg: "transparent",
-          title: "Mother's date",
-          body: "Cenas, bienestar, cultura — una mujer en primer lugar.",
-        },
-        {
-          tag: "Créditos",
-          tagColor: "#7b1f2c",
-          tagBorder: "rgba(123,31,44,0.35)",
-          tagBg: "transparent",
-          title: "Learn & Grow",
-          body: "Charlas con expertas, talleres y masterclasses.",
-        },
-        {
-          tag: "Créditos",
-          tagColor: "#7b1f2c",
-          tagBorder: "rgba(123,31,44,0.35)",
-          tagBg: "transparent",
-          title: "Signature moments",
-          body: "Encuentros de temporada y sesiones individuales con especialistas.",
-        },
-      ];
 
   return (
     <div style={{ backgroundColor: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
-      {/* ─── SECTION 1: HERO & PRICING CARD ─── */}
-      <section
-        style={{
-          maxWidth: "1160px",
-          margin: "0 auto",
-          padding: "clamp(38px, 5vw, 70px) clamp(20px, 5vw, 64px) clamp(30px, 4vw, 48px)",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "clamp(30px, 4vw, 54px)",
-          alignItems: "flex-start",
-        }}
-      >
-        {/* Left column */}
-        <div style={{ flex: "1 1 420px", minWidth: 0, width: "100%", maxWidth: "100%" }}>
+      {/* ─── SECTION 1: MEMBERSHIP PLANS (3 CARDS) ─── */}
+      <section style={{ maxWidth: "1160px", margin: "0 auto", padding: "clamp(38px, 5vw, 70px) clamp(20px, 5vw, 64px) clamp(30px, 4vw, 48px)" }}>
+        <div style={{ maxWidth: "720px", margin: "0 auto clamp(26px, 3.4vw, 40px)", textAlign: "center" }}>
           <div
             style={{
               fontFamily: "'Cormorant Garamond', serif",
@@ -282,367 +154,352 @@ export default function MembershipClient({
               marginBottom: "14px",
             }}
           >
-            {isLive
-              ? (isEn ? "Membership · Now open" : "Membresía · Abierta")
-              : (isEn ? `Membership · Opening ${launchFormatted}` : `Membresía · Apertura ${launchFormatted}`)}
+            {t.kicker}
           </div>
-
           <h1
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 400,
-              fontSize: "clamp(30px, 6vw, 56px)",
-              lineHeight: 1.08,
-              margin: "0 0 18px",
-              wordBreak: "break-word",
+              fontSize: "clamp(32px, 4.6vw, 56px)",
+              lineHeight: 1.06,
+              margin: "0 0 14px",
+              textWrap: "pretty",
             }}
           >
-            {tStr("Your circle of mothers, all year round.", lang)}
+            {t.title}
           </h1>
-
           <p
             style={{
-              fontSize: "clamp(15px, 3.5vw, 17.5px)",
+              fontSize: "17px",
               lineHeight: 1.6,
-              color: "rgba(57, 41, 42, 0.74)",
-              margin: "0 0 26px",
-              maxWidth: "46ch",
+              color: "rgba(57,41,42,0.74)",
+              margin: "0 auto",
+              maxWidth: "52ch",
+              textWrap: "pretty",
             }}
           >
-            {isEn
-              ? "Membership opens in January. Until then, come and meet the mothers who will be in it."
-              : "La membresía abre en enero. Hasta entonces, ven a conocer a las madres que formarán parte."}
+            {t.intro}
           </p>
+        </div>
 
-          {/* 4 Countdown Boxes */}
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "26px", width: "100%", maxWidth: "420px" }}>
-            {countdownItems.map((u, idx) => (
-              <div
-                key={idx}
-                style={{
-                  flex: "1 1 calc(25% - 8px)",
-                  minWidth: "62px",
-                  maxWidth: "96px",
-                  textAlign: "center",
-                  background: "#ecdcd0",
-                  border: "1px solid rgba(57, 41, 42, 0.18)",
-                  borderRadius: "5px",
-                  padding: "12px 6px",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div
-                  suppressHydrationWarning
-                  style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 400,
-                    fontSize: "clamp(24px, 5.5vw, 34px)",
-                    lineHeight: 1,
-                    fontFeatureSettings: "'tnum'",
-                    color: "#7b1f2c",
-                  }}
-                >
-                  {mounted ? u.value : "--"}
-                </div>
-                <div
-                  style={{
-                    fontSize: "9.5px",
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: "rgba(57, 41, 42, 0.72)",
-                    marginTop: "6px",
-                  }}
-                >
-                  {u.label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* CTAs */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "flex-start", width: "100%" }}>
-            <ListButton tone="outline" source="membership_page_hero" />
-
-            <Link
-              href="/events"
+        {/* 3 Plans Grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
+            gap: "20px",
+            alignItems: "stretch",
+          }}
+        >
+          {/* Plan 1: Annual (Burgundy, Best value) */}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              border: "1px solid #7b1f2c",
+              borderRadius: "8px",
+              background: "#7b1f2c",
+              color: "#f8efe2",
+              padding: "clamp(24px, 2.8vw, 34px)",
+              boxShadow: "0 14px 34px rgba(57, 41, 42, 0.18)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: "-12px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                whiteSpace: "nowrap",
+                fontSize: "11px",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "#f8efe2",
+                background: "#568b05",
+                borderRadius: "12px",
+                padding: "5px 14px",
+                fontWeight: 600,
+              }}
+            >
+              {lang === "fr" ? "Meilleure valeur" : lang === "es" ? "Mejor opción" : "Best value"}
+            </div>
+            <h2
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
                 fontWeight: 500,
-                fontSize: "15px",
-                whiteSpace: "nowrap",
-                color: "#7b1f2c",
-                textDecoration: "none",
+                fontSize: "26px",
+                lineHeight: 1.15,
+                margin: "4px 0 14px",
+                textAlign: "center",
               }}
             >
-              {tStr("Or come to an event first", lang)}
-            </Link>
-          </div>
-        </div>
-
-        {/* Right column: Burgundy Card */}
-        <div
-          style={{
-            flex: "1 1 360px",
-            minWidth: 0,
-            width: "100%",
-            maxWidth: "100%",
-            borderRadius: "8px",
-            background: "#7b1f2c",
-            color: "#f8efe2",
-            padding: "clamp(20px, 3.5vw, 32px)",
-            boxShadow: "0 14px 34px rgba(57, 41, 42, 0.18)",
-            boxSizing: "border-box",
-          }}
-        >
-          {/* Green Badge */}
-          <div
-            style={{
-              display: "inline-block",
-              fontSize: "clamp(10px, 2.8vw, 11px)",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "#ffffff",
-              background: "#568b05",
-              borderRadius: "12px",
-              padding: "5px 12px",
-              marginBottom: "18px",
-              maxWidth: "100%",
-              boxSizing: "border-box",
-              lineHeight: 1.4,
-              fontWeight: 600,
-              wordBreak: "break-word",
-            }}
-          >
-            {isLive ? (lang === "fr" ? "ADHÉSION OUVERTE" : lang === "es" ? "MEMBRESÍA ABIERTA" : "MEMBERSHIP OPEN") : (lang === "fr" ? "ADHÉSION · BIENTÔT DISPONIBLE" : lang === "es" ? "MEMBRESÍA · PRÓXIMAMENTE" : "MEMBERSHIP · COMING LATER")}
-          </div>
-
-          {/* Pricing Row */}
-          <div style={{ borderBottom: "1px solid rgba(248,239,226,0.28)", padding: "0 0 16px", marginBottom: "16px" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+              {lang === "fr" ? "Annuel" : lang === "es" ? "Anual" : "Annual"}
+            </h2>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: "6px" }}>
               <span
                 style={{
                   fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 400,
-                  fontSize: "clamp(48px, 6vw, 64px)",
-                  lineHeight: 0.9,
+                  fontSize: "clamp(46px, 5vw, 56px)",
+                  lineHeight: 0.95,
                   fontFeatureSettings: "'tnum'",
-                  color: "#fffdf9",
+                }}
+              >
+                €69
+              </span>
+              <span style={{ fontSize: "14.5px", opacity: 0.85 }}>
+                {lang === "fr" ? "/ an" : lang === "es" ? "/ año" : "/ year"}
+              </span>
+            </div>
+            <div style={{ textAlign: "center", fontSize: "13px", opacity: 0.8, margin: "6px 0 0", minHeight: "19px" }}>
+              {lang === "fr" ? "5,75 € par mois · économisez 14,88 €" : lang === "es" ? "5,75 € al mes · ahorra 14,88 €" : "€5.75 a month · save €14.88"}
+            </div>
+            <div style={{ borderTop: "1px solid rgba(248,239,226,0.25)", margin: "18px 0 14px" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
+              {[
+                { text: lang === "fr" ? "10 crédits événements inclus (valeur 20 €)" : lang === "es" ? "10 créditos de eventos incluidos (valor 20 €)" : "10 event credits included (worth €20)", bold: true },
+                { text: lang === "fr" ? "Avantages mensuels partenaires" : lang === "es" ? "Ventajas mensuales con partners" : "Monthly partner perks" },
+                { text: lang === "fr" ? "Un ou deux événements réservés aux membres par mois" : lang === "es" ? "Uno o dos eventos exclusivos de socias al mes" : "One or two members-only events a month" },
+                { text: lang === "fr" ? "Publications illimitées dans Le Forum" : lang === "es" ? "Publicaciones ilimitadas en El Foro" : "Unlimited posting in The Forum" },
+                { text: lang === "fr" ? "Cadeau de bienvenue" : lang === "es" ? "Regalo de bienvenida" : "Welcome gift" },
+                { text: lang === "fr" ? "La lettre mensuelle" : lang === "es" ? "La carta mensual" : "The monthly letter" },
+              ].map((it, idx) => (
+                <div key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#f3d9a1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16" style={{ flex: "none", marginTop: "3px" }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m8 12 3 3 5-6" />
+                  </svg>
+                  <span style={{ fontSize: "14.5px", lineHeight: 1.5, fontWeight: it.bold ? 600 : 400 }}>{it.text}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => handleJoinPlan("annual")}
+              style={{
+                marginTop: "22px",
+                width: "100%",
+                border: "1px solid #f8efe2",
+                background: "#f8efe2",
+                color: "#7b1f2c",
+                borderRadius: "4px",
+                padding: "13px 16px",
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 600,
+                fontSize: "16.5px",
+                cursor: "pointer",
+                transition: "opacity 0.15s ease",
+              }}
+            >
+              {lang === "fr" ? "Devenir membre" : lang === "es" ? "Hazte socia" : "Become a member"}
+            </button>
+            <div style={{ textAlign: "center", fontSize: "12.5px", opacity: 0.75, marginTop: "10px", minHeight: "18px" }}>
+              {lang === "fr" ? "Les crédits sont valables six mois" : lang === "es" ? "Los créditos caducan a los seis meses" : "Credits last six months"}
+            </div>
+          </div>
+
+          {/* Plan 2: Monthly */}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              border: "1px solid rgba(57,41,42,0.18)",
+              borderRadius: "8px",
+              background: "#ffffff",
+              color: "#39292a",
+              padding: "clamp(24px, 2.8vw, 34px)",
+              boxShadow: "none",
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 500,
+                fontSize: "26px",
+                lineHeight: 1.15,
+                margin: "4px 0 14px",
+                textAlign: "center",
+              }}
+            >
+              {lang === "fr" ? "Mensuel" : lang === "es" ? "Mensual" : "Monthly"}
+            </h2>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: "6px" }}>
+              <span
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 400,
+                  fontSize: "clamp(46px, 5vw, 56px)",
+                  lineHeight: 0.95,
+                  fontFeatureSettings: "'tnum'",
                 }}
               >
                 €6.99
               </span>
-              <span style={{ fontSize: "14px", color: "rgba(248,239,226,0.85)" }}>
-                {lang === "fr" ? "/ mois · ou 69 € / an (+10 crédits)" : lang === "es" ? "/ mes · o 69€ / año (+10 créditos)" : "/ month · or €69 / year (+10 credits)"}
+              <span style={{ fontSize: "14.5px", opacity: 0.8 }}>
+                {lang === "fr" ? "/ mois" : lang === "es" ? "/ mes" : "/ month"}
               </span>
             </div>
-          </div>
-
-          <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(248,239,226,0.82)", margin: "0 0 18px" }}>
-            {isLive ? (
-              isEn
-                ? "Open your account today — free, or with your first booking — to access members-only events and community."
-                : "Abre tu cuenta hoy — gratis, o con tu primera reserva — para acceder a eventos para socias y la comunidad."
-            ) : (
-              isEn
-                ? `Open your account before ${launchFormatted} — free, or with your first booking — and you won't pay a joining fee.`
-                : `Abre tu cuenta antes de ${launchFormatted} — gratis, o con tu primera reserva — y no pagarás cuota de alta.`
-            )}
-          </p>
-
-          <div
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontWeight: 600,
-              fontSize: "12px",
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "#f3d9a1",
-              marginBottom: "12px",
-            }}
-          >
-            {tStr("What your membership includes", lang).toUpperCase()}
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))",
-              gap: "8px 16px",
-              marginBottom: "16px",
-            }}
-          >
-            {/* Column 1 */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {col1Items.map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#f3d9a1" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" style={{ flex: "none", marginTop: "3px" }}>
-                    <path d="m5 12 5 5L20 7"></path>
+            <div style={{ textAlign: "center", fontSize: "13px", opacity: 0.75, margin: "6px 0 0", minHeight: "19px" }}>
+              {lang === "fr" ? "Sans engagement · Annulable à tout moment" : lang === "es" ? "Cancela en cualquier momento" : "Cancel any time"}
+            </div>
+            <div style={{ borderTop: "1px solid rgba(57,41,42,0.14)", margin: "18px 0 14px" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
+              {[
+                { text: lang === "fr" ? "Avantages mensuels partenaires" : lang === "es" ? "Ventajas mensuales con partners" : "Monthly partner perks" },
+                { text: lang === "fr" ? "Un ou deux événements réservés aux membres par mois" : lang === "es" ? "Uno o dos eventos exclusivos de socias al mes" : "One or two members-only events a month" },
+                { text: lang === "fr" ? "Publications illimitées dans Le Forum" : lang === "es" ? "Publicaciones ilimitadas en El Foro" : "Unlimited posting in The Forum" },
+                { text: lang === "fr" ? "Cadeau de bienvenue" : lang === "es" ? "Regalo de bienvenida" : "Welcome gift" },
+                { text: lang === "fr" ? "La lettre mensuelle" : lang === "es" ? "La carta mensual" : "The monthly letter" },
+                { text: lang === "fr" ? "Possibilité de pause jusqu'à 2 mois par an" : lang === "es" ? "Pausa hasta dos meses al año" : "Pause up to two months a year" },
+              ].map((it, idx) => (
+                <div key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16" style={{ flex: "none", marginTop: "3px" }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m8 12 3 3 5-6" />
                   </svg>
-                  <span style={{ fontSize: "13px", lineHeight: 1.45, color: "#f8efe2" }}>{item}</span>
+                  <span style={{ fontSize: "14.5px", lineHeight: 1.5 }}>{it.text}</span>
                 </div>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={() => handleJoinPlan("monthly")}
+              style={{
+                marginTop: "22px",
+                width: "100%",
+                border: "1px solid #7b1f2c",
+                background: "transparent",
+                color: "#7b1f2c",
+                borderRadius: "4px",
+                padding: "13px 16px",
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 600,
+                fontSize: "16.5px",
+                cursor: "pointer",
+                transition: "background 0.15s ease",
+              }}
+            >
+              {lang === "fr" ? "Devenir membre" : lang === "es" ? "Hazte socia" : "Become a member"}
+            </button>
+            <div style={{ textAlign: "center", fontSize: "12.5px", opacity: 0.72, margin: "10px 0 0", minHeight: "18px" }} />
+          </div>
 
-            {/* Column 2 */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {col2Items.map((item, i) => (
-                <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#f3d9a1" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="14" height="14" style={{ flex: "none", marginTop: "3px" }}>
-                    <path d="m5 12 5 5L20 7"></path>
+          {/* Plan 3: Free account */}
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              border: "1px solid rgba(57,41,42,0.18)",
+              borderRadius: "8px",
+              background: "#ffffff",
+              color: "#39292a",
+              padding: "clamp(24px, 2.8vw, 34px)",
+              boxShadow: "none",
+            }}
+          >
+            <h2
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 500,
+                fontSize: "26px",
+                lineHeight: 1.15,
+                margin: "4px 0 14px",
+                textAlign: "center",
+              }}
+            >
+              {lang === "fr" ? "Compte gratuit" : lang === "es" ? "Cuenta gratuita" : "Free account"}
+            </h2>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: "6px" }}>
+              <span
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 400,
+                  fontSize: "clamp(46px, 5vw, 56px)",
+                  lineHeight: 0.95,
+                  fontFeatureSettings: "'tnum'",
+                }}
+              >
+                {lang === "fr" ? "Gratuit" : lang === "es" ? "Gratis" : "Free"}
+              </span>
+            </div>
+            <div style={{ textAlign: "center", fontSize: "13px", opacity: 0.75, margin: "6px 0 0", minHeight: "19px" }}>
+              {lang === "fr" ? "Événements uniquement" : lang === "es" ? "Solo eventos" : "Events only"}
+            </div>
+            <div style={{ borderTop: "1px solid rgba(57,41,42,0.14)", margin: "18px 0 14px" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1 }}>
+              {[
+                { text: lang === "fr" ? "Réserver n'importe quel événement avec des crédits" : lang === "es" ? "Reserva cualquier evento con créditos" : "Book any event with credits" },
+                { text: lang === "fr" ? "Lire Le Forum et publier jusqu'à 3 messages" : lang === "es" ? "Lee El Foro y publica hasta 3 veces" : "Read The Forum and post 3 times" },
+                { text: lang === "fr" ? "Messages privés avec d'autres mères" : lang === "es" ? "Mensajes privados con otras madres" : "Private messages with other mothers" },
+                { text: lang === "fr" ? "La lettre mensuelle" : lang === "es" ? "La carta mensual" : "The monthly letter" },
+              ].map((it, idx) => (
+                <div key={idx} style={{ display: "flex", gap: "10px", alignItems: "flex-start" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#7b1f2c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16" style={{ flex: "none", marginTop: "3px" }}>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="m8 12 3 3 5-6" />
                   </svg>
-                  <span style={{ fontSize: "13px", lineHeight: 1.45, color: "#f8efe2" }}>{item}</span>
+                  <span style={{ fontSize: "14.5px", lineHeight: 1.5 }}>{it.text}</span>
                 </div>
               ))}
             </div>
+            <button
+              type="button"
+              onClick={() => handleJoinPlan("free")}
+              style={{
+                marginTop: "22px",
+                width: "100%",
+                border: "1px solid rgba(57,41,42,0.35)",
+                background: "transparent",
+                color: "#39292a",
+                borderRadius: "4px",
+                padding: "13px 16px",
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 600,
+                fontSize: "16.5px",
+                cursor: "pointer",
+                transition: "background 0.15s ease",
+              }}
+            >
+              {session?.user
+                ? (lang === "fr" ? "Aller à mon compte" : lang === "es" ? "Ir a mi cuenta" : "Go to my account")
+                : (lang === "fr" ? "Ouvrir un compte gratuit" : lang === "es" ? "Abrir cuenta gratuita" : "Open a free account")}
+            </button>
+            <div style={{ textAlign: "center", fontSize: "12.5px", opacity: 0.72, margin: "10px 0 0", minHeight: "18px" }} />
           </div>
-
-          <p
-            style={{
-              fontSize: "12.5px",
-              lineHeight: 1.55,
-              color: "rgba(248,239,226,0.72)",
-              margin: 0,
-              borderTop: "1px solid rgba(248,239,226,0.22)",
-              paddingTop: "12px",
-            }}
-          >
-            {isEn
-              ? "Pause your membership for a total of two months in a year, at no cost. Cancel any time, with no fee."
-              : "Pausa tu membresía durante dos meses al año, sin coste. Cancela en cualquier momento sin penalización."}
-          </p>
         </div>
-      </section>
 
-      {/* ─── SECTION 2: START MEETING MOTHERS NOW ─── */}
-      <section
-        style={{
-          maxWidth: "1160px",
-          margin: "0 auto",
-          padding: "clamp(24px, 3vw, 36px) clamp(20px, 5vw, 64px)",
-          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-        }}
-      >
-        <div
+        {/* Guarantee and pricing note */}
+        <p
           style={{
-            border: "1px solid rgba(57, 41, 42, 0.2)",
-            borderRadius: "8px",
-            background: "#ffffff",
-            padding: "clamp(20px, 3vw, 30px)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "clamp(18px, 2.4vw, 24px)",
+            textAlign: "center",
+            fontSize: "13.5px",
+            lineHeight: 1.6,
+            color: "rgba(57,41,42,0.66)",
+            margin: "24px auto 0",
+            maxWidth: "72ch",
           }}
         >
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "14px 24px", alignItems: "flex-end", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontSize: "11.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57, 41, 42, 0.72)", marginBottom: "8px" }}>
-                {tStr("Before January", lang)}
-              </div>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px, 3.2vw, 36px)", lineHeight: 1.12, margin: 0 }}>
-                {tStr("Start meeting mothers now.", lang)}
-              </h2>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "16px 24px", borderTop: "1px solid rgba(57, 41, 42, 0.1)", paddingTop: "clamp(16px, 2vw, 20px)" }}>
-            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-              <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", border: "1px solid rgba(123, 31, 44, 0.35)", display: "flex", alignItems: "center", justifyContent: "center", color: "#7b1f2c" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
-                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                  <path d="M16 2v4M8 2v4M3 10h18"></path>
-                  <path d="m9 16 2 2 4-4"></path>
-                </svg>
-              </span>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", lineHeight: 1.25, color: "#39292a" }}>
-                  {tStr("Book an event", lang)}
-                </div>
-                <div style={{ fontSize: "13px", lineHeight: 1.45, color: "rgba(57, 41, 42, 0.72)" }}>
-                  {tStr("Your account is created with it", lang)}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-              <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", border: "1px solid rgba(123, 31, 44, 0.35)", display: "flex", alignItems: "center", justifyContent: "center", color: "#7b1f2c" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
-                  <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path>
-                  <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path>
-                </svg>
-              </span>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", lineHeight: 1.25, color: "#39292a" }}>
-                  {tStr("Add the credits you need", lang)}
-                </div>
-                <div style={{ fontSize: "13px", lineHeight: 1.45, color: "rgba(57, 41, 42, 0.72)" }}>
-                  {tStr("Each event shows its credit price", lang)}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-              <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", border: "1px solid rgba(123, 31, 44, 0.35)", display: "flex", alignItems: "center", justifyContent: "center", color: "#7b1f2c" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                  <path d="M3 3v5h5"></path>
-                  <path d="M12 7v5l4 2"></path>
-                </svg>
-              </span>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", lineHeight: 1.25, color: "#39292a" }}>
-                  {tStr("Keep them into membership", lang)}
-                </div>
-                <div style={{ fontSize: "13px", lineHeight: 1.45, color: "rgba(57, 41, 42, 0.72)" }}>
-                  {tStr("Credits last six months", lang)}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          {t.noFeeNote}
+        </p>
       </section>
 
-      {/* ─── SECTION 3: WHAT'S INCLUDED / FIVE WAYS TO CONNECT ─── */}
-      <section
-        style={{
-          maxWidth: "1160px",
-          margin: "0 auto",
-          padding: "clamp(30px, 4vw, 52px) clamp(20px, 5vw, 64px)",
-          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-        }}
-      >
-        <div style={{ maxWidth: "640px", marginBottom: "30px" }}>
-          <div
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontWeight: 600,
-              fontSize: "13px",
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "#7b1f2c",
-              marginBottom: "10px",
-            }}
-          >
-            {tStr("What's included", lang)}
+      {/* ─── SECTION 2: FIVE WAYS TO CONNECT RAIL ─── */}
+      <section style={{ maxWidth: "1160px", margin: "0 auto", padding: "clamp(24px, 3vw, 36px) clamp(20px, 5vw, 64px)", borderTop: "1px solid rgba(57,41,42,0.16)" }}>
+        <div style={{ maxWidth: "700px", margin: "0 0 20px" }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "10px" }}>
+            {t.fiveWaysKicker}
           </div>
-          <h2
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontWeight: 600,
-              fontSize: "clamp(26px, 3.4vw, 38px)",
-              lineHeight: 1.15,
-              margin: "0 0 12px",
-            }}
-          >
-            {tStr("Five ways to connect.", lang)}
+          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "clamp(26px, 3.4vw, 38px)", lineHeight: 1.15, margin: "0 0 12px" }}>
+            {t.fiveWaysTitle}
           </h2>
-          <p style={{ fontSize: "16px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.7)", margin: 0 }}>
-            {isEn
-              ? "Included essentials give you a place to start. Credits unlock everything else — each event shows its own credit price on the calendar."
-              : "Los básicos incluidos te ofrecen un punto de partida. Los créditos desbloquean todo lo demás — cada evento muestra su precio en créditos en el calendario."}
+          <p style={{ fontSize: "16px", lineHeight: 1.65, color: "rgba(57,41,42,0.7)", margin: 0 }}>
+            {t.fiveWaysIntro}
           </p>
         </div>
 
-        {/* Carousel Navigation Buttons */}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", margin: "-8px 0 16px" }}>
           <button
             type="button"
@@ -652,7 +509,7 @@ export default function MembershipClient({
               width: "40px",
               height: "40px",
               borderRadius: "50%",
-              border: "1px solid rgba(57, 41, 42, 0.25)",
+              border: "1px solid rgba(57,41,42,0.25)",
               background: "#ffffff",
               color: "#39292a",
               display: "flex",
@@ -661,17 +518,8 @@ export default function MembershipClient({
               cursor: "pointer",
             }}
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              width="16"
-              height="16"
-            >
-              <path d="M19 12H5M11 18l-6-6 6-6"></path>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+              <path d="M19 12H5M11 18l-6-6 6-6" />
             </svg>
           </button>
           <button
@@ -682,7 +530,7 @@ export default function MembershipClient({
               width: "40px",
               height: "40px",
               borderRadius: "50%",
-              border: "1px solid rgba(57, 41, 42, 0.25)",
+              border: "1px solid rgba(57,41,42,0.25)",
               background: "#ffffff",
               color: "#39292a",
               display: "flex",
@@ -691,24 +539,16 @@ export default function MembershipClient({
               cursor: "pointer",
             }}
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              width="16"
-              height="16"
-            >
-              <path d="M5 12h14M13 6l6 6-6 6"></path>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+              <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </button>
         </div>
 
-        {/* Ways Carousel Rail */}
+        {/* Ways Rail */}
         <div
           ref={waysRailRef}
+          id="ways-rail"
           style={{
             display: "flex",
             gap: "18px",
@@ -719,7 +559,6 @@ export default function MembershipClient({
             margin: "0 -2px",
             scrollbarWidth: "none",
           }}
-          className="hide-scrollbar"
         >
           {ways.map((w, idx) => (
             <div
@@ -727,7 +566,7 @@ export default function MembershipClient({
               style={{
                 flex: "0 0 min(82%, 280px)",
                 scrollSnapAlign: "start",
-                border: "1px solid rgba(57, 41, 42, 0.18)",
+                border: "1px solid rgba(57,41,42,0.18)",
                 borderRadius: "8px",
                 background: "#ffffff",
                 padding: "22px 20px",
@@ -752,18 +591,10 @@ export default function MembershipClient({
               >
                 {w.tag}
               </span>
-              <h3
-                style={{
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "20px",
-                  margin: 0,
-                  lineHeight: 1.25,
-                }}
-              >
+              <h3 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", margin: 0, lineHeight: 1.25 }}>
                 {w.title}
               </h3>
-              <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: 0 }}>
+              <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.74)", margin: 0 }}>
                 {w.body}
               </p>
             </div>
@@ -771,61 +602,22 @@ export default function MembershipClient({
         </div>
       </section>
 
-      {/* ─── SECTION 4: THE CIRCLE ─── */}
-      <section
-        style={{
-          maxWidth: "1160px",
-          margin: "0 auto",
-          padding: "clamp(30px, 4vw, 52px) clamp(20px, 5vw, 64px)",
-          borderTop: "1px solid rgba(57, 41, 42, 0.16)",
-        }}
-      >
+      {/* ─── SECTION 3: THE FORUM HIGHLIGHT ─── */}
+      <section style={{ maxWidth: "1160px", margin: "0 auto", padding: "clamp(30px, 4vw, 52px) clamp(20px, 5vw, 64px)", borderTop: "1px solid rgba(57,41,42,0.16)" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "clamp(28px, 4vw, 52px)", alignItems: "center" }}>
           <div style={{ flex: "1 1 360px", minWidth: "280px" }}>
-            <div
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 600,
-                fontSize: "13px",
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "#7b1f2c",
-                marginBottom: "10px",
-              }}
-            >
-              {tStr("La Gazette - Forum", lang)}
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13px", letterSpacing: "0.14em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "10px" }}>
+              {t.forumKicker}
             </div>
-            <h2
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 400,
-                fontSize: "clamp(26px, 3.4vw, 40px)",
-                lineHeight: 1.12,
-                margin: "0 0 14px",
-              }}
-            >
-              {tStr("Between events, the conversation keeps going.", lang)}
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 400, fontSize: "clamp(26px, 3.4vw, 40px)", lineHeight: 1.12, margin: "0 0 14px" }}>
+              {t.forumTitle}
             </h2>
-            <p
-              style={{
-                fontSize: "16px",
-                lineHeight: 1.65,
-                color: "rgba(57, 41, 42, 0.74)",
-                margin: "0 0 20px",
-                maxWidth: "50ch",
-              }}
-            >
-              {isLive
-                ? (isEn
-                  ? "Ask for advice at 3:00 AM, share a win, find the mother down the street. Members enjoy their own private rooms and discussions."
-                  : "Pide consejo a las 3:00 AM, comparte un logro o encuentra a una madre de tu misma calle. Las socias disfrutan de sus propias salas y debates privados.")
-                : (isEn
-                  ? `Ask for advice at 3:00 AM, share a win, find the mother down the street. La Gazette is open to read today — and from ${launchFormatted}, members get a private room of their own.`
-                  : `Pide consejo a las 3:00 AM, comparte un logro o encuentra a una madre de tu misma calle. La Gazette está abierta para leer hoy — y a partir de ${launchFormatted}, las socias tendrán su propia sala privada.`)}
+            <p style={{ fontSize: "16px", lineHeight: 1.65, color: "rgba(57,41,42,0.74)", margin: "0 0 20px", maxWidth: "50ch" }}>
+              {t.forumDesc}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
               <Link
-                href="/lagazette"
+                href="/forum"
                 style={{
                   border: "1px solid #7b1f2c",
                   background: "#7b1f2c",
@@ -839,337 +631,60 @@ export default function MembershipClient({
                   textDecoration: "none",
                 }}
               >
-                {tStr("Visit La Gazette", lang)}
+                {t.visitForum}
               </Link>
             </div>
           </div>
 
-          {/* Community Post Preview Cards */}
           <div style={{ flex: "1 1 360px", minWidth: "280px", display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div
-              style={{
-                border: "1px solid rgba(57, 41, 42, 0.16)",
-                borderRadius: "8px",
-                background: "#ffffff",
-                padding: "18px 20px",
-                display: "flex",
-                gap: "13px",
-                alignItems: "flex-start",
-                minHeight: "128px",
-                boxSizing: "border-box",
-              }}
-            >
-              <div
-                style={{
-                  flex: "none",
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  background: "rgba(57, 41, 42, 0.07)",
-                  border: "1px solid rgba(57, 41, 42, 0.2)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  color: "rgba(57, 41, 42, 0.6)",
-                }}
-              >
+            <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#ffffff", padding: "18px 20px", display: "flex", gap: "13px", alignItems: "flex-start", minHeight: "128px", boxSizing: "border-box" }}>
+              <div style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "rgba(57,41,42,0.07)", border: "1px solid rgba(57,41,42,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", color: "rgba(57,41,42,0.6)" }}>
                 ·
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline", marginBottom: "5px" }}>
                   <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15.5px" }}>
-                    {tStr("A mother in Gràcia", lang)}
+                    {lang === "fr" ? "Une mère à Gràcia" : lang === "es" ? "Una madre en Gràcia" : "A mother in Gràcia"}
                   </span>
-                  <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.66)" }}>
-                    {tStr("Postpartum", lang)}
-                  </span>
+                  <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.66)" }}>Postpartum</span>
                 </div>
                 <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
-                  {isEn
-                    ? "Six months in and I still feel like a stranger to myself. Did this lift for you, and when?"
-                    : "Seis meses después y todavía me siento una extraña para mí misma. ¿Se os pasó esta sensación, y cuándo?"}
+                  {lang === "fr"
+                    ? "Six mois après et je me sens toujours comme une étrangère pour moi-même. Cela s'est-il estompé pour vous, et quand ?"
+                    : lang === "es"
+                    ? "Seis meses después y todavía me siento una extraña para mí misma. ¿Se os pasó esta sensación, y cuándo?"
+                    : "Six months in and I still feel like a stranger to myself. Did this lift for you, and when?"}
                 </p>
-                <div style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.66)", marginTop: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="#7b1f2c"
-                    stroke="#7b1f2c"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    width="13"
-                    height="13"
-                    style={{ flex: "none" }}
-                  >
-                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
+                <div style={{ fontSize: "12px", color: "rgba(57,41,42,0.66)", margin: "8px 0 0", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <svg viewBox="0 0 24 24" fill="#7b1f2c" stroke="#7b1f2c" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" width="13" height="13" style={{ flex: "none" }}>
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                   </svg>
-                  <span>34 · 2 {lang === "fr" ? "réponses" : lang === "es" ? "respuestas" : "replies"}</span>
+                  34 · 2 {lang === "fr" ? "réponses" : lang === "es" ? "respuestas" : "replies"}
                 </div>
               </div>
             </div>
 
-            <div
-              style={{
-                border: "1px solid rgba(57, 41, 42, 0.16)",
-                borderRadius: "8px",
-                background: "#ffffff",
-                padding: "18px 20px",
-                display: "flex",
-                gap: "13px",
-                alignItems: "flex-start",
-                minHeight: "128px",
-                boxSizing: "border-box",
-              }}
-            >
-              <div
-                style={{
-                  flex: "none",
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "50%",
-                  background: "rgba(123, 31, 44, 0.09)",
-                  border: "1px solid rgba(123, 31, 44, 0.28)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "'Cormorant Garamond', serif",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  color: "#7b1f2c",
-                }}
-              >
+            <div style={{ border: "1px solid rgba(57,41,42,0.16)", borderRadius: "8px", background: "#ffffff", padding: "18px 20px", display: "flex", gap: "13px", alignItems: "flex-start", minHeight: "128px", boxSizing: "border-box" }}>
+              <div style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "rgba(123,31,44,0.09)", border: "1px solid rgba(123,31,44,0.28)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15px", color: "#7b1f2c" }}>
                 N
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "baseline", marginBottom: "5px" }}>
-                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15.5px" }}>
-                    Núria B.
-                  </span>
-                  <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.66)" }}>
-                    {tStr("replied", lang)}
-                  </span>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "15.5px" }}>Núria B.</span>
+                  <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.66)" }}>{lang === "fr" ? "a répondu" : lang === "es" ? "respondió" : "replied"}</span>
                 </div>
                 <p style={{ fontSize: "14px", lineHeight: 1.6, color: "#39292a", margin: 0 }}>
-                  {isEn
-                    ? "Month nine for me, and slowly rather than all at once. You are not alone in this."
-                    : "En el noveno mes en mi caso, y poco a poco más que de golpe. No estás sola en esto."}
+                  {lang === "fr"
+                    ? "Au bout de neuf mois pour moi, et très progressivement plutôt que d'un coup. Tu n'es pas seule là-dedans."
+                    : lang === "es"
+                    ? "En el noveno mes en mi caso, y poco a poco más que de golpe. No estás sola en esto."
+                    : "Month nine for me, and slowly rather than all at once. You are not alone in this."}
                 </p>
               </div>
             </div>
           </div>
         </div>
       </section>
-
-      
-
-      {/* ─── LEAD CAPTURE MODAL ─── */}
-      {modalOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1000,
-            backgroundColor: "rgba(57, 41, 42, 0.5)",
-            backdropFilter: "blur(3px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "20px",
-          }}
-        >
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: "460px",
-              margin: "auto",
-              border: "1px solid rgba(57, 41, 42, 0.16)",
-              borderRadius: "8px",
-              padding: "clamp(26px, 4vw, 36px)",
-              backgroundColor: "#fdf8f2",
-              boxShadow: "0 20px 50px rgba(45, 43, 43, 0.2)",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              aria-label="Close"
-              style={{
-                position: "absolute",
-                top: "16px",
-                right: "16px",
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                color: "rgba(57, 41, 42, 0.5)",
-                width: "30px",
-                height: "30px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="16" height="16">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
-
-            {subSuccess ? (
-              <div style={{ textAlign: "center", padding: "16px 0" }}>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "50%",
-                    background: "#edf5e8",
-                    color: "#568b05",
-                    marginBottom: "16px",
-                  }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22">
-                    <path d="m5 12 5 5L20 7" />
-                  </svg>
-                </div>
-                <h3
-                  style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "24px",
-                    margin: "0 0 8px",
-                  }}
-                >
-                  {tStr("You are on the list.", lang)}
-                </h3>
-                <p style={{ fontSize: "14.5px", color: "rgba(57, 41, 42, 0.75)", margin: 0 }}>
-                  {isEn
-                    ? "We will write to you before membership opens."
-                    : "Te escribiremos antes de que abra la membresía."}
-                </p>
-              </div>
-            ) : (
-              <div>
-                <div
-                  style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 600,
-                    fontSize: "12px",
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "#7b1f2c",
-                    marginBottom: "8px",
-                  }}
-                >
-                  {isLive
-                    ? (isEn ? "Stay in touch" : "Mantente al día")
-                    : (isEn ? "Early Access" : "Acceso preferente")}
-                </div>
-                <h3
-                  style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontWeight: 400,
-                    fontSize: "28px",
-                    margin: "0 0 10px",
-                    lineHeight: 1.15,
-                  }}
-                >
-                  {lang === "fr" ? "Rejoindre la liste prioritaire" : lang === "es" ? "Únete a la lista preferente" : "Join the pre-membership list"}
-                </h3>
-                <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.74)", margin: "0 0 20px" }}>
-                  {isEn
-                    ? "Hear first when memberships open. No joining fee if you join before launch."
-                    : "Sé la primera en enterarte cuando abran las membresías. Sin cuota de alta si te unes antes del lanzamiento."}
-                </p>
-
-                <form onSubmit={handleJoinListSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#c9a227";
-                      e.currentTarget.style.boxShadow = "0 0 0 2px rgba(201, 162, 39, 0.35)";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                    placeholder={lang === "fr" ? "Votre nom (facultatif)" : lang === "es" ? "Tu nombre (opcional)" : "Your name (optional)"}
-                    style={{
-                      border: "1px solid rgba(57, 41, 42, 0.24)",
-                      borderRadius: "4px",
-                      padding: "11px 14px",
-                      fontFamily: "'Lora', Georgia, serif",
-                      fontSize: "14px",
-                      backgroundColor: "#ffffff",
-                      color: "#39292a",
-                      outline: "none",
-                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-                    }}
-                  />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = "#c9a227";
-                      e.currentTarget.style.boxShadow = "0 0 0 2px rgba(201, 162, 39, 0.35)";
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(57, 41, 42, 0.24)";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                    placeholder={tStr("Your email address", lang)}
-                    style={{
-                      border: "1px solid rgba(57, 41, 42, 0.24)",
-                      borderRadius: "4px",
-                      padding: "11px 14px",
-                      fontFamily: "'Lora', Georgia, serif",
-                      fontSize: "14px",
-                      backgroundColor: "#ffffff",
-                      color: "#39292a",
-                      outline: "none",
-                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-                    }}
-                  />
-
-                  {errorMsg && (
-                    <div style={{ fontSize: "13px", color: "#993842", marginTop: "-4px" }}>
-                      {errorMsg}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    style={{
-                      marginTop: "4px",
-                      border: "1px solid #7b1f2c",
-                      backgroundColor: "#7b1f2c",
-                      color: "#fdf8f2",
-                      padding: "12px 20px",
-                      borderRadius: "4px",
-                      fontFamily: "'Cormorant Garamond', serif",
-                      fontWeight: 600,
-                      fontSize: "16px",
-                      cursor: loading ? "wait" : "pointer",
-                      transition: "background-color 0.2s ease",
-                    }}
-                  >
-                    {loading ? tStr("Saving...", lang) : tStr("Join the list", lang)}
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

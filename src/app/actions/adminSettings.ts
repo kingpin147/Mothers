@@ -40,7 +40,7 @@ export async function getPublicClubSettings() {
       settingsMap[s.key] = s.value;
     }
     return {
-      membershipLive: Boolean(settingsMap["membership_live"] ?? false),
+      membershipLive: Boolean(settingsMap["membership_live"] ?? true),
       priceDisplay: "single" as const,
       topUpPriceCents: Number(settingsMap["top_up_price_cents"] ?? 200),
       expectedLaunch: settingsMap["expected_launch"] ?? "2027-01-06",
@@ -60,7 +60,7 @@ export async function getPublicClubSettings() {
     };
   } catch {
     return {
-      membershipLive: false,
+      membershipLive: true,
       priceDisplay: "single" as const,
       topUpPriceCents: 200,
       expectedLaunch: "2027-01-06",
