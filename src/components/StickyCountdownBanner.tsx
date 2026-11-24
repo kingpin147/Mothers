@@ -3,29 +3,20 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
-import { useSession } from "next-auth/react";
-import { getPublicClubSettings } from "@/app/actions/adminSettings";
 
 export function StickyCountdownBanner() {
   const { language: lang } = useLanguage();
-  const { data: session } = useSession();
-
   const [dismissed, setDismissed] = useState(false);
-  const [membershipLive, setMembershipLive] = useState(false);
-  const isMember = (session?.user as any)?.membershipStatus === "active";
 
   useEffect(() => {
     try {
       const closed = sessionStorage.getItem("tmp_banner_closed");
       if (closed === "1") setDismissed(true);
     } catch {}
-
-    getPublicClubSettings().then((s) => {
-      if (s.membershipLive) setMembershipLive(true);
-    }).catch(() => {});
   }, []);
 
-  const handleClose = () => {
+  const handleClose = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setDismissed(true);
     try {
       sessionStorage.setItem("tmp_banner_closed", "1");
@@ -34,83 +25,7 @@ export function StickyCountdownBanner() {
 
   if (dismissed) return null;
 
-  // If membership is open and user is not a member, show membership open banner
-  if (membershipLive && !isMember) {
-    const liveText = session?.user
-      ? (lang === "fr" ? "Abonnez-vous depuis votre compte." : lang === "es" ? "Suscríbete desde tu cuenta." : "Subscribe from your account.")
-      : (lang === "fr" ? "Créez un compte ou connectez-vous pour vous abonner." : lang === "es" ? "Abre una cuenta o inicia sesión para suscribirte." : "Open an account or sign in to subscribe.");
-
-    return (
-      <div
-        style={{
-          position: "relative",
-          background: "#7b1f2c",
-          color: "#fdf8f2",
-          fontFamily: "'Lora', Georgia, serif",
-          padding: "14px clamp(20px, 5vw, 64px)",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "12px 24px",
-          alignItems: "center",
-          justifyContent: "space-between",
-          zIndex: 40,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <strong
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              fontSize: "12px",
-              color: "#f3d9a4",
-            }}
-          >
-            {lang === "fr" ? "L'adhésion est ouverte" : lang === "es" ? "La membresía está abierta" : "Membership is open"}
-          </strong>
-          <span style={{ fontSize: "14.5px", color: "rgba(253, 248, 242, 0.92)" }}>{liveText}</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Link
-            href="/membership"
-            style={{
-              border: "1px solid #fdf8f2",
-              background: "#fdf8f2",
-              color: "#7b1f2c",
-              padding: "8px 18px",
-              borderRadius: "4px",
-              fontFamily: "'Cormorant Garamond', serif",
-              fontWeight: 600,
-              fontSize: "15px",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {lang === "fr" ? "Devenir membre" : lang === "es" ? "Hazte socia" : "Become a member"}
-          </Link>
-          <button
-            type="button"
-            onClick={handleClose}
-            aria-label="Close banner"
-            style={{
-              border: "none",
-              background: "transparent",
-              color: "rgba(253, 248, 242, 0.7)",
-              cursor: "pointer",
-              padding: "4px 8px",
-              fontSize: "18px",
-              lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Default: For Mother Communities Banner (matching SiteHeader.dc.html & Screenshot)
+  // Exact dark brown banner matching client reference (Image 2)
   return (
     <div
       style={{
@@ -190,6 +105,7 @@ export function StickyCountdownBanner() {
           alignItems: "center",
           border: "1px solid #c9a227",
           color: "#f8efe2",
+          background: "transparent",
           borderRadius: "4px",
           padding: "10px 18px",
           fontFamily: "'Cormorant Garamond', Georgia, serif",
