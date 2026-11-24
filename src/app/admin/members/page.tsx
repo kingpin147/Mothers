@@ -159,6 +159,11 @@ export default function AdminMembersPage() {
 
       <div style={{ maxWidth: "1320px", margin: "0 auto", padding: "clamp(24px, 3.4vw, 36px) clamp(18px, 3vw, 30px) 60px" }}>
         
+        {/* Pre-membership mode banner */}
+        <div style={{ background: "#fff7ea", borderLeft: "3px solid #c9a227", padding: "12px 18px", marginBottom: "22px", borderRadius: "4px", fontSize: "13.5px", lineHeight: 1.6, color: "#39292a" }}>
+          <strong style={{ fontWeight: 600 }}>Pre-membership mode</strong> · Until you activate membership in <Link href="/admin/settings" style={{ color: "#7b1f2c", textDecoration: "underline" }}>Settings</Link>. Membership (Monthly €6.99 · Annual €69) is built and kept ready, but stays off until you switch it on (no date yet). Every event is open to every mother at one price, in credits; community events are paid by card.
+        </div>
+
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "20px", flexWrap: "wrap", marginBottom: "22px" }}>
           <div style={{ flex: "1 1 400px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "12px", letterSpacing: "0.16em", textTransform: "uppercase", color: "#7b1f2c", marginBottom: "9px" }}>
