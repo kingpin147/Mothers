@@ -541,8 +541,10 @@ function LoginForm() {
               }}
             >
               {lang === "en"
-                ? "Open a free account to post in The Forum, save events and book your place in one tap."
-                : "Abre una cuenta gratuita para participar en El Foro, guardar eventos y reservar tu plaza en un toque."}
+                ? "Book your first event and your account comes with it — or open a free account now to post in The Forum."
+                : lang === "fr"
+                ? "Réservez votre premier événement et votre compte est inclus — ou créez un compte gratuit pour publier dans Le Forum."
+                : "Reserva tu primer evento y tu cuenta vendrá incluida — o abre una cuenta gratuita para participar en El Foro."}
             </p>
 
             <div
@@ -554,12 +556,8 @@ function LoginForm() {
                 marginTop: "4px",
               }}
             >
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("create");
-                  setErrorMsg(null);
-                }}
+              <Link
+                href="/events"
                 style={{
                   display: "inline-block",
                   padding: "11px 20px",
@@ -570,9 +568,9 @@ function LoginForm() {
                   fontFamily: "var(--font-heading)",
                   fontWeight: 600,
                   fontSize: "14.5px",
-                  cursor: "pointer",
-                  transition: "background-color 0.15s ease",
+                  textDecoration: "none",
                   whiteSpace: "nowrap",
+                  transition: "background-color 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = "#456f04";
@@ -583,7 +581,36 @@ function LoginForm() {
                   e.currentTarget.style.borderColor = "#568b05";
                 }}
               >
-                {lang === "en" ? "Open a free account" : "Abre una cuenta gratuita"}
+                {lang === "en" ? "Book your first event" : lang === "fr" ? "Réserver un premier événement" : "Reserva tu primer evento"}
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("create");
+                  setErrorMsg(null);
+                }}
+                style={{
+                  display: "inline-block",
+                  padding: "11px 20px",
+                  backgroundColor: "transparent",
+                  color: "#3b5e04",
+                  border: "1px solid #568b05",
+                  borderRadius: "4px",
+                  fontFamily: "var(--font-heading)",
+                  fontWeight: 600,
+                  fontSize: "14.5px",
+                  cursor: "pointer",
+                  transition: "background-color 0.15s ease",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "rgba(86, 139, 5, 0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                {lang === "en" ? "Open a free account" : lang === "fr" ? "Ouvrir un compte gratuit" : "Abre una cuenta gratuita"}
               </button>
             </div>
           </div>

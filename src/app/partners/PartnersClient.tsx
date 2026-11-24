@@ -6,13 +6,15 @@ import { Locale } from "@/lib/i18n";
 import { tStr } from "@/lib/i18nEngine";
 import { submitPartnerApplication } from "@/app/actions/publicWindow";
 
-const UMBRELLAS = [
-  { id: "all", labelEn: "All partners", labelEs: "Todos los partners", noteEn: "Trusted professionals and services recommended by mothers, across wellness, expert care, children, places, and brands.", noteEs: "Profesionales de confianza recomendadas por madres, en bienestar, cuidado experto, infancia, lugares y marcas." },
-  { id: "wellness", labelEn: "Wellness & Movement", labelEs: "Bienestar y movimiento", noteEn: "Body-focused, recurring — for you.", noteEs: "Para tu cuerpo, con continuidad." },
-  { id: "expert", labelEn: "Expert Care & Support", labelEs: "Cuidado experto", noteEn: "Qualified professionals, workshop-led.", noteEs: "Profesionales cualificadas, con talleres." },
-  { id: "child", labelEn: "Baby & Child Activities", labelEs: "Actividades para el bebé", noteEn: "Built around the child being present.", noteEs: "Pensadas para venir con peque." },
-  { id: "places", labelEn: "Places & Hospitality", labelEs: "Lugares y hostelería", noteEn: "Spaces we book again and again.", noteEs: "Espacios a los que volvemos." },
-  { id: "brands", labelEn: "Brands & Retail", labelEs: "Marcas y retail", noteEn: "Perks only — no events, no calendar.", noteEs: "Solo ventajas — sin eventos ni agenda." },
+const SPECIALTIES = [
+  { id: "all", labelEn: "All specialties", labelEs: "Todas las especialidades", noteEn: "Paediatricians, midwives, physios, lactation and sleep consultants — the people mothers in our community go back to and pass on to each other. Each one is checked by our team before they appear here.", noteEs: "Pediatras, comadronas, fisios, asesoras de lactancia y sueño — verificadas por nuestro equipo." },
+  { id: "doctors", labelEn: "Doctors", labelEs: "Médicos", noteEn: "Paediatricians, gynaecologists and family doctors.", noteEs: "Pediatras, ginecólogas y médicas de familia." },
+  { id: "birth", labelEn: "Pregnancy & birth", labelEs: "Embarazo y parto", noteEn: "Midwives and doulas, before and after birth.", noteEs: "Comadronas y doulas, antes y después del parto." },
+  { id: "body", labelEn: "Body & recovery", labelEs: "Cuerpo y recuperación", noteEn: "Pelvic-floor physios, osteopaths, postnatal movement.", noteEs: "Fisioterapeutas de suelo pélvico, osteópatas, movimiento posparto." },
+  { id: "feeding", labelEn: "Feeding & sleep", labelEs: "Lactancia y sueño", noteEn: "Lactation (IBCLC) and infant-sleep consultants.", noteEs: "Asesoras de lactancia (IBCLC) y consultoras de sueño infantil." },
+  { id: "mind", labelEn: "Mind & wellbeing", labelEs: "Mente y bienestar", noteEn: "Perinatal psychologists and therapists.", noteEs: "Psicólogas perinatales y terapeutas." },
+  { id: "child", labelEn: "Child development", labelEs: "Desarrollo infantil", noteEn: "Speech therapists, early-years and child psychologists.", noteEs: "Logopedas, especialistas en atención temprana y psicología infantil." },
+  { id: "treat", labelEn: "Treat yourself", labelEs: "Cuídate a ti", noteEn: "Facials, massage, hair and other one-to-one care — with an offer for mothers.", noteEs: "Faciales, masajes, peluquería y otros cuidados individuales — con ventajas para socias." },
 ];
 
 const APPLY_STRINGS = {
@@ -95,7 +97,7 @@ export default function PartnersClient({ initialPartners }: { initialPartners: a
     return () => window.removeEventListener("tm_lang_change", updateLang);
   }, []);
 
-  const activeObj = UMBRELLAS.find((u) => u.id === activeUmbrella) || UMBRELLAS[0];
+  const activeObj = SPECIALTIES.find((u) => u.id === activeUmbrella) || SPECIALTIES[0];
   const visiblePartners = activeUmbrella === "all" ? partners : partners.filter((p) => {
     const pu = (p.umbrella || "").toLowerCase();
     if (activeUmbrella === "wellness") return pu.includes("wellness");
@@ -110,7 +112,7 @@ export default function PartnersClient({ initialPartners }: { initialPartners: a
     <div style={{ backgroundColor: "var(--color-bg)", minHeight: "100vh", padding: "clamp(48px, 6vw, 88px) clamp(24px, 5vw, 64px)" }}>
       <div style={{ maxWidth: "1160px", margin: "0 auto" }}>
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+        <div style={{ textAlign: "center", marginBottom: "34px" }}>
           <div
             style={{
               fontFamily: "var(--font-heading)",
@@ -118,34 +120,39 @@ export default function PartnersClient({ initialPartners }: { initialPartners: a
               fontSize: "13px",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              color: "var(--color-accent)",
-              marginBottom: "14px",
+              color: "var(--color-accent, #7b1f2c)",
+              marginBottom: "12px",
             }}
           >
-            {tStr("Our partners", lang)}
+            {lang === "es" ? "RECOMENDADO POR MADRES" : "RECOMMENDED BY MOTHERS"}
           </div>
           <h1
             style={{
               fontFamily: "var(--font-heading)",
-              fontSize: "clamp(34px, 5vw, 54px)",
+              fontSize: "clamp(32px, 4.4vw, 52px)",
               lineHeight: 1.1,
               marginBottom: "16px",
             }}
           >
-            {lang === "en"
-              ? "The specialists behind every experience."
-              : "Las especialistas detrás de cada experiencia."}
+            {lang === "es"
+              ? "Las profesionales en las que confían las madres."
+              : "The professionals mothers trust."}
           </h1>
-          <p style={{ fontSize: "19px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.78)", maxWidth: "640px", margin: "0 auto" }}>
-            {lang === "en"
-              ? "One trusted partner per specialty — vetted, exclusive, and here for the long run. See who we work with, and why."
-              : "Un partner de confianza por especialidad — seleccionado, exclusivo y aquí para quedarse. Descubre con quién trabajamos y por qué."}
+          <p style={{ fontSize: "16.5px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.72)", maxWidth: "64ch", margin: "0 auto 10px auto" }}>
+            {lang === "es"
+              ? "Pediatras, comadronas, fisios, asesoras de lactancia y sueño — las personas a las que las madres de nuestra comunidad acuden y se recomiendan entre sí. Cada una está verificada por nuestro equipo antes de aparecer aquí."
+              : "Paediatricians, midwives, physios, lactation and sleep consultants — the people mothers in our community go back to and pass on to each other. Each one is checked by our team before they appear here."}
+          </p>
+          <p style={{ fontSize: "14px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.66)", maxWidth: "64ch", margin: "0 auto" }}>
+            {lang === "es"
+              ? "Contactas con ellas directamente. Una recomendación no constituye consejo médico; en caso de urgencia llama al 112."
+              : "You contact them directly. A recommendation is not medical advice; in an emergency call 112."}
           </p>
         </div>
 
         {/* Umbrella Filter Chips */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "center", marginBottom: "16px" }}>
-          {UMBRELLAS.map((u) => {
+          {SPECIALTIES.map((u) => {
             const isSelected = activeUmbrella === u.id;
             return (
               <button

@@ -8,10 +8,10 @@ import { tStr } from "@/lib/i18nEngine";
 import { createTopUpCheckoutSession } from "@/app/actions/topup";
 
 const PACKS = [
-  { credits: 5, price: "€10", note: "Introductory pack", border: "rgba(57,41,42,0.18)" },
-  { credits: 10, price: "€20", note: "1 coffee or supper", border: "rgba(57,41,42,0.18)" },
-  { credits: 20, price: "€40", note: "A month of gatherings", border: "rgba(57,41,42,0.18)" },
-  { credits: 40, price: "€80", note: "For active mothers", border: "rgba(57,41,42,0.18)" },
+  { credits: 10, price: "€20", note: "A class, or a few coffees", border: "rgba(57,41,42,0.18)" },
+  { credits: 20, price: "€40", note: "A supper and a class", border: "rgba(57,41,42,0.18)" },
+  { credits: 40, price: "€80", note: "A month of most things", border: "rgba(57,41,42,0.18)" },
+  { credits: 60, price: "€120", note: "Signature moments", border: "rgba(57,41,42,0.18)" },
 ];
 
 export function TopUpClient({
