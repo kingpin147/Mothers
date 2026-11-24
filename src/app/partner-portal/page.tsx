@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   getCommunityPortalDataAction,
   createCommunityEventAction,
@@ -9,6 +11,8 @@ import {
 } from "@/app/actions/partnerPortal";
 
 export default function PartnerPortalPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{ community: any; events: any[] } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -44,8 +48,12 @@ export default function PartnerPortalPage() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (status === "unauthenticated") {
+      router.replace("/account/login?callbackUrl=/partner-portal");
+    } else if (status === "authenticated") {
+      loadData();
+    }
+  }, [status, router]);
 
   const handleCopyInviteLink = async () => {
     if (!data?.community?.inviteCode) return;
@@ -119,10 +127,39 @@ export default function PartnerPortalPage() {
     }
   };
 
-  if (loading) {
+  if (status === "loading" || (status === "authenticated" && loading)) {
     return (
       <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(57, 41, 42, 0.6)" }}>
         Loading community space...
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated") {
+    return (
+      <div style={{ maxWidth: "540px", margin: "60px auto", padding: "36px 30px", backgroundColor: "#ffffff", borderRadius: "8px", textAlign: "center", border: "1px solid rgba(57, 41, 42, 0.15)" }}>
+        <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "26px", color: "#39292a", margin: "0 0 10px" }}>
+          Partner Sign In
+        </h2>
+        <p style={{ color: "rgba(57, 41, 42, 0.75)", fontSize: "14.5px", lineHeight: 1.6, margin: "0 0 24px" }}>
+          Please sign in with the email we approved your community or workshop with.
+        </p>
+        <Link
+          href="/account/login?callbackUrl=/partner-portal"
+          style={{
+            backgroundColor: "#7b1f2c",
+            color: "#ffffff",
+            padding: "12px 28px",
+            borderRadius: "4px",
+            textDecoration: "none",
+            fontFamily: "'Cormorant Garamond', serif",
+            fontWeight: 600,
+            fontSize: "16px",
+            display: "inline-block",
+          }}
+        >
+          Sign in to Community Space
+        </Link>
       </div>
     );
   }

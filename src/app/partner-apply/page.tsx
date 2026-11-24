@@ -330,7 +330,7 @@ export default function PartnerApplyPage() {
                   {lang === "fr" ? "Parlez-nous de vous" : lang === "es" ? "Cuéntanos sobre ti" : "Tell us about you"}
                 </h2>
                 <Link
-                  href="/partner-portal"
+                  href="/account/login?callbackUrl=/partner-portal"
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
                     fontWeight: 600,
