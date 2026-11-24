@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { community, event, person } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { community, event, person, booking } from "@/db/schema";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
 export interface CommunityEventInput {
@@ -182,4 +182,175 @@ export async function connectStripeAccountAction() {
     .where(eq(community.id, comm.id));
 
   return { success: true, stripeAccountId: mockStripeId };
+}
+
+export async function getEventAttendeesAction(eventId: string) {
+  const session = await auth();
+  const personId = (session?.user as any)?.personId || session?.user?.id;
+  if (!personId) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  const comm = await getCommunityForPerson(personId);
+  if (!comm) {
+    throw new Error("COMMUNITY_NOT_FOUND");
+  }
+
+  // Verify event belongs to this community
+  const [ev] = await db
+    .select()
+    .from(event)
+    .where(and(eq(event.id, eventId), eq(event.communityId, comm.id)))
+    .limit(1);
+
+  if (!ev) {
+    throw new Error("EVENT_NOT_FOUND");
+  }
+
+  // STRICT PRIVACY RULE (§11 / CM-03):
+  // Return FIRST NAME and STAGE only. Never return email, phone or surname.
+  const bookings = await db
+    .select({
+      id: booking.id,
+      firstName: person.firstName,
+      stage: person.stage,
+      status: booking.status,
+    })
+    .from(booking)
+    .innerJoin(person, eq(booking.personId, person.id))
+    .where(
+      and(
+        eq(booking.eventId, eventId),
+        sql`${booking.status} IN ('confirmed', 'attended', 'held')`
+      )
+    );
+
+  return bookings.map((b) => ({
+    id: b.id,
+    name: b.firstName || "Mother",
+    stage: b.stage || "Babies",
+  }));
+}
+
+export async function cancelCommunityEventAction(eventId: string, reason: string) {
+  const session = await auth();
+  const personId = (session?.user as any)?.personId || session?.user?.id;
+  if (!personId) {
+    return { success: false, error: "UNAUTHORIZED" };
+  }
+
+  const comm = await getCommunityForPerson(personId);
+  if (!comm) {
+    return { success: false, error: "COMMUNITY_NOT_FOUND" };
+  }
+
+  const [ev] = await db
+    .select()
+    .from(event)
+    .where(and(eq(event.id, eventId), eq(event.communityId, comm.id)))
+    .limit(1);
+
+  if (!ev) {
+    return { success: false, error: "EVENT_NOT_FOUND" };
+  }
+
+  if (!reason.trim()) {
+    return { success: false, error: "REASON_REQUIRED" };
+  }
+
+  // Update event status to cancelled
+  await db
+    .update(event)
+    .set({
+      status: "cancelled",
+      cancellationReason: reason.trim(),
+      updatedAt: new Date(),
+    })
+    .where(eq(event.id, eventId));
+
+  // Refund every booked mother in full
+  const bookedUsers = await db
+    .select({
+      bookingId: booking.id,
+      personId: booking.personId,
+      creditsCharged: booking.creditsCharged,
+    })
+    .from(booking)
+    .where(and(eq(booking.eventId, eventId), eq(booking.status, "confirmed")));
+
+  for (const b of bookedUsers) {
+    if (b.creditsCharged > 0) {
+      const { refundPersonCredits } = await import("@/lib/ledger");
+      await refundPersonCredits(b.personId, b.creditsCharged, "event_cancellation", eventId);
+    }
+    await db
+      .update(booking)
+      .set({ status: "cancelled", cancelledAt: new Date() })
+      .where(eq(booking.id, b.bookingId));
+  }
+
+  return { success: true };
+}
+
+export async function messageBookedMothersAction(eventId: string, messageText: string) {
+  const session = await auth();
+  const personId = (session?.user as any)?.personId || session?.user?.id;
+  if (!personId) {
+    return { success: false, error: "UNAUTHORIZED" };
+  }
+
+  const comm = await getCommunityForPerson(personId);
+  if (!comm) {
+    return { success: false, error: "COMMUNITY_NOT_FOUND" };
+  }
+
+  const [ev] = await db
+    .select()
+    .from(event)
+    .where(and(eq(event.id, eventId), eq(event.communityId, comm.id)))
+    .limit(1);
+
+  if (!ev) {
+    return { success: false, error: "EVENT_NOT_FOUND" };
+  }
+
+  if (!messageText.trim()) {
+    return { success: false, error: "MESSAGE_EMPTY" };
+  }
+
+  // In production, queue notification to booked mothers through The Mothers system
+  return { success: true };
+}
+
+export async function updateCommunityDetailsAction(details: {
+  name: string;
+  contactEmail: string;
+  contactPhone?: string;
+  legalName?: string;
+  taxId?: string;
+}) {
+  const session = await auth();
+  const personId = (session?.user as any)?.personId || session?.user?.id;
+  if (!personId) {
+    return { success: false, error: "UNAUTHORIZED" };
+  }
+
+  const comm = await getCommunityForPerson(personId);
+  if (!comm) {
+    return { success: false, error: "COMMUNITY_NOT_FOUND" };
+  }
+
+  await db
+    .update(community)
+    .set({
+      name: details.name.trim(),
+      contactEmail: details.contactEmail.trim(),
+      contactPhone: details.contactPhone?.trim() || null,
+      legalName: details.legalName?.trim() || null,
+      taxId: details.taxId?.trim() || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(community.id, comm.id));
+
+  return { success: true };
 }
