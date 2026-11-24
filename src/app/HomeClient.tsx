@@ -93,34 +93,39 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
     who: cmsMedia[`quote_${i}`]?.quoteWho || (i === 1 ? "Elena, Gràcia" : i === 2 ? "Sophie, Eixample" : "Camille, Poblenou"),
   }));
 
-  // Gallery interactive scroll & drag handlers
+  // Gallery interactive infinite scroll, drag, and lightbox handlers
   const galleryRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
   const [isMouseDown, setIsMouseDown] = useState(false);
+  const [hasMoved, setHasMoved] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeftPos, setScrollLeftPos] = useState(0);
+  const [activeModalMoment, setActiveModalMoment] = useState<any | null>(null);
 
-  const checkScroll = () => {
-    if (galleryRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = galleryRef.current;
-      setCanScrollLeft(scrollLeft > 4);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 4);
-    }
-  };
+  // Triple the array for seamless infinite looping
+  const infiniteMoments = [...moments, ...moments, ...moments];
 
   useEffect(() => {
-    checkScroll();
-    const el = galleryRef.current;
-    if (el) {
-      el.addEventListener("scroll", checkScroll, { passive: true });
-      window.addEventListener("resize", checkScroll, { passive: true });
+    // Start at middle chunk so user can scroll left or right immediately
+    if (galleryRef.current) {
+      const third = galleryRef.current.scrollWidth / 3;
+      if (third > 0) {
+        galleryRef.current.scrollLeft = third;
+      }
     }
-    return () => {
-      if (el) el.removeEventListener("scroll", checkScroll);
-      window.removeEventListener("resize", checkScroll);
-    };
   }, []);
+
+  const handleScrollLoop = () => {
+    if (!galleryRef.current) return;
+    const { scrollLeft, scrollWidth } = galleryRef.current;
+    const third = scrollWidth / 3;
+    if (third <= 0) return;
+
+    if (scrollLeft >= third * 2) {
+      galleryRef.current.scrollLeft = scrollLeft - third;
+    } else if (scrollLeft <= 10) {
+      galleryRef.current.scrollLeft = scrollLeft + third;
+    }
+  };
 
   const handleScrollPrev = () => {
     if (galleryRef.current) {
@@ -139,6 +144,7 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!galleryRef.current) return;
     setIsMouseDown(true);
+    setHasMoved(false);
     setStartX(e.pageX - galleryRef.current.offsetLeft);
     setScrollLeftPos(galleryRef.current.scrollLeft);
   };
@@ -148,12 +154,48 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
     e.preventDefault();
     const x = e.pageX - galleryRef.current.offsetLeft;
     const walk = (x - startX) * 1.5;
+    if (Math.abs(walk) > 4) {
+      setHasMoved(true);
+    }
     galleryRef.current.scrollLeft = scrollLeftPos - walk;
+    handleScrollLoop();
   };
 
   const handleMouseUpOrLeave = () => {
     setIsMouseDown(false);
   };
+
+  const handleMomentClick = (m: any) => {
+    if (!hasMoved) {
+      setActiveModalMoment(m);
+    }
+  };
+
+  const handleModalPrev = () => {
+    if (!activeModalMoment) return;
+    const currentIdx = activeModalMoment.index; // 1 to 12
+    const prevIdx = currentIdx === 1 ? 12 : currentIdx - 1;
+    setActiveModalMoment(moments[prevIdx - 1]);
+  };
+
+  const handleModalNext = () => {
+    if (!activeModalMoment) return;
+    const currentIdx = activeModalMoment.index; // 1 to 12
+    const nextIdx = currentIdx === 12 ? 1 : currentIdx + 1;
+    setActiveModalMoment(moments[nextIdx - 1]);
+  };
+
+  // Keyboard navigation for modal
+  useEffect(() => {
+    if (!activeModalMoment) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActiveModalMoment(null);
+      if (e.key === "ArrowLeft") handleModalPrev();
+      if (e.key === "ArrowRight") handleModalNext();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeModalMoment]);
 
   return (
     <div style={{ background: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
@@ -297,144 +339,338 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
         </div>
       </section>
 
-      {/* 5. Moments From Our Events (Interactive Scrollable Gallery: 12 uploadable, 6 in viewport) */}
+      {/* 5. Moments From Our Events (Interactive Infinite Scroll Gallery + Page Margins + Lightbox Modal) */}
       <section style={{ padding: "clamp(44px, 6vw, 70px) 0 0", position: "relative" }}>
-        <div style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "20px" }}>
-          <div>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(28px, 3.4vw, 40px)", margin: "0 0 6px" }}>
-              {lang === "fr" ? "Moments de nos rencontres" : lang === "es" ? "Momentos de nuestros encuentros" : "Moments from our events"}
-            </h2>
-            <p style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.7)", margin: 0 }}>
-              {lang === "fr" ? "De vraies mères, de vrais après-midis. Partagés avec leur accord." : lang === "es" ? "Madres reales, tardes auténticas. Compartido con su permiso." : "Real mothers, real afternoons. Shared with their permission."}
-            </p>
+        <div style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)" }}>
+          {/* Section Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "20px" }}>
+            <div>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(28px, 3.4vw, 40px)", margin: "0 0 6px" }}>
+                {lang === "fr" ? "Moments de nos rencontres" : lang === "es" ? "Momentos de nuestros encuentros" : "Moments from our events"}
+              </h2>
+              <p style={{ fontSize: "14px", color: "rgba(57, 41, 42, 0.7)", margin: 0 }}>
+                {lang === "fr" ? "De vraies mères, de vrais après-midis. Partagés avec leur accord." : lang === "es" ? "Madres reales, tardes auténticas. Compartido con su permiso." : "Real mothers, real afternoons. Shared with their permission."}
+              </p>
+            </div>
+
+            {/* Left / Right Navigation Arrows */}
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                type="button"
+                onClick={handleScrollPrev}
+                aria-label="Previous moments"
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "50%",
+                  border: "1px solid rgba(57, 41, 42, 0.2)",
+                  background: "#ffffff",
+                  color: "#7b1f2c",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 6px rgba(57, 41, 42, 0.08)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={handleScrollNext}
+                aria-label="Next moments"
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "50%",
+                  border: "1px solid rgba(57, 41, 42, 0.2)",
+                  background: "#ffffff",
+                  color: "#7b1f2c",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 6px rgba(57, 41, 42, 0.08)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
           </div>
 
-          {/* Left / Right Navigation Arrows */}
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button
-              type="button"
-              onClick={handleScrollPrev}
-              disabled={!canScrollLeft}
-              aria-label="Previous moments"
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
-                border: "1px solid rgba(57, 41, 42, 0.2)",
-                background: canScrollLeft ? "#ffffff" : "rgba(255, 255, 255, 0.5)",
-                color: canScrollLeft ? "#7b1f2c" : "rgba(57, 41, 42, 0.3)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: canScrollLeft ? "pointer" : "default",
-                boxShadow: canScrollLeft ? "0 2px 6px rgba(57, 41, 42, 0.08)" : "none",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={handleScrollNext}
-              disabled={!canScrollRight}
-              aria-label="Next moments"
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
-                border: "1px solid rgba(57, 41, 42, 0.2)",
-                background: canScrollRight ? "#ffffff" : "rgba(255, 255, 255, 0.5)",
-                color: canScrollRight ? "#7b1f2c" : "rgba(57, 41, 42, 0.3)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: canScrollRight ? "pointer" : "default",
-                boxShadow: canScrollRight ? "0 2px 6px rgba(57, 41, 42, 0.08)" : "none",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
+          {/* Scrollable Gallery Track — Inside the maxWidth: 1160px wrapper for margins on page border! */}
+          <div
+            ref={galleryRef}
+            onScroll={handleScrollLoop}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUpOrLeave}
+            onMouseLeave={handleMouseUpOrLeave}
+            style={{
+              display: "flex",
+              gap: "8px",
+              overflowX: "auto",
+              scrollSnapType: isMouseDown ? "none" : "x mandatory",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              cursor: isMouseDown ? "grabbing" : "grab",
+              userSelect: isMouseDown ? "none" : "auto",
+              borderRadius: "8px",
+            }}
+          >
+            {infiniteMoments.map((m, idx) => (
+              <div
+                key={`${m.id}-${idx}`}
+                onClick={() => handleMomentClick(m)}
+                style={{
+                  flex: "0 0 calc((100% - 40px) / 6)",
+                  minWidth: "150px",
+                  aspectRatio: "4/5",
+                  background: "#ebdcd0",
+                  overflow: "hidden",
+                  borderRadius: "6px",
+                  scrollSnapAlign: "start",
+                  position: "relative",
+                  cursor: "pointer",
+                  transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                }}
+              >
+                {m.url ? (
+                  <img
+                    src={m.url}
+                    alt={m.alt}
+                    draggable={false}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      pointerEvents: "none",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      background: "#ebdcd0",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      color: "rgba(57, 41, 42, 0.35)",
+                      padding: "10px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                      <circle cx="9" cy="9" r="2"/>
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                    </svg>
+                    <span style={{ fontSize: "11px", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                      Moment {m.index}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Scrollable Gallery Track */}
-        <div
-          ref={galleryRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUpOrLeave}
-          onMouseLeave={handleMouseUpOrLeave}
-          style={{
-            display: "flex",
-            gap: "6px",
-            overflowX: "auto",
-            scrollSnapType: isMouseDown ? "none" : "x mandatory",
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-            cursor: isMouseDown ? "grabbing" : "grab",
-            userSelect: isMouseDown ? "none" : "auto",
-            padding: "0 clamp(16px, 3vw, 32px)",
-          }}
-        >
-          {moments.map((m) => (
+        {/* Mid-Screen Modal Lightbox for enlarged single image viewing */}
+        {activeModalMoment && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setActiveModalMoment(null)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              background: "rgba(57, 41, 42, 0.75)",
+              backdropFilter: "blur(6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px",
+              boxSizing: "border-box",
+            }}
+          >
             <div
-              key={m.id}
+              onClick={(e) => e.stopPropagation()}
               style={{
-                flex: "0 0 calc((100% - 30px) / 6)",
-                minWidth: "160px",
-                aspectRatio: "4/5",
-                background: "#ebdcd0",
-                overflow: "hidden",
-                borderRadius: "4px",
-                scrollSnapAlign: "start",
                 position: "relative",
+                width: "100%",
+                maxWidth: "540px",
+                maxHeight: "85vh",
+                background: "#fdf8f2",
+                borderRadius: "12px",
+                overflow: "hidden",
+                boxShadow: "0 24px 60px rgba(0, 0, 0, 0.35)",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
-              {m.url ? (
-                <img
-                  src={m.url}
-                  alt={m.alt}
-                  draggable={false}
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setActiveModalMoment(null)}
+                aria-label="Close"
+                style={{
+                  position: "absolute",
+                  top: "12px",
+                  right: "12px",
+                  zIndex: 2,
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "rgba(253, 248, 242, 0.9)",
+                  color: "#39292a",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  lineHeight: 1,
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                }}
+              >
+                ×
+              </button>
+
+              {/* Main Image Area */}
+              <div
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  aspectRatio: "4/5",
+                  maxHeight: "65vh",
+                  background: "#ebdcd0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {activeModalMoment.url ? (
+                  <img
+                    src={activeModalMoment.url}
+                    alt={activeModalMoment.alt}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "12px",
+                      color: "rgba(57, 41, 42, 0.4)",
+                    }}
+                  >
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                      <circle cx="9" cy="9" r="2" />
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
+                    <span style={{ fontSize: "14px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                      Moment {activeModalMoment.index} · Placeholder
+                    </span>
+                  </div>
+                )}
+
+                {/* In-Modal Left / Right Navigation */}
+                <button
+                  type="button"
+                  onClick={handleModalPrev}
+                  aria-label="Previous moment"
                   style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    pointerEvents: "none",
-                    display: "block",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    background: "#ebdcd0",
+                    position: "absolute",
+                    left: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: "42px",
+                    height: "42px",
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "rgba(253, 248, 242, 0.9)",
+                    color: "#7b1f2c",
+                    cursor: "pointer",
                     display: "flex",
-                    flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: "8px",
-                    color: "rgba(57, 41, 42, 0.35)",
+                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.15)",
                   }}
                 >
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-                    <circle cx="9" cy="9" r="2"/>
-                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
                   </svg>
-                  <span style={{ fontSize: "11px", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                    Moment {m.index}
-                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleModalNext}
+                  aria-label="Next moment"
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    width: "42px",
+                    height: "42px",
+                    borderRadius: "50%",
+                    border: "none",
+                    background: "rgba(253, 248, 242, 0.9)",
+                    color: "#7b1f2c",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.15)",
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Bottom Caption Bar */}
+              <div
+                style={{
+                  padding: "16px 20px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "#fdf8f2",
+                  borderTop: "1px solid rgba(57, 41, 42, 0.12)",
+                }}
+              >
+                <div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "18px", color: "#39292a" }}>
+                    Moment {activeModalMoment.index}
+                  </div>
+                  <div style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.7)", marginTop: "2px" }}>
+                    {activeModalMoment.alt || "Real mothers, real afternoons."}
+                  </div>
                 </div>
-              )}
+                <span style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.5)", fontFeatureSettings: "'tnum'" }}>
+                  {activeModalMoment.index} / 12
+                </span>
+              </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* 6. What Mothers Say */}
