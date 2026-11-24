@@ -207,23 +207,44 @@ export default function PartnerPortalPage() {
             </h1>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowEventForm(!showEventForm)}
-            style={{
-              backgroundColor: "#7b1f2c",
-              color: "#ffffff",
-              border: "none",
-              padding: "10px 20px",
-              borderRadius: "20px",
-              fontSize: "14px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            {showEventForm ? "Close event form" : "+ Create new event"}
-          </button>
+          {comm.approved ? (
+            <button
+              type="button"
+              onClick={() => setShowEventForm(!showEventForm)}
+              style={{
+                backgroundColor: "#7b1f2c",
+                color: "#ffffff",
+                border: "none",
+                padding: "10px 20px",
+                borderRadius: "20px",
+                fontSize: "14px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {showEventForm ? "Close event form" : "+ Create new event"}
+            </button>
+          ) : (
+            <span style={{ fontSize: "13px", color: "#92400e", backgroundColor: "#fef3c7", padding: "6px 14px", borderRadius: "16px", fontWeight: 600 }}>
+              Under review
+            </span>
+          )}
         </div>
+
+        {/* Pending Review Banner */}
+        {!comm.approved && (
+          <div style={{ backgroundColor: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "16px 20px", display: "flex", alignItems: "flex-start", gap: "12px" }}>
+            <span style={{ fontSize: "20px" }}>⏳</span>
+            <div>
+              <div style={{ fontWeight: 600, color: "#92400e", fontSize: "14.5px" }}>
+                Application under review
+              </div>
+              <div style={{ fontSize: "13.5px", color: "rgba(146, 64, 14, 0.85)", marginTop: "3px", lineHeight: 1.5 }}>
+                We have received your application for <strong>{comm.name}</strong>. Our team replies within two working days. Once approved, you can create and publish events immediately.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Overview Cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px" }}>

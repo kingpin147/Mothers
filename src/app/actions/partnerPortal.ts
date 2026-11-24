@@ -19,15 +19,8 @@ export interface CommunityEventInput {
   bookingCutoffHours: number;
 }
 
-export async function getCommunityPortalDataAction() {
-  const session = await auth();
-  const personId = (session?.user as any)?.personId || session?.user?.id;
-  if (!personId) {
-    throw new Error("UNAUTHORIZED");
-  }
-
-  // Find community where user is contact person
-  const [comm] = await db
+async function getCommunityForPerson(personId: string) {
+  let [comm] = await db
     .select()
     .from(community)
     .where(eq(community.contactPersonId, personId))
@@ -48,9 +41,32 @@ export async function getCommunityPortalDataAction() {
         .where(eq(community.contactEmail, user.email))
         .limit(1);
       if (commByEmail) {
-        return { community: commByEmail, events: [] };
+        comm = commByEmail;
+        // Backfill contactPersonId so future queries are linked directly
+        try {
+          await db
+            .update(community)
+            .set({ contactPersonId: personId })
+            .where(eq(community.id, comm.id));
+        } catch (e) {
+          console.warn("Failed to backfill contactPersonId:", e);
+        }
       }
     }
+  }
+
+  return comm || null;
+}
+
+export async function getCommunityPortalDataAction() {
+  const session = await auth();
+  const personId = (session?.user as any)?.personId || session?.user?.id;
+  if (!personId) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  const comm = await getCommunityForPerson(personId);
+  if (!comm) {
     return { community: null, events: [] };
   }
 
@@ -70,12 +86,7 @@ export async function createCommunityEventAction(input: CommunityEventInput) {
     return { success: false, error: "UNAUTHORIZED" };
   }
 
-  const [comm] = await db
-    .select()
-    .from(community)
-    .where(eq(community.contactPersonId, personId))
-    .limit(1);
-
+  const comm = await getCommunityForPerson(personId);
   if (!comm || !comm.approved) {
     return { success: false, error: "COMMUNITY_NOT_APPROVED" };
   }
@@ -158,12 +169,7 @@ export async function connectStripeAccountAction() {
     return { success: false, error: "UNAUTHORIZED" };
   }
 
-  const [comm] = await db
-    .select()
-    .from(community)
-    .where(eq(community.contactPersonId, personId))
-    .limit(1);
-
+  const comm = await getCommunityForPerson(personId);
   if (!comm) {
     return { success: false, error: "COMMUNITY_NOT_FOUND" };
   }
