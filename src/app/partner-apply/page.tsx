@@ -3,12 +3,14 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { submitPartnerApplicationAction } from "@/app/actions/partnerApply";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type PartnerKind = "community" | "workshop" | "service";
 type BillingOption = "flat" | "commission";
 
 export default function PartnerApplyPage() {
-  const [lang, setLang] = useState<"en" | "es" | "fr">("en");
+  const { language } = useLanguage();
+  const lang = (language === "es" || language === "fr" ? language : "en") as "en" | "es" | "fr";
   const [kind, setKind] = useState<PartnerKind>("community");
 
   // Form values
@@ -208,78 +210,6 @@ export default function PartnerApplyPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
-      {/* Top Header */}
-      <header style={{ borderBottom: "1px solid rgba(57, 41, 42, 0.16)", background: "#fdf8f2" }}>
-        <div
-          style={{
-            maxWidth: "1080px",
-            margin: "0 auto",
-            padding: "12px clamp(18px, 4vw, 36px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "16px",
-            flexWrap: "wrap",
-          }}
-        >
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-            <img src="/assets/logo-mark-alpha.png" alt="The Mothers" style={{ height: "46px", width: "auto", display: "block" }} />
-            <span aria-hidden="true" style={{ width: "1px", height: "22px", background: "rgba(57, 41, 42, 0.28)" }} />
-            <img src="/assets/logo-wordmark-alpha.png" alt="The Mothers" style={{ height: "13px", width: "auto", display: "block" }} />
-          </Link>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "18px", marginLeft: "auto" }}>
-            {/* Language switcher */}
-            <div
-              role="group"
-              aria-label="Language"
-              style={{
-                display: "flex",
-                gap: "2px",
-                border: "1px solid rgba(57, 41, 42, 0.22)",
-                borderRadius: "16px",
-                padding: "2px",
-                fontSize: "12.5px",
-              }}
-            >
-              {(["en", "es", "fr"] as const).map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setLang(l)}
-                  style={{
-                    border: "none",
-                    borderRadius: "12px",
-                    padding: "4px 9px",
-                    cursor: "pointer",
-                    fontFamily: "'Lora', Georgia, serif",
-                    fontSize: "12px",
-                    background: lang === l ? "#7b1f2c" : "transparent",
-                    color: lang === l ? "#ffffff" : "#39292a",
-                    fontWeight: lang === l ? 600 : 400,
-                  }}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
-
-            <Link
-              href="/partner-portal"
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontWeight: 600,
-                fontSize: "15px",
-                color: "#7b1f2c",
-                textDecoration: "none",
-              }}
-            >
-              {lang === "fr" ? "Déjà partenaire ? Se connecter" : lang === "es" ? "¿Ya aprobada? Iniciar sesión" : "Already approved? Sign in"}
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content: 2 Columns */}
       <main
         style={{
@@ -395,9 +325,23 @@ export default function PartnerApplyPage() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "24px", margin: "0 0 4px", color: "#39292a" }}>
-                {lang === "fr" ? "Parlez-nous de vous" : lang === "es" ? "Cuéntanos sobre ti" : "Tell us about you"}
-              </h2>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "24px", margin: "0", color: "#39292a" }}>
+                  {lang === "fr" ? "Parlez-nous de vous" : lang === "es" ? "Cuéntanos sobre ti" : "Tell us about you"}
+                </h2>
+                <Link
+                  href="/partner-portal"
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15px",
+                    color: "#7b1f2c",
+                    textDecoration: "none",
+                  }}
+                >
+                  {lang === "fr" ? "Déjà approuvé ? Se connecter →" : lang === "es" ? "¿Ya aprobada? Iniciar sesión →" : "Already approved? Sign in →"}
+                </Link>
+              </div>
 
               {/* 3 Clickable Type Cards */}
               <div>
