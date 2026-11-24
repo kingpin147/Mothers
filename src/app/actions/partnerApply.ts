@@ -5,6 +5,7 @@ import { community, person } from "@/db/schema";
 import { eq, or } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { sanitizeErrorMessage } from "@/lib/errors";
+import { sendOrganiserRequestReceivedEmail } from "@/lib/brevo";
 
 export interface PartnerApplyInput {
   type: "community" | "workshop" | "one_to_one";
@@ -157,6 +158,21 @@ export async function submitPartnerApplicationAction(
         freeEventsThisMonth: 0,
       })
       .returning({ id: community.id });
+
+    // Trigger Email - Organiser Request Received asynchronously
+    const orgKindLabel =
+      input.type === "workshop"
+        ? "Workshop, studio or brand"
+        : input.type === "one_to_one"
+        ? "One-to-one service"
+        : "Mother community";
+
+    sendOrganiserRequestReceivedEmail({
+      email: contactEmail,
+      contactName: input.contactName || name,
+      orgName: name,
+      orgKind: orgKindLabel,
+    }).catch((e) => console.warn("Failed to send organiser request received email:", e));
 
     return { success: true, communityId: inserted.id };
   } catch (err: any) {

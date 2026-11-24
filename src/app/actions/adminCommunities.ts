@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { community } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { sendOrganiserApprovedEmail, sendOrganiserRequestDeclinedEmail } from "@/lib/brevo";
 
 export async function getAdminCommunitiesAction() {
   const session = await auth();
@@ -62,6 +63,14 @@ export async function approveCommunityAction(input: {
     })
     .where(eq(community.id, input.communityId));
 
+  // Trigger Email - Organiser Approved asynchronously
+  sendOrganiserApprovedEmail({
+    email: existing.contactEmail,
+    orgName: existing.name,
+    commission,
+    minFee: 1,
+  }).catch((e) => console.warn("Failed to send organiser approved email:", e));
+
   return { success: true };
 }
 
@@ -76,9 +85,25 @@ export async function rejectCommunityAction(input: {
     throw new Error("UNAUTHORIZED");
   }
 
+  const [existing] = await db
+    .select()
+    .from(community)
+    .where(eq(community.id, input.communityId))
+    .limit(1);
+
   await db
     .delete(community)
     .where(eq(community.id, input.communityId));
+
+  if (existing) {
+    // Trigger Email - Organiser Request Declined asynchronously
+    sendOrganiserRequestDeclinedEmail({
+      email: existing.contactEmail,
+      contactName: existing.name,
+      orgName: existing.name,
+      reason: input.reason,
+    }).catch((e) => console.warn("Failed to send organiser declined email:", e));
+  }
 
   return { success: true };
 }
