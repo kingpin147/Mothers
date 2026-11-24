@@ -739,8 +739,10 @@ export default function PartnerApplyPage() {
                   I agree to the <Link href="/terms" style={{ color: "#7b1f2c" }}>Terms</Link> and <Link href="/privacy" style={{ color: "#7b1f2c" }}>Privacy Policy</Link>.{" "}
                   {kind === "service" ? (
                     "You are listed on Recommended professionals as a Partner, with your offer and a code. You pay either €19 a month, or 12% of the first visit of each mother who comes through The Mothers, declared monthly. Doctors and psychologists can only be listed free."
+                  ) : kind === "workshop" ? (
+                    "Paid events carry a 20% commission (at least €1 per mother). Free events: €2 per mother who comes."
                   ) : (
-                    `Paid events carry a ${kind === "workshop" ? "20%" : "15%"} commission (at least €1 per mother). Free events: 2 a month included, then €1 per mother who comes.`
+                    "Paid events carry a 15% commission (at least €1 per mother). Free events: 2 a month included, then €1 per mother who comes (max €15 per event)."
                   )}
                 </span>
               </label>
