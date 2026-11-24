@@ -318,6 +318,27 @@ export async function sendMessageAction(conversationId: string, content: string)
       })
       .where(eq(conversation.id, conversationId));
 
+    try {
+      const recipient = await db.query.person.findFirst({
+        where: eq(person.id, recipientId),
+      });
+      if (recipient?.email && !recipient.isSuspended) {
+        const { sendNewPrivateMessageEmail } = await import("@/lib/brevo");
+        sendNewPrivateMessageEmail({
+          personId: recipient.id,
+          email: recipient.email,
+          recipientName: recipient.firstName || "Member",
+          senderFirstName: currentPerson.firstName || "A mother",
+          messagePreview: cleanText.slice(0, 100),
+          threadUrl: "/account?tab=messages",
+          sentTime: "Just now",
+          locale: recipient.locale || "en",
+        }).catch((err) => console.error("[sendMessageAction] Email send error:", err));
+      }
+    } catch (err) {
+      console.error("[sendMessageAction] Failed to send DM email:", err);
+    }
+
     revalidatePath("/account");
 
     return {

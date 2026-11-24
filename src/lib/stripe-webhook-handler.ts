@@ -382,6 +382,19 @@ async function handleTopUpCheckout({
             const currentActive = activeCountRes[0]?.count || 0;
             if (ev.capacityMember > 0 && currentActive >= ev.capacityMember) {
               console.warn(`[Auto-Booking] Hold expired and event ${eventId} is at capacity. Keeping credits in wallet.`);
+              try {
+                const { sendEventFullWhilePayingEmail } = await import("@/lib/brevo");
+                await sendEventFullWhilePayingEmail({
+                  personId,
+                  email: personRecord.email,
+                  firstName: personRecord.firstName || "Member",
+                  eventTitle: ev.title,
+                  creditsAdded: creditAmount,
+                  locale: personRecord.locale || "en",
+                });
+              } catch (fullEmailErr) {
+                console.error("[Auto-Booking] Failed to send event full while paying email:", fullEmailErr);
+              }
               return;
             }
           }
@@ -689,36 +702,16 @@ async function handleMembershipCheckout({
     const priceStr = String(isAnnual ? annualPrice / 100 : monthlyPrice / 100);
     const firstPaymentStr = String(session?.amount_total ? session.amount_total / 100 : priceStr);
 
-    const renderedWelcome = renderEmailTemplate(
-      "Email - Welcome To Membership",
-      {
-        first_name: personRecord.firstName || "Member",
-        plan: planName,
-        price: priceStr,
-        first_payment: firstPaymentStr,
-        credits: String(initialCredits),
-        next_date: isAnnual ? "1 year" : "1 month",
-        events_url: `${appUrl}/events`,
-      },
-      personRecord.locale
-    );
-
-    await queueAndSendEmail({
+    const { sendWelcomeToMembershipEmail } = await import("@/lib/brevo");
+    await sendWelcomeToMembershipEmail({
       personId: mem.personId,
-      toEmail: personRecord.email,
-      toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Member",
-      templateKey: "welcome_confirmation",
-      dedupeKey: `member_welcome_${memberId}`,
-      subject: renderedWelcome.subject && renderedWelcome.subject !== "The Mothers" ? renderedWelcome.subject : (isEs ? "Bienvenida a The Mothers — tu membresía está confirmada" : "Welcome to The Mothers — your membership is confirmed"),
-      htmlContent: renderedWelcome.html || generateSubscriptionConfirmationEmailHtml({
-        firstName: personRecord.firstName,
-        planName,
-        creditsGranted: initialCredits,
-        appUrl,
-        isEs,
-      }),
-      isTransactional: true,
-    });
+      email: personRecord.email,
+      firstName: personRecord.firstName || "Member",
+      planName,
+      price: isAnnual ? annualPrice / 100 : monthlyPrice / 100,
+      credits: initialCredits,
+      locale: personRecord.locale,
+    }).catch((err) => console.error("[handleMembershipCheckout] Error sending welcome email:", err));
 
     // 7. Audit Log & Mark stripeEvent done atomically
     await tx.insert(auditLog).values({

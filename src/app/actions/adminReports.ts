@@ -107,6 +107,10 @@ export async function updateReportStatus(reportId: string, status: "open" | "res
 export async function moderatePost(postId: string, action: "hide" | "restore") {
   await verifyAdminSession();
 
+  const post = await db.query.circlePost.findFirst({
+    where: eq(circlePost.id, postId),
+  });
+
   await db
     .update(circlePost)
     .set({
@@ -115,6 +119,29 @@ export async function moderatePost(postId: string, action: "hide" | "restore") {
       updatedAt: new Date(),
     })
     .where(eq(circlePost.id, postId));
+
+  if (action === "hide" && post?.personId) {
+    try {
+      const author = await db.query.person.findFirst({
+        where: eq(person.id, post.personId),
+      });
+      if (author?.email) {
+        const { sendForumPostRemovedEmail } = await import("@/lib/brevo");
+        await sendForumPostRemovedEmail({
+          personId: author.id,
+          email: author.email,
+          firstName: author.firstName || "Member",
+          postKind: "post",
+          postDate: new Date().toLocaleDateString(),
+          reason: "Violating community house rules",
+          postExcerpt: (post.body || "").slice(0, 100),
+          locale: author.locale || "en",
+        });
+      }
+    } catch (err) {
+      console.error("[moderatePost] Failed to send forum post removed email:", err);
+    }
+  }
 
   revalidatePath("/admin/reports");
   revalidatePath("/lagazette");
@@ -133,6 +160,25 @@ export async function togglePauseAuthorAccount(personId: string, pause: boolean,
       updatedAt: new Date(),
     })
     .where(eq(person.id, personId));
+
+  if (!pause) {
+    try {
+      const author = await db.query.person.findFirst({
+        where: eq(person.id, personId),
+      });
+      if (author?.email) {
+        const { sendAccountReinstatedEmail } = await import("@/lib/brevo");
+        await sendAccountReinstatedEmail({
+          personId: author.id,
+          email: author.email,
+          firstName: author.firstName || "Member",
+          locale: author.locale || "en",
+        });
+      }
+    } catch (err) {
+      console.error("[togglePauseAuthorAccount] Failed to send reinstated email:", err);
+    }
+  }
 
   revalidatePath("/admin/reports");
   return { success: true };

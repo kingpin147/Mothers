@@ -131,6 +131,34 @@ export async function createMotherGathering(data: {
     })
     .returning();
 
+  try {
+    const { sendEventSubmittedEmail, sendNewEventToCheckEmail } = await import("@/lib/brevo");
+    await sendEventSubmittedEmail({
+      personId,
+      email: personRecord.email,
+      firstName: personRecord.firstName || "Mother",
+      eventTitle: data.title.trim(),
+      eventDate: new Date(data.startsAt).toLocaleDateString(),
+      neighbourhood: data.neighbourhood.trim(),
+      isLive: status === "confirmed",
+      locale: personRecord.locale || "en",
+    });
+
+    if (status === "published_pending") {
+      await sendNewEventToCheckEmail({
+        creatorName: personRecord.firstName || "Mother",
+        creatorEmail: personRecord.email,
+        eventTitle: data.title.trim(),
+        eventDate: new Date(data.startsAt).toLocaleDateString(),
+        eventTime: new Date(data.startsAt).toLocaleTimeString(),
+        neighbourhood: data.neighbourhood.trim(),
+        spots: capacity,
+      });
+    }
+  } catch (err) {
+    console.error("[createMotherGathering] Failed to send event submitted emails:", err);
+  }
+
   return { success: true, event: newEvent, isPendingReview: status === "published_pending" };
 }
 

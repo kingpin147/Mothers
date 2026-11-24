@@ -764,6 +764,25 @@ export async function recordLateHostCancellation(personId: string, eventId: stri
     after: { eventId, lateHostCancelledAt: new Date() },
   });
 
+  try {
+    const [hostPerson, ev] = await Promise.all([
+      db.query.person.findFirst({ where: eq(person.id, personId) }),
+      db.query.event.findFirst({ where: eq(event.id, eventId) }),
+    ]);
+    if (hostPerson?.email && ev) {
+      const { sendHostCancelledEmail } = await import("@/lib/brevo");
+      await sendHostCancelledEmail({
+        personId: hostPerson.id,
+        email: hostPerson.email,
+        firstName: hostPerson.firstName || "Host",
+        eventTitle: ev.title,
+        locale: hostPerson.locale || "en",
+      });
+    }
+  } catch (err) {
+    console.error("[recordLateHostCancellation] Failed to send host cancelled email:", err);
+  }
+
   revalidatePath("/admin/events");
   revalidatePath("/admin/hosts");
   return { success: true };
