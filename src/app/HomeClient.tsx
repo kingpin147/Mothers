@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -24,6 +24,17 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const upcomingEvents = useMemo(() => {
+    const now = Date.now();
+    return eventsList
+      .filter((e) => {
+        if (!e.startsAt) return false;
+        const time = new Date(e.startsAt).getTime();
+        return time >= now && e.status !== "cancelled" && e.status !== "draft";
+      })
+      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+  }, [eventsList]);
 
   useEffect(() => {
     const saved = localStorage.getItem("tm_pre_joined_list");
@@ -691,31 +702,33 @@ export default function HomeClient({ initialEvents = [] }: { initialEvents?: any
       </section>
 
       {/* 7. Coming Up (Upcoming Events) */}
-      <section style={{ padding: "0 0 clamp(60px, 7vw, 90px)" }}>
-        <div style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", display: "flex", flexWrap: "wrap", gap: "10px 20px", alignItems: "baseline", justifyContent: "space-between", borderTop: "1px solid rgba(123, 31, 44, 0.18)", paddingTop: "clamp(30px, 4vw, 46px)", marginBottom: "22px" }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(28px, 3.4vw, 40px)", margin: 0 }}>
-            {lang === "fr" ? "À venir" : lang === "es" ? "Próximos eventos" : "Coming up"}
-          </h2>
-          <Link href="/events" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: "#7b1f2c", textDecoration: "none" }}>
-            {lang === "fr" ? "Tous les événements →" : lang === "es" ? "Todos los eventos →" : "All events →"}
-          </Link>
-        </div>
-        <div style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "18px" }}>
-          {eventsList.slice(0, 3).map((e) => (
-            <Link key={e.id} href={`/events/${e.slug || e.id}`} style={{ position: "relative", display: "block", aspectRatio: "4/3", borderRadius: "6px", overflow: "hidden", color: "#39292a", textDecoration: "none" }}>
-              <EventCardImage imageId={e.imageId} imageUrl={e.imageUrl} title={e.title} lang={lang} />
-              <div style={{ position: "absolute", left: "14px", right: "14px", bottom: "14px", background: "rgba(253, 248, 242, 0.96)", borderRadius: "4px", padding: "12px 14px", boxShadow: "0 2px 10px rgba(0,0,0,0.06)" }}>
-                <div style={{ fontSize: "11.5px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7b1f2c" }}>
-                  {formatEventDate(e.startsAt, lang)}
-                </div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", lineHeight: 1.2, marginTop: "3px" }}>
-                  {e.title}
-                </div>
-              </div>
+      {upcomingEvents.length > 0 && (
+        <section style={{ padding: "0 0 clamp(60px, 7vw, 90px)" }}>
+          <div style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", display: "flex", flexWrap: "wrap", gap: "10px 20px", alignItems: "baseline", justifyContent: "space-between", borderTop: "1px solid rgba(123, 31, 44, 0.18)", paddingTop: "clamp(30px, 4vw, 46px)", marginBottom: "22px" }}>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "clamp(28px, 3.4vw, 40px)", margin: 0 }}>
+              {lang === "fr" ? "À venir" : lang === "es" ? "Próximos eventos" : "Coming up"}
+            </h2>
+            <Link href="/events" style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "16px", color: "#7b1f2c", textDecoration: "none" }}>
+              {lang === "fr" ? "Tous les événements →" : lang === "es" ? "Todos los eventos →" : "All events →"}
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+          <div style={{ maxWidth: "1160px", margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))", gap: "18px" }}>
+            {upcomingEvents.slice(0, 3).map((e) => (
+              <Link key={e.id} href={`/events/${e.slug || e.id}`} style={{ position: "relative", display: "block", aspectRatio: "4/3", borderRadius: "6px", overflow: "hidden", color: "#39292a", textDecoration: "none" }}>
+                <EventCardImage imageId={e.imageId} imageUrl={e.imageUrl} title={e.title} lang={lang} />
+                <div style={{ position: "absolute", left: "14px", right: "14px", bottom: "14px", background: "rgba(253, 248, 242, 0.96)", borderRadius: "4px", padding: "12px 14px", boxShadow: "0 2px 10px rgba(0,0,0,0.06)" }}>
+                  <div style={{ fontSize: "11.5px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#7b1f2c" }}>
+                    {formatEventDate(e.startsAt, lang)}
+                  </div>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "20px", lineHeight: 1.2, marginTop: "3px" }}>
+                    {e.title}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 8. Gatherings By Mothers */}
       {gatheringsList.length > 0 && (
