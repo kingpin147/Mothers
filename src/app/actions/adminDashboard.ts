@@ -48,6 +48,7 @@ export async function getAdminDashboardMetrics() {
     const thirtyDaysAhead = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfMonthISO = startOfMonth.toISOString();
 
     // 1. Fetch consolidated aggregates & entity datasets in 3 fast batches
     const [
@@ -67,11 +68,11 @@ export async function getAdminDashboardMetrics() {
           creditSpent: sql<number>`(SELECT COALESCE(SUM(amount - remaining), 0)::int FROM ${creditBatch})`,
           creditOutstanding: sql<number>`(SELECT COALESCE(SUM(remaining), 0)::int FROM ${creditBatch} WHERE remaining > 0 AND expires_at > NOW())`,
           placesOffered: sql<number>`(SELECT COALESCE(places_offered, 50)::int FROM "window" WHERE status = 'open' LIMIT 1)`,
-          accountsBeforeLaunch: sql<number>`(SELECT count(*)::int FROM member INNER JOIN person ON member.person_id = person.id WHERE person.first_name != 'Subscriber' AND person.deleted_at IS NULL)`,
+          accountsBeforeLaunch: sql<number>`(SELECT count(*)::int FROM person WHERE (created_before_launch = true OR source = 'signup') AND deleted_at IS NULL AND first_name != 'Subscriber')`,
           totalBookings: sql<number>`(SELECT count(*)::int FROM booking WHERE status NOT IN ('released', 'cancelled_event', 'cancelled'))`,
-          monthBookings: sql<number>`(SELECT count(*)::int FROM booking WHERE status NOT IN ('released', 'cancelled_event', 'cancelled') AND created_at >= ${startOfMonth})`,
-          creditsSoldMonth: sql<number>`(SELECT COALESCE(SUM(amount), 0)::int FROM credit_batch WHERE source = 'topup' AND created_at >= ${startOfMonth})`,
-          topupRevenueMonth: sql<number>`(SELECT COALESCE(SUM(amount_cents), 0)::int FROM payment WHERE purpose IN ('topup', 'credit_topup', 'extra_credits') AND status = 'succeeded' AND created_at >= ${startOfMonth})`,
+          monthBookings: sql<number>`(SELECT count(*)::int FROM booking WHERE status NOT IN ('released', 'cancelled_event', 'cancelled') AND created_at >= ${startOfMonthISO}::timestamptz)`,
+          creditsSoldMonth: sql<number>`(SELECT COALESCE(SUM(amount), 0)::int FROM credit_batch WHERE source = 'topup' AND created_at >= ${startOfMonthISO}::timestamptz)`,
+          topupRevenueMonth: sql<number>`(SELECT COALESCE(SUM(amount_cents), 0)::int FROM payment WHERE purpose IN ('topup', 'credit_topup', 'extra_credits') AND status = 'succeeded' AND created_at >= ${startOfMonthISO}::timestamptz)`,
           hostsConfirmed: sql<number>`(SELECT count(*)::int FROM host_request WHERE status IN ('confirmed', 'approved'))`,
           hostsPending: sql<number>`(SELECT count(*)::int FROM host_request WHERE status = 'pending')`,
           gazetteReportsOpen: sql<number>`(SELECT count(*)::int FROM circle_report WHERE status IN ('pending', 'open'))`,
