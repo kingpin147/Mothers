@@ -32,8 +32,6 @@ export default function AdminEditEventPage() {
   const [minToConfirm, setMinToConfirm] = useState("");
   const [memberPlaces, setMemberPlaces] = useState("");
   const [creditCost, setCreditCost] = useState("");
-  const [memberCredits, setMemberCredits] = useState("");
-  const [nonMemberCredits, setNonMemberCredits] = useState("");
   const [cancellationWindowHours, setCancellationWindowHours] = useState("24");
   const [bookingCutoffHours, setBookingCutoffHours] = useState("3");
   const [planOnly, setPlanOnly] = useState(false);
@@ -148,18 +146,13 @@ export default function AdminEditEventPage() {
         setMinToConfirm(ev.minToConfirm?.toString() || "");
         setMemberPlaces(ev.capacityMember?.toString() || "");
         
-        const rawCost = ev.creditCost !== undefined && ev.creditCost !== null ? ev.creditCost : (ev.memberCredits ?? 0);
-        const nonMemberRaw = ev.nonMemberCredits !== undefined && ev.nonMemberCredits !== null ? ev.nonMemberCredits : rawCost;
+        const rawCost = ev.creditCost !== undefined && ev.creditCost !== null ? ev.creditCost : 0;
         if (rawCost === 0 || ev.isFreeWalk) {
           setFreeEvent(true);
           setCreditCost("");
-          setMemberCredits("");
-          setNonMemberCredits("");
         } else {
           setFreeEvent(false);
           setCreditCost(rawCost.toString());
-          setMemberCredits(rawCost.toString());
-          setNonMemberCredits(nonMemberRaw.toString());
         }
         if (ev.cancellationWindowHours !== undefined && ev.cancellationWindowHours !== null) {
           const val = ev.cancellationWindowHours.toString();
@@ -751,8 +744,6 @@ export default function AdminEditEventPage() {
                     value={freeEvent ? "" : creditCost}
                     onChange={(e) => {
                       setCreditCost(e.target.value);
-                      setMemberCredits(e.target.value);
-                      setNonMemberCredits(e.target.value);
                     }}
                     placeholder={freeEvent ? "0 (Free event)" : "e.g. 15"}
                     disabled={freeEvent}

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "My Account — The Mothers Barcelona",
+  title: "My Account — The Mothers",
   description:
-    "Manage your membership, view your credit ledger, update personal details, and explore upcoming bookings in The Mothers Barcelona member account.",
+    "Manage your membership, view your credit ledger, update personal details, and explore upcoming bookings in The Mothers member account.",
   robots: {
     index: false,
     follow: false,

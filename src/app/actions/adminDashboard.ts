@@ -400,14 +400,11 @@ export async function getAdminDashboardMetrics() {
         if (log.before && log.after) {
           const changes: string[] = [];
           const keyMap: Record<string, string> = {
-            joining_fee_cents: "Joining fee",
-            opening_monthly_price_cents: "Opening monthly price",
-            standard_monthly_price_cents: "Standard monthly price",
-            quarterly_fee_cents: "Quarterly fee",
-            monthly_grant_credits: "Monthly credits grant",
+            member_monthly_cents: "Monthly price",
+            member_annual_cents: "Annual fee",
+            annual_credits: "Annual credits grant",
             rollover_cap_credits: "Rollover ceiling",
             referral_bonus_credits: "Godmother join bonus",
-            godmother_three_month_bonus: "Godmother 3-month bonus",
             pause_allowance_months: "Annual pause allowance",
           };
 

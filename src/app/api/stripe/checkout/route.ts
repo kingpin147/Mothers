@@ -135,7 +135,7 @@ export async function POST(req: Request) {
 
       // Tech Brief §17: Monthly €6.99 (699 cents), Annual €69.00 (6900 cents)
       const monthlyPrice = (clubSettings as any).memberMonthly ?? clubSettings.monthlyFeeCents ?? 699;
-      const annualPrice = (clubSettings as any).memberAnnual ?? clubSettings.quarterlyFeeCents ?? 6900;
+      const annualPrice = (clubSettings as any).memberAnnual ?? clubSettings.annualFeeCents ?? 6900;
 
       if (!memberRecord) {
         const [newMem] = await db

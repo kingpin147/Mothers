@@ -15,7 +15,6 @@ const GREEN = "#3f6604";
 /* Which public pages quote each figure — shown in the review step so nobody
    changes a price without seeing what has to be rewritten. */
 const QUOTED_PAGES: Record<string, [string, string]> = {
-  joiningFee: ["Joining fee (€)", "Membership, Payment, FAQ, Legal §02"],
   monthlyFee: ["Membership · monthly (€)", "Home, Membership, Payment, FAQ, Legal §02"],
   memberAnnual: ["Membership · annual (€)", "Membership, Payment, FAQ, Legal §02"],
   nonMemberWalkCredits: ["Default non-member price when the member price is 0 (credits)", "Events, FAQ"],
@@ -27,8 +26,8 @@ const QUOTED_PAGES: Record<string, [string, string]> = {
   releaseDeadlineHours: ["Release deadline (hours before)", "Events, FAQ, Legal §05"],
   godmotherBonusReferrer: ["Godmother bonus (credits)", "Godmother, Membership, FAQ"],
   pauseAllowanceMonths: ["Pause allowance (months per year)", "FAQ, Account, Legal §07"],
-  pinnedCircleTag: ["Pinned tag", "La Gazette"],
-  blockedCircleTags: ["Blocked tags", "La Gazette"],
+  pinnedCircleTag: ["Pinned tag", "The Forum"],
+  blockedCircleTags: ["Blocked tags", "The Forum"],
 };
 
 interface SettingsClientProps {
@@ -40,10 +39,9 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
   const [cfg, setCfg] = useState<Record<string, any>>({
     membershipLive: initialSettings.membershipLive ?? false,
     expectedLaunch: initialSettings.expectedLaunch ?? "2027-01-06",
-    priceDisplay: initialSettings.priceDisplay ?? "single",
 
     monthlyFee: Math.round((initialSettings.memberMonthly ?? initialSettings.monthlyFeeCents ?? 699) / 100),
-    memberAnnual: Math.round((initialSettings.memberAnnual ?? initialSettings.quarterlyFeeCents ?? 6900) / 100),
+    memberAnnual: Math.round((initialSettings.memberAnnual ?? 6900) / 100),
 
     nonMemberWalkCredits: initialSettings.nonMemberWalkCredits ?? 3,
     nonMemberMarkup: initialSettings.nonMemberMarkup ?? 1.5,
@@ -129,17 +127,15 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
       setCfg((prev) => ({
         ...prev,
         membershipLive: targetLive,
-        priceDisplay: targetLive && liveDual ? "dual" : targetLive ? prev.priceDisplay : "single",
       }));
       setSnapshot((prev) => ({
         ...prev,
         membershipLive: targetLive,
-        priceDisplay: targetLive && liveDual ? "dual" : targetLive ? prev.priceDisplay : "single",
       }));
       setLiveAsk(false);
       setFlash(
         targetLive
-          ? "Membership plan is now LIVE. Dual pricing and subscriptions enabled."
+          ? "Membership plan is now LIVE. Subscriptions enabled."
           : "Membership switched to Pre-launch mode."
       );
     } else {

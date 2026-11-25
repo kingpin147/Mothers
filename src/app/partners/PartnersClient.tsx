@@ -45,6 +45,7 @@ const APPLY_STRINGS = {
 export default function PartnersClient({ initialPartners }: { initialPartners: any[] }) {
   const [lang, setLang] = useState<Locale>("en");
   const [activeUmbrella, setActiveUmbrella] = useState<string>("all");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const partners = initialPartners || [];
 
   const [formName, setFormName] = useState("");
@@ -203,20 +204,38 @@ export default function PartnersClient({ initialPartners }: { initialPartners: a
                   gap: "12px",
                 }}
               >
-                <span
-                  style={{
-                    fontSize: "11px",
-                    letterSpacing: "0.04em",
-                    color: "var(--color-accent)",
-                    border: "1px solid rgba(123, 31, 44, 0.3)",
-                    borderRadius: "10px",
-                    padding: "3px 10px",
-                    alignSelf: "flex-start",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {partner.specialty}
-                </span>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      letterSpacing: "0.04em",
+                      color: "var(--color-accent)",
+                      border: "1px solid rgba(123, 31, 44, 0.3)",
+                      borderRadius: "10px",
+                      padding: "3px 10px",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {partner.specialty}
+                  </span>
+                  {partner.tier === "partner" && (
+                    <span
+                      style={{
+                        fontSize: "10.5px",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        color: "#7b1f2c",
+                        backgroundColor: "rgba(123, 31, 44, 0.08)",
+                        borderRadius: "10px",
+                        padding: "3px 8px",
+                        fontWeight: 600,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      Partner
+                    </span>
+                  )}
+                </div>
 
                 <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "20px", margin: 0 }}>
                   {partner.name}
@@ -234,20 +253,46 @@ export default function PartnersClient({ initialPartners }: { initialPartners: a
                     {partner.offerForMembers}
                   </p>
                   {partner.discountCode && (
-                    <p style={{ fontSize: "12px", margin: "4px 0 0", color: "rgba(57,41,42,0.6)" }}>
-                      Code: {partner.discountCode}
-                    </p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
+                      <span style={{ fontSize: "12px", color: "rgba(57,41,42,0.8)", fontFamily: "monospace", backgroundColor: "#f5f0ea", padding: "2px 6px", borderRadius: "4px", border: "1px solid rgba(57,41,42,0.12)" }}>
+                        {partner.discountCode}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (navigator.clipboard) {
+                            navigator.clipboard.writeText(partner.discountCode);
+                            setCopiedId(partner.id);
+                            setTimeout(() => setCopiedId(null), 2000);
+                          }
+                        }}
+                        style={{
+                          fontSize: "12px",
+                          background: "none",
+                          border: "none",
+                          color: copiedId === partner.id ? "#3b5e04" : "var(--color-accent)",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          padding: 0,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {copiedId === partner.id
+                          ? (lang === "es" ? "¡Copiado!" : lang === "fr" ? "Copié !" : "Copied!")
+                          : (lang === "es" ? "Copiar código" : lang === "fr" ? "Copier le code" : "Copy code")}
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                {linkUrl && (
+                {(partner.bookingUrl || linkUrl) && (
                   <a
-                    href={linkUrl}
+                    href={partner.bookingUrl || linkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ fontSize: "13px", color: "var(--color-accent)", fontWeight: 600, textDecoration: "none" }}
+                    style={{ fontSize: "13.5px", color: "var(--color-accent)", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "4px" }}
                   >
-                    {websiteLabel} ↗
+                    {lang === "es" ? "Reservar con ellas →" : lang === "fr" ? "Réserver avec elles →" : "Book with them →"}
                   </a>
                 )}
               </div>

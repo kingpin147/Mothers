@@ -508,7 +508,7 @@ export async function grantMonthlySubscriptionCredits(memberId: string, sourcePa
   const mem = await txOrDb.query.member.findFirst({ where: eq(member.id, memberId) });
   if (!mem) return { granted: 0, capped: false };
   // Tech Brief §17 / A-01: Annual plan grants annualCredits (default 10) once per annual invoice; Monthly plan grants 0 credits
-  const isAnnual = mem.billingFrequency === "annual" || mem.billingFrequency === "yearly" || mem.billingFrequency === "quarterly";
+  const isAnnual = mem.billingFrequency === "annual" || mem.billingFrequency === "yearly";
   const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
   const clubSettings = await getPublicClubSettings();
   const count = isAnnual ? (clubSettings.annualCredits ?? 10) : 0;

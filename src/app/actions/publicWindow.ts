@@ -142,7 +142,7 @@ export async function getPublicPartners() {
     .select()
     .from(partner)
     .where(inArray(partner.status, ["active", "Live", "live", "Ending soon"]))
-    .orderBy(desc(partner.createdAt));
+    .orderBy(desc(partner.recommendationCount), desc(partner.createdAt));
 
   return { success: true, partners };
 }

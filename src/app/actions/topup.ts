@@ -51,7 +51,7 @@ export async function createTopUpCheckoutSession(data: {
             currency: "eur",
             product_data: {
               name: `THE Mothers — ${creditAmount} Event Credits`,
-              description: `€${formattedUnitPrice} / credit · 6-month validity · THE Mothers Barcelona`,
+              description: `€${formattedUnitPrice} / credit · 6-month validity · THE Mothers`,
             },
             unit_amount: unitAmount,
           },

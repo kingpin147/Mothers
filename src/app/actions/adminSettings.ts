@@ -41,41 +41,27 @@ export async function getPublicClubSettings() {
     }
     return {
       membershipLive: Boolean(settingsMap["membership_live"] ?? true),
-      priceDisplay: "single" as const,
       topUpPriceCents: Number(settingsMap["top_up_price_cents"] ?? 200),
       expectedLaunch: settingsMap["expected_launch"] ?? "2027-01-06",
-      joiningFeeCents: Number(settingsMap["joining_fee_cents"] ?? 0),
       monthlyFeeCents: Number(settingsMap["member_monthly_cents"] ?? settingsMap["monthly_fee_cents"] ?? 699),
-      annualFeeCents: Number(settingsMap["member_annual_cents"] ?? settingsMap["quarterly_fee_cents"] ?? 6900),
-      quarterlyFeeCents: Number(settingsMap["member_annual_cents"] ?? settingsMap["quarterly_fee_cents"] ?? 6900),
+      annualFeeCents: Number(settingsMap["member_annual_cents"] ?? 6900),
       memberMonthly: Number(settingsMap["member_monthly_cents"] ?? 699),
       memberAnnual: Number(settingsMap["member_annual_cents"] ?? 6900),
       annualCredits: Number(settingsMap["annual_credits"] ?? 10),
       referralBonusCredits: Number(settingsMap["referral_bonus_credits"] ?? 5),
-      monthlyCreditsGranted: 0,
-      quarterlyCreditsGranted: Number(settingsMap["annual_credits"] ?? 10),
-      monthlyGrantCredits: 0,
-      quarterlyGrantCredits: Number(settingsMap["annual_credits"] ?? 10),
       creditLifeMonths: Number(settingsMap["credit_life_months"] ?? 6),
     };
   } catch {
     return {
       membershipLive: true,
-      priceDisplay: "single" as const,
       topUpPriceCents: 200,
       expectedLaunch: "2027-01-06",
-      joiningFeeCents: 0,
       monthlyFeeCents: 699,
       annualFeeCents: 6900,
-      quarterlyFeeCents: 6900,
       memberMonthly: 699,
       memberAnnual: 6900,
       annualCredits: 10,
       referralBonusCredits: 5,
-      monthlyCreditsGranted: 0,
-      quarterlyCreditsGranted: 10,
-      monthlyGrantCredits: 0,
-      quarterlyGrantCredits: 10,
       creditLifeMonths: 6,
     };
   }
@@ -99,19 +85,14 @@ export async function getClubSettings() {
     settings: {
       membershipLive: settingsMap["membership_live"] ?? false,
       expectedLaunch: settingsMap["expected_launch"] ?? "2027-01-06",
-      priceDisplay: settingsMap["price_display"] ?? "single",
 
-      joiningFeeCents: settingsMap["joining_fee_cents"] ?? 0,
       monthlyFeeCents: settingsMap["member_monthly_cents"] ?? settingsMap["monthly_fee_cents"] ?? 699,
-      quarterlyFeeCents: settingsMap["member_annual_cents"] ?? settingsMap["quarterly_fee_cents"] ?? 6900,
       memberMonthly: settingsMap["member_monthly_cents"] ?? 699,
       memberAnnual: settingsMap["member_annual_cents"] ?? 6900,
       annualCredits: settingsMap["annual_credits"] ?? 10,
 
       nonMemberMarkup: settingsMap["non_member_markup"] ?? 1.5,
 
-      monthlyGrantCredits: settingsMap["monthly_grant_credits"] ?? 20,
-      quarterlyGrantCredits: settingsMap["quarterly_grant_credits"] ?? 60,
       creditLifeMonths: settingsMap["credit_life_months"] ?? 6,
       rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? null,
       expiryWarningDays: settingsMap["expiry_warning_days"] ?? 30,
@@ -150,17 +131,12 @@ export async function saveClubSettingsAudit(
   const keyMapping: Record<string, string> = {
     membershipLive: "membership_live",
     expectedLaunch: "expected_launch",
-    priceDisplay: "price_display",
-    joiningFee: "joining_fee_cents",
     monthlyFee: "monthly_fee_cents",
-    quarterlyFee: "quarterly_fee_cents",
     memberMonthly: "member_monthly_cents",
     memberAnnual: "member_annual_cents",
     annualCredits: "annual_credits",
     nonMemberWalkCredits: "non_member_walk_credits",
     nonMemberMarkup: "non_member_markup",
-    monthlyCredits: "monthly_grant_credits",
-    quarterlyCredits: "quarterly_grant_credits",
     creditExpiryMonths: "credit_life_months",
     rolloverCeiling: "rollover_cap_credits",
     expiryWarningDays: "expiry_warning_days",
@@ -179,7 +155,7 @@ export async function saveClubSettingsAudit(
   for (const [k, v] of Object.entries(settingsPatch)) {
     const dbKey = keyMapping[k] || k;
     let dbValue = v;
-    if (k === "joiningFee" || k === "monthlyFee" || k === "quarterlyFee" || k === "topUpCreditPrice") {
+    if (k === "monthlyFee" || k === "memberMonthly" || k === "memberAnnual" || k === "topUpCreditPrice") {
       if (typeof v === "number") dbValue = v * 100;
     }
     entriesToUpdate.push({ key: dbKey, value: dbValue });

@@ -590,7 +590,7 @@ export async function createCirclePost(data: {
       throw new Error("Your account is currently paused.");
     }
     if (eligibility.reason === "membership_required") {
-      throw new Error(eligibility.message || "You have used your 3 free La Gazette posts/replies. Become a member for unlimited conversations.");
+      throw new Error(eligibility.message || "You have used your 3 free The Forum posts/replies. Become a member for unlimited conversations.");
     }
     throw new Error("You are not eligible to post.");
   }
@@ -694,7 +694,7 @@ export async function createCirclePost(data: {
 
   const isAnon = data.isAnonymous ?? false;
   const authorName = isAnon
-    ? (realArea ? `A mother in ${realArea}` : "A mother in Barcelona")
+    ? (realArea ? `A mother in ${realArea}` : "A mother")
     : `${authorPerson?.firstName || "Mother"} ${authorPerson?.lastName ? authorPerson.lastName[0] + "." : ""}`.trim();
   const initial = isAnon ? "·" : (authorPerson?.firstName ? authorPerson.firstName[0].toUpperCase() : "M");
 
@@ -743,7 +743,7 @@ export async function createCircleReply(postId: string, body: string, isAnonymou
       throw new Error("Your account is currently paused.");
     }
     if (eligibility.reason === "membership_required") {
-      throw new Error(eligibility.message || "You have used your 3 free posts/replies in La Gazette. Become a member for unlimited conversations.");
+      throw new Error(eligibility.message || "You have used your 3 free posts/replies in The Forum. Become a member for unlimited conversations.");
     }
     throw new Error("You are not eligible to reply.");
   }

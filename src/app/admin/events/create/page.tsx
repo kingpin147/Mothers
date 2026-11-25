@@ -30,8 +30,6 @@ export default function AdminCreateEventPage() {
   const [minToConfirm, setMinToConfirm] = useState("");
   const [memberPlaces, setMemberPlaces] = useState("");
   const [creditCost, setCreditCost] = useState("");
-  const [memberCredits, setMemberCredits] = useState("");
-  const [nonMemberCredits, setNonMemberCredits] = useState("");
   const [cancellationWindowHours, setCancellationWindowHours] = useState("24");
   const [bookingCutoffHours, setBookingCutoffHours] = useState("3");
   const [planOnly, setPlanOnly] = useState(false);
@@ -64,7 +62,6 @@ export default function AdminCreateEventPage() {
   const [langs, setLangs] = useState<string[]>(["English"]);
   const [stages, setStages] = useState<string[]>(["Babies"]);
   const [childcare, setChildcare] = useState<string>("child_inclusive");
-  const [nonMemberOpensAt, setNonMemberOpensAt] = useState("");
   const [freeEvent, setFreeEvent] = useState(false);
   const [noCeiling, setNoCeiling] = useState(false);
   const [noMinimum, setNoMinimum] = useState(false);
@@ -701,8 +698,6 @@ export default function AdminCreateEventPage() {
                     value={freeEvent ? "" : creditCost}
                     onChange={(e) => {
                       setCreditCost(e.target.value);
-                      setMemberCredits(e.target.value);
-                      setNonMemberCredits(e.target.value);
                     }}
                     placeholder={freeEvent ? "0 (Free event)" : "e.g. 15"}
                     disabled={freeEvent}
