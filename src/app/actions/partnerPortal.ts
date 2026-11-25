@@ -213,7 +213,7 @@ export async function getEventAttendeesAction(eventId: string) {
     .select({
       id: booking.id,
       firstName: person.firstName,
-      stage: person.stage,
+      profileData: person.profileData,
       status: booking.status,
     })
     .from(booking)
@@ -225,11 +225,17 @@ export async function getEventAttendeesAction(eventId: string) {
       )
     );
 
-  return bookings.map((b) => ({
-    id: b.id,
-    name: b.firstName || "Mother",
-    stage: b.stage || "Babies",
-  }));
+  return bookings.map((b) => {
+    const rawStages = b.profileData?.stages;
+    const stageLabel = (rawStages && rawStages.length > 0)
+      ? rawStages.map((s: string) => s.charAt(0).toUpperCase() + s.slice(1)).join(", ")
+      : "Babies";
+    return {
+      id: b.id,
+      name: b.firstName || "Mother",
+      stage: stageLabel,
+    };
+  });
 }
 
 export async function cancelCommunityEventAction(eventId: string, reason: string) {
@@ -263,7 +269,7 @@ export async function cancelCommunityEventAction(eventId: string, reason: string
     .update(event)
     .set({
       status: "cancelled",
-      cancellationReason: reason.trim(),
+      cancelReason: reason.trim(),
       updatedAt: new Date(),
     })
     .where(eq(event.id, eventId));
@@ -281,7 +287,7 @@ export async function cancelCommunityEventAction(eventId: string, reason: string
   for (const b of bookedUsers) {
     if (b.creditsCharged > 0) {
       const { refundPersonCredits } = await import("@/lib/ledger");
-      await refundPersonCredits(b.personId, b.creditsCharged, "event_cancellation", eventId);
+      await refundPersonCredits(b.personId, b.creditsCharged, null);
     }
     await db
       .update(booking)
