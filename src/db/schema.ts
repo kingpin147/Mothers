@@ -159,13 +159,13 @@ export const member = pgTable(
     personId: text("person_id").notNull().references(() => person.id, { onDelete: "cascade" }).unique(),
     status: memberStatusEnum("status").default("applicant").notNull(),
     tier: text("tier").default("circle").notNull(), // 'opening_circle', 'circle', 'inner_circle'
-    billingFrequency: text("billing_frequency").default("monthly").notNull(), // 'monthly', 'quarterly'
+    billingFrequency: text("billing_frequency").default("monthly").notNull(), // 'monthly', 'annual'
     stage: text("stage"), // e.g. pregnancy, 0-1yr, 1-3yr, 4-7yr, 8-10yr
     neighbourhood: text("neighbourhood"),
     children: jsonb("children").$type<Array<{ birthMonth: number; birthYear: number }>>().default([]),
     joinedAt: timestamp("joined_at", { withTimezone: true }),
-    monthlyPriceCents: integer("monthly_price_cents").default(3900).notNull(),
-    priceCents: integer("price_cents").default(3900).notNull(),
+    monthlyPriceCents: integer("monthly_price_cents").default(699).notNull(),
+    priceCents: integer("price_cents").default(699).notNull(),
     priceLockedUntil: timestamp("price_locked_until", { withTimezone: true }),
     joiningFeePaidCents: integer("joining_fee_paid_cents").default(0).notNull(),
     stripeCustomerId: text("stripe_customer_id"),
@@ -299,7 +299,6 @@ export const event = pgTable(
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     cancelReason: text("cancel_reason"),
     thresholdAlertSentAt: timestamp("threshold_alert_sent_at", { withTimezone: true }),
-    nonMemberOpensAt: timestamp("non_member_opens_at", { withTimezone: true }),
     decisionAt: timestamp("decision_at", { withTimezone: true }),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     languages: text("languages").array(),
@@ -339,6 +338,8 @@ export const booking = pgTable(
     pendingReturnCredits: integer("pending_return_credits").default(0).notNull(),
     pendingReturnState: text("pending_return_state").default("none").notNull(), // 'none', 'awaiting_replacement', 'settled_returned', 'settled_unfilled'
     moneyPaidCents: integer("money_paid_cents").default(0).notNull(),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
     passId: text("pass_id"),
     bookedAt: timestamp("booked_at", { withTimezone: true }).defaultNow().notNull(),
     releasedAt: timestamp("released_at", { withTimezone: true }),
@@ -1077,6 +1078,7 @@ export const community = pgTable(
     stripeCardOnFile: boolean("stripe_card_on_file").default(false).notNull(),
     inviteCode: text("invite_code").notNull().unique(), // e.g. "GRACIA" -> /join/GRACIA
     approved: boolean("approved").default(false).notNull(),
+    isStudioPlan: boolean("is_studio_plan").default(false).notNull(),
     publishesWithoutReview: boolean("publishes_without_review").default(false).notNull(),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
     approvedByAdminId: text("approved_by_admin_id").references(() => adminUser.id),

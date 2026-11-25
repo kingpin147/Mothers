@@ -129,3 +129,25 @@ export async function updateCommunityCommissionAction(input: {
 
   return { success: true };
 }
+
+export async function toggleCommunityStudioPlanAction(input: {
+  communityId: string;
+  isStudioPlan: boolean;
+}) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+  const allowed = ["owner", "manager", "super_admin"];
+  if (!role || !allowed.includes(role)) {
+    throw new Error("UNAUTHORIZED");
+  }
+
+  await db
+    .update(community)
+    .set({
+      isStudioPlan: input.isStudioPlan,
+      updatedAt: new Date(),
+    })
+    .where(eq(community.id, input.communityId));
+
+  return { success: true };
+}

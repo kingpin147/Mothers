@@ -358,30 +358,7 @@ export async function setMembershipLiveMode(live: boolean, switchDualPrice: bool
     action: live ? "activate_membership_plan" : "deactivate_membership_plan",
     entity: "setting",
     entityId: "membership_live",
-    after: { membership_live: live, price_display: switchDualPrice ? "dual" : "single" },
-  });
-
-  return { success: true };
-}
-
-export async function setPriceDisplayMode(mode: "single" | "dual") {
-  const { adminId } = await verifyAdmin();
-
-  await db
-    .insert(setting)
-    .values({ key: "price_display", value: mode })
-    .onConflictDoUpdate({
-      target: setting.key,
-      set: { value: mode, updatedAt: new Date() },
-    });
-
-  await db.insert(auditLog).values({
-    actorId: adminId,
-    actorType: "admin",
-    action: "set_price_display_mode",
-    entity: "setting",
-    entityId: "price_display",
-    after: { price_display: mode },
+    after: { membership_live: live },
   });
 
   return { success: true };

@@ -135,7 +135,7 @@ export async function getProReviews(proId: string) {
       id: r.id,
       text: r.text,
       author: r.anon
-        ? `A mother in ${r.neighbourhood || "Barcelona"}`
+        ? (r.neighbourhood ? `A mother in ${r.neighbourhood}` : "A mother")
         : `${r.firstName || "A mother"}, ${r.neighbourhood || ""}`.trim().replace(/,\s*$/, ""),
       createdAt: r.createdAt,
     }));

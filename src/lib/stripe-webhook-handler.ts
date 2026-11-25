@@ -104,6 +104,26 @@ export async function handleStripeWebhook(req: Request) {
             });
           }
         }
+
+        // 3. Paid Community Event Booking (N-01 / §11)
+        else if (type === "community_event_booking") {
+          const eventId = meta.eventId;
+          const personId = meta.personId;
+          const paymentIntentId =
+            typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : session.payment_intent?.id || null;
+
+          if (eventId && personId) {
+            await handleCommunityEventCheckout({
+              eventId,
+              personId,
+              session,
+              paymentIntentId,
+              webhookEventId: event.id,
+            });
+          }
+        }
         break;
       }
 
@@ -334,26 +354,13 @@ async function handleTopUpCheckout({
         });
         const isMember = !!mem;
 
-        // Check if non-members are allowed if user is not a member (P2-10 fix)
-        if (clubSettings.membershipLive && !isMember) {
-          if (ev.nonMemberOpensAt && new Date() < new Date(ev.nonMemberOpensAt)) {
-            console.warn(`[Auto-Booking] Event ${eventId} embargo active for non-members. Keeping credits in wallet.`);
-            return;
-          }
-          if (ev.nonMemberCredits === null) {
-            console.warn(`[Auto-Booking] Event ${eventId} is member-only. Keeping credits in wallet.`);
-            return;
-          }
+        // Check if event is plan-only and membership is live
+        if (ev.planOnly && clubSettings.membershipLive && !isMember) {
+          console.warn(`[Auto-Booking] Event ${eventId} is plan-only. Keeping credits in wallet.`);
+          return;
         }
 
-        let requiredCredits = 0;
-        if (!clubSettings.membershipLive) {
-          requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
-        } else if (isMember) {
-          requiredCredits = ev.memberCredits ?? ev.creditCost;
-        } else {
-          requiredCredits = ev.nonMemberCredits ?? ev.creditCost;
-        }
+        const requiredCredits = ev.isFreeWalk ? 0 : (ev.creditCost ?? 0);
 
         const balance = await getPersonWalletBalance(personId, tx);
         if (balance < requiredCredits) {
@@ -729,6 +736,143 @@ async function handleMembershipCheckout({
       payload: session as any,
     }).onConflictDoNothing();
   });
+}
+
+async function handleCommunityEventCheckout({
+  eventId,
+  personId,
+  session,
+  paymentIntentId,
+  webhookEventId,
+}: {
+  eventId: string;
+  personId: string;
+  session: any;
+  paymentIntentId: string | null;
+  webhookEventId: string;
+}) {
+  await db.transaction(async (tx) => {
+    const ev = await tx.query.event.findFirst({ where: eq(eventTable.id, eventId) });
+    if (!ev) return;
+    const personRecord = await tx.query.person.findFirst({ where: eq(person.id, personId) });
+    if (!personRecord) return;
+
+    const existingBooking = await tx.query.booking.findFirst({
+      where: and(
+        eq(booking.eventId, eventId),
+        eq(booking.personId, personId),
+        sql`status IN ('confirmed', 'held')`
+      ),
+    });
+
+    if (existingBooking) {
+      await tx
+        .update(booking)
+        .set({
+          status: "confirmed",
+          moneyPaidCents: session.amount_total || 0,
+          stripePaymentIntentId: paymentIntentId,
+          stripeCheckoutSessionId: session.id,
+          updatedAt: new Date(),
+        })
+        .where(eq(booking.id, existingBooking.id));
+    } else {
+      await tx.insert(booking).values({
+        eventId,
+        personId,
+        kind: "non_member",
+        status: "confirmed",
+        creditsCharged: 0,
+        moneyPaidCents: session.amount_total || 0,
+        stripePaymentIntentId: paymentIntentId,
+        stripeCheckoutSessionId: session.id,
+        bookedAt: new Date(),
+      });
+    }
+
+    await tx.insert(payment).values({
+      personId,
+      purpose: "community_event" as any,
+      amountCents: session.amount_total || 0,
+      currency: "EUR",
+      status: "succeeded",
+      stripePaymentIntentId: paymentIntentId,
+      occurredAt: new Date(),
+    }).onConflictDoNothing();
+
+    await tx.insert(auditLog).values({
+      actorId: personId,
+      actorType: "non_member",
+      action: "book_community_event_paid",
+      entity: "booking",
+      entityId: eventId,
+      after: {
+        amountCents: session.amount_total,
+        paymentIntentId,
+        sessionId: session.id,
+      },
+    });
+
+    await tx.insert(stripeEvent).values({
+      id: webhookEventId,
+      type: "checkout.session.completed",
+      payload: session as any,
+    }).onConflictDoNothing();
+  });
+
+  try {
+    const personRecord = await db.query.person.findFirst({ where: eq(person.id, personId) });
+    const ev = await db.query.event.findFirst({ where: eq(eventTable.id, eventId) });
+    if (personRecord && ev) {
+      const origin = getAppUrl();
+      const isEs = personRecord.locale === "es";
+      const { formatEventDate, formatEventTime } = await import("@/lib/date-utils");
+      const eventDateFormatted = formatEventDate(ev.startsAt, personRecord.locale, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      const eventTimeFormatted = formatEventTime(ev.startsAt, personRecord.locale);
+
+      const htmlContent = generateBookingConfirmedEmailHtml({
+        firstName: personRecord.firstName || "Friend",
+        eventTitle: ev.title,
+        eventDateFormatted,
+        eventTimeFormatted,
+        venueName: ev.venueName || undefined,
+        meetingPoint: ev.meetingPoint || ev.venueName || undefined,
+        creditsCharged: 0,
+        startsAt: ev.startsAt,
+        endsAt: ev.endsAt,
+        eventId,
+        appUrl: origin,
+        isEs,
+      });
+
+      const icsString = generateIcsString({
+        title: ev.title,
+        description: `The Mothers gathering: ${ev.title}. Meeting point: ${ev.meetingPoint || ev.venueName || "The Mothers"}`,
+        location: ev.meetingPoint || ev.venueName || "The Mothers",
+        startsAt: ev.startsAt,
+        endsAt: ev.endsAt,
+        url: `${origin}/events/${eventId}`,
+      });
+
+      await queueAndSendEmail({
+        personId,
+        toEmail: personRecord.email,
+        toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Member",
+        templateKey: "booking_confirmed",
+        dedupeKey: `booking_confirmed_${eventId}_${personId}`,
+        subject: isEs ? `Tu plaza está reservada — ${ev.title}` : `You're booked — ${ev.title}`,
+        htmlContent,
+        isTransactional: true,
+      });
+    }
+  } catch (emailErr) {
+    console.warn("Failed to send booking confirmation email for paid community event:", emailErr);
+  }
 }
 
 async function handleInvoicePaymentSucceeded({

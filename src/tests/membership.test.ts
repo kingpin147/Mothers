@@ -1,31 +1,30 @@
 import { describe, it, expect, vi } from 'vitest';
 
 describe('Membership & Intake System', () => {
-  it('Standard membership pricing and joining fee validation', () => {
-    const monthlyRate = 39;
-    const quarterlyRate = 99;
-    const quarterlyMonthlyEquivalent = Math.round(quarterlyRate / 3);
-    const joiningFee = 19;
+  it('Standard membership pricing and zero joining fee validation (v5 model)', () => {
+    const monthlyRate = 6.99;
+    const annualRate = 69;
+    const joiningFee = 0;
 
-    expect(monthlyRate).toBe(39);
-    expect(quarterlyMonthlyEquivalent).toBe(33);
-    expect(joiningFee).toBe(19);
+    expect(monthlyRate).toBe(6.99);
+    expect(annualRate).toBe(69);
+    expect(joiningFee).toBe(0);
 
     // Initial first payment calculation
     const totalFirstMonth = monthlyRate + joiningFee;
-    const totalFirstQuarter = quarterlyRate + joiningFee;
+    const totalFirstAnnual = annualRate + joiningFee;
 
-    expect(totalFirstMonth).toBe(58);
-    expect(totalFirstQuarter).toBe(118);
+    expect(totalFirstMonth).toBe(6.99);
+    expect(totalFirstAnnual).toBe(69);
   });
 
   it('Standard membership rates validation', () => {
     const rates = {
-      standard: { monthly: 39, quarterly: 99 },
+      standard: { monthly: 6.99, annual: 69 },
     };
 
-    expect(rates.standard.monthly).toBe(39);
-    expect(rates.standard.quarterly).toBe(99);
+    expect(rates.standard.monthly).toBe(6.99);
+    expect(rates.standard.annual).toBe(69);
   });
 
   it('Calculates remaining hours on 72h payment holds', () => {

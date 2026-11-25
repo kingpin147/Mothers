@@ -48,6 +48,8 @@ export interface PublicEvent {
   meetingPoint?: string | null;
   googleMapsUrl?: string | null;
   neighbourhood?: string | null;
+  communityId?: string | null;
+  priceCents?: number | null;
   partnerName?: string | null;
   partnerSlug?: string | null;
   hostPersonName?: string | null;
@@ -810,7 +812,7 @@ export function TopUpModal({
 
   if (!ev) return null;
 
-  const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
+  const viewerCost = ev.creditCost ?? 0;
   const shortfall = viewerCost - creditBalance;
   if (shortfall <= 0) return null;
 
@@ -998,7 +1000,7 @@ export function BookingSuccessModal({
 }) {
   const displayTitle = getEventDisplayTitle(ev, lang);
   const formattedDate = formatEventDate(ev.startsAt, lang, ev.endsAt);
-  const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
+  const viewerCost = ev.creditCost ?? 0;
   const isFreeWalk = viewerCost === 0 || (ev.isFreeWalk && isMember);
 
   const isGathering =
@@ -1411,7 +1413,7 @@ function EventCard({
   const closesAtStr = new Date(cutoffMs).toLocaleTimeString(lang === "es" ? "es-ES" : lang === "fr" ? "fr-FR" : "en-GB", { hour: "2-digit", minute: "2-digit" });
 
   const catInfo = getCategoryInfo(ev, lang);
-  const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
+  const viewerCost = ev.creditCost ?? 0;
   const isViewerFree = viewerCost === 0 || (ev.isFreeWalk && isMember);
 
   const handleBookClick = () => {
@@ -2150,12 +2152,8 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
     try {
       const res = await bookEvent(ev.id);
       if (res.success) {
-        const isFree = ev.creditCost === 0 || (ev.isFreeWalk && (isMember || !isLive));
-        const chargedCost = isFree
-          ? 0
-          : (isLive
-              ? (isMember ? (ev.memberCredits ?? ev.creditCost ?? 0) : (ev.nonMemberCredits ?? ev.creditCost ?? 0))
-              : (ev.creditCost ?? 0));
+        const isFree = ev.creditCost === 0 || !!ev.isFreeWalk;
+        const chargedCost = isFree ? 0 : (ev.creditCost ?? 0);
         const newCredits = Math.max(0, currentCreditBalance - chargedCost);
         setCurrentCreditBalance(newCredits);
 
@@ -2324,7 +2322,7 @@ export function EventsCalendar({ events, categories, creditBalance = 0 }: Props)
   const filtered = eventsList.filter((ev) => {
     // 0. Free events only
     if (freeOnly) {
-      const viewerCost = isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost);
+      const viewerCost = ev.creditCost ?? 0;
       const isFree = viewerCost === 0 || (ev.isFreeWalk === true && isMember);
       if (!isFree) return false;
     }

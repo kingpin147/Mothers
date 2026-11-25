@@ -174,14 +174,71 @@ export async function connectStripeAccountAction() {
     return { success: false, error: "COMMUNITY_NOT_FOUND" };
   }
 
-  // Connect mock Stripe account ID for demo/UAT flow
-  const mockStripeId = `acct_mothers_${comm.slug.replace(/[^a-z0-9]/g, "").slice(0, 12)}`;
-  await db
-    .update(community)
-    .set({ stripeAccountId: mockStripeId, stripeCardOnFile: true })
-    .where(eq(community.id, comm.id));
+  try {
+    const { stripe } = await import("@/lib/stripe");
+    const { getAppUrl } = await import("@/lib/urls");
+    const origin = getAppUrl();
 
-  return { success: true, stripeAccountId: mockStripeId };
+    let accountId = comm.stripeAccountId;
+    if (!accountId || !accountId.startsWith("acct_")) {
+      const account = await stripe.accounts.create({
+        type: "express",
+        country: "ES",
+        email: comm.contactEmail || undefined,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        business_profile: {
+          name: comm.name,
+        },
+      });
+      accountId = account.id;
+      await db
+        .update(community)
+        .set({ stripeAccountId: accountId })
+        .where(eq(community.id, comm.id));
+    }
+
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${origin}/partner-portal?stripe_connect=refresh`,
+      return_url: `${origin}/partner-portal?stripe_connect=return`,
+      type: "account_onboarding",
+    });
+
+    return { success: true, url: accountLink.url, stripeAccountId: accountId };
+  } catch (err: any) {
+    console.error("connectStripeAccountAction error:", err);
+    return { success: false, error: err?.message || "Failed to create Stripe Connect link" };
+  }
+}
+
+export async function verifyStripeAccountStatusAction() {
+  const session = await auth();
+  const personId = (session?.user as any)?.personId || session?.user?.id;
+  if (!personId) return { success: false, error: "UNAUTHORIZED" };
+
+  const comm = await getCommunityForPerson(personId);
+  if (!comm || !comm.stripeAccountId || !comm.stripeAccountId.startsWith("acct_")) {
+    return { success: false, chargesEnabled: false };
+  }
+
+  try {
+    const { stripe } = await import("@/lib/stripe");
+    const account = await stripe.accounts.retrieve(comm.stripeAccountId);
+    const isReady = Boolean(account.charges_enabled && account.payouts_enabled);
+    if (comm.stripeCardOnFile !== isReady) {
+      await db
+        .update(community)
+        .set({ stripeCardOnFile: isReady })
+        .where(eq(community.id, comm.id));
+    }
+    return { success: true, chargesEnabled: isReady };
+  } catch (err: any) {
+    console.error("verifyStripeAccountStatusAction error:", err);
+    return { success: false, error: err?.message };
+  }
 }
 
 export async function getEventAttendeesAction(eventId: string) {
@@ -280,6 +337,8 @@ export async function cancelCommunityEventAction(eventId: string, reason: string
       bookingId: booking.id,
       personId: booking.personId,
       creditsCharged: booking.creditsCharged,
+      stripePaymentIntentId: booking.stripePaymentIntentId,
+      moneyPaidCents: booking.moneyPaidCents,
     })
     .from(booking)
     .where(and(eq(booking.eventId, eventId), eq(booking.status, "confirmed")));
@@ -289,9 +348,26 @@ export async function cancelCommunityEventAction(eventId: string, reason: string
       const { refundPersonCredits } = await import("@/lib/ledger");
       await refundPersonCredits(b.personId, b.creditsCharged, null);
     }
+    if (b.stripePaymentIntentId) {
+      try {
+        const { stripe } = await import("@/lib/stripe");
+        await stripe.refunds.create({
+          payment_intent: b.stripePaymentIntentId,
+          reverse_transfer: true,
+          refund_application_fee: true,
+        });
+      } catch (refundErr) {
+        console.error(`Refund failed for booking ${b.bookingId}:`, refundErr);
+      }
+    }
     await db
       .update(booking)
-      .set({ status: "cancelled", cancelledAt: new Date() })
+      .set({
+        status: "cancelled",
+        releaseReason: "community_cancelled",
+        cancelledAt: new Date(),
+        updatedAt: new Date(),
+      })
       .where(eq(booking.id, b.bookingId));
   }
 

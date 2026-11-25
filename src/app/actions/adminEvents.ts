@@ -185,13 +185,9 @@ export async function createAdminEvent(data: {
   decisionAt?: Date;
   publishedAt?: Date;
   targetStages?: string[];
-  memberCredits?: number;
-  nonMemberCredits?: number;
-  nonMemberCreditCost?: number;
   cancellationWindowHours?: number;
   childcare?: string;
   needsHost?: boolean;
-  nonMemberOpensAt?: Date | null;
   bookingCutoffHours?: number;
   planOnly?: boolean;
   imageId?: string | null;
@@ -231,8 +227,7 @@ export async function createAdminEvent(data: {
       safeDecisionAt = t7 > now ? t7 : new Date(Math.min(data.startsAt.getTime() - 3600000, Math.max(now.getTime() + 3600000, data.startsAt.getTime() - 2 * 86400000)));
     }
 
-    const memberCost = data.memberCredits !== undefined ? data.memberCredits : data.creditCost;
-    const nonMemberCost = data.nonMemberCredits !== undefined ? data.nonMemberCredits : (data.nonMemberCreditCost !== undefined ? data.nonMemberCreditCost : memberCost);
+    const singleCost = data.creditCost !== undefined ? data.creditCost : 0;
 
     const isTbc = data.neighbourhood === "To be confirmed";
     const venue = data.venueName?.trim() || (isTbc ? "To be confirmed" : "");
@@ -255,9 +250,9 @@ export async function createAdminEvent(data: {
         googleMapsUrl: data.googleMapsUrl?.trim() || null,
         startsAt: data.startsAt,
         endsAt: data.endsAt,
-        creditCost: memberCost,
-        memberCredits: memberCost,
-        nonMemberCredits: nonMemberCost,
+        creditCost: singleCost,
+        memberCredits: singleCost,
+        nonMemberCredits: singleCost,
         cancellationWindowHours: data.cancellationWindowHours !== undefined ? data.cancellationWindowHours : 24,
         bookingCutoffHours: data.bookingCutoffHours !== undefined ? data.bookingCutoffHours : 3,
         planOnly: !!data.planOnly,
@@ -266,9 +261,8 @@ export async function createAdminEvent(data: {
         minToConfirm: data.minToConfirm !== undefined ? data.minToConfirm : 0,
         isSignature: !!data.isSignature || (data.category?.toLowerCase().includes("signature") ?? false),
         membersOnly: !!data.membersOnly,
-        isFreeWalk: memberCost === 0,
+        isFreeWalk: singleCost === 0,
         needsHost: !!data.needsHost,
-        nonMemberOpensAt: data.nonMemberOpensAt === undefined ? null : data.nonMemberOpensAt,
         imageId: data.imageId || null,
         partnerId: data.partnerId || data.host || null,
         status: data.status === "draft" ? "draft" : (data.minToConfirm === 0 ? "confirmed" : "published_pending"),
@@ -335,8 +329,6 @@ export async function updateAdminEvent(eventId: string, data: {
   startsAt?: Date;
   endsAt?: Date;
   creditCost?: number;
-  memberCredits?: number;
-  nonMemberCredits?: number;
   cancellationWindowHours?: number;
   capacityMember?: number;
   minToConfirm?: number;
@@ -346,9 +338,7 @@ export async function updateAdminEvent(eventId: string, data: {
   targetStages?: string[];
   decisionAt?: Date | null;
   changeNote?: string;
-  nonMemberCreditCost?: number;
   needsHost?: boolean;
-  nonMemberOpensAt?: Date | null;
   bookingCutoffHours?: number;
   planOnly?: boolean;
   imageId?: string | null;
@@ -395,8 +385,7 @@ export async function updateAdminEvent(eventId: string, data: {
     ? data.isSignature
     : (data.category?.toLowerCase().includes("signature") ?? existing.isSignature);
 
-  const updatedMemberCost = data.memberCredits !== undefined ? data.memberCredits : (data.creditCost !== undefined ? data.creditCost : undefined);
-  const updatedNonMemberCost = data.nonMemberCredits !== undefined ? data.nonMemberCredits : (data.nonMemberCreditCost !== undefined ? data.nonMemberCreditCost : (data.creditCost !== undefined ? data.creditCost : undefined));
+  const singleCost = data.creditCost !== undefined ? data.creditCost : undefined;
 
   await db
     .update(event)
@@ -414,13 +403,11 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.googleMapsUrl !== undefined && { googleMapsUrl: data.googleMapsUrl?.trim() || null }),
       ...(data.startsAt !== undefined && { startsAt: data.startsAt }),
       ...(data.endsAt !== undefined && { endsAt: data.endsAt }),
-      ...(updatedMemberCost !== undefined && {
-        creditCost: updatedMemberCost,
-        memberCredits: updatedMemberCost,
-        isFreeWalk: updatedMemberCost === 0,
-      }),
-      ...(updatedNonMemberCost !== undefined && {
-        nonMemberCredits: updatedNonMemberCost,
+      ...(singleCost !== undefined && {
+        creditCost: singleCost,
+        memberCredits: singleCost,
+        nonMemberCredits: singleCost,
+        isFreeWalk: singleCost === 0,
       }),
       ...(data.cancellationWindowHours !== undefined && { cancellationWindowHours: data.cancellationWindowHours }),
       ...(data.bookingCutoffHours !== undefined && { bookingCutoffHours: data.bookingCutoffHours }),
@@ -428,7 +415,6 @@ export async function updateAdminEvent(eventId: string, data: {
       ...(data.capacityMember !== undefined && { capacityMember: data.capacityMember }),
       ...(data.minToConfirm !== undefined && { minToConfirm: data.minToConfirm }),
       ...(data.needsHost !== undefined && { needsHost: data.needsHost }),
-      ...(data.nonMemberOpensAt !== undefined && { nonMemberOpensAt: data.nonMemberOpensAt }),
       ...(data.imageId !== undefined && { imageId: data.imageId }),
       ...(isSig !== undefined && { isSignature: isSig }),
       ...(data.membersOnly !== undefined && { membersOnly: data.membersOnly }),
@@ -825,8 +811,8 @@ export async function duplicateAdminEvent(eventId: string) {
       startsAt,
       endsAt,
       creditCost: orig.creditCost,
-      memberCredits: orig.memberCredits ?? orig.creditCost,
-      nonMemberCredits: orig.nonMemberCredits ?? orig.creditCost,
+      memberCredits: orig.creditCost,
+      nonMemberCredits: orig.creditCost,
       capacityMember: orig.capacityMember,
       minToConfirm: orig.minToConfirm,
       isSignature: orig.isSignature,

@@ -7,6 +7,7 @@ import {
   approveCommunityAction,
   rejectCommunityAction,
   updateCommunityCommissionAction,
+  toggleCommunityStudioPlanAction,
 } from "@/app/actions/adminCommunities";
 
 export default function AdminCommunitiesPage() {
@@ -59,6 +60,21 @@ export default function AdminCommunitiesPage() {
       await loadData();
     } catch (err: any) {
       alert(err?.message || "Failed to decline");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleToggleStudioPlan = async (c: any) => {
+    try {
+      setActionLoading(c.id);
+      await toggleCommunityStudioPlanAction({
+        communityId: c.id,
+        isStudioPlan: !c.isStudioPlan,
+      });
+      await loadData();
+    } catch (err: any) {
+      alert(err?.message || "Failed to update Studio plan");
     } finally {
       setActionLoading(null);
     }
@@ -329,6 +345,16 @@ export default function AdminCommunitiesPage() {
                           Free events this month: {c.freeEventsThisMonth}
                         </div>
                       </div>
+
+                      <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", cursor: "pointer", color: c.isStudioPlan ? "#7b1f2c" : "rgba(57, 41, 42, 0.7)", fontWeight: c.isStudioPlan ? 600 : 400 }}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(c.isStudioPlan)}
+                          onChange={() => handleToggleStudioPlan(c)}
+                          disabled={actionLoading === c.id}
+                        />
+                        <span>Studio plan · €49/mo</span>
+                      </label>
 
                       <span
                         style={{

@@ -67,7 +67,7 @@ export async function createTopUpCheckoutSession(data: {
       },
       custom_text: {
         submit: {
-          message: "Official checkout for THE Mothers Barcelona.",
+          message: "Official checkout for THE Mothers.",
         },
       },
       success_url: eventId

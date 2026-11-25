@@ -21,7 +21,7 @@ export async function getPublicSettings() {
   return {
     membershipLive: Boolean(settingsMap["membership_live"] ?? false),
     expectedLaunch: settingsMap["expected_launch"] ?? "2027-01-06",
-    joiningFeeCents: settingsMap["joining_fee_cents"] ?? 1900,
+    joiningFeeCents: settingsMap["joining_fee_cents"] ?? 0,
     monthlyGrantCredits: settingsMap["monthly_grant_credits"] ?? 20,
     rolloverCapCredits: settingsMap["rollover_cap_credits"] ?? 0,
     referralBonusCredits: settingsMap["referral_bonus_credits"] ?? 5,

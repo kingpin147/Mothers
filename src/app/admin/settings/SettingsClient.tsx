@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   saveClubSettingsAudit,
   setMembershipLiveMode,
-  setPriceDisplayMode,
 } from "@/app/actions/adminSettings";
 import { BackArrow } from "@/components/Icons";
 
@@ -18,11 +17,10 @@ const GREEN = "#3f6604";
 const QUOTED_PAGES: Record<string, [string, string]> = {
   joiningFee: ["Joining fee (€)", "Membership, Payment, FAQ, Legal §02"],
   monthlyFee: ["Membership · monthly (€)", "Home, Membership, Payment, FAQ, Legal §02"],
-  quarterlyFee: ["Membership · annual (€)", "Membership, Payment, FAQ, Legal §02"],
+  memberAnnual: ["Membership · annual (€)", "Membership, Payment, FAQ, Legal §02"],
   nonMemberWalkCredits: ["Default non-member price when the member price is 0 (credits)", "Events, FAQ"],
   nonMemberMarkup: ["Non-member mark-up (default)", "Events"],
-  monthlyCredits: ["Monthly grant", "Membership, Account, FAQ"],
-  quarterlyCredits: ["Annual grant (credits)", "Membership, Account"],
+  annualCredits: ["Annual grant (credits)", "Membership, Account"],
   creditExpiryMonths: ["Credit life (months)", "Account, FAQ, Legal §03"],
   rolloverCeiling: ["Rollover ceiling", "FAQ, Legal §03"],
   topUpCreditPrice: ["Top-up price (€ per credit)", "Account, FAQ"],
@@ -44,15 +42,13 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
     expectedLaunch: initialSettings.expectedLaunch ?? "2027-01-06",
     priceDisplay: initialSettings.priceDisplay ?? "single",
 
-    joiningFee: Math.round((initialSettings.joiningFeeCents ?? 0) / 100),
     monthlyFee: Math.round((initialSettings.memberMonthly ?? initialSettings.monthlyFeeCents ?? 699) / 100),
-    quarterlyFee: Math.round((initialSettings.memberAnnual ?? initialSettings.quarterlyFeeCents ?? 6900) / 100),
+    memberAnnual: Math.round((initialSettings.memberAnnual ?? initialSettings.quarterlyFeeCents ?? 6900) / 100),
 
     nonMemberWalkCredits: initialSettings.nonMemberWalkCredits ?? 3,
     nonMemberMarkup: initialSettings.nonMemberMarkup ?? 1.5,
 
-    monthlyCredits: initialSettings.monthlyGrantCredits ?? 0,
-    quarterlyCredits: initialSettings.annualCredits ?? initialSettings.quarterlyGrantCredits ?? 10,
+    annualCredits: initialSettings.annualCredits ?? 10,
     creditExpiryMonths: initialSettings.creditLifeMonths ?? 6,
     rolloverCeiling: initialSettings.rolloverCapCredits ?? null,
     topUpCreditPrice: Math.round((initialSettings.topUpPriceCents ?? 200) / 100),
@@ -148,14 +144,6 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
       );
     } else {
       alert("Failed to update membership status.");
-    }
-  };
-
-  const handleSetPriceMode = async (mode: "single" | "dual") => {
-    const res = await setPriceDisplayMode(mode);
-    if (res.success) {
-      setCfg((prev) => ({ ...prev, priceDisplay: mode }));
-      setSnapshot((prev) => ({ ...prev, priceDisplay: mode }));
     }
   };
 
@@ -301,68 +289,14 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
           )}
         </div>
 
-        {/* 2. Price display on the site */}
-        <div style={{ border: "1px solid rgba(123,31,44,0.45)", borderRadius: "8px", background: "#fffdfa", padding: "clamp(20px,2.6vw,26px)", marginBottom: "18px" }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 500, fontSize: "22px", lineHeight: 1.2, margin: "0 0 5px", color: WINE }}>
-            Price display on the site
-          </h2>
-          <p style={{ fontSize: "13.5px", lineHeight: 1.6, color: "rgba(57,41,42,0.72)", margin: "0 0 16px", maxWidth: "74ch" }}>
-            Every event has a member price and a non-member price. Choose what the site shows. Each event can override this in Create event.
-          </p>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            {[
-              {
-                key: "single",
-                label: "One price for everyone",
-                note: "Before launch, everyone pays the non-member price; one figure on every card.",
-                example: "4 credits",
-              },
-              {
-                key: "dual",
-                label: "Member & non-member prices",
-                note: "From launch. Both prices on every card; each mother pays her own.",
-                example: "Members 4 credits · Non-members 6 credits",
-              },
-            ].map((o) => {
-              const isSelected = cfg.priceDisplay === o.key;
-              return (
-                <button
-                  key={o.key}
-                  type="button"
-                  onClick={() => handleSetPriceMode(o.key as any)}
-                  style={{
-                    flex: "1 1 260px",
-                    border: `1px solid ${isSelected ? WINE : "rgba(57,41,42,0.2)"}`,
-                    background: isSelected ? "rgba(123,31,44,0.05)" : "#fff",
-                    color: "#39292a",
-                    borderRadius: "6px",
-                    padding: "14px 16px",
-                    fontFamily: "'Lora', Georgia, serif",
-                    fontSize: "13.5px",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
-                >
-                  <strong style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "17px", color: isSelected ? WINE : "#39292a", marginBottom: "4px" }}>
-                    {o.label} {isSelected ? "· on" : ""}
-                  </strong>
-                  <span style={{ display: "block", color: "rgba(57,41,42,0.72)", lineHeight: 1.5 }}>{o.note}</span>
-                  <span style={{ display: "block", marginTop: "8px", fontSize: "12.5px", color: "rgba(57,41,42,0.6)" }}>Card: {o.example}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* 3. Settings Sections */}
         {[
           {
             title: "Rates and fees",
             intro: "What a membership costs. Existing members keep the rate they joined on — changing a figure here only affects who joins next.",
             fields: [
-              { key: "joiningFee", label: "Joining fee (€)", help: "One-off, charged with the first payment. Waived for accounts opened before launch.", parse: (v: string) => parseInt(v, 10) || 0 },
               { key: "monthlyFee", label: "Membership · monthly (€)", help: "Monthly membership rate (€6.99). Quoted on Membership, Payment, the FAQ and Legal.", parse: (v: string) => parseFloat(v) || 0 },
-              { key: "quarterlyFee", label: "Membership · annual (€)", help: "Annual membership rate (€69.00 / year). Grants 10 credits once per invoice.", parse: (v: string) => parseInt(v, 10) || 0 },
+              { key: "memberAnnual", label: "Membership · annual (€)", help: "Annual membership rate (€69.00 / year). Grants 10 credits once per invoice.", parse: (v: string) => parseInt(v, 10) || 0 },
             ],
           },
           {
@@ -377,8 +311,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
             title: "Credits",
             intro: "Credits are money in all but name. Nothing here rewrites credits already granted — they keep the expiry they arrived with.",
             fields: [
-              { key: "monthlyCredits", label: "Monthly grant", help: "Monthly plan: 0 credits granted.", parse: (v: string) => parseInt(v, 10) || 0 },
-              { key: "quarterlyCredits", label: "Annual grant (credits)", help: "Annual plan: 10 credits deposited on each successful annual invoice.", parse: (v: string) => parseInt(v, 10) || 0 },
+              { key: "annualCredits", label: "Annual grant (credits)", help: "Annual plan: 10 credits deposited on each successful annual invoice.", parse: (v: string) => parseInt(v, 10) || 0 },
               { key: "creditExpiryMonths", label: "Credit life (months)", help: "From the day each credit arrives. Oldest are always spent first.", parse: (v: string) => parseInt(v, 10) || 0 },
               { key: "rolloverCeiling", label: "Rollover ceiling", help: "Leave as “No ceiling” and credits accumulate for as long as they live. A number here destroys credits a member has already paid for.", parse: (v: string) => { const n = parseInt(v, 10); return isNaN(n) ? null : n; } },
               { key: "expiryWarningDays", label: "Expiry warning (days before)", valueFixed: "30", help: "She is told a month before anything expires." },
@@ -556,7 +489,7 @@ export default function SettingsClient({ initialSettings }: SettingsClientProps)
               <div><strong style={{ fontWeight: 600 }}>A rollover cap of 40 existed at all.</strong> We agreed credits have no ceiling; a cap silently destroys credits a member has paid for.</div>
               <div><strong style={{ fontWeight: 600 }}>Godmother bonus read 20 credits.</strong> It is one figure: 5 credits when the mother she referred becomes a member.</div>
               <div><strong style={{ fontWeight: 600 }}>Credit expiry was missing entirely</strong> — six months is the rule the whole ledger runs on.</div>
-              <div><strong style={{ fontWeight: 600 }}>The quarterly rate, the pause allowance and the payment hold were missing.</strong> The Event Pass is retired — non-members pay a non-member credit price per event.</div>
+
               <div><strong style={{ fontWeight: 600 }}>Save was one filled button with no confirmation.</strong> These figures are quoted on live pages; saving now goes through a review step.</div>
             </div>
           </div>

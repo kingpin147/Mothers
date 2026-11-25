@@ -24,12 +24,12 @@ const GROUPS: UATGroup[] = [
     title: "Global — header, banner, footer",
     page: "All pages",
     items: [
-      { id: "G-01", prio: "P1", title: "Header on every page", steps: "Open each page.", expected: "Logo, Membership, Events, La Gazette, ES/EN and Login / My Account identical everywhere. Logo → Home." },
+      { id: "G-01", prio: "P1", title: "Header on every page", steps: "Open each page.", expected: "Logo, Membership, Events, The Forum, ES/EN and Login / My Account identical everywhere. Logo → Home." },
       { id: "G-02", prio: "P1", title: "Sticky header + banner", steps: "Scroll a long page.", expected: "Nav and countdown banner stay pinned." },
       { id: "G-03", prio: "P1", title: "Countdown", steps: "Compare with 6 Jan 2027 00:00 Madrid; wait 5 s.", expected: "Correct values, ticking every minute on every page." },
       { id: "G-04", prio: "P2", title: "Join the list (banner)", steps: "Click it, reload, open another page.", expected: 'Becomes "You\'re on the list" everywhere. Email stored in leads.' },
       { id: "G-05", prio: "P2", title: "Account button", steps: "Check signed out, then signed in.", expected: '"Login" → Sign In; "My Account" → Account.' },
-      { id: "G-06", prio: "P2", title: "Footer links + Instagram", steps: "Click every footer link and the Instagram icon.", expected: "All pages open (incl. Become a host, La Gazette, Cookie settings). Mail opens client; Instagram opens profile." },
+      { id: "G-06", prio: "P2", title: "Footer links + Instagram", steps: "Click every footer link and the Instagram icon.", expected: "All pages open (incl. Become a host, The Forum, Cookie settings). Mail opens client; Instagram opens profile." },
       { id: "G-07", prio: "P2", title: "Footer newsletter", steps: "Submit empty, invalid, valid email.", expected: 'Errors for empty/invalid; confirmation for valid; stored with source "footer".' },
       { id: "G-08", prio: "P1", title: "No launch leaks", steps: 'Search pages for "guest", "€19", "no joining fee, ever".', expected: "None appear. Fee only described as waived before launch." },
       { id: "G-09", prio: "P3", title: "Language toggle", steps: "Click ES.", expected: "Label switches between EN and ES." }
@@ -119,12 +119,12 @@ const GROUPS: UATGroup[] = [
       { id: "A-01", prio: "P1", title: "Signed-out state", steps: "Open signed out.", expected: '"Open a free account — no booking needed" with Events and Sign in buttons.' },
       { id: "A-02", prio: "P1", title: "Strip + tabs", steps: "Check credits, invite code, all 4 tabs.", expected: "Values correct; tabs switch." },
       { id: "CR-01", prio: "P1", title: "Godmother trigger", steps: "Invitee registers, then books.", expected: "+5 pending after register, active only after first confirmed booking." },
-      { id: "CR-03", prio: "P1", title: "Delete account", steps: "Delete from Account settings.", expected: 'Signed out; posts show "A mother in Barcelona"; photos gone; payment records kept.' }
+      { id: "CR-03", prio: "P1", title: "Delete account", steps: "Delete from Account settings.", expected: 'Signed out; posts show "A mother"; photos gone; payment records kept.' }
     ]
   },
   {
     title: "Rehearse the switch",
-    page: "Settings · Membership · Events · Gazette · Account",
+    page: "Settings · Membership · Events · The Forum · Account",
     items: [
       {
         id: "RS-01",
@@ -137,8 +137,8 @@ const GROUPS: UATGroup[] = [
         id: "RS-02",
         prio: "P1",
         title: "Subscribe to Membership",
-        steps: "Visit /membership, select Monthly or Quarterly plan, and complete checkout with test card 4242 4242 4242 4242.",
-        expected: "User upgraded to active member tier; quarterly credit grant awarded to account immediately; confirmation email queued."
+        steps: "Visit /membership, select Monthly or Annual plan, and complete checkout with test card 4242 4242 4242 4242.",
+        expected: "User upgraded to active member tier; annual credit grant awarded to annual account immediately; confirmation email queued."
       },
       {
         id: "RS-03",

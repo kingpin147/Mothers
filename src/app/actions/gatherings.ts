@@ -85,7 +85,7 @@ export async function createMotherGathering(data: {
     );
   const approvedPast = approvedPastRes[0]?.count || 0;
   // First 2 checked by team, subsequent ones publish immediately
-  const status = approvedPast >= 2 ? "confirmed" : "published_pending";
+  const status = approvedPast >= 3 ? "confirmed" : "published_pending";
 
   // Category fallback
   let defaultCategory = await db.query.eventCategory.findFirst({

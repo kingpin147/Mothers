@@ -884,7 +884,7 @@ export async function validateGodmotherCode(code: string) {
 
   return {
     valid: true,
-    godmotherName: match.firstName || "A Mother in Barcelona",
+    godmotherName: match.firstName || "A mother",
     godmotherPersonId: match.id,
   };
 }
@@ -963,7 +963,7 @@ export async function deleteMyAccountGDPR() {
     const personRecord = await db.query.person.findFirst({
       where: eq(person.id, personId),
     });
-    const personName = `${personRecord?.firstName || "A mother"} ${personRecord?.lastName || ""}`.trim() || "A mother in Barcelona";
+    const personName = `${personRecord?.firstName || "A mother"} ${personRecord?.lastName || ""}`.trim() || "A mother";
     const originalEmail = personRecord?.email || "";
 
     // 1. Cancel Stripe subscription if any (§M-04)

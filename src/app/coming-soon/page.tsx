@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import ComingSoonClient from "./ComingSoonClient";
 
 export const metadata: Metadata = {
-  title: "The Mothers Barcelona — Private Membership Club for Moms",
+  title: "The Mothers — Private Membership Club for Moms",
   description:
     "A private membership club for mothers in Barcelona is opening soon. Join the early access list to receive priority invitations and connect with local mothers.",
   openGraph: {

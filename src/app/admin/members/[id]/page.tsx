@@ -533,7 +533,7 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
                   ) : (
                     <div>
                       <p style={{ fontSize: "13.5px", lineHeight: 1.55, margin: "0 0 10px" }}>
-                        Deletes her account and personal data. Future bookings are cancelled, remaining credits are forfeited, and her Gazette posts stay as “A mother in Barcelona”. Payment records are kept for tax.
+                        Deletes her account and personal data. Future bookings are cancelled, remaining credits are forfeited, and her Gazette posts stay as “A mother”. Payment records are kept for tax.
                       </p>
                       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                         <button type="button" onClick={() => setShowDeleteConfirm(false)} style={{ border: "1px solid rgba(57,41,42,0.28)", background: "transparent", color: "#39292a", borderRadius: "4px", padding: "9px 16px", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "14px", cursor: "pointer" }}>

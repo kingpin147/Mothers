@@ -10,6 +10,7 @@ import {
   eventWaitlist,
   auditLog,
   memberCredential,
+  community,
 } from "@/db/schema";
 import { eq, and, sql, desc, asc, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
@@ -297,8 +298,8 @@ export async function bookEvent(eventId: string) {
 
       const icsString = generateIcsString({
         title: result.eventTitle,
-        description: `The Mothers gathering: ${result.eventTitle}. Meeting point: ${result.meetingPoint || result.venueName || "Barcelona"}`,
-        location: result.meetingPoint || result.venueName || "Barcelona, Spain",
+        description: `The Mothers gathering: ${result.eventTitle}. Meeting point: ${result.meetingPoint || result.venueName || "The Mothers"}`,
+        location: result.meetingPoint || result.venueName || "The Mothers",
         startsAt: result.startsAt,
         endsAt: result.endsAt,
         url: `${origin}/events/${eventId}`,
@@ -754,7 +755,7 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
             currency: "eur",
             product_data: {
               name: `THE Mothers — ${amount} Event Credits`,
-              description: `€${topUpUnitAmount / 100}/credit · 6-month validity · THE Mothers Barcelona`,
+              description: `€${topUpUnitAmount / 100}/credit · 6-month validity · THE Mothers`,
             },
             unit_amount: topUpUnitAmount, // from Settings (F-19)
           },
@@ -770,7 +771,7 @@ export async function buyExtraCredits(amount: number, eventId?: string) {
       },
       custom_text: {
         submit: {
-          message: "Official checkout for THE Mothers Barcelona.",
+          message: "Official checkout for THE Mothers.",
         },
       },
       success_url: eventId
@@ -1168,3 +1169,85 @@ export async function checkBookingEmailStatus(
     return { exists: false };
   }
 }
+
+// ─── 8. CREATE COMMUNITY EVENT STRIPE CHECKOUT (N-01 / §11) ─────────────────
+
+export async function createCommunityEventCheckoutAction(eventId: string) {
+  const session = await auth();
+  if (!session?.user) {
+    return { success: false, error: "AUTH_REQUIRED" };
+  }
+  const personId = (session.user as any).personId || session.user.id;
+
+  const [ev] = await db.select().from(event).where(eq(event.id, eventId)).limit(1);
+  if (!ev) return { success: false, error: "EVENT_NOT_FOUND" };
+
+  if (!ev.communityId) {
+    return { success: false, error: "NOT_A_COMMUNITY_EVENT" };
+  }
+
+  const [comm] = await db.select().from(community).where(eq(community.id, ev.communityId)).limit(1);
+  if (!comm) return { success: false, error: "COMMUNITY_NOT_FOUND" };
+
+  // Block paid community events if community has not connected Stripe
+  if (!comm.stripeAccountId || !comm.stripeCardOnFile) {
+    return { success: false, error: "COMMUNITY_NOT_STRIPE_CONNECTED" };
+  }
+
+  const personRecord = await db.query.person.findFirst({ where: eq(person.id, personId) });
+  if (!personRecord) return { success: false, error: "PERSON_NOT_FOUND" };
+
+  const priceCents = ev.priceCents || 0;
+  if (priceCents <= 0) {
+    return { success: false, error: "EVENT_IS_FREE" };
+  }
+
+  const commissionRate = comm.commissionRatePercent ?? (comm.type === "workshop" ? 20 : 15);
+  // application_fee_amount = max(€1, price × commission)
+  const applicationFeeAmount = Math.max(100, Math.round((priceCents * commissionRate) / 100));
+
+  try {
+    const { stripe } = await import("@/lib/stripe");
+    const origin = getAppUrl();
+
+    const checkoutSession = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: ev.title,
+              description: `The Mothers — ${comm.name}`,
+            },
+            unit_amount: priceCents,
+          },
+          quantity: 1,
+        },
+      ],
+      payment_intent_data: {
+        application_fee_amount: applicationFeeAmount,
+        transfer_data: {
+          destination: comm.stripeAccountId,
+        },
+      },
+      customer_email: personRecord.email,
+      client_reference_id: personId,
+      metadata: {
+        type: "community_event_booking",
+        eventId: ev.id,
+        personId,
+        communityId: comm.id,
+      },
+      success_url: `${origin}/events/${ev.id}?booked=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/events/${ev.id}?cancelled=1`,
+    });
+
+    return { success: true, url: checkoutSession.url };
+  } catch (err: any) {
+    console.error("createCommunityEventCheckoutAction error:", err);
+    return { success: false, error: err?.message || "Failed to create checkout session" };
+  }
+}
+

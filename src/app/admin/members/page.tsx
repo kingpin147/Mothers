@@ -311,7 +311,7 @@ export default function AdminMembersPage() {
                       ) : (
                         <div>
                           <div style={{ fontSize: "13.5px", lineHeight: 1.4, fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
-                            €{(m.monthlyPriceCents / 100).toFixed(0)} / {m.planName?.includes('quarter') ? 'quarter' : 'month'}
+                            €{(m.monthlyPriceCents / 100).toFixed(0)} / {m.planName?.includes('annual') || m.planName?.includes('year') || m.planName?.includes('quarter') ? 'year' : 'month'}
                           </div>
                           <div style={{ fontSize: "11.5px", lineHeight: 1.4, color: "rgba(57,41,42,0.6)", marginTop: "3px" }}>
                             Standard

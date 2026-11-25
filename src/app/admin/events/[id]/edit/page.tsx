@@ -54,7 +54,6 @@ export default function AdminEditEventPage() {
   const [eventStatus, setEventStatus] = useState<string>("draft");
   const [langs, setLangs] = useState<string[]>(["English"]);
   const [stages, setStages] = useState<string[]>(["Babies"]);
-  const [nonMemberOpensAt, setNonMemberOpensAt] = useState("");
   const [freeEvent, setFreeEvent] = useState(false);
   const [needsHost, setNeedsHost] = useState(false);
 
@@ -192,10 +191,6 @@ export default function AdminEditEventPage() {
         setLangs(ev.languages || ["English"]);
         setEventStatus(ev.status || "draft");
         setNeedsHost(!!ev.needsHost);
-        
-        if (ev.nonMemberOpensAt) {
-          setNonMemberOpensAt(new Date(new Date(ev.nonMemberOpensAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16));
-        }
         
         if (ev.imageId) {
           setImageId(ev.imageId);
@@ -425,8 +420,7 @@ export default function AdminEditEventPage() {
         }
       }
       
-      const parsedMemberCredits = freeEvent ? 0 : (parseInt(isMembershipLive ? (memberCredits || creditCost) : creditCost) || 0);
-      const parsedNonMemberCredits = freeEvent ? 0 : (parseInt(isMembershipLive ? (nonMemberCredits || creditCost) : creditCost) || 0);
+      const parsedCreditCost = freeEvent ? 0 : (parseInt(creditCost) || 0);
 
       const res = await updateAdminEvent(eventId, {
         title,
@@ -443,9 +437,7 @@ export default function AdminEditEventPage() {
         googleMapsUrl: googleMapsUrl.trim() || undefined,
         startsAt: start,
         endsAt: new Date(endsAt),
-        creditCost: parsedMemberCredits,
-        memberCredits: parsedMemberCredits,
-        nonMemberCredits: parsedNonMemberCredits,
+        creditCost: parsedCreditCost,
         cancellationWindowHours: parseInt(cancellationWindowHours) || 0,
         bookingCutoffHours: parseInt(bookingCutoffHours, 10) || 3,
         planOnly: isMembershipLive ? planOnly : false,
@@ -457,7 +449,6 @@ export default function AdminEditEventPage() {
         languages: langs,
         targetStages: stages,
         needsHost,
-        nonMemberOpensAt: nonMemberOpensAt ? new Date(nonMemberOpensAt) : undefined,
         imageId: imageId || null,
         changeNote: changeNote.trim() || undefined,
         decisionAt: resolvedDecisionAt,
@@ -727,13 +718,8 @@ export default function AdminEditEventPage() {
                     ))}
                   </div>
                 </div>
-                <div>
-                  <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Members-first date (optional)</label>
-                  <input type="datetime-local" value={nonMemberOpensAt} onChange={(e) => setNonMemberOpensAt(e.target.value)} style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57,41,42,0.25)", borderRadius: "4px", padding: "10px 12px", fontFamily: "'Lora', Georgia, serif", fontSize: "14px", color: "#39292a", background: "#fff" }} />
-                  <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.6)", marginTop: "6px" }}>Gives members a head start before non-members can book. Set per event — not a global window. Leave blank to open to everyone at once.</div>
-                </div>
               </div>
-              <div>
+              <div style={{ marginTop: "14px" }}>
                 <label style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "14px", lineHeight: 1.5, cursor: "pointer" }}>
                   <input type="checkbox" checked={needsHost} onChange={(e) => setNeedsHost(e.target.checked)} style={{ width: "17px", height: "17px", accentColor: "#7b1f2c" }} />
                   <span>Needs a host (shows volunteer prompt to members)</span>

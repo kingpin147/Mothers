@@ -155,7 +155,7 @@ export async function checkPostingEligibility() {
       return {
         canPost: false,
         reason: "membership_required",
-        message: "You have used your 3 free La Gazette posts/replies. Become a member for unlimited conversations.",
+        message: "You have used your 3 free Forum posts/replies. Become a member for unlimited conversations.",
         remaining: 0,
         totalUsed,
         isMember: false,
@@ -577,7 +577,7 @@ export async function createCirclePost(data: {
 }) {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("You must be logged in to post in La Gazette.");
+    throw new Error("You must be logged in to post in The Forum.");
   }
 
   const personId = (session.user as any).personId || session.user.id;

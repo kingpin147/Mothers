@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { bookEvent, joinEventWaitlist, leaveEventWaitlist, releaseBooking, cancelCheckoutHold } from "@/app/actions/booking";
+import { bookEvent, joinEventWaitlist, leaveEventWaitlist, releaseBooking, cancelCheckoutHold, createCommunityEventCheckoutAction } from "@/app/actions/booking";
 import { getPublicEventById } from "@/app/actions/events";
 import { getAccountData } from "@/app/actions/memberAccount";
 import ThemeLoader from "@/components/ThemeLoader";
@@ -165,8 +165,8 @@ export default function EventDetailPage() {
         setUserBookingId(null);
         setShowCancelModal(false);
         
-        const isFree = ev.creditCost === 0 || (ev.isFreeWalk && (isMember || !isLive));
-        const viewerCost = isFree ? 0 : (isLive ? (isMember ? (ev.memberCredits ?? ev.creditCost ?? 0) : (ev.nonMemberCredits ?? ev.creditCost ?? 0)) : (ev.creditCost ?? 0));
+        const isFree = ev.creditCost === 0 || !!ev.isFreeWalk;
+        const viewerCost = isFree ? 0 : (ev.creditCost ?? 0);
         
         const win = ev.cancellationWindowHours ?? 24;
         const isInsideWindow = new Date() > new Date(new Date(ev.startsAt).getTime() - win * 3600000);
@@ -249,10 +249,39 @@ export default function EventDetailPage() {
   }, [isAlreadyBooked, topUpEvent]);
 
   const handleMemberBook = async (targetEv: PublicEvent) => {
-    const viewerCost = isLive
-      ? (isMember ? (targetEv.memberCredits ?? targetEv.creditCost) : (targetEv.nonMemberCredits ?? targetEv.creditCost))
-      : targetEv.creditCost;
-    const isFree = viewerCost === 0 || (targetEv.isFreeWalk && (isMember || !isLive));
+    // If it is a paid community event, direct to Stripe Connect checkout (N-01 / §11)
+    if (targetEv.communityId && (targetEv.priceCents ?? 0) > 0) {
+      setActionLoading(true);
+      setBookingError(null);
+      try {
+        const res = await createCommunityEventCheckoutAction(targetEv.id);
+        if (res.success && res.url) {
+          window.location.href = res.url;
+          return;
+        } else {
+          if (res.error === "COMMUNITY_NOT_STRIPE_CONNECTED") {
+            setBookingError(
+              lang === "fr"
+                ? "Cet organisateur n'a pas encore configuré les paiements par carte. Revenez bientôt."
+                : lang === "es"
+                ? "Esta comunidad aún no ha configurado los pagos con tarjeta. Vuelve a intentarlo pronto."
+                : "This community has not set up card payments yet. Please check back soon."
+            );
+          } else {
+            setBookingError(res.error || (lang === "en" ? "Payment failed." : "Error en el pago."));
+          }
+          return;
+        }
+      } catch (err: any) {
+        setBookingError(err?.message || "Failed to initialize card checkout.");
+        return;
+      } finally {
+        setActionLoading(false);
+      }
+    }
+
+    const viewerCost = targetEv.creditCost ?? 0;
+    const isFree = viewerCost === 0 || !!targetEv.isFreeWalk;
 
     // Check credits if not free event - BLOCKER: must check BEFORE booking attempt
     if (!isFree && currentCreditBalance < viewerCost) {
@@ -366,10 +395,8 @@ export default function EventDetailPage() {
 
   const displayTitle = getEventDisplayTitle(ev, lang);
   const displayDesc = getEventDisplayDesc(ev, lang);
-  const viewerCost = isLive
-    ? (isMember ? (ev.memberCredits ?? ev.creditCost) : (ev.nonMemberCredits ?? ev.creditCost))
-    : ev.creditCost;
-  const isFree = viewerCost === 0 || (ev.isFreeWalk && (isMember || !isLive));
+  const viewerCost = ev.creditCost ?? 0;
+  const isFree = viewerCost === 0 || !!ev.isFreeWalk;
   const isCapped = !!ev.capacityTotal && ev.capacityTotal > 0;
   const isOpenList = !isCapped;
   const isFull = isCapped && ((ev.capacityRemaining ?? 1) <= 0 || ev.isFull);
@@ -1012,7 +1039,9 @@ export default function EventDetailPage() {
                       type="button"
                       disabled={actionLoading}
                       onClick={() => {
-                        if (!isFree && currentCreditBalance < viewerCost) {
+                        if (ev.communityId && (ev.priceCents ?? 0) > 0) {
+                          handleMemberBook(ev);
+                        } else if (!isFree && currentCreditBalance < viewerCost) {
                           setTopUpEvent(ev);
                         } else {
                           handleMemberBook(ev);
@@ -1033,6 +1062,8 @@ export default function EventDetailPage() {
                     >
                       {actionLoading
                         ? (lang === "fr" ? "Réservation en cours..." : lang === "es" ? "Reservando…" : "Booking…")
+                        : (ev.communityId && (ev.priceCents ?? 0) > 0)
+                        ? (lang === "fr" ? `Réserver · ${((ev.priceCents ?? 0) / 100).toFixed(2)} €` : lang === "es" ? `Reservar · ${((ev.priceCents ?? 0) / 100).toFixed(2)} €` : `Book · €${((ev.priceCents ?? 0) / 100).toFixed(2)}`)
                         : isToday
                         ? (lang === "fr" ? `Réserver · ferme à ${closesAtStr}` : lang === "es" ? `Reservar · cierra ${closesAtStr}` : `Book · closes ${closesAtStr}`)
                         : (!isFree && currentCreditBalance < viewerCost)
