@@ -705,50 +705,22 @@ export default function AdminCreateEventPage() {
                   {noCeiling ? "Open — no ceiling on bookings." : "Total places. Leave empty or tick below for no ceiling."}
                 </div>
               </div>
-              {isMembershipLive ? (
-                <>
-                  <div>
-                    <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Member price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
-                    <input
-                      type="number"
-                      value={freeEvent ? "" : (memberCredits || creditCost)}
-                      onChange={(e) => {
-                        setMemberCredits(e.target.value);
-                        setCreditCost(e.target.value);
-                      }}
-                      placeholder={freeEvent ? "0 (Free event)" : "e.g. 15"}
-                      disabled={freeEvent}
-                      style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }}
-                    />
-                    <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>Credits charged to club members.</div>
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Non-member price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
-                    <input
-                      type="number"
-                      value={freeEvent ? "" : (nonMemberCredits || creditCost)}
-                      onChange={(e) => setNonMemberCredits(e.target.value)}
-                      placeholder={freeEvent ? "0 (Free event)" : "e.g. 20"}
-                      disabled={freeEvent}
-                      style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }}
-                    />
-                    <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>Credits charged to non-members.</div>
-                  </div>
-                </>
-              ) : (
                 <div>
                   <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Price (credits) <span style={{ color: "#7b1f2c" }}>*</span></label>
                   <input
                     type="number"
                     value={freeEvent ? "" : creditCost}
-                    onChange={(e) => setCreditCost(e.target.value)}
+                    onChange={(e) => {
+                      setCreditCost(e.target.value);
+                      setMemberCredits(e.target.value);
+                      setNonMemberCredits(e.target.value);
+                    }}
                     placeholder={freeEvent ? "0 (Free event)" : "e.g. 15"}
                     disabled={freeEvent}
                     style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${costBorder}`, borderRadius: "4px", padding: "11px 13px", fontFamily: "'Lora', Georgia, serif", fontSize: "14.5px", color: "#39292a", background: costBg }}
                   />
                   <div style={{ fontSize: "12px", lineHeight: 1.5, color: "rgba(57,41,42,0.75)", marginTop: "6px" }}>{costHint}</div>
                 </div>
-              )}
               <div>
                 <label style={{ display: "block", fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "13.5px", marginBottom: "6px" }}>Cancellation window <span style={{ color: "#7b1f2c" }}>*</span></label>
                 <select

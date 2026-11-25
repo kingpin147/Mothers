@@ -3,531 +3,724 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { submitPartnerApplicationAction } from "@/app/actions/partnerApply";
+import { useLanguage } from "@/components/LanguageProvider";
+
+type PartnerKind = "community" | "workshop" | "service";
+type BillingOption = "flat" | "commission";
 
 export default function PartnerApplyPage() {
-  const [lang, setLang] = useState<"en" | "es" | "fr">("en");
-  const [type, setType] = useState<"community" | "workshop">("community");
-  const [name, setName] = useState("");
-  const [city, setCity] = useState("Barcelona");
-  const [description, setDescription] = useState("");
-  const [memberCount, setMemberCount] = useState<string>("");
-  const [contactName, setContactName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
+  const { language } = useLanguage();
+  const lang = (language === "es" || language === "fr" ? language : "en") as "en" | "es" | "fr";
+  const [kind, setKind] = useState<PartnerKind>("community");
 
-  // Optional legal/tax fields (§14 / CM-02)
+  // Form values
+  const [formData, setFormData] = useState<Record<string, string>>({
+    name: "",
+    contact: "",
+    email: "",
+    phone: "",
+    web: "",
+    type: "",
+    where: "",
+    price: "",
+    offer: "",
+    booking: "",
+  });
+
+  const [why, setWhy] = useState("");
+  const [bill, setBill] = useState<BillingOption>("flat");
   const [legalName, setLegalName] = useState("");
-  const [taxId, setTaxId] = useState("");
-  const [hasInsurance, setHasInsurance] = useState(false);
+  const [vat, setVat] = useState("");
+  const [insured, setInsured] = useState(false);
+  const [agree, setAgree] = useState(false);
 
+  const [tried, setTried] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [sent, setSent] = useState<any | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const t = {
-    en: {
-      title: "Bring your community or workshop to The Mothers",
-      subtitle: "Organise gatherings and workshops for mothers. Keep your community together with private spaces, simple RSVPs, and zero admin headache.",
-      typeCommunity: "A mother community",
-      typeCommunityDesc: "For neighbourhood groups, mother circles, and parenting clubs.",
-      typeWorkshop: "A workshop, studio or brand",
-      typeWorkshopDesc: "For specialists, movement teachers, wellness practitioners, and creative studios.",
-      nameLabel: type === "community" ? "Community name" : "Workshop / Studio name",
-      namePlaceholder: type === "community" ? "e.g. Mamás de Gràcia" : "e.g. Studio Bloom Postpartum Yoga",
-      cityLabel: "City",
-      descLabel: "Short description",
-      descPlaceholder: "Tell us a little bit about what you do...",
-      membersLabel: "Approximate community size / followers",
-      contactNameLabel: "Contact person",
-      contactEmailLabel: "Contact email",
-      contactPhoneLabel: "Phone / WhatsApp",
-      legalSectionTitle: "Legal & Business details",
-      legalSectionNote: "Optional for now — many mother communities aren't registered businesses.",
-      legalNameLabel: "Legal business name (if registered)",
-      taxIdLabel: "Tax ID / NIF / CIF (if registered)",
-      taxIdInvalid: "Please enter a valid Tax ID / NIF / CIF format (or leave empty).",
-      insuranceLabel: "I have liability insurance covering public workshops (if you have it)",
-      submitButton: isSubmitting ? "Submitting..." : "Send my application",
-      successTitle: "Application submitted!",
-      successDesc: "Thank you for bringing your project to The Mothers. Our team reviews every partner application carefully and will reach out within 1–2 business days.",
-      backHome: "Return to home",
-    },
-    es: {
-      title: "Trae tu comunidad o taller a The Mothers",
-      subtitle: "Organiza encuentros y talleres para madres. Mantén tu comunidad unida con espacios dedicados, reservas sencillas y sin líos de gestión.",
-      typeCommunity: "Una comunidad de madres",
-      typeCommunityDesc: "Para grupos de barrio, círculos de madres y clubes de crianza.",
-      typeWorkshop: "Un taller, estudio o marca",
-      typeWorkshopDesc: "Para especialistas, profesoras de movimiento, bienestar y estudios creativos.",
-      nameLabel: type === "community" ? "Nombre de la comunidad" : "Nombre del taller o estudio",
-      namePlaceholder: type === "community" ? "ej. Mamás de Gràcia" : "ej. Studio Bloom Yoga Posparto",
-      cityLabel: "Ciudad",
-      descLabel: "Breve descripción",
-      descPlaceholder: "Cuéntanos un poco sobre vuestra propuesta...",
-      membersLabel: "Tamaño aproximado de la comunidad / seguidoras",
-      contactNameLabel: "Persona de contacto",
-      contactEmailLabel: "Correo electrónico de contacto",
-      contactPhoneLabel: "Teléfono / WhatsApp",
-      legalSectionTitle: "Datos fiscales y legales",
-      legalSectionNote: "Opcional por ahora — muchas comunidades de madres no son empresas registradas.",
-      legalNameLabel: "Razón social (si registrada)",
-      taxIdLabel: "NIF / CIF (si registrada)",
-      taxIdInvalid: "Por favor, introduce un formato de NIF/CIF válido (o déjalo vacío).",
-      insuranceLabel: "Dispongo de seguro de responsabilidad civil para talleres públicos (si dispones de él)",
-      submitButton: isSubmitting ? "Enviando..." : "Enviar mi solicitud",
-      successTitle: "¡Solicitud enviada!",
-      successDesc: "Gracias por traer tu proyecto a The Mothers. Nuestro equipo revisa cada propuesta con cariño y te contactará en 1-2 días laborables.",
-      backHome: "Volver al inicio",
-    },
-    fr: {
-      title: "Rejoignez The Mothers avec votre communauté ou vos ateliers",
-      subtitle: "Organisez des rencontres et des ateliers pour les mamans. Fédérez votre communauté avec des espaces dédiés, des inscriptions fluides et sans tracas administratif.",
-      typeCommunity: "Une communauté de mamans",
-      typeCommunityDesc: "Pour les groupes de quartier, cercles de mamans et clubs de parentalité.",
-      typeWorkshop: "Un atelier, studio ou marque",
-      typeWorkshopDesc: "Pour spécialistes, enseignantes bien-être, post-partum et studios créatifs.",
-      nameLabel: type === "community" ? "Nom de la communauté" : "Nom de l'atelier ou du studio",
-      namePlaceholder: type === "community" ? "ex. Mamás de Gràcia" : "ex. Studio Bloom Yoga Postnatal",
-      cityLabel: "Ville",
-      descLabel: "Courte présentation",
-      descPlaceholder: "Dites-nous en quelques mots ce que vous proposez...",
-      membersLabel: "Nombre approximatif de membres / communauté",
-      contactNameLabel: "Personne de contact",
-      contactEmailLabel: "Email de contact",
-      contactPhoneLabel: "Téléphone / WhatsApp",
-      legalSectionTitle: "Informations légales & fiscales",
-      legalSectionNote: "Facultatif pour l'instant — beaucoup de communautés de mamans ne sont pas des entreprises immatriculées.",
-      legalNameLabel: "Raison sociale (si enregistré)",
-      taxIdLabel: "Numéro fiscal / NIF / CIF (si enregistré)",
-      taxIdInvalid: "Veuillez entrer un numéro fiscal / NIF / CIF valide (ou laisser vide).",
-      insuranceLabel: "J'ai une assurance responsabilité civile couvrant les ateliers publics (si vous en avez une)",
-      submitButton: isSubmitting ? "Envoi en cours..." : "Envoyer ma candidature",
-      successTitle: "Candidature envoyée !",
-      successDesc: "Merci de proposer votre projet à The Mothers. Notre équipe examine chaque candidature avec attention et vous répondra sous 1 à 2 jours ouvrés.",
-      backHome: "Retour à l'accueil",
-    },
-  }[lang];
+  const updateField = (field: string, val: string) => {
+    setFormData((prev) => ({ ...prev, [field]: val }));
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  // Translations & Copy matching Partner Apply.dc.html & Screenshots
+  const titles = {
+    community: {
+      en: "Run your group's events on The Mothers.",
+      es: "Organiza los eventos de tu grupo en The Mothers.",
+      fr: "Organisez les événements de votre groupe sur The Mothers.",
+    },
+    workshop: {
+      en: "Run your sessions on The Mothers.",
+      es: "Organiza tus sesiones en The Mothers.",
+      fr: "Organisez vos ateliers sur The Mothers.",
+    },
+    service: {
+      en: "Offer your service to mothers on The Mothers.",
+      es: "Ofrece tu servicio a madres en The Mothers.",
+      fr: "Proposez vos services aux mères sur The Mothers.",
+    },
+  };
+
+  const steps = {
+    service: [
+      {
+        n: "1",
+        t: lang === "fr" ? "Présentez votre service" : lang === "es" ? "Cuéntanos sobre tu servicio" : "You tell us about your service",
+        d: lang === "fr" ? "Deux minutes, ci-dessous." : lang === "es" ? "Dos minutos, abajo." : "Two minutes, below.",
+      },
+      {
+        n: "2",
+        t: lang === "fr" ? "Nous validons ensemble" : lang === "es" ? "Lo revisamos" : "We check it",
+        d: lang === "fr" ? "Avis, qualifications et un court échange." : lang === "es" ? "Reseñas, formación y una breve llamada." : "Reviews, training and a short call.",
+      },
+      {
+        n: "3",
+        t: lang === "fr" ? "Vous êtes référencée comme Partenaire" : lang === "es" ? "Apareces como Partner recomendada" : "You are listed as a Partner",
+        d: lang === "fr" ? "Sur les professionnels recommandés, avec votre offre et votre code." : lang === "es" ? "En profesionales recomendadas, con tu oferta y tu propio código." : "On Recommended professionals, with your offer and your own code.",
+      },
+      {
+        n: "4",
+        t: lang === "fr" ? "Les mères réservent directement auprès de vous" : lang === "es" ? "Las madres te reservan directamente" : "Mothers book you directly",
+        d: lang === "fr" ? "Via votre propre lien de réservation. Déclaration mensuelle des premières visites." : lang === "es" ? "A través de tu propio enlace. Declaras las primeras visitas mensualmente." : "Through your own booking link. You declare first visits monthly.",
+      },
+    ],
+    workshop: [
+      {
+        n: "1",
+        t: lang === "fr" ? "Présentez votre studio ou atelier" : lang === "es" ? "Cuéntanos sobre tu estudio o taller" : "You tell us about your studio",
+        d: lang === "fr" ? "Deux minutes, ci-dessous." : lang === "es" ? "Dos minutos, abajo." : "Two minutes, below.",
+      },
+      {
+        n: "2",
+        t: lang === "fr" ? "Un court échange de cadrage" : lang === "es" ? "Una breve llamada" : "We have a short call",
+        d: lang === "fr" ? "Pour faire connaissance et convenir de l'organisation." : lang === "es" ? "Para conocernos y acordar cómo gestionar las sesiones." : "To meet you and agree how you want to run things.",
+      },
+      {
+        n: "3",
+        t: lang === "fr" ? "Vous obtenez votre espace Communauté" : lang === "es" ? "Obtienes tu espacio de Comunidad" : "You get your Community space",
+        d: lang === "fr" ? "Créez vos ateliers, suivez les inscrites, partagez votre lien." : lang === "es" ? "Crea eventos, mira quién asiste, comparte tu enlace de invitación." : "Create events, see who is coming, share your invite link.",
+      },
+      {
+        n: "4",
+        t: lang === "fr" ? "Les mères réservent sur The Mothers" : lang === "es" ? "Las madres reservan en The Mothers" : "Mothers book on The Mothers",
+        d: lang === "fr" ? "Paiement sécurisé par carte à la réservation. 2 événements gratuits par mois inclus." : lang === "es" ? "Los eventos de pago se cobran con tarjeta al reservar. 2 eventos gratuitos al mes incluidos." : "Paid events are paid by card at booking. Free events: 2 a month included.",
+      },
+    ],
+    community: [
+      {
+        n: "1",
+        t: lang === "fr" ? "Présentez votre groupe" : lang === "es" ? "Cuéntanos sobre tu grupo" : "You tell us about your group",
+        d: lang === "fr" ? "Deux minutes, ci-dessous." : lang === "es" ? "Dos minutos, abajo." : "Two minutes, below.",
+      },
+      {
+        n: "2",
+        t: lang === "fr" ? "Un court échange de cadrage" : lang === "es" ? "Una breve llamada" : "We have a short call",
+        d: lang === "fr" ? "Pour faire connaissance et convenir de l'organisation." : lang === "es" ? "Para conocernos y acordar cómo gestionar los encuentros." : "To meet you and agree how you want to run things.",
+      },
+      {
+        n: "3",
+        t: lang === "fr" ? "Vous obtenez votre espace Communauté" : lang === "es" ? "Obtienes tu espacio de Comunidad" : "You get your Community space",
+        d: lang === "fr" ? "Créez des rencontres, suivez les inscrites, partagez votre lien." : lang === "es" ? "Crea eventos, mira quién asiste, comparte tu enlace de invitación." : "Create events, see who is coming, share your invite link.",
+      },
+      {
+        n: "4",
+        t: lang === "fr" ? "Les mères réservent sur The Mothers" : lang === "es" ? "Las madres reservan en The Mothers" : "Mothers book on The Mothers",
+        d: lang === "fr" ? "Paiement sécurisé par carte à la réservation. 2 événements gratuits par mois inclus." : lang === "es" ? "Los eventos de pago se cobran con tarjeta al reservar. 2 eventos gratuitos al mes incluidos." : "Paid events are paid by card at booking. Free events: 2 a month included.",
+      },
+    ],
+  }[kind];
+
+  const handleSend = async () => {
+    setTried(true);
+    setErrorMsg(null);
+
+    // Validation
+    if (!formData.name?.trim()) {
+      setErrorMsg(kind === "community" ? "Community name is required." : "Business name is required.");
+      return;
+    }
+    if (!formData.contact?.trim()) {
+      setErrorMsg("Your name is required.");
+      return;
+    }
+    if (!formData.email?.trim() || !formData.email.includes("@")) {
+      setErrorMsg("A valid email address is required.");
+      return;
+    }
+    if (kind !== "community" && !formData.web?.trim()) {
+      setErrorMsg("Website or Instagram is required.");
+      return;
+    }
+    if (kind === "service") {
+      if (!formData.type?.trim()) {
+        setErrorMsg("Your service description is required.");
+        return;
+      }
+      if (!formData.where?.trim()) {
+        setErrorMsg("Location is required.");
+        return;
+      }
+      if (!formData.offer?.trim()) {
+        setErrorMsg("Your offer for mothers is required.");
+        return;
+      }
+    }
+    if (kind !== "service" && !why.trim()) {
+      setErrorMsg("Please let us know what events you would organise.");
+      return;
+    }
+    if (!agree) {
+      setErrorMsg("Please agree to the Terms and Privacy Policy.");
+      return;
+    }
+
     setIsSubmitting(true);
-
     try {
+      const serverKind = kind === "service" ? "one_to_one" : kind;
       const res = await submitPartnerApplicationAction({
-        type,
-        name,
-        city,
-        description,
-        memberCount: memberCount ? parseInt(memberCount, 10) : undefined,
-        contactName,
-        contactEmail,
-        contactPhone,
-        legalName: legalName || undefined,
-        taxId: taxId || undefined,
-        hasInsurance,
+        type: serverKind,
+        name: formData.name.trim(),
+        city: "Barcelona",
+        description: why.trim() || formData.type.trim(),
+        contactName: formData.contact.trim(),
+        contactEmail: formData.email.trim(),
+        contactPhone: formData.phone.trim(),
+        serviceOffered: formData.type.trim() || undefined,
+        usualPrice: formData.price.trim() || undefined,
+        offerForMembers: formData.offer.trim() || undefined,
+        bookingUrl: formData.booking.trim() || formData.web.trim() || undefined,
+        billingModel: kind === "service" ? (bill === "flat" ? "monthly_19" : "commission_12") : undefined,
+        legalName: legalName.trim() || undefined,
+        taxId: vat.trim() || undefined,
+        hasInsurance: insured,
       });
 
       if (!res.success) {
-        if (res.error === "INVALID_TAX_ID") {
-          setError(t.taxIdInvalid);
-        } else {
-          setError(res.error || "An error occurred while submitting.");
-        }
+        setErrorMsg(res.error || "Failed to submit request. Please try again.");
       } else {
-        setSuccess(true);
+        setSent({ name: formData.name, contact: formData.contact });
       }
     } catch (err: any) {
-      setError(err?.message || "An unexpected error occurred.");
+      setErrorMsg(err?.message || "An unexpected error occurred.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#fbf8f5", padding: "40px 20px" }}>
-      <div style={{ maxWidth: "680px", margin: "0 auto" }}>
-        {/* Language selector */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "20px" }}>
-          {(["en", "es", "fr"] as const).map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLang(l)}
-              style={{
-                border: "none",
-                background: lang === l ? "#7b1f2c" : "transparent",
-                color: lang === l ? "#ffffff" : "rgba(57, 41, 42, 0.7)",
-                padding: "4px 10px",
-                borderRadius: "14px",
-                fontSize: "12px",
-                cursor: "pointer",
-                fontWeight: 600,
-                textTransform: "uppercase",
-              }}
-            >
-              {l}
-            </button>
-          ))}
+    <div style={{ minHeight: "100vh", background: "#fdf8f2", color: "#39292a", fontFamily: "'Lora', Georgia, serif" }}>
+      {/* Main Content: 2 Columns */}
+      <main
+        style={{
+          maxWidth: "1080px",
+          margin: "0 auto",
+          padding: "clamp(32px, 5vw, 60px) clamp(18px, 4vw, 36px) 70px",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
+          gap: "clamp(28px, 4vw, 48px)",
+          alignItems: "start",
+        }}
+      >
+        {/* Left Column: Heading, description, and 4-step explanation */}
+        <div>
+          <div
+            style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontWeight: 600,
+              fontSize: "12.5px",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "#7b1f2c",
+              marginBottom: "10px",
+            }}
+          >
+            {lang === "fr" ? "PROPOSEZ VOS ÉVÉNEMENTS AVEC NOUS" : lang === "es" ? "ORGANIZA TUS EVENTOS CON NOSOTRAS" : "RUN YOUR EVENTS WITH US"}
+          </div>
+
+          <h1
+            style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontWeight: 400,
+              fontSize: "clamp(32px, 4.4vw, 46px)",
+              lineHeight: 1.08,
+              margin: "0 0 14px",
+              color: "#39292a",
+            }}
+          >
+            {titles[kind][lang]}
+          </h1>
+
+          <p style={{ fontSize: "15px", lineHeight: 1.65, color: "rgba(57, 41, 42, 0.78)", margin: "0 0 24px", maxWidth: "46ch" }}>
+            {lang === "fr"
+              ? "Pour les communautés de mères, studios, ateliers et services individuels. Présentez-vous — nous répondons sous 2 jours ouvrés."
+              : lang === "es"
+              ? "Para comunidades de madres, estudios y talleres, y servicios individuales. Cuéntanos sobre ti — respondemos en 2 días laborables."
+              : "For mother communities, studios and workshops, and one-to-one services. Tell us about you — we reply within two working days."}
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", borderTop: "1px solid rgba(57, 41, 42, 0.14)" }}>
+            {steps.map((s) => (
+              <div
+                key={s.n}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "34px minmax(0, 1fr)",
+                  gap: "4px 12px",
+                  padding: "16px 0",
+                  borderBottom: "1px solid rgba(57, 41, 42, 0.14)",
+                }}
+              >
+                <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "24px", lineHeight: 1, color: "#7b1f2c" }}>
+                  {s.n}
+                </span>
+                <div style={{ fontSize: "14px", lineHeight: 1.55 }}>
+                  <strong style={{ fontWeight: 600, color: "#39292a" }}>{s.t}</strong>
+                  <div style={{ color: "rgba(57, 41, 42, 0.72)", marginTop: "2px" }}>{s.d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {success ? (
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "12px",
-              padding: "40px 32px",
-              boxShadow: "0 4px 20px rgba(57, 41, 42, 0.08)",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "40px", marginBottom: "16px" }}>✦</div>
-            <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "28px", color: "#39292a", marginBottom: "12px" }}>
-              {t.successTitle}
-            </h1>
-            <p style={{ fontSize: "15px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.8)", marginBottom: "28px", maxWidth: "480px", margin: "0 auto 28px" }}>
-              {t.successDesc}
-            </p>
-            <Link
-              href="/"
-              style={{
-                display: "inline-block",
-                backgroundColor: "#7b1f2c",
-                color: "#ffffff",
-                padding: "12px 24px",
-                borderRadius: "24px",
-                textDecoration: "none",
-                fontSize: "14px",
-                fontWeight: 600,
-              }}
-            >
-              {t.backHome}
-            </Link>
-          </div>
-        ) : (
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "12px",
-              padding: "36px 32px",
-              boxShadow: "0 4px 20px rgba(57, 41, 42, 0.08)",
-            }}
-          >
-            <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "30px", color: "#39292a", margin: "0 0 10px 0" }}>
-              {t.title}
-            </h1>
-            <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.75)", margin: "0 0 28px 0" }}>
-              {t.subtitle}
-            </p>
+        {/* Right Column: Interactive Form Box */}
+        <div
+          style={{
+            border: "1px solid rgba(57, 41, 42, 0.18)",
+            borderRadius: "8px",
+            background: "#ffffff",
+            padding: "clamp(22px, 3vw, 32px)",
+            boxShadow: "0 4px 20px rgba(57, 41, 42, 0.04)",
+          }}
+        >
+          {sent ? (
+            <div>
+              <div style={{ fontSize: "36px", color: "#3b5e04", marginBottom: "12px" }}>✓</div>
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "26px", margin: "0 0 8px" }}>
+                {lang === "fr" ? `Merci, ${sent.contact}` : lang === "es" ? `Gracias, ${sent.contact}` : `Thank you, ${sent.contact}.`}
+              </h2>
+              <p style={{ fontSize: "14.5px", lineHeight: 1.6, color: "rgba(57, 41, 42, 0.78)", margin: "0 0 20px" }}>
+                {lang === "fr"
+                  ? `Nous avons bien reçu votre demande pour ${sent.name}. Notre équipe vous répond par e-mail sous deux jours ouvrés. Une fois validée, vous accéderez à votre espace avec cet e-mail.`
+                  : lang === "es"
+                  ? `Hemos recibido tu solicitud para ${sent.name}. Respondemos por correo en dos días laborables. Una vez aprobada, podrás acceder a tu espacio con este correo.`
+                  : `We have your request for ${sent.name}. We reply by email within two working days. Once approved, you sign in to your Community space with this email.`}
+              </p>
+              <Link
+                href="/"
+                style={{
+                  display: "inline-block",
+                  border: "1px solid #7b1f2c",
+                  color: "#7b1f2c",
+                  padding: "8px 18px",
+                  borderRadius: "4px",
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontWeight: 600,
+                  fontSize: "15px",
+                  textDecoration: "none",
+                }}
+              >
+                {lang === "fr" ? "Retour à l'accueil" : lang === "es" ? "Volver al inicio" : "Back to The Mothers"}
+              </Link>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 600, fontSize: "24px", margin: "0", color: "#39292a" }}>
+                  {lang === "fr" ? "Parlez-nous de vous" : lang === "es" ? "Cuéntanos sobre ti" : "Tell us about you"}
+                </h2>
+                <Link
+                  href="/account/login?callbackUrl=/partner-portal"
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontWeight: 600,
+                    fontSize: "15px",
+                    color: "#7b1f2c",
+                    textDecoration: "none",
+                  }}
+                >
+                  {lang === "fr" ? "Déjà approuvé ? Se connecter →" : lang === "es" ? "¿Ya aprobada? Iniciar sesión →" : "Already approved? Sign in →"}
+                </Link>
+              </div>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
-              {/* Type Switcher */}
+              {/* 3 Clickable Type Cards */}
               <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "10px" }}>
-                  {lang === "fr" ? "Type d'organisation" : lang === "es" ? "Tipo de organización" : "Organisation type"}
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "8px" }}>
+                  {lang === "fr" ? "Vous êtes *" : lang === "es" ? "Eres *" : "You are *"}
                 </label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <button
-                    type="button"
-                    onClick={() => setType("community")}
-                    style={{
-                      border: type === "community" ? "2px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.2)",
-                      backgroundColor: type === "community" ? "rgba(123, 31, 44, 0.04)" : "#ffffff",
-                      borderRadius: "8px",
-                      padding: "14px",
-                      textAlign: "left",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: "14px", color: "#39292a", marginBottom: "4px" }}>
-                      {t.typeCommunity}
-                    </div>
-                    <div style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.65)", lineHeight: 1.4 }}>
-                      {t.typeCommunityDesc}
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setType("workshop")}
-                    style={{
-                      border: type === "workshop" ? "2px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.2)",
-                      backgroundColor: type === "workshop" ? "rgba(123, 31, 44, 0.04)" : "#ffffff",
-                      borderRadius: "8px",
-                      padding: "14px",
-                      textAlign: "left",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, fontSize: "14px", color: "#39292a", marginBottom: "4px" }}>
-                      {t.typeWorkshop}
-                    </div>
-                    <div style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.65)", lineHeight: 1.4 }}>
-                      {t.typeWorkshopDesc}
-                    </div>
-                  </button>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {[
+                    {
+                      key: "community",
+                      label: lang === "fr" ? "Une communauté de mères" : lang === "es" ? "Una comunidad de madres" : "A mother community",
+                      sub: lang === "fr" ? "Groupe WhatsApp, cercle, association" : lang === "es" ? "Grupo de WhatsApp, círculo, asociación" : "WhatsApp group, circle, association",
+                    },
+                    {
+                      key: "workshop",
+                      label: lang === "fr" ? "Un atelier, studio ou marque" : lang === "es" ? "Un taller, estudio o marca" : "A workshop, studio or brand",
+                      sub: lang === "fr" ? "Cours collectifs, sessions, expériences" : lang === "es" ? "Clases grupales, sesiones, experiencias" : "Group classes, sessions, experiences",
+                    },
+                    {
+                      key: "service",
+                      label: lang === "fr" ? "Un service individuel" : lang === "es" ? "Un servicio individual" : "A one-to-one service",
+                      sub: lang === "fr" ? "Soins, massage, coiffure, coaching — une mère à la fois" : lang === "es" ? "Faciales, masaje, pelo, coaching — una madre a la vez" : "Facials, massage, hair, coaching — one mother at a time",
+                    },
+                  ].map((item) => {
+                    const isSelected = kind === item.key;
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setKind(item.key as PartnerKind)}
+                        style={{
+                          textAlign: "left",
+                          border: isSelected ? "1.5px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.22)",
+                          background: isSelected ? "rgba(123, 31, 44, 0.04)" : "#ffffff",
+                          borderRadius: "6px",
+                          padding: "10px 14px",
+                          cursor: "pointer",
+                          transition: "border-color 0.15s ease",
+                        }}
+                      >
+                        <strong style={{ display: "block", fontSize: "14px", fontWeight: 600, color: "#39292a" }}>
+                          {item.label}
+                        </strong>
+                        <span style={{ fontSize: "12.5px", color: "rgba(57, 41, 42, 0.65)" }}>{item.sub}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Name */}
+              {/* Dynamic Field 1: Name */}
               <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "6px" }}>
-                  {t.nameLabel} *
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                  {kind === "community" ? "Community name *" : "Business name *"}
                 </label>
                 <input
                   type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t.namePlaceholder}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "6px",
-                    border: "1px solid rgba(57, 41, 42, 0.25)",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
+                  value={formData.name}
+                  onChange={(e) => updateField("name", e.target.value)}
+                  placeholder={kind === "community" ? "Mamás de Gràcia" : kind === "workshop" ? "Studio Luz" : "Glow Skin Studio"}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
                 />
               </div>
 
-              {/* City & Member Count */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "6px" }}>
-                    {t.cityLabel} *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "6px",
-                      border: "1px solid rgba(57, 41, 42, 0.25)",
-                      fontSize: "14px",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "6px" }}>
-                    {t.membersLabel}
-                  </label>
-                  <input
-                    type="number"
-                    value={memberCount}
-                    onChange={(e) => setMemberCount(e.target.value)}
-                    placeholder="e.g. 150"
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "6px",
-                      border: "1px solid rgba(57, 41, 42, 0.25)",
-                      fontSize: "14px",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
+              {/* Your Name & Email */}
               <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "6px" }}>
-                  {t.descLabel}
-                </label>
-                <textarea
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t.descPlaceholder}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "6px",
-                    border: "1px solid rgba(57, 41, 42, 0.25)",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                    fontFamily: "inherit",
-                  }}
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>Your name *</label>
+                <input
+                  type="text"
+                  value={formData.contact}
+                  onChange={(e) => updateField("contact", e.target.value)}
+                  placeholder="First and last name"
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
                 />
               </div>
 
-              {/* Contact Info */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "6px" }}>
-                    {t.contactNameLabel} *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    placeholder="e.g. Maria"
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "6px",
-                      border: "1px solid rgba(57, 41, 42, 0.25)",
-                      fontSize: "14px",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "6px" }}>
-                    {t.contactPhoneLabel}
-                  </label>
-                  <input
-                    type="tel"
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder="+34 600 000 000"
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "6px",
-                      border: "1px solid rgba(57, 41, 42, 0.25)",
-                      fontSize: "14px",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-              </div>
-
               <div>
-                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#39292a", marginBottom: "6px" }}>
-                  {t.contactEmailLabel} *
-                </label>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>Email *</label>
                 <input
                   type="email"
-                  required
-                  value={contactEmail}
-                  onChange={(e) => setContactEmail(e.target.value)}
-                  placeholder="contact@example.com"
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "6px",
-                    border: "1px solid rgba(57, 41, 42, 0.25)",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
+                  value={formData.email}
+                  onChange={(e) => updateField("email", e.target.value)}
+                  placeholder={kind === "community" ? "you@email.com" : "you@studio.com"}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
                 />
               </div>
 
-              {/* Legal & Business section (Optional §14 / CM-02) */}
-              <div
-                style={{
-                  borderTop: "1px solid rgba(57, 41, 42, 0.12)",
-                  paddingTop: "18px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "14px",
-                }}
-              >
+              {/* Phone */}
+              <div>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>Phone</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => updateField("phone", e.target.value)}
+                  placeholder="+34"
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                />
+              </div>
+
+              {/* Web / Instagram Link */}
+              <div>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                  {kind === "community" ? "Instagram or group link" : "Website or Instagram *"}
+                </label>
+                <input
+                  type="text"
+                  value={formData.web}
+                  onChange={(e) => updateField("web", e.target.value)}
+                  placeholder={kind === "community" ? "instagram.com/…" : kind === "workshop" ? "studioluz.com" : "glowskin.es"}
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                />
+              </div>
+
+              {/* Kind-specific fields */}
+              {kind === "community" && (
                 <div>
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: "#39292a" }}>{t.legalSectionTitle}</div>
-                  <div style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.65)", marginTop: "2px" }}>
-                    {t.legalSectionNote}
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                    How many mothers are in your group?
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.type}
+                    onChange={(e) => updateField("type", e.target.value)}
+                    placeholder="e.g. WhatsApp group · 80 mothers"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                  />
+                </div>
+              )}
+
+              {kind === "workshop" && (
+                <>
+                  <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                      What do you offer?
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.type}
+                      onChange={(e) => updateField("type", e.target.value)}
+                      placeholder="e.g. postnatal yoga, baby massage, sleep workshops"
+                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                      Where do you run your sessions?
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.where}
+                      onChange={(e) => updateField("where", e.target.value)}
+                      placeholder="Your studio address, or “at venues”"
+                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                    />
+                  </div>
+                </>
+              )}
+
+              {kind === "service" && (
+                <>
+                  <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                      Your service *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.type}
+                      onChange={(e) => updateField("type", e.target.value)}
+                      placeholder="e.g. facial, postnatal massage, hair at home"
+                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                      Usual price and length
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.price}
+                      onChange={(e) => updateField("price", e.target.value)}
+                      placeholder="e.g. €60 · 60 min"
+                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                      Where? *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.where}
+                      onChange={(e) => updateField("where", e.target.value)}
+                      placeholder="Your studio address, or “at her home”"
+                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                      Your offer for mothers *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.offer}
+                      onChange={(e) => updateField("offer", e.target.value)}
+                      placeholder="e.g. 15% off the first visit"
+                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                      How mothers book you
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.booking}
+                      onChange={(e) => updateField("booking", e.target.value)}
+                      placeholder="Booking link, WhatsApp or phone"
+                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Why / What would you organise */}
+              <div>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                  {kind === "workshop"
+                    ? "Which events would you run with us? *"
+                    : kind === "service"
+                    ? "Tell us about you (optional)"
+                    : "What would you organise with us? *"}
+                </label>
+                <textarea
+                  rows={4}
+                  value={why}
+                  onChange={(e) => setWhy(e.target.value)}
+                  placeholder={
+                    kind === "workshop"
+                      ? "e.g. a monthly baby-massage class, €25, 8 places"
+                      : kind === "service"
+                      ? "Your training, how long you have practised, anything mothers should know"
+                      : "Weekly coffees, a paid workshop each month…"
+                  }
+                  style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif", resize: "vertical" }}
+                />
+              </div>
+
+              {/* Service Payment Preference (Only for one-to-one services) */}
+              {kind === "service" && (
+                <div style={{ borderTop: "1px solid rgba(57, 41, 42, 0.12)", paddingTop: "14px" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 600, marginBottom: "8px" }}>
+                    How would you like to pay us? *
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "8px" }}>
+                    {[
+                      {
+                        key: "flat",
+                        label: "Flat · €19 a month",
+                        sub: "Simple: one monthly fee, cancel any time.",
+                      },
+                      {
+                        key: "commission",
+                        label: "Commission · 12% of each first visit",
+                        sub: "You declare first visits from The Mothers each month.",
+                      },
+                    ].map((b) => {
+                      const isSel = bill === b.key;
+                      return (
+                        <button
+                          key={b.key}
+                          type="button"
+                          onClick={() => setBill(b.key as BillingOption)}
+                          style={{
+                            textAlign: "left",
+                            border: isSel ? "1.5px solid #7b1f2c" : "1px solid rgba(57, 41, 42, 0.25)",
+                            background: isSel ? "rgba(123, 31, 44, 0.05)" : "#ffffff",
+                            borderRadius: "6px",
+                            padding: "10px 12px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <strong style={{ fontWeight: 600, fontSize: "14px", color: "#39292a" }}>{b.label}</strong>
+                          <div style={{ fontSize: "12px", color: "rgba(57, 41, 42, 0.7)", marginTop: "2px" }}>{b.sub}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+              )}
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+              {/* Optional Legal / Tax Details for Workshops */}
+              {kind === "workshop" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", borderTop: "1px solid rgba(57, 41, 42, 0.12)", paddingTop: "14px" }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "13px", color: "#39292a", marginBottom: "4px" }}>
-                      {t.legalNameLabel}
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                      Legal name <span style={{ fontWeight: 400, color: "rgba(57, 41, 42, 0.6)" }}>(if registered)</span>
                     </label>
                     <input
                       type="text"
                       value={legalName}
                       onChange={(e) => setLegalName(e.target.value)}
-                      placeholder="e.g. Gracia Mums S.L."
-                      style={{
-                        width: "100%",
-                        padding: "10px 14px",
-                        borderRadius: "6px",
-                        border: "1px solid rgba(57, 41, 42, 0.25)",
-                        fontSize: "14px",
-                        boxSizing: "border-box",
-                      }}
+                      placeholder="Business or autónoma name"
+                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "13px", color: "#39292a", marginBottom: "4px" }}>
-                      {t.taxIdLabel}
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
+                      Tax ID — NIF / CIF <span style={{ fontWeight: 400, color: "rgba(57, 41, 42, 0.6)" }}>(if registered)</span>
                     </label>
                     <input
                       type="text"
-                      value={taxId}
-                      onChange={(e) => setTaxId(e.target.value)}
-                      placeholder="e.g. B12345678"
-                      style={{
-                        width: "100%",
-                        padding: "10px 14px",
-                        borderRadius: "6px",
-                        border: error === t.taxIdInvalid ? "1.5px solid #a12c2c" : "1px solid rgba(57, 41, 42, 0.25)",
-                        fontSize: "14px",
-                        boxSizing: "border-box",
-                      }}
+                      value={vat}
+                      onChange={(e) => setVat(e.target.value)}
+                      placeholder="B12345678"
+                      style={{ width: "100%", boxSizing: "border-box", border: "1px solid rgba(57, 41, 42, 0.25)", borderRadius: "4px", padding: "10px 12px", fontSize: "14px", fontFamily: "'Lora', Georgia, serif" }}
                     />
                   </div>
-                </div>
-
-                <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer", marginTop: "4px" }}>
-                  <input
-                    type="checkbox"
-                    checked={hasInsurance}
-                    onChange={(e) => setHasInsurance(e.target.checked)}
-                    style={{ marginTop: "3px", accentColor: "#7b1f2c" }}
-                  />
-                  <span style={{ fontSize: "13px", color: "rgba(57, 41, 42, 0.8)", lineHeight: 1.4 }}>
-                    {t.insuranceLabel}
-                  </span>
-                </label>
-              </div>
-
-              {error && (
-                <div
-                  style={{
-                    backgroundColor: "rgba(161, 44, 44, 0.08)",
-                    border: "1px solid rgba(161, 44, 44, 0.3)",
-                    borderRadius: "6px",
-                    padding: "10px 14px",
-                    color: "#a12c2c",
-                    fontSize: "13px",
-                  }}
-                >
-                  {error}
+                  <label style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.5, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={insured}
+                      onChange={(e) => setInsured(e.target.checked)}
+                      style={{ width: "16px", height: "16px", accentColor: "#7b1f2c", marginTop: "2px" }}
+                    />
+                    <span>I have liability insurance for the activities I will run (if you have it).</span>
+                  </label>
                 </div>
               )}
 
+              {/* Terms and Agreements Checkbox */}
+              <label style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.5, cursor: "pointer", marginTop: "4px" }}>
+                <input
+                  type="checkbox"
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                  style={{ width: "16px", height: "16px", accentColor: "#7b1f2c", marginTop: "2px" }}
+                />
+                <span>
+                  I agree to the <Link href="/terms" style={{ color: "#7b1f2c" }}>Terms</Link> and <Link href="/privacy" style={{ color: "#7b1f2c" }}>Privacy Policy</Link>.{" "}
+                  {kind === "service" ? (
+                    "You are listed on Recommended professionals as a Partner, with your offer and a code. You pay either €19 a month, or 12% of the first visit of each mother who comes through The Mothers, declared monthly. Doctors and psychologists can only be listed free."
+                  ) : kind === "workshop" ? (
+                    "Paid events carry a 20% commission (at least €1 per mother). Free events: €2 per mother who comes."
+                  ) : (
+                    "Paid events carry a 15% commission (at least €1 per mother). Free events: 2 a month included, then €1 per mother who comes (max €15 per event)."
+                  )}
+                </span>
+              </label>
+
+              {/* Error message */}
+              {errorMsg && (
+                <div style={{ fontSize: "13px", color: "#993842" }}>{errorMsg}</div>
+              )}
+
+              {/* Submit button: NO PAYMENT AT SIGNUP */}
               <button
-                type="submit"
+                type="button"
+                onClick={handleSend}
                 disabled={isSubmitting}
                 style={{
-                  backgroundColor: "#7b1f2c",
+                  border: "1px solid #7b1f2c",
+                  background: "#7b1f2c",
                   color: "#ffffff",
-                  border: "none",
-                  padding: "14px",
-                  borderRadius: "24px",
-                  fontSize: "15px",
+                  borderRadius: "4px",
+                  padding: "12px",
+                  fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 600,
-                  cursor: isSubmitting ? "not-allowed" : "pointer",
-                  opacity: isSubmitting ? 0.7 : 1,
-                  marginTop: "8px",
+                  fontSize: "16.5px",
+                  cursor: isSubmitting ? "default" : "pointer",
+                  marginTop: "6px",
                   transition: "background 0.15s ease",
                 }}
               >
-                {t.submitButton}
+                {isSubmitting ? "Sending..." : "Send request"}
               </button>
-            </form>
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 }

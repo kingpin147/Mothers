@@ -330,8 +330,8 @@ export function Footer() {
               <Link href="/events" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
                 {lang === "fr" ? "Événements" : lang === "es" ? "Eventos" : "Events"}
               </Link>
-              <Link href="/lagazette" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
-                La Gazette
+              <Link href="/forum" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>
+                {lang === "fr" ? "Le Forum" : lang === "es" ? "El Foro" : "The Forum"}
               </Link>
               {isMembershipLive && (
                 <Link href="/partners" style={{ fontSize: "14px", color: "#39292a", textDecoration: "none" }}>

@@ -32,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/lagazette`,
+      url: `${baseUrl}/forum`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.8,
@@ -106,7 +106,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const gazetteRoutes: MetadataRoute.Sitemap = visiblePosts
       .filter((post) => Boolean(post.slug))
       .map((post) => ({
-        url: `${baseUrl}/lagazette/${post.slug}`,
+        url: `${baseUrl}/forum/${post.slug}`,
         lastModified: post.updatedAt || post.createdAt || new Date(),
         changeFrequency: "weekly",
         priority: 0.8,

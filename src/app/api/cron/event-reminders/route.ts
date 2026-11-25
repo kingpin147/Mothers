@@ -52,6 +52,32 @@ export async function GET(req: NextRequest) {
           )
         );
 
+      // If gathering, send Gathering Tomorrow email to the organizer (§10)
+      if (ev.isGathering && ev.gatheringHostPersonId) {
+        try {
+          const host = await db.query.person.findFirst({
+            where: eq(person.id, ev.gatheringHostPersonId),
+          });
+          if (host?.email) {
+            const { sendGatheringTomorrowEmail } = await import("@/lib/brevo");
+            await sendGatheringTomorrowEmail({
+              personId: host.id,
+              email: host.email,
+              firstName: host.firstName || "Mother",
+              eventTitle: ev.title,
+              bookedCount: attendees.length,
+              attendeeFirstNames: attendees.map((a) => a.firstName).filter(Boolean).join(", "),
+              eventDate: formatEventDate(ev.startsAt, host.locale as any),
+              eventTime: formatEventTime(ev.startsAt),
+              meetingPoint: ev.meetingPoint || ev.venueName,
+              locale: (host.locale as any) || "en",
+            });
+          }
+        } catch (err) {
+          console.error("[event-reminders] Error sending gathering tomorrow email:", err);
+        }
+      }
+
       for (const attendee of attendees) {
         const subject =
           attendee.locale === "es"

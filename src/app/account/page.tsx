@@ -858,7 +858,7 @@ function AccountPageContent() {
               }}
             >
               <Link
-                href="/lagazette"
+                href="/forum"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -870,14 +870,14 @@ function AccountPageContent() {
                   fontWeight: 500,
                 }}
               >
-                <span>{lang === "fr" ? "Discuter dans La Gazette" : lang === "es" ? "Saludar en La Gazette" : "Say hello in La Gazette"}</span>
+                <span>{lang === "fr" ? "Discuter dans Le Forum" : lang === "es" ? "Saludar en El Foro" : "Say hello in The Forum"}</span>
                 <span style={{ fontSize: "12px" }}>→</span>
               </Link>
 
               <span style={{ color: "rgba(57, 41, 42, 0.25)" }}>·</span>
 
               <Link
-                href="/lagazette?filter=saved"
+                href="/forum?filter=saved"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -1171,9 +1171,9 @@ function AccountPageContent() {
 
           const isMember = !!(memberData?.status === "active" && memberData?.hasActiveSubscription);
           const planLine = isMember
-            ? (memberData?.plan === "quarterly"
-                ? (lang === "en" ? "60 credits every 3 months" : "60 créditos cada 3 meses")
-                : (lang === "en" ? "20 credits each month" : "20 créditos al mes"))
+            ? (memberData?.plan === "annual"
+                ? (lang === "en" ? "+10 credits each year" : "+10 créditos cada año")
+                : (lang === "en" ? "partner perks & The Forum" : "ventajas de partners y El Foro"))
             : "";
           const renewLine = isMember && memberData?.currentPeriodEnd
             ? (lang === "en" ? `Renews on ${fmtD(memberData.currentPeriodEnd)}` : `Se renueva el ${fmtD(memberData.currentPeriodEnd)}`)
@@ -2316,7 +2316,7 @@ function AccountPageContent() {
                   {accountData.member.status === "paused" ? (lang === "en" ? "Membership Paused" : "Membresía en Pausa") : (lang === "en" ? "The Mothers Club Membership" : "Membresía The Mothers Club")}
                 </h2>
                 <p style={{ fontSize: "15px", color: "rgba(57, 41, 42, 0.75)", margin: "0 0 20px" }}>
-                  {lang === "en" ? "Your membership grants 20 credits every month and full access to partner perks and member events." : "Tu membresía te otorga 20 créditos cada mes y acceso total a ventajas de partners y encuentros de socias."}
+                  {lang === "en" ? "Your membership grants full access to partner perks, The Forum, and 1-2 exclusive members-only events each month." : "Tu membresía te otorga acceso total a ventajas de partners, El Foro y 1-2 encuentros exclusivos de socias al mes."}
                 </p>
                 <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                   <button
@@ -2342,8 +2342,8 @@ function AccountPageContent() {
                 </h2>
                 <p style={{ fontSize: "15.5px", lineHeight: "1.6", color: "rgba(57, 41, 42, 0.8)", margin: "0 0 24px", maxWidth: "58ch" }}>
                   {lang === "en"
-                    ? "Choose monthly (€39/mo for 20 credits) or quarterly (€99/qtr for 60 credits). Wallet credits apply automatically as a discount at checkout."
-                    : "Elige mensual (39€/mes por 20 créditos) o trimestral (99€/trimestre por 60 créditos). Tus créditos se descuentan automáticamente."}
+                    ? "Choose monthly (€6.99/mo) or annual (€69/yr with 10 credits). First payment = plan price, with no joining fee."
+                    : "Elige mensual (6,99€/mes) o anual (69€/año con 10 créditos). Sin cuota de alta ni costes ocultos."}
                 </p>
                 <div style={{ display: "flex", gap: "14px", flexWrap: "wrap" }}>
                   <button
@@ -2367,7 +2367,7 @@ function AccountPageContent() {
                     }}
                     style={{ border: "1px solid #7b1f2c", backgroundColor: "#7b1f2c", color: "#f8efe2", padding: "12px 24px", borderRadius: "4px", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}
                   >
-                    {lang === "en" ? "Subscribe Monthly (€39 / mo)" : "Suscripción Mensual (39€ / mes)"}
+                    {lang === "en" ? "Subscribe Monthly (€6.99 / mo)" : "Suscripción Mensual (6,99€ / mes)"}
                   </button>
                   <button
                     type="button"
@@ -2375,7 +2375,7 @@ function AccountPageContent() {
                       const res = await fetch("/api/stripe/checkout", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ plan: "quarterly" }),
+                        body: JSON.stringify({ plan: "annual" }),
                       });
                       let data;
                       try {
@@ -2390,7 +2390,7 @@ function AccountPageContent() {
                     }}
                     style={{ border: "1px solid #7b1f2c", backgroundColor: "transparent", color: "#7b1f2c", padding: "12px 24px", borderRadius: "4px", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}
                   >
-                    {lang === "en" ? "Subscribe Quarterly (€99 / qtr · 60 credits)" : "Suscripción Trimestral (99€ / trim · 60 créditos)"}
+                    {lang === "en" ? "Subscribe Annual (€69 / yr · 10 credits)" : "Suscripción Anual (69€ / año · 10 créditos)"}
                   </button>
                 </div>
               </div>
@@ -2435,8 +2435,8 @@ function AccountPageContent() {
                   }}
                 >
                   {lang === "en"
-                    ? "€39 a month or €99 quarterly, twenty credits granted each month, and the partner list. As an early mother you join without a joining fee, and credits already in your wallet keep their full six-month life."
-                    : "39 € al mes o 99 € al trimestre, veinte créditos concedidos cada mes y la lista de partners. Como madre pionera te unes sin cuota de alta, y los créditos que ya tengas en tu monedero conservan su validez completa de seis meses."}
+                    ? "Monthly €6.99 or Annual €69 with 10 event credits, partner perks and unlimited Forum access. Wallet credits keep their full six-month life."
+                    : "6,99 € al mes o 69 € al año con 10 créditos para encuentros, ventajas de partners y acceso ilimitado a El Foro. Los créditos en tu monedero conservan sus seis meses de validez."}
                 </p>
 
                 <div style={{ display: "flex", gap: "9px", flexWrap: "wrap", marginBottom: "20px" }}>
@@ -2813,7 +2813,7 @@ function AccountPageContent() {
                     <ul style={{ fontSize: "13.5px", lineHeight: "1.6", color: "rgba(57,41,42,0.85)", margin: "0 0 18px", paddingLeft: "20px" }}>
                       <li>{lang === "en" ? "Your upcoming bookings will be cancelled and the places freed" : "Tus reservas próximas se cancelarán y las plazas quedarán libres"}</li>
                       <li>{lang === "en" ? "Any remaining credits in your wallet are forfeited" : "Los créditos restantes en tu monedero se perderán"}</li>
-                      <li>{lang === "en" ? "Your La Gazette posts stay, signed \"A mother in Barcelona\"" : "Tus publicaciones en La Gazette permanecerán firmadas como \"Una madre en Barcelona\""}</li>
+                      <li>{lang === "en" ? "Your Forum posts stay, signed \"A mother in your neighbourhood\"" : "Tus publicaciones en El Foro permanecerán firmadas como \"Una madre en tu barrio\""}</li>
                       <li><strong>{lang === "en" ? "This action is permanent and cannot be undone" : "Esta acción es definitiva y no se puede deshacer"}</strong></li>
                     </ul>
                     {deleteError && (

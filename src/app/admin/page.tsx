@@ -177,20 +177,22 @@ export default function AdminDashboardPage() {
     {
       kicker: 'QUEUE 04 · FINANCE',
       title: 'Payments & revenue',
-      body: 'Subscriptions, credit top-ups, €19 joining fees and refunds.',
+      body: 'Subscriptions, credit top-ups, partner commissions and refunds.',
       cta: 'Open the ledger →',
       href: '/admin/finance'
     }
   ];
   const cms = [
-    { label: 'La Gazette — reports & moderation', href: '/admin/reports' },
+    { label: 'Communities & Workshops — requests & commission', href: '/admin/communities' },
+    { label: 'Homepage curation & Sponsors', href: '/admin/homepage' },
+    { label: 'The Forum — reports & moderation', href: '/admin/reports' },
     { label: 'Host requests & attendance', href: '/admin/pre-launch' },
     { label: 'Accounts & the list (newsletter)', href: '/admin/subscribers' },
-    { label: 'Partners — directory (perks from launch)', href: '/admin/partners' },
+    { label: 'Partners — directory & reviews', href: '/admin/partners' },
     { label: 'FAQ — shown on the site', href: '/admin/faq' },
     { label: 'Journal & editorial', href: '/admin/journal' },
     { label: 'Credits, prices & launch settings', href: '/admin/settings' },
-    { label: 'Email previews', href: '/admin/emails' }
+    { label: 'Email previews (44 emails)', href: '/admin/emails' }
   ];
   const jobs = [
     { label: 'T-7 threshold check', last: 'Runs nightly at 06:00', key: 'threshold-decisions' },

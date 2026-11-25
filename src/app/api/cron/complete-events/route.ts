@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { event, booking, person, member, jobRun, auditLog } from "@/db/schema";
-import { eq, and, lt, inArray } from "drizzle-orm";
+import { eq, and, lt, inArray, sql } from "drizzle-orm";
 import { verifyCronAuth } from "@/lib/cron-auth";
 import { queueAndSendEmail } from "@/lib/brevo";
 import { getAppUrl } from "@/lib/urls";
@@ -64,6 +64,42 @@ export async function GET(req: NextRequest) {
         entityId: ev.id,
         after: { title: ev.title, endsAt: ev.endsAt },
       });
+
+      // Reward host if gathering with 3+ attendees (§10)
+      if (ev.isGathering && ev.gatheringHostPersonId) {
+        try {
+          const attendedBookings = await db
+            .select()
+            .from(booking)
+            .where(
+              and(
+                eq(booking.eventId, ev.id),
+                sql`booking.status = 'attended' OR booking.status = 'confirmed'`
+              )
+            );
+          if (attendedBookings.length >= 3) {
+            const host = await db.query.person.findFirst({
+              where: eq(person.id, ev.gatheringHostPersonId),
+            });
+            if (host?.email) {
+              const { sendGatheringRewardEmail } = await import("@/lib/brevo");
+              await sendGatheringRewardEmail({
+                personId: host.id,
+                email: host.email,
+                firstName: host.firstName || "Mother",
+                eventTitle: ev.title,
+                bookedCount: attendedBookings.length,
+                creditAdded: true,
+                rewardsTotal: 0.5,
+                gatheringsTotal: 1,
+                locale: host.locale as any || "en",
+              });
+            }
+          }
+        } catch (err) {
+          console.error("[complete-events] Error sending gathering reward email:", err);
+        }
+      }
 
       completed++;
     }

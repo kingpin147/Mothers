@@ -1928,9 +1928,9 @@ function EventCard({
           ) : isCancelled ? null : ev.userStatus?.isBooked ? (
             <span
               style={{
-                border: "1px solid rgba(86,139,5,0.45)",
-                backgroundColor: "rgba(86,139,5,0.08)",
-                color: "#456f04",
+                border: isPending ? "1px solid rgba(164,118,31,0.45)" : "1px solid rgba(86,139,5,0.45)",
+                backgroundColor: isPending ? "rgba(164,118,31,0.08)" : "rgba(86,139,5,0.08)",
+                color: isPending ? "#7a5612" : "#456f04",
                 padding: "8px 18px",
                 borderRadius: "4px",
                 fontFamily: "var(--font-heading)",
@@ -1940,7 +1940,9 @@ function EventCard({
                 display: "inline-block",
               }}
             >
-              {lang === "fr" ? "Réservée" : lang === "es" ? "Reservada" : "Booked"}
+              {isPending
+                ? (lang === "fr" ? "Place retenue" : lang === "es" ? "Plaza retenida" : "Place held")
+                : (lang === "fr" ? "Réservée" : lang === "es" ? "Reservada" : "Booked")}
             </span>
           ) : isHappeningNow ? (
             <button

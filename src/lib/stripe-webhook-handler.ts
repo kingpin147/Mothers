@@ -382,6 +382,19 @@ async function handleTopUpCheckout({
             const currentActive = activeCountRes[0]?.count || 0;
             if (ev.capacityMember > 0 && currentActive >= ev.capacityMember) {
               console.warn(`[Auto-Booking] Hold expired and event ${eventId} is at capacity. Keeping credits in wallet.`);
+              try {
+                const { sendEventFullWhilePayingEmail } = await import("@/lib/brevo");
+                await sendEventFullWhilePayingEmail({
+                  personId,
+                  email: personRecord.email,
+                  firstName: personRecord.firstName || "Member",
+                  eventTitle: ev.title,
+                  creditsAdded: creditAmount,
+                  locale: personRecord.locale || "en",
+                });
+              } catch (fullEmailErr) {
+                console.error("[Auto-Booking] Failed to send event full while paying email:", fullEmailErr);
+              }
               return;
             }
           }
@@ -578,27 +591,25 @@ async function handleMembershipCheckout({
     const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
     const clubSettings = await getPublicClubSettings();
 
-    const isQuarterly = mem.billingFrequency === "quarterly" || session?.metadata?.isQuarterly === "true";
-    const defaultMonthlyPrice = clubSettings.monthlyFeeCents ?? 3900;
-    const defaultQuarterlyPrice = clubSettings.quarterlyFeeCents ?? 9900;
-    
-    // P2-14: Plan credits ignore "credit life" in Settings
-    const creditLife = clubSettings.creditLifeMonths ?? 6;
+    const isAnnual =
+      mem.billingFrequency === "annual" ||
+      session?.metadata?.plan === "annual" ||
+      session?.metadata?.isQuarterly === "true"; // backwards compat
 
-    const creditsToConsume = parseInt(session?.metadata?.creditsToConsume || "0", 10);
+    // Tech Brief §17: 6-month life for granted credits
+    const creditLife = clubSettings.creditLifeMonths ?? 6;
 
     // 1. Activate member
     await tx.update(member).set({
       status: "active",
+      billingFrequency: isAnnual ? "annual" : "monthly",
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscriptionId,
       joinedAt: mem.joinedAt || new Date(),
       updatedAt: new Date(),
     }).where(eq(member.id, memberId));
 
-    // 2. We skip deducting credits here because route.ts already consumed them dynamically. (P2-03)
-
-    // 3. Record Payment in finance ledger matching actual breakdown from Stripe (P2-08)
+    // 2. Record Payment in finance ledger matching actual breakdown from Stripe
     const { stripe } = await import("@/lib/stripe");
     const realInvoiceId = (typeof session?.invoice === "string" ? session.invoice : session?.invoice?.id) || subscriptionId || null;
     let initialInvoiceLines: any[] = [];
@@ -613,12 +624,7 @@ async function handleMembershipCheckout({
 
     if (initialInvoiceLines.length > 0) {
       for (const line of initialInvoiceLines) {
-        let purpose = "other";
-        if (line.type === "subscription" || line.subscription) {
-          purpose = isQuarterly ? "subscription_quarterly" : "subscription_monthly";
-        } else if (line.description?.toLowerCase().includes("joining")) {
-          purpose = "joining_fee";
-        }
+        let purpose = isAnnual ? "subscription_annual" : "subscription_monthly";
         await tx.insert(payment).values({
           personId: mem.personId,
           purpose: purpose as any,
@@ -633,8 +639,8 @@ async function handleMembershipCheckout({
       // Fallback
       await tx.insert(payment).values({
         personId: mem.personId,
-        purpose: isQuarterly ? "subscription_quarterly" : "subscription_monthly",
-        amountCents: session?.amount_total || 3900,
+        purpose: (isAnnual ? "subscription_annual" : "subscription_monthly") as any,
+        amountCents: session?.amount_total || (isAnnual ? 6900 : 699),
         currency: "EUR",
         status: "succeeded",
         stripeInvoiceId: realInvoiceId,
@@ -642,29 +648,15 @@ async function handleMembershipCheckout({
       }).onConflictDoNothing();
     }
 
-    if (creditsToConsume > 0) {
-      const topUpUnitCents = clubSettings.topUpPriceCents ?? 200;
-      const discountCents = creditsToConsume * topUpUnitCents;
-      await tx.insert(payment).values({
-        personId: mem.personId,
-        purpose: "credit_discount",
-        amountCents: -discountCents,
-        currency: "EUR",
-        status: "succeeded",
-        stripeInvoiceId: realInvoiceId,
-        occurredAt: new Date(),
-      }).onConflictDoNothing();
-    }
-
-    // 4. Grant credits for initial cycle from settings (F-09)
-    const initialCredits = isQuarterly
-      ? (clubSettings.quarterlyCreditsGranted ?? 60)
-      : (clubSettings.monthlyCreditsGranted ?? 20);
+    // 3. Tech Brief §17: Grant 10 credits for Annual plan only; Monthly plan grants 0 credits
+    const initialCredits = isAnnual ? ((clubSettings as any).annualCredits ?? 10) : 0;
     
     const initialInvoiceId = typeof session?.invoice === "string" ? session.invoice : session?.invoice?.id || null;
     const initialPaymentIntentId = typeof session?.payment_intent === "string" ? session.payment_intent : session?.payment_intent?.id || null;
     
-    await grantCreditsToPerson(mem.personId, initialCredits, "subscription", creditLife, tx, initialInvoiceId, initialPaymentIntentId);
+    if (initialCredits > 0) {
+      await grantCreditsToPerson(mem.personId, initialCredits, "subscription", creditLife, tx, initialInvoiceId, initialPaymentIntentId);
+    }
 
     // 5. Godmother referral bonus (§10 / §A-03 / F-10): Grant only ONCE per person
     const godmotherPersonId =
@@ -702,42 +694,24 @@ async function handleMembershipCheckout({
     const appUrl = getAppUrl();
     const isEs = personRecord.locale === "es";
     const isFr = personRecord.locale === "fr";
-    const planName = isQuarterly
-      ? (isEs ? `Membresía Trimestral (€${defaultQuarterlyPrice / 100} / 3 meses)` : isFr ? `Adhésion trimestrielle (${defaultQuarterlyPrice / 100} € / 3 mois)` : `Quarterly Membership (€${defaultQuarterlyPrice / 100} / 3 months)`)
-      : (isEs ? `Membresía Mensual (€${defaultMonthlyPrice / 100} / mes)` : isFr ? `Adhésion mensuelle (${defaultMonthlyPrice / 100} € / mois)` : `Monthly Membership (€${defaultMonthlyPrice / 100} / month)`);
-    const priceStr = String(isQuarterly ? defaultQuarterlyPrice / 100 : defaultMonthlyPrice / 100);
+    const annualPrice = (clubSettings as any).memberAnnual ?? 6900;
+    const monthlyPrice = (clubSettings as any).memberMonthly ?? 699;
+    const planName = isAnnual
+      ? (isEs ? `Membresía Anual (€${annualPrice / 100} / año)` : isFr ? `Adhésion annuelle (${annualPrice / 100} € / an)` : `Annual Membership (€${annualPrice / 100} / year)`)
+      : (isEs ? `Membresía Mensual (€${monthlyPrice / 100} / mes)` : isFr ? `Adhésion mensuelle (${monthlyPrice / 100} € / mois)` : `Monthly Membership (€${monthlyPrice / 100} / month)`);
+    const priceStr = String(isAnnual ? annualPrice / 100 : monthlyPrice / 100);
     const firstPaymentStr = String(session?.amount_total ? session.amount_total / 100 : priceStr);
 
-    const renderedWelcome = renderEmailTemplate(
-      "Email - Welcome To Membership",
-      {
-        first_name: personRecord.firstName || "Member",
-        plan: planName,
-        price: priceStr,
-        first_payment: firstPaymentStr,
-        credits: String(initialCredits),
-        next_date: isQuarterly ? "3 months" : "1 month",
-        events_url: `${appUrl}/events`,
-      },
-      personRecord.locale
-    );
-
-    await queueAndSendEmail({
+    const { sendWelcomeToMembershipEmail } = await import("@/lib/brevo");
+    await sendWelcomeToMembershipEmail({
       personId: mem.personId,
-      toEmail: personRecord.email,
-      toName: `${personRecord.firstName || ""} ${personRecord.lastName || ""}`.trim() || "Member",
-      templateKey: "welcome_confirmation",
-      dedupeKey: `member_welcome_${memberId}`,
-      subject: renderedWelcome.subject && renderedWelcome.subject !== "The Mothers" ? renderedWelcome.subject : (isEs ? "Bienvenida a The Mothers — tu membresía está confirmada" : "Welcome to The Mothers — your membership is confirmed"),
-      htmlContent: renderedWelcome.html || generateSubscriptionConfirmationEmailHtml({
-        firstName: personRecord.firstName,
-        planName,
-        creditsGranted: initialCredits,
-        appUrl,
-        isEs,
-      }),
-      isTransactional: true,
-    });
+      email: personRecord.email,
+      firstName: personRecord.firstName || "Member",
+      planName,
+      price: isAnnual ? annualPrice / 100 : monthlyPrice / 100,
+      credits: initialCredits,
+      locale: personRecord.locale,
+    }).catch((err) => console.error("[handleMembershipCheckout] Error sending welcome email:", err));
 
     // 7. Audit Log & Mark stripeEvent done atomically
     await tx.insert(auditLog).values({
@@ -794,24 +768,25 @@ async function handleInvoicePaymentSucceeded({
     const { getPublicClubSettings } = await import("@/app/actions/adminSettings");
     const clubSettings = await getPublicClubSettings();
 
-    const isQuarterly = memberRecord.billingFrequency === "quarterly";
-    const renewalCredits = isQuarterly
-      ? (clubSettings.quarterlyCreditsGranted ?? 60)
-      : (clubSettings.monthlyCreditsGranted ?? 20);
+    const isAnnual =
+      memberRecord.billingFrequency === "annual" ||
+      invoice.lines?.data?.[0]?.price?.recurring?.interval === "year";
 
-    // P2-14: Plan credits ignore "credit life" in Settings
+    // Tech Brief §17: 10 credits granted on each paid invoice for Annual plan only; Monthly plan grants 0 credits
+    const renewalCredits = isAnnual ? ((clubSettings as any).annualCredits ?? 10) : 0;
+
+    // Tech Brief §17: 6-month life for granted credits
     const creditLife = clubSettings.creditLifeMonths ?? 6;
 
     // 1. Record payment in ledger from actual line items
-    // P2-09: Renewal lines can be booked as "joining fee"
     const lines = invoice.lines?.data || [];
     if (lines.length === 0) {
       await tx
         .insert(payment)
         .values({
           personId: memberRecord.personId,
-          purpose: isQuarterly ? "subscription_quarterly" : "subscription_monthly",
-          amountCents: invoice.amount_paid || (isQuarterly ? 9900 : 3900),
+          purpose: isAnnual ? "subscription_annual" : "subscription_monthly",
+          amountCents: invoice.amount_paid || (isAnnual ? 6900 : 699),
           currency: (invoice.currency || "eur").toUpperCase(),
           status: "succeeded",
           stripeInvoiceId: invoice.id,
@@ -820,12 +795,7 @@ async function handleInvoicePaymentSucceeded({
         .onConflictDoNothing();
     } else {
       for (const line of lines) {
-        let purpose = "other";
-        if (line.type === "subscription" || line.subscription) {
-          purpose = isQuarterly ? "subscription_quarterly" : "subscription_monthly";
-        } else if (line.description?.toLowerCase().includes("proration")) {
-          purpose = "proration";
-        }
+        let purpose = isAnnual ? "subscription_annual" : "subscription_monthly";
         await tx
           .insert(payment)
           .values({
@@ -841,15 +811,17 @@ async function handleInvoicePaymentSucceeded({
       }
     }
 
-    // 2. Grant credits to FIFO wallet for renewal
-    const invoiceId = invoice.id || null;
-    const paymentIntentId = invoice.payment_intent || null;
-    await grantCreditsToPerson(memberRecord.personId, renewalCredits, "subscription", creditLife, tx, invoiceId, paymentIntentId);
+    // 2. Grant credits to FIFO wallet for renewal (Annual only)
+    if (renewalCredits > 0) {
+      const invoiceId = invoice.id || null;
+      const paymentIntentId = invoice.payment_intent || null;
+      await grantCreditsToPerson(memberRecord.personId, renewalCredits, "subscription", creditLife, tx, invoiceId, paymentIntentId);
+    }
 
     // 3. Advance billing period end
     const nextPeriodEnd = invoice.lines?.data?.[0]?.period?.end
       ? new Date(invoice.lines.data[0].period.end * 1000)
-      : new Date(Date.now() + (isQuarterly ? 90 : 30) * 24 * 60 * 60 * 1000);
+      : new Date(Date.now() + (isAnnual ? 365 : 30) * 24 * 60 * 60 * 1000);
 
     await tx
       .update(member)

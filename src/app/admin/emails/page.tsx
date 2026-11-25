@@ -13,35 +13,51 @@ interface EmailTemplateDef {
   when: string;
 }
 
-const ALL_28_EMAILS: EmailTemplateDef[] = [
+const ALL_44_EMAILS: EmailTemplateDef[] = [
+  { baseName: "Email - Welcome", name: "Welcome", when: "Right after a mother opens her account (free)" },
+  { baseName: "Email - Gathering Tomorrow", name: "Gathering Tomorrow", when: "To the mother who organises a gathering, the day before: who is coming" },
+  { baseName: "Email - Gathering Reward", name: "Gathering Reward", when: "A gathering took place with 3+ mothers (every 2 = +1 credit)" },
+  { baseName: "Email - Community Monthly Statement", name: "Community Monthly Statement", when: "1st of each month, to every community / workshop: bookings, commission, free-event fees, invoice" },
+  { baseName: "Email - Membership Renews Soon", name: "Membership Renews Soon", when: "Annual members, 14 days before renewal (OFF until membership is on)" },
+  { baseName: "Email - Membership Payment Failed", name: "Membership Payment Failed", when: "A membership renewal payment failed (OFF until membership is on)" },
+  { baseName: "Email - Forum Post Removed", name: "Forum Post Removed", when: "The team hides one of her Forum posts or replies after a report" },
+  { baseName: "Email - Event Submitted", name: "Event Submitted", when: "A mother creates a gathering from My Account (checked first, or live straight away)" },
+  { baseName: "Email - New Event To Check", name: "New Event To Check", when: "Team alert: one of a mother’s first two gatherings is waiting for approval" },
+  { baseName: "Email - Organiser Request Received", name: "Organiser Request Received", when: "A community, studio or one-to-one service sends the request form" },
+  { baseName: "Email - Organiser Approved", name: "Organiser Approved", when: "Admin approves a community or studio (Community space access)" },
+  { baseName: "Email - Organiser Request Declined", name: "Organiser Request Declined", when: "Admin declines a request" },
+  { baseName: "Email - Organiser Event Reviewed", name: "Organiser Event Reviewed", when: "Admin approves or declines one of an organiser’s first events" },
+  { baseName: "Email - Partner Listing Live", name: "Partner Listing Live", when: "Admin approves a one-to-one service (Partner listing + payment)" },
+  { baseName: "Email - Partner Monthly Invoice", name: "Partner Monthly Invoice", when: "Commission Partners: monthly invoice from declared first visits" },
+  { baseName: "Email - Event Full While Paying", name: "Event Full While Paying", when: "She topped up to book, but the last place went during payment" },
+  { baseName: "Email - New Message", name: "New Message", when: "A private message unread for 2 hours (max once a day per conversation; can be turned off in My Account)" },
+  { baseName: "Email - New Reply", name: "New Reply", when: "Every reply to her own The Forum post, and to posts she follows (unless turned off in My Account)" },
   { baseName: "Email - Receipt", name: "Receipt", when: "Every card payment (top-ups, subscriptions)" },
-  { baseName: "Email - Booking Confirmation", name: "Booking Confirmation", when: "Every booking — with meeting point & calendar invite" },
-  { baseName: "Email - Meeting-Point Reminder", name: "Meeting-Point Reminder", when: "24–36 h before the event" },
   { baseName: "Email - Place Still Open", name: "Place Still Open", when: "24 h after she left Top Up without booking" },
+  { baseName: "Email - Waitlist Place Open", name: "Waitlist Place Open", when: "A place frees up on a full event — first in line (12 h), or everyone waiting when it’s within 24 h" },
   { baseName: "Email - After Your First Event", name: "After Your First Event", when: "The morning after her first attended event" },
   { baseName: "Email - Event Cancelled", name: "Event Cancelled", when: "The team cancels an event — credits back" },
   { baseName: "Email - Credits Expiring", name: "Credits Expiring", when: "30 days and 7 days before credits expire" },
-  { baseName: "Email - Location Confirmed", name: "Location Confirmed", when: "When you set the real area for an event" },
-  { baseName: "Email - Minimum Not Reached", name: "Minimum Not Reached", when: "To the team, T-2 days before event" },
-  { baseName: "Email - Welcome To Membership", name: "Welcome To Membership", when: "After Subscribe to membership" },
   { baseName: "Email - Membership Is Open", name: "Membership Is Open", when: "Once, when you switch membership on" },
-  { baseName: "Email - Membership Paused", name: "Membership Paused", when: "She pauses membership" },
-  { baseName: "Email - Membership Resumed", name: "Membership Resumed", when: "She resumes, or the pause ends" },
-  { baseName: "Email - Membership Cancelled", name: "Membership Cancelled", when: "She cancels membership" },
-  { baseName: "Email - Godmother Credited", name: "Godmother Credited", when: "Her referral becomes a member" },
+  { baseName: "Email - Booking Confirmation", name: "Booking Confirmation", when: "Every booking — with meeting point" },
+  { baseName: "Email - Meeting-Point Reminder", name: "Meeting-Point Reminder", when: "24 h before the event" },
+  { baseName: "Email - Verify Your Email", name: "Verify Your Email", when: "Before her first payment" },
+  { baseName: "Email - Password Reset", name: "Password Reset", when: "Forgot password — link valid 1 hour" },
   { baseName: "Email - Host Request Received", name: "Host Request Received", when: "She clicks “Host this”" },
   { baseName: "Email - Host Request Accepted", name: "Host Request Accepted", when: "Team accepts on the Pre-launch desk" },
-  { baseName: "Email - Host Request Declined", name: "Host Request Declined", when: "Team declines host request" },
+  { baseName: "Email - Host Request Declined", name: "Host Request Declined", when: "Team declines" },
   { baseName: "Email - Host Thank You", name: "Host Thank You", when: "Event marked as run" },
-  { baseName: "Email - Host Cancelled", name: "Host Cancelled", when: "A host cancels her host assignment" },
-  { baseName: "Email - Verify Your Email", name: "Verify Your Email", when: "Before her first payment / signup verification code" },
-  { baseName: "Email - Password Reset", name: "Password Reset", when: "Forgot password — link valid 1 hour" },
-  { baseName: "Email - Account Suspended", name: "Account Suspended", when: "Team suspends account" },
+  { baseName: "Email - Minimum Not Reached", name: "Minimum Not Reached", when: "To the team, T-2 days" },
+  { baseName: "Email - Welcome To Membership", name: "Welcome To Membership", when: "After Subscribe" },
+  { baseName: "Email - Membership Paused", name: "Membership Paused", when: "She pauses" },
+  { baseName: "Email - Membership Cancelled", name: "Membership Cancelled", when: "She cancels" },
+  { baseName: "Email - Godmother Credited", name: "Godmother Credited", when: "Her referral becomes a member" },
+  { baseName: "Email - Account Deleted", name: "Account Deleted", when: "She deletes her account — confirmation to her" },
+  { baseName: "Email - Account Suspended", name: "Account Suspended", when: "Team suspends" },
+  { baseName: "Email - Membership Resumed", name: "Membership Resumed", when: "She resumes, or the pause ends" },
   { baseName: "Email - Account Reinstated", name: "Account Reinstated", when: "Team lifts a suspension" },
-  { baseName: "Email - Account Deleted", name: "Account Deleted", when: "She deletes her own account in My Account" },
-  { baseName: "Email - Waitlist Place Open", name: "Waitlist Place Open", when: "A place frees up on a full event for waitlist" },
-  { baseName: "Email - New Reply", name: "New Reply", when: "Someone replies to her post or thread she follows" },
-  { baseName: "Email - New Message", name: "New Message", when: "Another mother sends her a private message (DMs)" },
+  { baseName: "Email - Host Cancelled", name: "Host Cancelled", when: "A host cancels" },
+  { baseName: "Email - Location Confirmed", name: "Location Confirmed", when: "Team sets the area of a “To be confirmed” event — to every mother booked" },
 ];
 
 const SAMPLE_MOCK_DATA: Record<string, any> = {
@@ -97,9 +113,11 @@ const SAMPLE_MOCK_DATA: Record<string, any> = {
   host_again_line: "You can host again anytime from your account.",
   host_url: "https://themothers.cc/host",
   discount: "10%",
-  first_payment: "€39",
-  monthly_fee: "€39",
-  monthly_credits: "10",
+  first_payment: "€6.99",
+  monthly_fee: "€6.99",
+  annual_fee: "€69",
+  monthly_credits: "0",
+  annual_credits: "10",
   attendee_count: "8",
   attendee_names: "Elena, Camille, Sophie, Maria, Laura",
   met_first_names: "Camille, Sophie and Maria",
@@ -116,14 +134,14 @@ export default function AdminEmailsPage() {
   const [loadingHtml, setLoadingHtml] = useState<boolean>(true);
 
   const filteredEmails = useMemo(() => {
-    if (!searchQuery.trim()) return ALL_28_EMAILS;
+    if (!searchQuery.trim()) return ALL_44_EMAILS;
     const q = searchQuery.toLowerCase().trim();
-    return ALL_28_EMAILS.filter(
+    return ALL_44_EMAILS.filter(
       (e) => e.name.toLowerCase().includes(q) || e.when.toLowerCase().includes(q)
     );
   }, [searchQuery]);
 
-  const cur = filteredEmails[selectedIndex] || filteredEmails[0] || ALL_28_EMAILS[0];
+  const cur = filteredEmails[selectedIndex] || filteredEmails[0] || ALL_44_EMAILS[0];
 
   const currentFilename = useMemo(() => {
     const ext = selectedLang === "es" ? ".es.html" : selectedLang === "fr" ? ".fr.html" : ".html";
@@ -286,7 +304,7 @@ export default function AdminEmailsPage() {
 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "0 2px" }}>
               <span style={{ fontSize: "11.5px", letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(57,41,42,0.66)" }}>
-                Templates · {filteredEmails.length} of {ALL_28_EMAILS.length}
+                Templates · {filteredEmails.length} of {ALL_44_EMAILS.length}
               </span>
               <span style={{ fontSize: "11.5px", color: "rgba(57,41,42,0.5)" }}>
                 Showing: {currentFilename}

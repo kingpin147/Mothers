@@ -149,11 +149,10 @@ export function Navigation() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [mobileMenuOpen]);
 
-  // Nav links per pre-membership page map
+  // Nav links matching SiteHeader.dc.html
   const navLinks = [
-    { href: "/membership", labelEn: "Membership", labelEs: "Membresía", labelFr: "Adhésion" },
     { href: "/events", labelEn: "Events", labelEs: "Eventos", labelFr: "Événements" },
-    { href: "/lagazette", labelEn: "La Gazette", labelEs: "La Gazette", labelFr: "La Gazette" },
+    { href: "/forum", labelEn: "The Forum", labelEs: "El Foro", labelFr: "Le Forum" },
   ];
 
   const isEventsPage = pathname?.startsWith("/events");
@@ -166,6 +165,8 @@ export function Navigation() {
           position: "sticky",
           top: 0,
           zIndex: 1000,
+          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+          transition: "transform 0.25s ease",
         }}
       >
         <header
@@ -234,9 +235,11 @@ export function Navigation() {
                   href={link.href}
                   style={{
                     color: isActive ? "#7b1f2c" : "var(--color-text, #39292a)",
-                    fontSize: "15.5px",
+                    fontSize: "15px",
                     fontWeight: isActive ? 600 : 400,
                     textDecoration: "none",
+                    borderBottom: isActive ? "1px solid #7b1f2c" : "1px solid transparent",
+                    paddingBottom: "2px",
                     fontFamily: "'Lora', Georgia, serif",
                   }}
                 >
@@ -244,6 +247,40 @@ export function Navigation() {
                 </Link>
               );
             })}
+
+            {/* Pill button: For communities */}
+            <Link
+              href="/partner-apply"
+              style={{
+                fontSize: "14px",
+                color: "#7b1f2c",
+                border: "1px solid rgba(123, 31, 44, 0.45)",
+                borderRadius: "14px",
+                padding: "3px 11px",
+                whiteSpace: "nowrap",
+                textDecoration: "none",
+                fontFamily: "'Lora', Georgia, serif",
+                transition: "background 0.15s ease",
+              }}
+            >
+              {lang === "fr" ? "Pour les communautés" : lang === "es" ? "Para comunidades" : "For communities"}
+            </Link>
+
+            {/* Link: Become a member */}
+            <Link
+              href="/membership"
+              style={{
+                color: pathname === "/membership" ? "#7b1f2c" : "var(--color-text, #39292a)",
+                fontSize: "15px",
+                fontWeight: pathname === "/membership" ? 600 : 400,
+                textDecoration: "none",
+                borderBottom: pathname === "/membership" ? "1px solid #7b1f2c" : "1px solid transparent",
+                paddingBottom: "2px",
+                fontFamily: "'Lora', Georgia, serif",
+              }}
+            >
+              {lang === "fr" ? "Devenir membre" : lang === "es" ? "Hazte socia" : "Become a member"}
+            </Link>
 
             {/* 3-Language Toggle EN · ES · FR */}
             <div
@@ -486,12 +523,13 @@ export function Navigation() {
             boxSizing: "border-box",
           }}
         >
-          {/* Main Links: Membership, Events, La Gazette, Login / My Account */}
+          {/* Main Links: Events, The Forum, For communities, Become a member, Login / My Account */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             {[
-              { href: "/membership", label: lang === "fr" ? "Adhésion" : lang === "es" ? "Membresía" : "Membership" },
               { href: "/events", label: lang === "fr" ? "Événements" : lang === "es" ? "Eventos" : "Events" },
-              { href: "/lagazette", label: "La Gazette" },
+              { href: "/forum", label: lang === "fr" ? "Le Forum" : lang === "es" ? "El Foro" : "The Forum" },
+              { href: "/partner-apply", label: lang === "fr" ? "Pour les communautés" : lang === "es" ? "Para comunidades" : "For communities" },
+              { href: "/membership", label: lang === "fr" ? "Devenir membre" : lang === "es" ? "Hazte socia" : "Become a member" },
               session?.user
                 ? { href: "/account", label: lang === "fr" ? "Mon Compte" : lang === "es" ? "Mi Cuenta" : "My Account" }
                 : { href: "/account/login", label: lang === "fr" ? "Connexion" : lang === "es" ? "Acceder" : "Login" },

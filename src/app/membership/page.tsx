@@ -6,13 +6,13 @@ import { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Private Membership for Mothers in Barcelona | The Mothers",
+  title: "Membership | The Mothers",
   description:
-    "Join The Mothers Barcelona private members club. Enjoy credit-based booking for curated gatherings, supportive stage groups, and exclusive partner privileges.",
+    "Join The Mothers. Enjoy partner perks, members-only gatherings, and unlimited posting in The Forum — from €6.99 a month.",
   openGraph: {
-    title: "Private Membership for Mothers in Barcelona | The Mothers",
+    title: "Membership | The Mothers",
     description:
-      "Join The Mothers Barcelona private members club. Enjoy credit-based booking for curated gatherings, supportive stage groups, and exclusive partner privileges.",
+      "Join The Mothers. Enjoy partner perks, members-only gatherings, and unlimited posting in The Forum — from €6.99 a month.",
     url: "https://themothers.cc/membership",
     siteName: "The Mothers",
     images: [

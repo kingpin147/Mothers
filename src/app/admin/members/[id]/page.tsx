@@ -376,9 +376,8 @@ export default function MemberRecordPage({ params }: { params: Promise<{ id: str
               <div style={{ display: "flex", flexDirection: "column" }}>
                 {[
                   { k: "Plan", v: "None yet — pays per event in credits", color: "rgba(57,41,42,0.72)" },
-                  { k: "Joining fee at launch", v: member.createdBeforeLaunch !== false ? "Waived (opened before launch)" : "Standard", color: member.createdBeforeLaunch !== false ? GREEN : "rgba(57,41,42,0.72)" },
                   { k: "Newsletter", v: member.marketingOptIn ? "On the list" : "Not subscribed", color: "rgba(57,41,42,0.72)" },
-                  { k: "Membership", v: "Can join from January 2027", color: "rgba(57,41,42,0.72)" },
+                  { k: "Membership", v: "Can join once membership opens", color: "rgba(57,41,42,0.72)" },
                 ].map((r, i) => (
                   <div key={i} style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px", justifyContent: "space-between", alignItems: "baseline", padding: "9px 0", borderTop: i > 0 ? "1px solid rgba(57,41,42,0.1)" : "none", fontSize: "13.5px" }}>
                     <span>{r.k}</span>

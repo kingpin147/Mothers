@@ -1527,6 +1527,35 @@ export async function sendAccountWelcomeEmail(params: {
   email: string;
   firstName: string;
   planName?: string;
+  nextEventTitle?: string;
+  nextEventDate?: string;
+  locale?: string | null;
+}) {
+  const firstName = params.firstName || "there";
+  const rendered = renderEmailTemplate("Email - Welcome", {
+    first_name: firstName,
+    next_event_title: params.nextEventTitle || "Upcoming gatherings",
+    next_event_date: params.nextEventDate || "This week",
+    account_url: "https://themothers.cc/events",
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: firstName,
+    templateKey: "welcome_free_account",
+    dedupeKey: `welcome_${params.personId}_${Date.now()}`,
+    subject: rendered.subject || `Welcome to The Mothers, ${firstName}`,
+    htmlContent: rendered.html || `<p>Welcome to The Mothers, ${firstName}! Your account is open.</p>`,
+    isTransactional: true,
+  });
+}
+
+export async function sendWelcomeToMembershipEmail(params: {
+  personId: string;
+  email: string;
+  firstName: string;
+  planName?: string;
   price?: number;
   credits?: number;
   locale?: string | null;
@@ -1534,11 +1563,11 @@ export async function sendAccountWelcomeEmail(params: {
   const firstName = params.firstName || "Member";
   const rendered = renderEmailTemplate("Email - Welcome To Membership", {
     first_name: firstName,
-    plan: params.planName || "Free Account",
-    price: params.price ? String(params.price) : "0",
-    first_payment: "0",
-    credits: params.credits ? String(params.credits) : "0",
-    next_date: "—",
+    plan: params.planName || "Annual Membership",
+    price: params.price ? String(params.price) : "69",
+    first_payment: params.price ? String(params.price) : "69",
+    credits: params.credits ? String(params.credits) : "10",
+    next_date: "1 year from today",
     events_url: "https://themothers.cc/events",
   }, params.locale);
 
@@ -1546,10 +1575,10 @@ export async function sendAccountWelcomeEmail(params: {
     personId: params.personId,
     toEmail: params.email,
     toName: firstName,
-    templateKey: "welcome_confirmation",
-    dedupeKey: `welcome_${params.personId}_${Date.now()}`,
-    subject: rendered.subject || `Welcome to the club, ${firstName}`,
-    htmlContent: rendered.html || `<p>Welcome to The Mothers, ${firstName}! Your account is open.</p>`,
+    templateKey: "welcome_membership",
+    dedupeKey: `welcome_member_${params.personId}_${Date.now()}`,
+    subject: rendered.subject || `Welcome to membership, ${firstName}`,
+    htmlContent: rendered.html || `<p>Welcome to The Mothers membership, ${firstName}!</p>`,
     isTransactional: true,
   });
 }
@@ -1651,6 +1680,275 @@ export async function sendNewPrivateMessageEmail(params: {
     templateKey: "new_private_message",
     dedupeKey: `new_pm_${params.personId}_${Date.now()}`,
     subject: rendered.subject || `New message from ${params.senderFirstName} — The Mothers`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendOrganiserRequestReceivedEmail(params: {
+  email: string;
+  contactName: string;
+  orgName: string;
+  orgKind: string;
+  locale?: string | null;
+}) {
+  const rendered = renderEmailTemplate("Email - Organiser Request Received", {
+    contact_name: params.contactName,
+    org_name: params.orgName,
+    org_kind: params.orgKind,
+    account_url: "https://themothers.cc/partner-portal",
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: null,
+    toEmail: params.email,
+    toName: params.contactName,
+    templateKey: "organiser_request_received",
+    dedupeKey: `org_req_recv_${params.email}_${Date.now()}`,
+    subject: rendered.subject || `Thank you, ${params.contactName} — we have your request`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendOrganiserApprovedEmail(params: {
+  email: string;
+  orgName: string;
+  commission: number;
+  reviewFirst?: number;
+  minFee?: number;
+  locale?: string | null;
+}) {
+  const rendered = renderEmailTemplate("Email - Organiser Approved", {
+    org_name: params.orgName,
+    commission: String(params.commission),
+    review_first: String(params.reviewFirst ?? 2),
+    min_fee: String(params.minFee ?? 1),
+    account_url: "https://themothers.cc/partner-portal",
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: null,
+    toEmail: params.email,
+    toName: params.orgName,
+    templateKey: "organiser_approved",
+    dedupeKey: `org_approved_${params.email}_${Date.now()}`,
+    subject: rendered.subject || `Welcome to The Mothers, ${params.orgName}`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendOrganiserRequestDeclinedEmail(params: {
+  email: string;
+  contactName: string;
+  orgName: string;
+  reason?: string;
+  locale?: string | null;
+}) {
+  const rendered = renderEmailTemplate("Email - Organiser Request Declined", {
+    contact_name: params.contactName,
+    org_name: params.orgName,
+    reason: params.reason || "We are focusing on specific categories at this stage.",
+    account_url: "https://themothers.cc",
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: null,
+    toEmail: params.email,
+    toName: params.contactName,
+    templateKey: "organiser_declined",
+    dedupeKey: `org_declined_${params.email}_${Date.now()}`,
+    subject: rendered.subject || `Thank you for thinking of us, ${params.contactName}`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendForumPostRemovedEmail(params: {
+  personId: string;
+  email: string;
+  firstName: string;
+  postKind: "post" | "reply";
+  postDate: string;
+  reason: string;
+  postExcerpt: string;
+  locale?: string | null;
+}) {
+  const rendered = renderEmailTemplate("Email - Forum Post Removed", {
+    first_name: params.firstName,
+    post_kind: params.postKind,
+    post_date: params.postDate,
+    reason: params.reason,
+    post_excerpt: params.postExcerpt,
+    account_url: "https://themothers.cc/terms",
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: params.firstName,
+    templateKey: "forum_post_removed",
+    dedupeKey: `forum_post_removed_${params.personId}_${Date.now()}`,
+    subject: rendered.subject || `About your post in The Forum, ${params.firstName}`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendEventSubmittedEmail(params: {
+  personId: string;
+  email: string;
+  firstName: string;
+  eventTitle: string;
+  eventDate: string;
+  neighbourhood: string;
+  isLive: boolean;
+  locale?: string | null;
+}) {
+  const rendered = renderEmailTemplate("Email - Event Submitted", {
+    first_name: params.firstName,
+    live: params.isLive,
+    event_title: params.eventTitle,
+    event_date: params.eventDate,
+    neighbourhood: params.neighbourhood,
+    account_url: "https://themothers.cc/account",
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: params.firstName,
+    templateKey: "event_submitted",
+    dedupeKey: `event_submitted_${params.personId}_${Date.now()}`,
+    subject: rendered.subject || `Thank you, ${params.firstName} — we have your gathering`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendNewEventToCheckEmail(params: {
+  creatorName: string;
+  creatorEmail: string;
+  eventTitle: string;
+  eventDate: string;
+  eventTime: string;
+  neighbourhood: string;
+  spots: number;
+}) {
+  const rendered = renderEmailTemplate("Email - New Event To Check", {
+    first_name: params.creatorName,
+    email: params.creatorEmail,
+    event_title: params.eventTitle,
+    event_date: params.eventDate,
+    time: params.eventTime,
+    neighbourhood: params.neighbourhood,
+    spots: String(params.spots),
+    account_url: "https://themothers.cc/admin/events",
+  }, "en");
+
+  return queueAndSendEmail({
+    personId: null,
+    toEmail: "hello@themothers.cc",
+    toName: "The Mothers Team",
+    templateKey: "team_alert_new_event_to_check",
+    dedupeKey: `team_check_event_${params.eventTitle}_${Date.now()}`,
+    subject: rendered.subject || `New gathering to check — ${params.eventTitle}`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendGatheringTomorrowEmail(params: {
+  personId: string;
+  email: string;
+  firstName: string;
+  eventTitle: string;
+  bookedCount: number;
+  attendeeFirstNames: string;
+  eventDate: string;
+  eventTime: string;
+  meetingPoint: string;
+  locale?: string | null;
+}) {
+  const rendered = renderEmailTemplate("Email - Gathering Tomorrow", {
+    first_name: params.firstName,
+    event_title: params.eventTitle,
+    booked: String(params.bookedCount),
+    attendee_first_names: params.attendeeFirstNames,
+    event_date: params.eventDate,
+    event_time: params.eventTime,
+    meeting_point: params.meetingPoint,
+    account_url: "https://themothers.cc/account",
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: params.firstName,
+    templateKey: "gathering_tomorrow",
+    dedupeKey: `gathering_tomorrow_${params.personId}_${Date.now().toString().slice(0, 7)}`,
+    subject: rendered.subject || `Your gathering is tomorrow, ${params.firstName}`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendGatheringRewardEmail(params: {
+  personId: string;
+  email: string;
+  firstName: string;
+  eventTitle: string;
+  bookedCount: number;
+  creditAdded: boolean;
+  rewardsTotal: number;
+  gatheringsTotal: number;
+  locale?: string | null;
+}) {
+  const rendered = renderEmailTemplate("Email - Gathering Reward", {
+    first_name: params.firstName,
+    event_title: params.eventTitle,
+    booked: String(params.bookedCount),
+    credit_added: params.creditAdded,
+    rewards_total: String(params.rewardsTotal),
+    gatherings_total: String(params.gatheringsTotal),
+    account_url: "https://themothers.cc/account",
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: params.firstName,
+    templateKey: "gathering_reward",
+    dedupeKey: `gathering_reward_${params.personId}_${Date.now()}`,
+    subject: rendered.subject || `Thank you for bringing mothers together, ${params.firstName}`,
+    htmlContent: rendered.html,
+    isTransactional: true,
+  });
+}
+
+export async function sendEventFullWhilePayingEmail(params: {
+  personId: string;
+  email: string;
+  firstName: string;
+  eventTitle: string;
+  creditsAdded: number;
+  locale?: string | null;
+}) {
+  const rendered = renderEmailTemplate("Email - Event Full While Paying", {
+    first_name: params.firstName,
+    event_title: params.eventTitle,
+    credits: String(params.creditsAdded),
+    account_url: "https://themothers.cc/events",
+  }, params.locale);
+
+  return queueAndSendEmail({
+    personId: params.personId,
+    toEmail: params.email,
+    toName: params.firstName,
+    templateKey: "event_full_while_paying",
+    dedupeKey: `full_paying_${params.personId}_${Date.now()}`,
+    subject: rendered.subject || `Your credits are in your wallet — The Mothers`,
     htmlContent: rendered.html,
     isTransactional: true,
   });

@@ -73,6 +73,9 @@ export async function getPublicEvents() {
           cancellationWindowHours: event.cancellationWindowHours,
           nonMemberOpensAt: event.nonMemberOpensAt,
           isRan: event.isRan,
+          googleMapsUrl: event.googleMapsUrl,
+          isGathering: event.isGathering,
+          featured: event.featured,
           imageId: event.imageId,
           imageUrl: mediaAsset.publicUrl,
         })
@@ -429,6 +432,9 @@ export async function getPublicEventById(rawId: string) {
         cancellationWindowHours: event.cancellationWindowHours,
         nonMemberOpensAt: event.nonMemberOpensAt,
         isRan: event.isRan,
+        googleMapsUrl: event.googleMapsUrl,
+        isGathering: event.isGathering,
+        featured: event.featured,
         imageId: event.imageId,
         imageUrl: mediaAsset.publicUrl,
       })

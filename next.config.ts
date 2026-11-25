@@ -14,7 +14,22 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/gazette",
-        destination: "/lagazette",
+        destination: "/forum",
+        permanent: true,
+      },
+      {
+        source: "/lagazette",
+        destination: "/forum",
+        permanent: true,
+      },
+      {
+        source: "/lagazette/:slug*",
+        destination: "/forum/:slug*",
+        permanent: true,
+      },
+      {
+        source: "/legal",
+        destination: "/terms",
         permanent: true,
       },
     ];

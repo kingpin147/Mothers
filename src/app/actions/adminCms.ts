@@ -1928,12 +1928,21 @@ export async function adminDeleteAccountGDPR(personId: string) {
     }
   }
 
-  // 1. Anonymize circle posts and delete attached photos
+  const rawNeighbourhood = memberRecord?.neighbourhood || personRecord?.profileData?.neighbourhood;
+  const userNeighbourhood =
+    rawNeighbourhood &&
+    rawNeighbourhood !== "Outside Barcelona" &&
+    rawNeighbourhood !== "Other" &&
+    rawNeighbourhood !== "To be confirmed"
+      ? rawNeighbourhood
+      : "The Mothers";
+
+  // 1. Anonymize circle posts and delete attached photos (Tech Brief §21 / C-03: Signed in her neighbourhood)
   await db
     .update(circlePost)
     .set({
       isAnonymous: true,
-      anonymousArea: "Barcelona",
+      anonymousArea: userNeighbourhood,
       photos: [],
       updatedAt: new Date(),
     })
@@ -1944,7 +1953,7 @@ export async function adminDeleteAccountGDPR(personId: string) {
     .update(circleReply)
     .set({
       isAnonymous: true,
-      anonymousArea: "Barcelona",
+      anonymousArea: userNeighbourhood,
       updatedAt: new Date(),
     })
     .where(eq(circleReply.personId, personId));
