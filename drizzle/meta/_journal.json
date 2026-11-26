@@ -57,6 +57,13 @@
       "when": 1790654616884,
       "tag": "0007_uneven_iron_man",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795764250000,
+      "tag": "0008_scale_performance_indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -181,7 +181,11 @@ export const member = pgTable(
     atRiskSince: timestamp("at_risk_since", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  }
+  },
+  (table) => [
+    index("idx_member_stripe_customer_sub").on(table.stripeCustomerId, table.stripeSubscriptionId),
+    index("idx_member_status").on(table.status),
+  ]
 );
 
 export const adminUser = pgTable(
@@ -426,7 +430,10 @@ export const payment = pgTable(
     failureCode: text("failure_code"),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  }
+  },
+  (table) => [
+    index("idx_payment_person_occurred").on(table.personId, table.occurredAt),
+  ]
 );
 
 export const godmotherReferral = pgTable(
@@ -593,7 +600,11 @@ export const auditLog = pgTable(
     after: jsonb("after"),
     ip: text("ip"),
     at: timestamp("at", { withTimezone: true }).defaultNow().notNull(),
-  }
+  },
+  (table) => [
+    index("idx_audit_log_entity").on(table.entity, table.entityId),
+    index("idx_audit_log_at").on(table.at),
+  ]
 );
 
 export const consentRecord = pgTable(
